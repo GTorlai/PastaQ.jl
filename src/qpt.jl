@@ -91,67 +91,89 @@ function SetMPO(mpo::MPO,A_list)
 end
 
 function Normalization(mpo::MPO;choi::Bool=false)
-    # Site 1
-    norm = dag(mpo[1]) * prime(mpo[1],"link");
-    for j in 2:N-1
-        norm = norm * dag(mpo[j]);
-        norm = norm * prime(mpo[j],"link")
-    end
-    norm = norm * dag(mpo[length(mpo)]);
-    norm = norm * prime(mpo[length(mpo)],"link")
-    if choi
-      norm = real(norm[]) / 2^length(mpo)
-    else
-      norm = real(norm[])
-    end
-    return norm
+  # Site 1
+  norm = dag(mpo[1]) * prime(mpo[1],"link");
+  for j in 2:qpt.N-1
+      norm = norm * dag(mpo[j]);
+      norm = norm * prime(mpo[j],"link")
+  end
+  norm = norm * dag(mpo[qpt.N]);
+  norm = norm * prime(mpo[qpt.N],"link")
+  if choi
+    norm = real(norm[]) / 2^length(mpo)
+  else
+    norm = real(norm[])
+  end
+  return norm
 end;
 
+function Loss(qpt::QPT,batch)
+    
+  cost = 0.0
+  for n in 1:size(batch)[1]
+    sample = batch[n,:]
+    replaceinds!(qpt.P[sample[1]],inds(qpt.P[sample[1]]),[inds(qpt.mpo[1])[1],inds(qpt.mpo[1])[1]'])
+    replaceinds!(qpt.M[sample[N+1]],inds(qpt.M[sample[N+1]]),[inds(qpt.mpo[1])[2],inds(qpt.mpo[1])[2]'])
+    prob = dag(qpt.mpo[1]) * qpt.P[sample[1]] * qpt.M[sample[N+1]]
+    prob = prob * prime(qpt.mpo[1])
+    for j in 2:N-1
+      replaceinds!(qpt.P[sample[j]],inds(qpt.P[sample[j]]),[inds(qpt.mpo[j])[2],inds(qpt.mpo[j])[2]'])
+      replaceinds!(qpt.M[sample[N+j]],inds(qpt.M[sample[N+j]]),[inds(qpt.mpo[j])[3],inds(qpt.mpo[j])[3]'])
+      prob = prob * dag(qpt.mpo[j]) * qpt.P[sample[j]] * qpt.M[sample[N+j]]
+      prob = prob * prime(qpt.mpo[j])
+    end
+    replaceinds!(qpt.P[sample[N]],inds(qpt.P[sample[N]]),[inds(qpt.mpo[N])[2],inds(qpt.mpo[N])[2]'])
+    replaceinds!(qpt.M[sample[2*N]],inds(qpt.M[sample[2*N]]),[inds(qpt.mpo[N])[3],inds(qpt.mpo[N])[3]'])
+    prob = prob * dag(qpt.mpo[N]) * qpt.P[sample[N]] * qpt.M[sample[2*N]]
+    prob = prob * prime(qpt.mpo[N])
+    cost -= log(real(prob[]))
+  end
+  return cost/size(batch)[1]
+end;
 
 function GradientZ(qpt::QPT)
-    
-    Z = Normalization(qpt.mpo)
-    
-    R = ITensor[]
-    L = ITensor[]
-    
-    # Sweep right to get L
-    tensor =  qpt.mpo[1] * prime(dag(qpt.mpo[1]),"link")
-    push!(L,tensor)
-    for j in 2:N-1
-        tensor = L[j-1] * qpt.mpo[j];
-        tensor = tensor * prime(dag(qpt.mpo[j]),"link") 
-        push!(L,tensor)
-    end
-    
-    # Sweep left to get R
-    tensor = qpt.mpo[N] * prime(dag(qpt.mpo[N]),"link")
-    push!(R,tensor)
-    #for j in reverse(2:N-1)
-    for j in 2:N-1
-        tensor = R[j-1] * qpt.mpo[N+1-j]
-        tensor = tensor * prime(dag(qpt.mpo[N+1-j]),"link") 
-        push!(R,tensor)
-    end
-    
-    # Get the gradients of the normalization
-    gradients = ITensor[]
-    
-    # Site 1
-    tensor = qpt.mpo[1] * R[N-1]
-    push!(gradients,noprime(tensor)/Z)
-    
-    for j in 2:N-1
-        tensor = L[j-1] * qpt.mpo[j] * R[N-j]
-        push!(gradients,noprime(tensor)/Z)
-    end
-    tensor = L[N-1] * qpt.mpo[N]
-    push!(gradients,noprime(tensor)/Z)
-     
-    return 2*gradients
+
+  R = ITensor[]
+  L = ITensor[]
+  
+  # Sweep right to get L
+  tensor =  qpt.mpo[1] * prime(dag(qpt.mpo[1]),"link")
+  push!(L,tensor)
+  for j in 2:qpt.N-1
+      tensor = L[j-1] * qpt.mpo[j];
+      tensor = tensor * prime(dag(qpt.mpo[j]),"link") 
+      push!(L,tensor)
+  end
+  
+  Z = L[N-1] * qpt.mpo[qpt.N]
+  Z = Z * prime(dag(qpt.mpo[qpt.N]),"link")
+  Z = real(Z[])
+
+  # Sweep left to get R
+  tensor = qpt.mpo[qpt.N] * prime(dag(qpt.mpo[qpt.N]),"link")
+  push!(R,tensor)
+  #for j in reverse(2:N-1)
+  for j in 2:N-1
+      tensor = R[j-1] * qpt.mpo[qpt.N+1-j]
+      tensor = tensor * prime(dag(qpt.mpo[qpt.N+1-j]),"link") 
+      push!(R,tensor)
+  end
+  
+  # Get the gradients of the normalization
+  gradients = ITensor[]
+  
+  # Site 1
+  tensor = qpt.mpo[1] * R[qpt.N-1]
+  push!(gradients,noprime(tensor)/Z)
+  
+  for j in 2:qpt.N-1
+      tensor = L[j-1] * qpt.mpo[j] * R[qpt.N-j]
+      push!(gradients,noprime(tensor)/Z)
+  end
+  tensor = L[qpt.N-1] * qpt.mpo[qpt.N]
+  push!(gradients,noprime(tensor)/Z)
+   
+  return 2*gradients
+
 end;
-
-
-
-
 

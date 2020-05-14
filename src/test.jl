@@ -1,89 +1,179 @@
 using LinearAlgebra
 using ITensors
 
-function NumericalGradientZ(mpo::MPO;accuracy=1e-8)
-    grad_r = []
-    grad_i = []
-    for j in 1:N
-        push!(grad_r,zeros(ComplexF64,size(mpo[j])))
-        push!(grad_i,zeros(ComplexF64,size(mpo[j])))
-    end
+function NumericalGradientLogZ(mpo::MPO;accuracy=1e-8)
+  grad_r = []
+  grad_i = []
+  for j in 1:N
+    push!(grad_r,zeros(ComplexF64,size(mpo[j])))
+    push!(grad_i,zeros(ComplexF64,size(mpo[j])))
+  end
+  
+  epsilon = zeros(ComplexF64,size(mpo[1]));
+  # Site 1
+  for i in 1:length(epsilon)
+    epsilon[i] = accuracy
+    eps = ITensor(epsilon,inds(mpo[1]))
+    #eps = ITensor(epsilon,s_i[1],s_o[1],link[1]);
+    mpo[1] += eps
+    loss_p = log(Normalization(mpo))
+    mpo[1] -= eps
+    loss_m = log(Normalization(mpo))
+    grad_r[1][i] = (loss_p-loss_m)/(accuracy)
     
-    epsilon = zeros(ComplexF64,size(mpo[1]));
-    # Site 1
+    epsilon[i] = im*accuracy
+    eps = ITensor(epsilon,inds(mpo[1]))
+    #eps = ITensor(epsilon,s_i[1],s_o[1],link[1]);
+    mpo[1] += eps
+    loss_p = log(Normalization(mpo))
+    mpo[1] -= eps
+    loss_m = log(Normalization(mpo))
+    grad_i[1][i] = (loss_p-loss_m)/(im*accuracy)
+    
+    epsilon[i] = 0.0
+  end
+
+  for j in 2:N-1
+    epsilon = zeros(ComplexF64,size(mpo[j]));
     for i in 1:length(epsilon)
-        epsilon[i] = accuracy
-        eps = ITensor(epsilon,inds(mpo[1]))
-        #eps = ITensor(epsilon,s_i[1],s_o[1],link[1]);
-        mpo[1] += eps
-        loss_p = log(Normalization(mpo))
-        mpo[1] -= eps
-        loss_m = log(Normalization(mpo))
-        grad_r[1][i] = (loss_p-loss_m)/(accuracy)
-        
-        epsilon[i] = im*accuracy
-        eps = ITensor(epsilon,inds(mpo[1]))
-        #eps = ITensor(epsilon,s_i[1],s_o[1],link[1]);
-        mpo[1] += eps
-        loss_p = log(Normalization(mpo))
-        mpo[1] -= eps
-        loss_m = log(Normalization(mpo))
-        grad_i[1][i] = (loss_p-loss_m)/(im*accuracy)
-        
-        epsilon[i] = 0.0
+      epsilon[i] = accuracy
+      eps = ITensor(epsilon,inds(mpo[j]))
+      #eps = ITensor(epsilon,link[j-1],s_i[j],s_o[j],link[j]);
+      mpo[j] += eps
+      loss_p = log(Normalization(mpo))
+      mpo[j] -= eps
+      loss_m = log(Normalization(mpo))
+      grad_r[j][i] = (loss_p-loss_m)/(accuracy)
+      
+      epsilon[i] = im*accuracy
+      eps = ITensor(epsilon,inds(mpo[j]))
+      #eps = ITensor(epsilon,link[j-1],s_i[j],s_o[j],link[j]);
+      mpo[j] += eps
+      loss_p = log(Normalization(mpo))
+      mpo[j] -= eps
+      loss_m = log(Normalization(mpo))
+      grad_i[j][i] = (loss_p-loss_m)/(im*accuracy)
+
+      epsilon[i] = 0.0
     end
+  end
 
-    for j in 2:N-1
-        epsilon = zeros(ComplexF64,size(mpo[j]));
-        for i in 1:length(epsilon)
-            epsilon[i] = accuracy
-            eps = ITensor(epsilon,inds(mpo[j]))
-            #eps = ITensor(epsilon,link[j-1],s_i[j],s_o[j],link[j]);
-            mpo[j] += eps
-            loss_p = log(Normalization(mpo))
-            mpo[j] -= eps
-            loss_m = log(Normalization(mpo))
-            grad_r[j][i] = (loss_p-loss_m)/(accuracy)
-            
-            epsilon[i] = im*accuracy
-            eps = ITensor(epsilon,inds(mpo[j]))
-            #eps = ITensor(epsilon,link[j-1],s_i[j],s_o[j],link[j]);
-            mpo[j] += eps
-            loss_p = log(Normalization(mpo))
-            mpo[j] -= eps
-            loss_m = log(Normalization(mpo))
-            grad_i[j][i] = (loss_p-loss_m)/(im*accuracy)
+  # Site N
+  epsilon = zeros(ComplexF64,size(mpo[N]));
+  for i in 1:length(epsilon)
+    epsilon[i] = accuracy
+    eps = ITensor(epsilon,inds(mpo[N]))
+    #eps = ITensor(epsilon,link[N-1],s_i[N],s_o[N]);
+    mpo[N] += eps
+    loss_p = log(Normalization(mpo))
+    mpo[N] -= eps
+    loss_m = log(Normalization(mpo))
+    grad_r[N][i] = (loss_p-loss_m)/(accuracy)
 
-            epsilon[i] = 0.0
-        end
-    end
-
-    # Site N
-    epsilon = zeros(ComplexF64,size(mpo[N]));
-    for i in 1:length(epsilon)
-        epsilon[i] = accuracy
-        eps = ITensor(epsilon,inds(mpo[N]))
-        #eps = ITensor(epsilon,link[N-1],s_i[N],s_o[N]);
-        mpo[N] += eps
-        loss_p = log(Normalization(mpo))
-        mpo[N] -= eps
-        loss_m = log(Normalization(mpo))
-        grad_r[N][i] = (loss_p-loss_m)/(accuracy)
-
-        epsilon[i] = im*accuracy
-        eps = ITensor(epsilon,inds(mpo[N]))
-        #eps = ITensor(epsilon,link[N-1],s_i[N],s_o[N]);
-        mpo[N] += eps
-        loss_p = log(Normalization(mpo))
-        mpo[N] -= eps
-        loss_m = log(Normalization(mpo))
-        grad_i[N][i] = (loss_p-loss_m)/(im*accuracy)
-        
-        epsilon[i] = 0.0
-    end
-    return grad_r-grad_i
+    epsilon[i] = im*accuracy
+    eps = ITensor(epsilon,inds(mpo[N]))
+    #eps = ITensor(epsilon,link[N-1],s_i[N],s_o[N]);
+    mpo[N] += eps
+    loss_p = log(Normalization(mpo))
+    mpo[N] -= eps
+    loss_m = log(Normalization(mpo))
+    grad_i[N][i] = (loss_p-loss_m)/(im*accuracy)
+    
+    epsilon[i] = 0.0
+  end
+  return grad_r-grad_i
 
 end;
+
+
+function NumericalGradientLogP(mpo::MPO;accuracy=1e-8)
+  grad_r = []
+  grad_i = []
+  for j in 1:N
+    push!(grad_r,zeros(ComplexF64,size(mpo[j])))
+    push!(grad_i,zeros(ComplexF64,size(mpo[j])))
+  end
+  
+  epsilon = zeros(ComplexF64,size(mpo[1]));
+  # Site 1
+  for i in 1:length(epsilon)
+    epsilon[i] = accuracy
+    eps = ITensor(epsilon,inds(mpo[1]))
+    #eps = ITensor(epsilon,s_i[1],s_o[1],link[1]);
+    mpo[1] += eps
+    loss_p = log(Normalization(mpo))
+    mpo[1] -= eps
+    loss_m = log(Normalization(mpo))
+    grad_r[1][i] = (loss_p-loss_m)/(accuracy)
+    
+    epsilon[i] = im*accuracy
+    eps = ITensor(epsilon,inds(mpo[1]))
+    #eps = ITensor(epsilon,s_i[1],s_o[1],link[1]);
+    mpo[1] += eps
+    loss_p = log(Normalization(mpo))
+    mpo[1] -= eps
+    loss_m = log(Normalization(mpo))
+    grad_i[1][i] = (loss_p-loss_m)/(im*accuracy)
+    
+    epsilon[i] = 0.0
+  end
+
+  for j in 2:N-1
+    epsilon = zeros(ComplexF64,size(mpo[j]));
+    for i in 1:length(epsilon)
+      epsilon[i] = accuracy
+      eps = ITensor(epsilon,inds(mpo[j]))
+      #eps = ITensor(epsilon,link[j-1],s_i[j],s_o[j],link[j]);
+      mpo[j] += eps
+      loss_p = log(Normalization(mpo))
+      mpo[j] -= eps
+      loss_m = log(Normalization(mpo))
+      grad_r[j][i] = (loss_p-loss_m)/(accuracy)
+      
+      epsilon[i] = im*accuracy
+      eps = ITensor(epsilon,inds(mpo[j]))
+      #eps = ITensor(epsilon,link[j-1],s_i[j],s_o[j],link[j]);
+      mpo[j] += eps
+      loss_p = log(Normalization(mpo))
+      mpo[j] -= eps
+      loss_m = log(Normalization(mpo))
+      grad_i[j][i] = (loss_p-loss_m)/(im*accuracy)
+
+      epsilon[i] = 0.0
+    end
+  end
+
+  # Site N
+  epsilon = zeros(ComplexF64,size(mpo[N]));
+  for i in 1:length(epsilon)
+    epsilon[i] = accuracy
+    eps = ITensor(epsilon,inds(mpo[N]))
+    #eps = ITensor(epsilon,link[N-1],s_i[N],s_o[N]);
+    mpo[N] += eps
+    loss_p = log(Normalization(mpo))
+    mpo[N] -= eps
+    loss_m = log(Normalization(mpo))
+    grad_r[N][i] = (loss_p-loss_m)/(accuracy)
+
+    epsilon[i] = im*accuracy
+    eps = ITensor(epsilon,inds(mpo[N]))
+    #eps = ITensor(epsilon,link[N-1],s_i[N],s_o[N]);
+    mpo[N] += eps
+    loss_p = log(Normalization(mpo))
+    mpo[N] -= eps
+    loss_m = log(Normalization(mpo))
+    grad_i[N][i] = (loss_p-loss_m)/(im*accuracy)
+    
+    epsilon[i] = 0.0
+  end
+  return grad_r-grad_i
+
+end;
+
+
+
+
+
 
 function CheckGradients(grads,num_grads)
   print("\n\n")
