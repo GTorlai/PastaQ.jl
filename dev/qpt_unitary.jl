@@ -219,7 +219,6 @@ function GradientLogZ(qpt::QPT)
   # Sweep left to get R
   tensor = qpt.mpo[qpt.N] * prime(dag(qpt.mpo[qpt.N]),"link")
   push!(R,tensor)
-  #for j in reverse(2:N-1)
   for j in 2:N-1
       tensor = R[j-1] * qpt.mpo[qpt.N+1-j]
       tensor = tensor * prime(dag(qpt.mpo[qpt.N+1-j]),"link") 
@@ -240,7 +239,7 @@ function GradientLogZ(qpt::QPT)
   tensor = L[qpt.N-1] * qpt.mpo[qpt.N]
   push!(gradients,noprime(tensor)/Z)
    
-  return 2*gradients,log(Z)
+  return 2*gradients , log(Z/2^qpt.N)
 
 end;
 
@@ -315,6 +314,6 @@ function GradientKL(qpt::QPT,batch)
     tensor = L[qpt.N-1] * tensor
     gradients[qpt.N] += noprime(tensor)/prob
   end
-  return -2*gradients/size(batch)[1],cost/size(batch)[1]
+  return -2*gradients/size(batch)[1] , cost/size(batch)[1]
 
 end;

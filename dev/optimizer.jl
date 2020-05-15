@@ -1,4 +1,6 @@
 include("qpt.jl")
+export Optimizer
+export UpdateSGD
 
 struct Optimizer
   lr::Float32
