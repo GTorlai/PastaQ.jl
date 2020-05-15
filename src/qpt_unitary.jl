@@ -1,6 +1,7 @@
 using LinearAlgebra
 using ITensors
 using Random
+#include("optimizer.jl")
 
 struct QPT
   #Kp::Int            # Number of input states 
@@ -82,6 +83,19 @@ function QPT(;prep::String,povm::String,N::Int,chi::Int,seed::Int)
 
 end
 
+struct Optimizer
+  lr::Float32
+end
+
+function UpdateSGD(optimizer::Optimizer,qpt::QPT,grads)
+  for j in 1:qpt.N
+    qpt.mpo[j] = qpt.mpo[j] - optimizer.lr * grads[j]
+  end
+end
+
+
+
+
 " LOAD THE QPT MPO "
 # Set the MPO tensor given input array
 function SetMPO(qpt::QPT,mpo_list)
@@ -101,6 +115,7 @@ function SetTargetMPO(qpt::QPT,mpo_list)
   return MPO(target_mpo)
 end
 
+" FIDELITY "
 function QuantumProcessFidelity(qpt::QPT,target::MPO)
   normalization = Normalization(qpt.mpo,choi=true)
   fidelity = dag(qpt.mpo[1]) * prime(target[1],"link");
@@ -132,6 +147,30 @@ function Normalization(mpo::MPO;choi::Bool=false)
   end
   return norm
 end;
+
+" TOMOGRAPHY "
+function RunTomography(qpt::QPT,optimizer::Optimizer,data,target)
+  batch_size = 100
+  epochs = 1000
+  num_batches = Int(floor(size(data)[1]/batch_size))
+  for ep in 1:epochs
+    data = data[shuffle(1:end),:]
+    loss = 0.0
+    for b in 1:num_batches-1
+      batch = data[(b-1)*batch_size+1:b*batch_size+1,:]
+      grad_Z ,logZ  = GradientLogZ(qpt)
+      grad_KL,KL_loss = GradientKL(qpt,batch)
+      gradients = grad_Z + grad_KL
+      UpdateSGD(optimizer,qpt,gradients)
+      loss += (logZ + KL_loss)/Float64(num_batches)
+    end
+    fidelity = QuantumProcessFidelity(qpt,target) 
+    print("Ep = ",ep,"  ")
+    print("Loss = ",loss,"  ")
+    print("Fidelity = ",fidelity)
+    print("\n")
+  end
+end
 
 " LOSS "
 function Loss(qpt::QPT,batch)
@@ -201,7 +240,7 @@ function GradientLogZ(qpt::QPT)
   tensor = L[qpt.N-1] * qpt.mpo[qpt.N]
   push!(gradients,noprime(tensor)/Z)
    
-  return 2*gradients
+  return 2*gradients,log(Z)
 
 end;
 
@@ -212,6 +251,7 @@ function GradientKL(qpt::QPT,batch)
     push!(gradients,ITensor(inds(qpt.mpo[j])))
   end
   
+  cost = 0.0
   for n in 1:size(batch)[1]
     sample = batch[n,:]
     R = ITensor[]
@@ -237,6 +277,8 @@ function GradientKL(qpt::QPT,batch)
     tensor = tensor * dag(qpt.mpo[qpt.N]) * qpt.P[sample[qpt.N]] * qpt.M[sample[2*qpt.N]]
     tensor = tensor * prime(qpt.mpo[qpt.N])
     prob = real(tensor[])
+    
+    cost -= log(real(prob[]))
 
     # Sweep left to get R
     # Site 1
@@ -273,6 +315,6 @@ function GradientKL(qpt::QPT,batch)
     tensor = L[qpt.N-1] * tensor
     gradients[qpt.N] += noprime(tensor)/prob
   end
-  return -2*gradients/size(batch)[1]
+  return -2*gradients/size(batch)[1],cost/size(batch)[1]
 
 end;

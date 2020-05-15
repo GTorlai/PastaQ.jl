@@ -1,6 +1,6 @@
 using LinearAlgebra
 using ITensors
-include("qpt.jl")
+include("qpt_unitary.jl")
 
 function NumericalGradientLogZ(mpo::MPO;accuracy=1e-8)
   grad_r = []
