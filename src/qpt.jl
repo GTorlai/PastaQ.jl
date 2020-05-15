@@ -82,14 +82,40 @@ function QPT(;prep::String,povm::String,N::Int,chi::Int,seed::Int)
 
 end
 
-# Set the MPO tensor given input arrays
-function SetMPO(mpo::MPO,A_list)
-  @assert length(mpo) == length(A_list)
-  for j in 1:length(mpo)
-    mpo[j] = ITensor(A_list[j],inds(mpo[j]))
+" LOAD THE QPT MPO "
+# Set the MPO tensor given input array
+function SetMPO(qpt::QPT,mpo_list)
+  @assert qpt.N == length(mpo_list)
+  for j in 1:qpt.N
+    qpt.mpo[j] = ITensor(mpo_list[j],inds(qpt.mpo[j]))
   end
 end
 
+" LOAD THE TARGET MPO "
+function SetTargetMPO(qpt::QPT,mpo_list)
+  @assert qpt.N == length(mpo_list)
+  target_mpo = ITensor[]
+  for j in 1:qpt.N
+    push!(target_mpo,ITensor(mpo_list[j],inds(qpt.mpo[j])))
+  end
+  return MPO(target_mpo)
+end
+
+function QuantumProcessFidelity(qpt::QPT,target::MPO)
+  normalization = Normalization(qpt.mpo,choi=true)
+  fidelity = dag(qpt.mpo[1]) * prime(target[1],"link");
+  for j in 2:qpt.N-1
+      fidelity = fidelity* dag(qpt.mpo[j]);
+      fidelity = fidelity * prime(target[j],"link")
+  end
+  fidelity = fidelity * dag(qpt.mpo[qpt.N]);
+  fidelity = fidelity * prime(target[qpt.N],"link")
+  fidelity = abs2(fidelity[])/normalization
+  fidelity = fidelity / (2^(2*N))
+  return fidelity
+end
+
+" NORMALIZATION "
 function Normalization(mpo::MPO;choi::Bool=false)
   # Site 1
   norm = dag(mpo[1]) * prime(mpo[1],"link");
@@ -107,31 +133,33 @@ function Normalization(mpo::MPO;choi::Bool=false)
   return norm
 end;
 
+" LOSS "
 function Loss(qpt::QPT,batch)
     
   cost = 0.0
   for n in 1:size(batch)[1]
     sample = batch[n,:]
     replaceinds!(qpt.P[sample[1]],inds(qpt.P[sample[1]]),[inds(qpt.mpo[1])[1],inds(qpt.mpo[1])[1]'])
-    replaceinds!(qpt.M[sample[N+1]],inds(qpt.M[sample[N+1]]),[inds(qpt.mpo[1])[2],inds(qpt.mpo[1])[2]'])
-    prob = dag(qpt.mpo[1]) * qpt.P[sample[1]] * qpt.M[sample[N+1]]
+    replaceinds!(qpt.M[sample[qpt.N+1]],inds(qpt.M[sample[qpt.N+1]]),[inds(qpt.mpo[1])[2],inds(qpt.mpo[1])[2]'])
+    prob = dag(qpt.mpo[1]) * qpt.P[sample[1]] * qpt.M[sample[qpt.N+1]]
     prob = prob * prime(qpt.mpo[1])
-    for j in 2:N-1
+    for j in 2:qpt.N-1
       replaceinds!(qpt.P[sample[j]],inds(qpt.P[sample[j]]),[inds(qpt.mpo[j])[2],inds(qpt.mpo[j])[2]'])
-      replaceinds!(qpt.M[sample[N+j]],inds(qpt.M[sample[N+j]]),[inds(qpt.mpo[j])[3],inds(qpt.mpo[j])[3]'])
-      prob = prob * dag(qpt.mpo[j]) * qpt.P[sample[j]] * qpt.M[sample[N+j]]
+      replaceinds!(qpt.M[sample[qpt.N+j]],inds(qpt.M[sample[qpt.N+j]]),[inds(qpt.mpo[j])[3],inds(qpt.mpo[j])[3]'])
+      prob = prob * dag(qpt.mpo[j]) * qpt.P[sample[j]] * qpt.M[sample[qpt.N+j]]
       prob = prob * prime(qpt.mpo[j])
     end
-    replaceinds!(qpt.P[sample[N]],inds(qpt.P[sample[N]]),[inds(qpt.mpo[N])[2],inds(qpt.mpo[N])[2]'])
-    replaceinds!(qpt.M[sample[2*N]],inds(qpt.M[sample[2*N]]),[inds(qpt.mpo[N])[3],inds(qpt.mpo[N])[3]'])
-    prob = prob * dag(qpt.mpo[N]) * qpt.P[sample[N]] * qpt.M[sample[2*N]]
-    prob = prob * prime(qpt.mpo[N])
+    replaceinds!(qpt.P[sample[qpt.N]],inds(qpt.P[sample[qpt.N]]),[inds(qpt.mpo[qpt.N])[2],inds(qpt.mpo[qpt.N])[2]'])
+    replaceinds!(qpt.M[sample[2*qpt.N]],inds(qpt.M[sample[2*qpt.N]]),[inds(qpt.mpo[qpt.N])[3],inds(qpt.mpo[qpt.N])[3]'])
+    prob = prob * dag(qpt.mpo[qpt.N]) * qpt.P[sample[qpt.N]] * qpt.M[sample[2*qpt.N]]
+    prob = prob * prime(qpt.mpo[qpt.N])
     cost -= log(real(prob[]))
   end
   return cost/size(batch)[1]
 end;
 
-function GradientZ(qpt::QPT)
+" GRADIENTS OF LOG_Z "
+function GradientLogZ(qpt::QPT)
 
   R = ITensor[]
   L = ITensor[]
@@ -145,7 +173,7 @@ function GradientZ(qpt::QPT)
       push!(L,tensor)
   end
   
-  Z = L[N-1] * qpt.mpo[qpt.N]
+  Z = L[qpt.N-1] * qpt.mpo[qpt.N]
   Z = Z * prime(dag(qpt.mpo[qpt.N]),"link")
   Z = real(Z[])
 
@@ -177,3 +205,74 @@ function GradientZ(qpt::QPT)
 
 end;
 
+" GRADIENTS OF KL "
+function GradientKL(qpt::QPT,batch)
+  gradients = ITensor[]
+  for j in 1:qpt.N
+    push!(gradients,ITensor(inds(qpt.mpo[j])))
+  end
+  
+  for n in 1:size(batch)[1]
+    sample = batch[n,:]
+    R = ITensor[]
+    L = ITensor[]
+
+    # Sweep right to get L
+    # Site 1
+    replaceinds!(qpt.P[sample[1]],inds(qpt.P[sample[1]]),[inds(qpt.mpo[1])[1],inds(qpt.mpo[1])[1]'])
+    replaceinds!(qpt.M[sample[qpt.N+1]],inds(qpt.M[sample[qpt.N+1]]),[inds(qpt.mpo[1])[2],inds(qpt.mpo[1])[2]'])
+    tensor = dag(qpt.mpo[1]) * qpt.P[sample[1]] * qpt.M[sample[qpt.N+1]]
+    tensor = tensor * prime(qpt.mpo[1])
+    push!(L,tensor)
+    # Site: 2,...,N-1
+    for j in 2:qpt.N-1
+      replaceinds!(qpt.P[sample[j]],inds(qpt.P[sample[j]]),[inds(qpt.mpo[j])[2],inds(qpt.mpo[j])[2]'])
+      replaceinds!(qpt.M[sample[qpt.N+j]],inds(qpt.M[sample[qpt.N+j]]),[inds(qpt.mpo[j])[3],inds(qpt.mpo[j])[3]'])
+      tensor = tensor * dag(qpt.mpo[j]) * qpt.P[sample[j]] * qpt.M[sample[qpt.N+j]]
+      tensor = tensor * prime(qpt.mpo[j])
+      push!(L,tensor) 
+    end
+    replaceinds!(qpt.P[sample[qpt.N]],inds(qpt.P[sample[qpt.N]]),[inds(qpt.mpo[qpt.N])[2],inds(qpt.mpo[qpt.N])[2]'])
+    replaceinds!(qpt.M[sample[2*qpt.N]],inds(qpt.M[sample[2*qpt.N]]),[inds(qpt.mpo[qpt.N])[3],inds(qpt.mpo[qpt.N])[3]'])
+    tensor = tensor * dag(qpt.mpo[qpt.N]) * qpt.P[sample[qpt.N]] * qpt.M[sample[2*qpt.N]]
+    tensor = tensor * prime(qpt.mpo[qpt.N])
+    prob = real(tensor[])
+
+    # Sweep left to get R
+    # Site 1
+    replaceinds!(qpt.P[sample[qpt.N]],inds(qpt.P[sample[qpt.N]]),[inds(qpt.mpo[qpt.N])[2],inds(qpt.mpo[qpt.N])[2]'])
+    replaceinds!(qpt.M[sample[2*qpt.N]],inds(qpt.M[sample[2*qpt.N]]),[inds(qpt.mpo[qpt.N])[3],inds(qpt.mpo[qpt.N])[3]'])
+    tensor = dag(qpt.mpo[qpt.N]) * qpt.P[sample[qpt.N]] * qpt.M[sample[2*qpt.N]]
+    tensor = tensor * prime(qpt.mpo[qpt.N])
+    push!(R,tensor)
+    # Site: 2,...,N-1
+    for j in 2:qpt.N-1
+      replaceinds!(qpt.P[sample[qpt.N+1-j]],inds(qpt.P[sample[qpt.N+1-j]]),[inds(qpt.mpo[qpt.N+1-j])[2],inds(qpt.mpo[qpt.N+1-j])[2]'])
+      replaceinds!(qpt.M[sample[2*qpt.N+1-j]],inds(qpt.M[sample[2*qpt.N+1-j]]),[inds(qpt.mpo[qpt.N+1-j])[3],inds(qpt.mpo[qpt.N+1-j])[3]'])
+      tensor = tensor * dag(qpt.mpo[qpt.N+1-j]) * qpt.P[sample[qpt.N+1-j]] * qpt.M[sample[2*qpt.N+1-j]]
+      tensor = tensor * prime(qpt.mpo[qpt.N+1-j])
+      push!(R,tensor)
+    end
+
+    #Site 1
+    replaceinds!(qpt.P[sample[1]],inds(qpt.P[sample[1]]),[inds(qpt.mpo[1])[1],inds(qpt.mpo[1])[1]'])
+    replaceinds!(qpt.M[sample[N+1]],inds(qpt.M[sample[qpt.N+1]]),[inds(qpt.mpo[1])[2],inds(qpt.mpo[1])[2]'])
+    tensor = qpt.P[sample[1]] * qpt.M[sample[qpt.N+1]] * prime(qpt.mpo[1])
+    tensor = tensor * R[qpt.N-1]
+    gradients[1] += noprime(tensor)/prob
+    for j in 2:qpt.N-1
+      replaceinds!(qpt.P[sample[j]],inds(qpt.P[sample[j]]),[inds(qpt.mpo[j])[2],inds(qpt.mpo[j])[2]'])
+      replaceinds!(qpt.M[sample[qpt.N+j]],inds(qpt.M[sample[qpt.N+j]]),[inds(qpt.mpo[j])[3],inds(qpt.mpo[j])[3]'])
+      tensor = qpt.P[sample[j]] * qpt.M[sample[qpt.N+j]] * prime(qpt.mpo[j])
+      tensor = L[j-1] * tensor * R[qpt.N-j]
+      gradients[j] += noprime(tensor)/prob
+    end
+    replaceinds!(qpt.P[sample[qpt.N]],inds(qpt.P[sample[qpt.N]]),[inds(qpt.mpo[qpt.N])[2],inds(qpt.mpo[qpt.N])[2]'])
+    replaceinds!(qpt.M[sample[2*qpt.N]],inds(qpt.M[sample[2*qpt.N]]),[inds(qpt.mpo[qpt.N])[3],inds(qpt.mpo[qpt.N])[3]'])
+    tensor = qpt.P[sample[qpt.N]] * qpt.M[sample[2*qpt.N]] * prime(qpt.mpo[qpt.N])
+    tensor = L[qpt.N-1] * tensor
+    gradients[qpt.N] += noprime(tensor)/prob
+  end
+  return -2*gradients/size(batch)[1]
+
+end;
