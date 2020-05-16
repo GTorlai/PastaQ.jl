@@ -6,12 +6,23 @@ using LinearAlgebra
 using JLD
 using HDF5
 
-#include("exports.jl")
+export 
+  QuantumGates,
+  U3
+export 
+  QuantumCircuit,
+  PopulateInfoDict,
+  SingleQubitRandomLayer!
+
+export Povm
 export Sgd
 export QptUnitary
-export QuantumCircuit
 
+
+include("quantumgates.jl")
+include("povm.jl")
 include("quantumcircuit.jl")
 include("sgd.jl")
 include("qpt_unitary.jl")
+
 end
