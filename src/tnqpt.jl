@@ -10,7 +10,6 @@ export
   QuantumGates,
   U3,
   cX
-
 export 
   QuantumCircuit,
   PopulateInfoDict!,
@@ -25,10 +24,7 @@ export
   FullMatrix
 
 include("utils.jl")
-include("quantumgates.jl")
-include("povm.jl")
-include("quantumcircuit.jl")
-include("sgd.jl")
-include("qpt_unitary.jl")
+include("quantumcircuit/quantumgates.jl")
+include("quantumcircuit/quantumcircuit.jl")
 
 end

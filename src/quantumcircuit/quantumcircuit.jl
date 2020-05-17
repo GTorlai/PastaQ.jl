@@ -97,19 +97,16 @@ function ApplyTwoQubitGate!(mpo::MPO,gate::ITensor,site::Array{Int};
   if s1==1
     row_ind = (inds(blob,tags="s=$s1",plev=0)[1],inds(blob,tags="s=$s1",plev=1)[1])
     U,S,V = svd(blob,row_ind,cutoff=cutoff)
-    #TODO Insert truncation here
     mpo[s1] = U*S
     mpo[s2] = V
   elseif s1==length(mpo)-1
     row_ind = (inds(blob,tags="s=$s2",plev=0)[1],inds(blob,tags="s=$s2",plev=1)[1])
     U,S,V = svd(blob,row_ind,cutoff=cutoff)
-    #TODO Insert truncation here
     mpo[s1] = V
     mpo[s2] = U * S
   else
     row_ind = (inds(blob,tags="s=$s1",plev=0)[1],inds(blob,tags="s=$s1",plev=1)[1],
                commonind(mpo[s1],mpo[s1-1]))
-    #TODO Insert truncation here
     U,S,V = svd(blob,row_ind,cutoff=cutoff)
     mpo[s1] = U*S
     mpo[s2] = V
