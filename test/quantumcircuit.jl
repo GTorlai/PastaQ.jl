@@ -48,7 +48,7 @@ end
   
 end
 
-@testset "Single-qubit Circuit MPO" begin
+@testset "Single-qubit circuit MPO" begin
   N=5
   testdata = load(string("test_data_N",N,"_singlequbit.jld"))
   qgates = QuantumGates()
@@ -61,7 +61,7 @@ end
   @test full_unitary ≈ exact_unitary #atol=1e-10
 end
 
-@testset "Single-qubit Circuit MPO" begin
+@testset "Two-qubit circuit MPO (no truncation)" begin
   N=5
   testdata = load(string("test_data_N",N,"_twoqubit.jld"))
   qgates = QuantumGates()
@@ -70,9 +70,26 @@ end
   full_unitary  = FullMatrix(qc.U)
   exact_unitary = ITensor(testdata["full_unitary"],inds(full_unitary))
   @test full_unitary ≈ exact_unitary #atol=1e-10
+  @show maxlinkdim(qc.U)
 end
 
 
+@testset "Two-qubit circuit MPO (truncation)" begin
+  N=10
+  testdata = load(string("test_data_N",N,"_twoqubit.jld"))
+  qgates = QuantumGates()
+  #cutoff_list = [1e-14,1e-12,1e-10,1e-8,1e-6,1e-4]
+  #for c in 1:length(cutoff_list)
+  #cutoff = cutoff_list[c]
+  cutoff=1e-10
+  qc = QuantumCircuit(N=N)
+  LoadQuantumCircuit(qc,qgates,testdata["gate_list"],cutoff=cutoff)
+  full_unitary  = FullMatrix(qc.U)
+  exact_unitary = ITensor(testdata["full_unitary"],inds(full_unitary))
+  @test full_unitary ≈ exact_unitary #atol=1e-10
+  #println("cutoff = ",cutoff," chi = ",maxlinkdim(qc.U))
+  #end
+end
 
 
 
