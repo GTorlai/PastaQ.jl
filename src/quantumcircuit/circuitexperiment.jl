@@ -4,19 +4,17 @@ struct CircuitExperiment
   rng::MersenneTwister
   P::Vector{ITensor}
   M::Vector{ITensor}
-  nshots::Int
   infos::Dict
 end
 
 # Constructor
-function CircuitExperiment(;N::Int,seed::Int=1234,nshots::Int=100)
+function CircuitExperiment(;N::Int,seed::Int=1234)
   # Random number generator
   rng = MersenneTwister(seed)
-  nshots = nshots
   infos = Dict()
   P = ITensor[]
   M = ITensor[]
-  return CircuitExperiment(N,seed,rng,P,M,nshots,infos)
+  return CircuitExperiment(N,seed,rng,P,M,infos)
 end
 
 function BuildPreparationBases!(experiment::CircuitExperiment,gates::QuantumGates;
@@ -53,10 +51,10 @@ function BuildPreparationBases!(experiment::CircuitExperiment,gates::QuantumGate
 end
 
 function BuildMeasurementBases!(experiment::CircuitExperiment,gates::QuantumGates;
-                               prep_id::String="computational")
-  if prep_id == "computational"
+                               meas_id::String="computational")
+  if meas_id == "computational"
     experiment.infos["meas_id"] = "computational"
-  elseif prep_id == "pauli6"
+  elseif meas_id == "pauli6"
     # 1 -> Z basis 
     # Gate: Identity
     push!(experiment.M,gates.Id)
@@ -88,5 +86,77 @@ function RotateMeasurementBasis!(mps::MPS,qc::QuantumCircuit,experiment::Circuit
   end
   return mps
 end
+
+function RunExperiment(qc::QuantumCircuit,gates::QuantumGates,experiment::CircuitExperiment;
+                       prep_id::String="computational",
+                       meas_id::String="computational",
+                       nshots::Int)
+  if prep_id == "computational" && meas_id == "computational"
+    psi_in = InitializeQubits(qc)
+    psi_out = ApplyCircuit(qc,psi_in)
+    orthogonalize!(psi_out,1)
+    measurements = Array[]
+    for n in 1:nshots
+      measurement = sample(psi_out)
+      measurement .-= 1
+      push!(measurements,measurement)
+    end
+    return measurements
+
+  elseif prep_id == "pauli6" && meas_id == "computational"
+    BuildPreparationBases!(experiment,gates,prep_id=prep_id)
+    measurements = Array[]
+    prep_states  = Array[]
+    for n in 1:nshots
+      state = rand(experiment.rng,1:6,qc.N)
+      psi_in = PrepareState(qc,experiment,state)
+      psi_out = ApplyCircuit(qc,psi_in)
+      measurement = sample!(psi_out)
+      measurement .-= 1
+      push!(prep_states,state)
+      push!(measurements,measurement)
+    end
+    return prep_states,measurements
+
+  elseif prep_id == "computational" && meas_id == "pauli6"
+    BuildMeasurementBases!(experiment,gates,meas_id=meas_id)
+    measurements = Array[]
+    meas_bases   = Array[]
+    for n in 1:nshots
+      basis = rand(experiment.rng,1:3,qc.N)
+      psi_in = InitializeQubits(qc)
+      psi = ApplyCircuit(qc,psi_in)
+      psi_out = RotateMeasurementBasis!(psi,qc,experiment,basis)
+      measurement = sample!(psi_out)
+      measurement .-= 1
+      push!(meas_bases,basis)
+      push!(measurements,measurement)
+    end  
+    return meas_bases,measurements
+  
+  elseif prep_id == "pauli6" && meas_id == "pauli6"
+    BuildPreparationBases!(experiment,gates,prep_id="pauli6")
+    BuildMeasurementBases!(experiment,gates,meas_id="pauli6")
+    measurements = Array[]
+    prep_states  = Array[]
+    meas_bases   = Array[]
+    for n in 1:nshots
+      state = rand(experiment.rng,1:6,qc.N)
+      psi_in = PrepareState(qc,experiment,state)
+      psi = ApplyCircuit(qc,psi_in)
+      basis = rand(experiment.rng,1:3,qc.N)
+      psi_out = RotateMeasurementBasis!(psi,qc,experiment,basis)
+      measurement = sample!(psi_out)
+      measurement .-= 1
+      push!(prep_states,state)
+      push!(meas_bases,basis)
+      push!(measurements,measurement)
+    end
+    return prep_states,meas_bases,measurements
+  end
+  
+end
+
+
 
 

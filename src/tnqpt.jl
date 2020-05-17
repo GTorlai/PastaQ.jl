@@ -25,7 +25,8 @@ export
   BuildPreparationBases!,
   BuildMeasurementBases!,
   PrepareState,
-  RotateMeasurementBasis!
+  RotateMeasurementBasis!,
+  RunExperiment
 
 export
   FullMatrix
