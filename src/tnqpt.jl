@@ -11,14 +11,22 @@ export
   U3
 export 
   QuantumCircuit,
-  PopulateInfoDict,
-  SingleQubitRandomLayer!
+  PopulateInfoDict!,
+  ApplySingleQubitGate!,
+  InitializeQubits,
+  StatePreparation,
+  RandomSingleQubitLayer!,
+  LoadQuantumCircuit
+  #RunQuantumCircuit,
+  #BuildCircuitMPO
+export
+  FullMatrix
 
 export Povm
 export Sgd
 export QptUnitary
 
-
+include("utils.jl")
 include("quantumgates.jl")
 include("povm.jl")
 include("quantumcircuit.jl")
