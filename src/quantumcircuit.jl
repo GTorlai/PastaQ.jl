@@ -72,10 +72,53 @@ end
 
 # Apply single-qubit gate to the bra side of an MPO
 function ApplySingleQubitGate!(mpo::MPO,gate::ITensor,site::Int)
-  site_ind = inds(mpo[site],tags="site")[1]
+  site_ind = inds(mpo[site],tags="site")[1]                         # Need to use the [1] to keep ind instead of indset
   replaceinds!(gate,inds(gate),[site_ind'',site_ind])
   mpo[site] = gate * mpo[site]
   mpo[site] = setprime(mpo[site],tags="site",plev=2,0)
+end
+
+# Apply single-qubit gate to the bra side of an MPO
+function ApplyTwoQubitGate!(mpo::MPO,gate::ITensor,site::Array{Int})
+  s1 = site[1]
+  s2 = site[2]
+  " Only for NN qubits"
+  @assert(abs(s1-s2)==1)
+  " Only for s2>s1"
+  @assert(s2>s1)
+  
+  orthogonalize!(mpo,s1)
+  
+  blob = mpo[s1] * mpo[s2]
+  #@show blob
+  #@show gate
+  replaceinds!(gate,inds(gate,plev=2),inds(blob,tags="site",plev=0)'')
+  replaceinds!(gate,inds(gate,plev=0),inds(blob,tags="site",plev=0))
+  #@show gate
+  blob = gate * blob
+  #@show blob
+  blob = setprime(blob,tags="site",plev=2,0)
+  #@show blob
+  if s1==1
+    row_ind = (inds(blob,tags="s=$s1",plev=0)[1],inds(blob,tags="s=$s1",plev=1)[1])
+    U,S,V = svd(blob,row_ind)
+    #TODO Insert truncation here
+    mpo[s1] = U*S
+    mpo[s2] = V
+  elseif s1==length(mpo)-1
+    row_ind = (inds(blob,tags="s=$s2",plev=0)[1],inds(blob,tags="s=$s2",plev=1)[1])
+    U,S,V = svd(blob,row_ind)
+    #TODO Insert truncation here
+    mpo[s1] = V
+    mpo[s2] = U * S
+  else
+    row_ind = (inds(blob,tags="s=$s1",plev=0)[1],inds(blob,tags="s=$s1",plev=1)[1],
+               commonind(mpo[s1],mpo[s1-1]))
+    #TODO Insert truncation here
+    U,S,V = svd(blob,row_ind)
+    mpo[s1] = U*S
+    mpo[s2] = V
+  end
 end
 
 function RandomSingleQubitLayer!(qc::QuantumCircuit)
@@ -86,33 +129,35 @@ function RandomSingleQubitLayer!(qc::QuantumCircuit)
     λ = 2π * angles[3]
     u3 = U3(θ,ϕ,λ)
     ApplySingleQubitGate!(qc.U,u3,j)
-    push!(qc.gate_list,["u3",j,[θ,ϕ,λ]])
+    push!(qc.gate_list,["U3",j,[θ,ϕ,λ]])
   end
 end
 
 function LoadQuantumCircuit(qc::QuantumCircuit,qgates::QuantumGates,gate_list)
   for g in 1:size(gate_list)[1]
-    gate_id = gate_list[g,1]
-    site = gate_list[g,2]
-    if (size(gate_list[g,:])[1]==3)
-      angles = gate_list[g,3]
-    #  println("Gate ",gate_id," on site ",site," with angles ",angles)
-    #else
-    #  println("Gate ",gate_id," on site ",site)
+    gate_id = gate_list[g][1]
+    sites = gate_list[g][2]
+    if (size(gate_list[g])[1]==3)
+      θ, ϕ, λ = gate_list[g][3]
+      println("Gate ",gate_id," on site ",sites," with angles ",(θ, ϕ, λ))
+    else
+      println("Gate ",gate_id," on site ",sites)
     end
     if (gate_id == "U3")
-      θ = angles[1]
-      ϕ = angles[2]
-      λ = angles[3]
       u3 = U3(θ,ϕ,λ)
-      ApplySingleQubitGate!(qc.U,u3,site)
-      push!(qc.gate_list,["U3",site,[θ,ϕ,λ]])
+      ApplySingleQubitGate!(qc.U,u3,sites)
     elseif (gate_id == "H")
-      ApplySingleQubitGate!(qc.U,qgates.H,site)
-      push!(qc.gate_list,["H",site])
+      ApplySingleQubitGate!(qc.U,qgates.H,sites)
+    elseif (gate_id == "cX")
+      gate = cX(sites)
+      ApplyTwoQubitGate!(qc.U,gate,sites)
     end
+    push!(qc.gate_list,gate_list[g])
   end
 end
+
+
+
 
 #function RunQuantumCircuit(qc::QuantumCircuit,qgates::QuantumGates;
 #                           state_id::Vector{Int}=ones(Int,qc.N))
@@ -123,14 +168,7 @@ end
 #    
 #  end
 #end
-## Apply single-qubit gate to the bra side of an MPO
-#function ApplySingleQubitGate!(M::AbstractMPS,gate::ITensor,site::Int)
-#  site_ind = inds(M[site],tags="site")[1]
-#  replaceinds!(gate,inds(gate),[site_ind'',site_ind])
-#  M[site] = gate * M[site]
-#  M[site] = setprime(M[site],tags="site",plev=2,0)
-#end
-#                              
+
 ## Applu single-qubit gate to an MPS
 #function ApplySingleQubitGate!(mps::MPS,gate::ITensor,site::Int)
 #  site_ind = inds(mps[site],tags="site")[1]

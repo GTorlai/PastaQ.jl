@@ -8,23 +8,21 @@ using HDF5
 
 export 
   QuantumGates,
-  U3
+  U3,
+  cX
+
 export 
   QuantumCircuit,
   PopulateInfoDict!,
   ApplySingleQubitGate!,
+  ApplyTwoQubitGate!,
   InitializeQubits,
   StatePreparation,
   RandomSingleQubitLayer!,
   LoadQuantumCircuit
-  #RunQuantumCircuit,
-  #BuildCircuitMPO
+
 export
   FullMatrix
-
-export Povm
-export Sgd
-export QptUnitary
 
 include("utils.jl")
 include("quantumgates.jl")

@@ -5,18 +5,6 @@ using ITensors
 using Test
 using LinearAlgebra
 
-function FullVector(mps::MPS)
-  vector = mps[1] * mps[2]
-  C = combiner(inds(vector,tags="s=1")[1],inds(vector,tags="s=2")[1],tags="comb")
-  vector = vector * C
-  for j in 3:length(mps)
-    vector = vector * mps[j]
-    C = combiner(inds(vector,tags="comb")[1],inds(vector,tags="s=$j")[1],tags="comb")
-    vector = vector * C
-  end
-  return vector
-end
-
 function FullMatrix(mpo::MPO)
   matrix = mpo[1] * mpo[2]
   Cb = combiner(inds(matrix,tags="s=1",plev=0)[1],inds(matrix,tags="s=2",plev=0)[1],tags="bra")
@@ -60,25 +48,65 @@ end
   
 end
 
-@testset "Circuit MPO" begin
+@testset "Single-qubit Circuit MPO" begin
   N=5
-  testdata = load(string("test_data_N",N,".jld"))
+  testdata = load(string("test_data_N",N,"_singlequbit.jld"))
   qgates = QuantumGates()
   qc = QuantumCircuit(N=N)
   LoadQuantumCircuit(qc,qgates,testdata["gate_list"])
   full_unitary  = FullMatrix(qc.U)
   exact_unitary = ITensor(testdata["full_unitary"],inds(full_unitary))
-  @show norm(full_unitary-exact_unitary)
-  #@test full_unitary ≈ exact_unitary atol=1e-6
+  #@show norm(full_unitary-exact_unitary)
+  #" The norm checks out (with my TN module), but comparison fails"
+  @test full_unitary ≈ exact_unitary #atol=1e-10
+end
+
+@testset "Single-qubit Circuit MPO" begin
+  N=5
+  testdata = load(string("test_data_N",N,"_twoqubit.jld"))
+  qgates = QuantumGates()
+  qc = QuantumCircuit(N=N)
+  LoadQuantumCircuit(qc,qgates,testdata["gate_list"])
+  full_unitary  = FullMatrix(qc.U)
+  exact_unitary = ITensor(testdata["full_unitary"],inds(full_unitary))
+  @test full_unitary ≈ exact_unitary #atol=1e-10
 end
 
 
 
-#state = InitializeQubits(qc)
-#vector = FullVector(state)
-#state_id = [6,1,1]
-#mps_state = StatePreparation(qc,qgates,state_id)
-#vector = FullVector(mps_state)
+
+
+
+
+
+
+
+
+
+#N=4
+#qgates = QuantumGates()
+#qc = QuantumCircuit(N=N)
+#gate = cX([1,2])
+#ApplyTwoQubitGate!(qc.U,gate,[2 3])
+#full_unitary  = FullMatrix(qc.U)
+#@show full_unitary
+
+
+
+
+##testdata = load(string("test_data_N",N,"_singlequbit.jld"))
+##LoadQuantumCircuit(qc,qgates,testdata["gate_list"])
+##@show qc.U
+#ApplyTwoQubitGate!(qc.U,qgates.cX,[1 2])
+#ApplyTwoQubitGate!(qc.U,qgates.cX,[2 3])
+#ApplyTwoQubitGate!(qc.U,qgates.cX,[3 4])
+#ApplyTwoQubitGate!(qc.U,qgates.cX,[4 5])
+##@show qc.U
+##state = InitializeQubits(qc)
+##vector = FullVector(state)
+##state_id = [6,1,1]
+##mps_state = StatePreparation(qc,qgates,state_id)
+##vector = FullVector(mps_state)
 #@show vector
 
 #@show isempty(qc.gate_list)
