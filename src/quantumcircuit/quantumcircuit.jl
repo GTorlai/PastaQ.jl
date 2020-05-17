@@ -43,32 +43,32 @@ function InitializeQubits(qc::QuantumCircuit)
   end
   push!(state,ITensor(reshape([1 0],(1,2)),qc.links[qc.N-1],qc.sites[qc.N]))
   mps_state = MPS(state)
-  #orthogonalize!(mps_state,1)
+  orthogonalize!(mps_state,1)
   return mps_state
 end
 
-# Prepare a product state of pauli eigenstates
-function StatePreparation(qc::QuantumCircuit,qgates::QuantumGates,state_id::Vector{Int})
-  mps_state = InitializeQubits(qc)
-  for j in 1:qc.N
-    if state_id[j] == 1      #|0>
-      nothing
-    elseif state_id[j] == 2  #|1>
-      ApplySingleQubitGate!(mps_state,qgates.X,j)
-    elseif state_id[j] == 3  #|+>
-      ApplySingleQubitGate!(mps_state,qgates.H,j)
-    elseif state_id[j] == 4  #|->
-      ApplySingleQubitGate!(mps_state,qgates.X,j)
-      ApplySingleQubitGate!(mps_state,qgates.H,j)
-    elseif state_id[j] == 5  #|r>
-      ApplySingleQubitGate!(mps_state,qgates.K,j)
-    else state_id[j] == 6  #|l>
-      ApplySingleQubitGate!(mps_state,qgates.X,j)
-      ApplySingleQubitGate!(mps_state,qgates.K,j)
-    end
-  end
-  return mps_state
-end
+## Prepare a product state of pauli eigenstates
+#function StatePreparation(qc::QuantumCircuit,qgates::QuantumGates,state_id::Vector{Int})
+#  mps_state = InitializeQubits(qc)
+#  for j in 1:qc.N
+#    if state_id[j] == 1      #|0>
+#      nothing
+#    elseif state_id[j] == 2  #|1>
+#      ApplySingleQubitGate!(mps_state,qgates.X,j)
+#    elseif state_id[j] == 3  #|+>
+#      ApplySingleQubitGate!(mps_state,qgates.H,j)
+#    elseif state_id[j] == 4  #|->
+#      ApplySingleQubitGate!(mps_state,qgates.X,j)
+#      ApplySingleQubitGate!(mps_state,qgates.H,j)
+#    elseif state_id[j] == 5  #|r>
+#      ApplySingleQubitGate!(mps_state,qgates.K,j)
+#    else state_id[j] == 6  #|l>
+#      ApplySingleQubitGate!(mps_state,qgates.X,j)
+#      ApplySingleQubitGate!(mps_state,qgates.K,j)
+#    end
+#  end
+#  return mps_state
+#end
 
 # Apply single-qubit gate to the bra side of an MPO
 function ApplySingleQubitGate!(mpo::MPO,gate::ITensor,site::Int)
@@ -76,6 +76,14 @@ function ApplySingleQubitGate!(mpo::MPO,gate::ITensor,site::Int)
   replaceinds!(gate,inds(gate),[site_ind'',site_ind])
   mpo[site] = gate * mpo[site]
   mpo[site] = setprime(mpo[site],tags="site",plev=2,0)
+end
+
+# Apply single-qubit gate to the bra side of an MPS
+function ApplySingleQubitGate!(mps::MPS,gate::ITensor,site::Int)
+  site_ind = inds(mps[site],tags="site")[1]                         # Need to use the [1] to keep ind instead of indset
+  replaceinds!(gate,inds(gate),[site_ind',site_ind])
+  mps[site] = gate * mps[site]
+  mps[site] = setprime(mps[site],tags="site",plev=1,0)
 end
 
 # Apply single-qubit gate to the bra side of an MPO
@@ -111,6 +119,11 @@ function ApplyTwoQubitGate!(mpo::MPO,gate::ITensor,site::Array{Int};
     mpo[s1] = U*S
     mpo[s2] = V
   end
+end
+
+function ApplyCircuit(qc::QuantumCircuit,psi::MPS)
+  psi_out = qc.U * prime(psi,tags="site")
+  return psi_out
 end
 
 function RandomSingleQubitLayer!(qc::QuantumCircuit)

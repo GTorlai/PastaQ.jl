@@ -16,9 +16,14 @@ export
   ApplySingleQubitGate!,
   ApplyTwoQubitGate!,
   InitializeQubits,
-  StatePreparation,
   RandomSingleQubitLayer!,
-  LoadQuantumCircuit
+  LoadQuantumCircuit,
+  ApplyCircuit
+
+export
+  CircuitExperiment,
+  BuildStatePreparation!,
+  PrepareState
 
 export
   FullMatrix
@@ -26,5 +31,5 @@ export
 include("utils.jl")
 include("quantumcircuit/quantumgates.jl")
 include("quantumcircuit/quantumcircuit.jl")
-
+include("quantumcircuit/circuitexperiment.jl")
 end
