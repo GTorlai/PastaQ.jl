@@ -1,16 +1,21 @@
 # Quantum gates structure
 struct QuantumGates
+  Id::ITensor
   X::ITensor
   Y::ITensor
   Z::ITensor
   H::ITensor
-  K::ITensor
+  Kp::ITensor
+  Km::ITensor
 end
 
 function QuantumGates()
   # Index 
   i = Index(2)
   
+  # Identity
+  Id = ITensor([1 0;0 1],i,i')
+
   # Pauli matrices
   X = ITensor([0 1;1 0],i,i') 
   Y = ITensor([0 -im;im 0],i,i') 
@@ -20,9 +25,10 @@ function QuantumGates()
   H = (1/sqrt(2)) * ITensor([1 1; 1 -1],i,i')
   
   # Rotation in the Y basis
-  K = (1/sqrt(2)) * ITensor([1 1; im -im],i,i')
-  
-  return QuantumGates(X,Y,Z,H,K)
+  Kp = (1/sqrt(2)) * ITensor([1 1; im -im],i,i')
+  Km = (1/sqrt(2)) * ITensor([1 -im; 1 im],i,i')
+  return QuantumGates(Id,X,Y,Z,H,Kp,Km)
+
 end
 
 function U3(θ,ϕ,λ)

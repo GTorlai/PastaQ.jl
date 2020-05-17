@@ -47,29 +47,6 @@ function InitializeQubits(qc::QuantumCircuit)
   return mps_state
 end
 
-## Prepare a product state of pauli eigenstates
-#function StatePreparation(qc::QuantumCircuit,qgates::QuantumGates,state_id::Vector{Int})
-#  mps_state = InitializeQubits(qc)
-#  for j in 1:qc.N
-#    if state_id[j] == 1      #|0>
-#      nothing
-#    elseif state_id[j] == 2  #|1>
-#      ApplySingleQubitGate!(mps_state,qgates.X,j)
-#    elseif state_id[j] == 3  #|+>
-#      ApplySingleQubitGate!(mps_state,qgates.H,j)
-#    elseif state_id[j] == 4  #|->
-#      ApplySingleQubitGate!(mps_state,qgates.X,j)
-#      ApplySingleQubitGate!(mps_state,qgates.H,j)
-#    elseif state_id[j] == 5  #|r>
-#      ApplySingleQubitGate!(mps_state,qgates.K,j)
-#    else state_id[j] == 6  #|l>
-#      ApplySingleQubitGate!(mps_state,qgates.X,j)
-#      ApplySingleQubitGate!(mps_state,qgates.K,j)
-#    end
-#  end
-#  return mps_state
-#end
-
 # Apply single-qubit gate to the bra side of an MPO
 function ApplySingleQubitGate!(mpo::MPO,gate::ITensor,site::Int)
   site_ind = inds(mpo[site],tags="site")[1]                         # Need to use the [1] to keep ind instead of indset
@@ -198,5 +175,28 @@ end
 #function PopulateInfoDict!(qc::QuantumCircuit)
 #  qc.infos["N"] = qc.N
 #  qc.infos["seed"] = qc.seed
+#end
+
+## Prepare a product state of pauli eigenstates
+#function StatePreparation(qc::QuantumCircuit,qgates::QuantumGates,state_id::Vector{Int})
+#  mps_state = InitializeQubits(qc)
+#  for j in 1:qc.N
+#    if state_id[j] == 1      #|0>
+#      nothing
+#    elseif state_id[j] == 2  #|1>
+#      ApplySingleQubitGate!(mps_state,qgates.X,j)
+#    elseif state_id[j] == 3  #|+>
+#      ApplySingleQubitGate!(mps_state,qgates.H,j)
+#    elseif state_id[j] == 4  #|->
+#      ApplySingleQubitGate!(mps_state,qgates.X,j)
+#      ApplySingleQubitGate!(mps_state,qgates.H,j)
+#    elseif state_id[j] == 5  #|r>
+#      ApplySingleQubitGate!(mps_state,qgates.K,j)
+#    else state_id[j] == 6  #|l>
+#      ApplySingleQubitGate!(mps_state,qgates.X,j)
+#      ApplySingleQubitGate!(mps_state,qgates.K,j)
+#    end
+#  end
+#  return mps_state
 #end
 # 

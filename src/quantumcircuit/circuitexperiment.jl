@@ -19,10 +19,10 @@ function CircuitExperiment(;N::Int,seed::Int=1234,nshots::Int=100)
   return CircuitExperiment(N,seed,rng,P,M,nshots,infos)
 end
 
-function BuildStatePreparation!(experiment::CircuitExperiment,gates::QuantumGates;
+function BuildPreparationBases!(experiment::CircuitExperiment,gates::QuantumGates;
                                prep_id::String="computational")
   if prep_id == "computational"
-    nothing
+    experiment.infos["prep_id"] = "computational"
   elseif prep_id == "pauli6"
     # 1 -> prepare |0>
     # Gate: Identity
@@ -40,16 +40,36 @@ function BuildStatePreparation!(experiment::CircuitExperiment,gates::QuantumGate
     push!(experiment.P,gate)
     # 5 -> prepare |l>
     # Gate: K
-    push!(experiment.P,gates.K)
+    push!(experiment.P,gates.Kp)
     # 6 -> prepare |->
     # Gate: X K
-    gate = gates.K * prime(gates.X)
+    gate = gates.Kp * prime(gates.X)
     gate = setprime(gate,plev=2,1)
     push!(experiment.P,gate)
+    experiment.infos["prep_id"] = "pauli6"
   else
     error("Preparation set not recognized")
   end
+end
 
+function BuildMeasurementBases!(experiment::CircuitExperiment,gates::QuantumGates;
+                               prep_id::String="computational")
+  if prep_id == "computational"
+    experiment.infos["meas_id"] = "computational"
+  elseif prep_id == "pauli6"
+    # 1 -> Z basis 
+    # Gate: Identity
+    push!(experiment.M,gates.Id)
+    # 2 -> X basis
+    # Gate: H
+    push!(experiment.M,gates.H)
+    # 3 -> Y basis
+    # Gate: K
+    push!(experiment.M,gates.Km)
+    experiment.infos["meas_id"] = "pauli6"
+  else
+    error("Preparation set not recognized")
+  end
 end
 
 # Prepare a product state of pauli eigenstates
@@ -60,4 +80,13 @@ function PrepareState(qc::QuantumCircuit,experiment::CircuitExperiment,state::Ve
   end
   return mps_state
 end
+
+# Prepare a product state of pauli eigenstates
+function RotateMeasurementBasis!(mps::MPS,qc::QuantumCircuit,experiment::CircuitExperiment,basis::Vector{Int})
+  for j in 1:qc.N
+    ApplySingleQubitGate!(mps,experiment.M[basis[j]],j)
+  end
+  return mps
+end
+
 

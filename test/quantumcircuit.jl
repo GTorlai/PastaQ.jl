@@ -50,10 +50,14 @@ end
   identity = ITensor(Matrix{ComplexF64}(I, 2, 2),inds(gg_dag))
   @test gg_dag ≈ identity
   
-  gg_dag = qgates.K * dag(prime(qgates.K,plev=0,2))
+  gg_dag = qgates.Kp * dag(prime(qgates.Kp,plev=0,2))
   identity = ITensor(Matrix{ComplexF64}(I, 2, 2),inds(gg_dag))
   @test gg_dag ≈ identity
-
+  
+  gg_dag = qgates.Km * dag(prime(qgates.Km,plev=0,2))
+  identity = ITensor(Matrix{ComplexF64}(I, 2, 2),inds(gg_dag))
+  @test gg_dag ≈ identity
+  
   cx = cX([1,2])
   cx_dag = dag(cx)
   cx_dag = setprime(cx_dag,plev=2,1)

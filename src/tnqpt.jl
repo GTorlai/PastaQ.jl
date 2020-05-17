@@ -22,8 +22,10 @@ export
 
 export
   CircuitExperiment,
-  BuildStatePreparation!,
-  PrepareState
+  BuildPreparationBases!,
+  BuildMeasurementBases!,
+  PrepareState,
+  RotateMeasurementBasis!
 
 export
   FullMatrix
