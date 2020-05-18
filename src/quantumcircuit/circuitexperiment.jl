@@ -23,31 +23,25 @@ function BuildPreparationBases!(experiment::CircuitExperiment,gates::QuantumGate
     experiment.infos["prep_id"] = "computational"
   elseif prep_id == "pauli6"
     # 1 -> prepare |0>
-    # Gate: Identity
     push!(experiment.P,gates.Id)
     # 2 -> prepare |1>
-    # Gate: X
     push!(experiment.P,gates.X)
     # 3 -> prepare |+>
-    # Gate: H
     push!(experiment.P,gates.H)
     # 4 -> prepare |->
-    # Gate: X H
     gate = gates.H * prime(gates.X)
     gate = setprime(gate,plev=2,1)
     push!(experiment.P,gate)
     # 5 -> prepare |l>
-    # Gate: K
     push!(experiment.P,gates.Kp)
     # 6 -> prepare |->
-    # Gate: X K
     gate = gates.Kp * prime(gates.X)
     gate = setprime(gate,plev=2,1)
     push!(experiment.P,gate)
-    experiment.infos["prep_id"] = "pauli6"
   else
     error("Preparation set not recognized")
   end
+  experiment.infos["prep_id"] = prep_id
 end
 
 function BuildMeasurementBases!(experiment::CircuitExperiment,gates::QuantumGates;
@@ -56,18 +50,15 @@ function BuildMeasurementBases!(experiment::CircuitExperiment,gates::QuantumGate
     experiment.infos["meas_id"] = "computational"
   elseif meas_id == "pauli6"
     # 1 -> Z basis 
-    # Gate: Identity
     push!(experiment.M,gates.Id)
     # 2 -> X basis
-    # Gate: H
     push!(experiment.M,gates.H)
     # 3 -> Y basis
-    # Gate: K
     push!(experiment.M,gates.Km)
-    experiment.infos["meas_id"] = "pauli6"
   else
     error("Preparation set not recognized")
   end
+  experiment.infos["meas_id"] = meas_id
 end
 
 # Prepare a product state of pauli eigenstates
@@ -91,6 +82,8 @@ function RunExperiment(qc::QuantumCircuit,gates::QuantumGates,experiment::Circui
                        prep_id::String="computational",
                        meas_id::String="computational",
                        nshots::Int)
+  " ASSUMES PAULI6 "
+
   if prep_id == "computational" && meas_id == "computational"
     psi_in = InitializeQubits(qc)
     psi_out = ApplyCircuit(qc,psi_in)
@@ -101,9 +94,11 @@ function RunExperiment(qc::QuantumCircuit,gates::QuantumGates,experiment::Circui
       measurement .-= 1
       push!(measurements,measurement)
     end
-    return measurements
+    experiment.infos["data"] = Dict()
+    experiment.infos["data"]["measurements"] = measurements 
+    #return measurements
 
-  elseif prep_id == "pauli6" && meas_id == "computational"
+  elseif meas_id == "computational"
     BuildPreparationBases!(experiment,gates,prep_id=prep_id)
     measurements = Array[]
     prep_states  = Array[]
@@ -116,9 +111,12 @@ function RunExperiment(qc::QuantumCircuit,gates::QuantumGates,experiment::Circui
       push!(prep_states,state)
       push!(measurements,measurement)
     end
-    return prep_states,measurements
+    experiment.infos["data"] = Dict()
+    experiment.infos["data"]["prep_states"]  = prep_states
+    experiment.infos["data"]["measurements"] = measurements 
+    #return prep_states,measurements
 
-  elseif prep_id == "computational" && meas_id == "pauli6"
+  elseif prep_id == "computational"
     BuildMeasurementBases!(experiment,gates,meas_id=meas_id)
     measurements = Array[]
     meas_bases   = Array[]
@@ -132,11 +130,14 @@ function RunExperiment(qc::QuantumCircuit,gates::QuantumGates,experiment::Circui
       push!(meas_bases,basis)
       push!(measurements,measurement)
     end  
-    return meas_bases,measurements
+    experiment.infos["data"] = Dict()
+    experiment.infos["data"]["meas_bases"]   = meas_bases
+    experiment.infos["data"]["measurements"] = measurements 
+    #return meas_bases,measurements
   
-  elseif prep_id == "pauli6" && meas_id == "pauli6"
-    BuildPreparationBases!(experiment,gates,prep_id="pauli6")
-    BuildMeasurementBases!(experiment,gates,meas_id="pauli6")
+  else
+    BuildPreparationBases!(experiment,gates,prep_id=prep_id)
+    BuildMeasurementBases!(experiment,gates,meas_id=meas_id)
     measurements = Array[]
     prep_states  = Array[]
     meas_bases   = Array[]
@@ -152,11 +153,12 @@ function RunExperiment(qc::QuantumCircuit,gates::QuantumGates,experiment::Circui
       push!(meas_bases,basis)
       push!(measurements,measurement)
     end
-    return prep_states,meas_bases,measurements
+    experiment.infos["data"] = Dict()
+    experiment.infos["data"]["prep_states"]  = prep_states
+    experiment.infos["data"]["meas_bases"]   = meas_bases
+    experiment.infos["data"]["measurements"] = measurements 
+    #return prep_states,meas_bases,measurements
   end
-  
 end
-
-
 
 

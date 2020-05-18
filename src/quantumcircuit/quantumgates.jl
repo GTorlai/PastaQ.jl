@@ -5,8 +5,12 @@ struct QuantumGates
   Y::ITensor
   Z::ITensor
   H::ITensor
+  S::ITensor
+  Sdg::ITensor
+  T::ITensor
   Kp::ITensor
   Km::ITensor
+  Swap::ITensor
 end
 
 function QuantumGates()
@@ -24,11 +28,48 @@ function QuantumGates()
   # Rotation in the X basis (Hadamard)
   H = (1/sqrt(2)) * ITensor([1 1; 1 -1],i,i')
   
-  # Rotation in the Y basis
+  # S, of √Z phase gate
+  S = ITensor([1 0;0 im],i,i')
+  # Conjugate S, 
+  Sdg = ITensor([1 0;0 -im],i,i')
+  
+  # T gate
+  T = ITensor([1 0 ;0 exp(im*π/4)],i,i') 
+  
+
+  # Rotation to and from the Y basis
   Kp = (1/sqrt(2)) * ITensor([1 1; im -im],i,i')
   Km = (1/sqrt(2)) * ITensor([1 -im; 1 im],i,i')
-  return QuantumGates(Id,X,Y,Z,H,Kp,Km)
+  
+  j = Index(2)
+  Swap = ITensor([1 0 0 0;
+                  0 0 1 0;
+                  0 1 0 0;
+                  0 0 0 1],i'',j'',i,j)
 
+  return QuantumGates(Id,X,Y,Z,H,S,Sdg,T,Kp,Km,Swap)
+
+end
+
+function RX(θ)
+  ind = Index(2)
+  gate = [cos(θ/2.)     -im*sin(θ/2.);
+          -im*sin(θ/2.)     cos(θ/2.)]
+  return ITensor(gate,ind,ind')
+end
+
+function RY(θ)
+  ind = Index(2)
+  gate = [cos(θ/2.)     -sin(θ/2.);
+          sin(θ/2.)     cos(θ/2.)]
+  return ITensor(gate,ind,ind')
+end
+
+function RZ(ϕ)
+  ind = Index(2)
+  gate = [exp(-im*ϕ/2.)  0;
+          0              exp(im*ϕ/2.)]
+  return ITensor(gate,ind,ind')
 end
 
 function U3(θ,ϕ,λ)
@@ -55,5 +96,36 @@ function cX(sites::Array{Int})#,i::IndexSet)
     cx = ITensor(gate,i1'',i2'',i1,i2)
   end
   return cx
+end
+
+function cY(sites::Array{Int})#,i::IndexSet)
+  i1 = Index(2)
+  i2 = Index(2)
+  if sites[1] < sites[2]
+    gate = reshape([1 0 0 0;
+                    0 0 0 -im;
+                    0 0 1 0;
+                    0 im 0 0],(2,2,2,2))
+    cy = ITensor(gate,i1'',i2'',i1,i2)
+  else
+    gate = reshape([1 0 0 0;
+                    0 1 0 0;
+                    0 0 0 -im;
+                    0 0 im 0],(2,2,2,2))
+    cy = ITensor(gate,i1'',i2'',i1,i2)
+  end
+  return cy
+end
+
+
+function cZ(sites::Array{Int})#,i::IndexSet)
+  i1 = Index(2)
+  i2 = Index(2)
+  gate = reshape([1 0 0 0;
+                  0 1 0 0;
+                  0 0 1 0;
+                  0 0 0 -1],(2,2,2,2))
+  cz = ITensor(gate,i1'',i2'',i1,i2)
+  return cz
 end
 
