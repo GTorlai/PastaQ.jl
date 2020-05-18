@@ -1,4 +1,4 @@
-module TNQPT
+module PastaQ 
 
 using ITensors
 using Random
