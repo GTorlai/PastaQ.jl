@@ -5,144 +5,247 @@ using ITensors
 using Test
 using LinearAlgebra
 
-@testset "One-qubit gates" begin
-  gates = QuantumGates()
-  
-  # Test X gate
-  gg_dag = gates.X * dag(prime(gates.X,plev=0,2))
-  identity = ITensor(Matrix{ComplexF64}(I, 2, 2),inds(gg_dag))
-  @test gg_dag ≈ identity
-  
-  # Test Y gate
-  gg_dag = gates.Y * dag(prime(gates.Y,plev=0,2))
-  identity = ITensor(Matrix{ComplexF64}(I, 2, 2),inds(gg_dag))
-  @test gg_dag ≈ identity 
-  
-  # Test Z gate
-  gg_dag = gates.Z * dag(prime(gates.Z,plev=0,2))
-  identity = ITensor(Matrix{ComplexF64}(I, 2, 2),inds(gg_dag))
-  @test gg_dag ≈ identity
-  
-  # Test H gate
-  gg_dag = gates.H * dag(prime(gates.H,plev=0,2))
-  identity = ITensor(Matrix{ComplexF64}(I, 2, 2),inds(gg_dag))
-  @test gg_dag ≈ identity
-  
-  # Test S gate
-  gg_dag = gates.S * dag(prime(gates.S,plev=0,2))
-  identity = ITensor(Matrix{ComplexF64}(I, 2, 2),inds(gg_dag))
-  @test gg_dag ≈ identity
-  
-  # Test conjugate S gate
-  gg_dag = gates.Sdg * dag(prime(gates.Sdg,plev=0,2))
-  identity = ITensor(Matrix{ComplexF64}(I, 2, 2),inds(gg_dag))
-  @test gg_dag ≈ identity
-  
-  # Test T gate
-  gg_dag = gates.T * dag(prime(gates.T,plev=0,2))
-  identity = ITensor(Matrix{ComplexF64}(I, 2, 2),inds(gg_dag))
-  @test gg_dag ≈ identity
-  
-  # Test Kp gate
-  gg_dag = gates.Kp * dag(prime(gates.Kp,plev=0,2))
-  identity = ITensor(Matrix{ComplexF64}(I, 2, 2),inds(gg_dag))
-  @test gg_dag ≈ identity
-  
-  # Test Km gate
-  gg_dag = gates.Km * dag(prime(gates.Km,plev=0,2))
-  identity = ITensor(Matrix{ComplexF64}(I, 2, 2),inds(gg_dag))
-  @test gg_dag ≈ identity
-  
-  # Test RX gate
-  θ = π * rand()
-  gate = RX(θ)
-  gg_dag = gate * dag(prime(gate,plev=0,2))
-  identity = ITensor(Matrix{ComplexF64}(I, 2, 2),inds(gg_dag))
-  @test gg_dag ≈ identity
+@testset "1q gate: Id" begin
+  i = Index(2)
+  g = gate_Id(i) 
+  @test plev(inds(g)[1]) == 1 
+  @test plev(inds(g)[2]) == 0 
+  @test g ≈ itensor(Matrix{Int}(I, 2, 2),inds(g))
+end
 
-  # Test RY gate
-  θ = π * rand()
-  gate = RY(θ)
-  gg_dag = gate * dag(prime(gate,plev=0,2))
-  identity = ITensor(Matrix{ComplexF64}(I, 2, 2),inds(gg_dag))
-  @test gg_dag ≈ identity
+@testset "1q gate: X" begin
+  i = Index(2)
+  g = gate_X(i) 
+  @test plev(inds(g)[1]) == 1 
+  @test plev(inds(g)[2]) == 0 
+  ggdag = g * prime(dag(g),plev=1,1)
+  @test ggdag ≈ itensor(Matrix{ComplexF64}(I, 2, 2),inds(ggdag))
+end
 
-  # Test RZ gate
+@testset "1q gate: Y" begin
+  i = Index(2)
+  g = gate_Y(i) 
+  @test plev(inds(g)[1]) == 1 
+  @test plev(inds(g)[2]) == 0 
+  ggdag = g * prime(dag(g),plev=1,1)
+  @test ggdag ≈ itensor(Matrix{ComplexF64}(I, 2, 2),inds(ggdag))
+end
+
+
+@testset "1q gate: Z" begin
+  i = Index(2)
+  g = gate_Z(i) 
+  @test plev(inds(g)[1]) == 1 
+  @test plev(inds(g)[2]) == 0 
+  ggdag = g * prime(dag(g),plev=1,1)
+  @test ggdag ≈ itensor(Matrix{ComplexF64}(I, 2, 2),inds(ggdag))
+end
+
+@testset "1q gate: H" begin
+  i = Index(2)
+  g = gate_H(i) 
+  @test plev(inds(g)[1]) == 1 
+  @test plev(inds(g)[2]) == 0 
+  ggdag = g * prime(dag(g),plev=1,1)
+  @test ggdag ≈ itensor(Matrix{ComplexF64}(I, 2, 2),inds(ggdag))
+end
+
+@testset "1q gate: S" begin
+  i = Index(2)
+  g = gate_S(i) 
+  @test plev(inds(g)[1]) == 1 
+  @test plev(inds(g)[2]) == 0 
+  ggdag = g * prime(dag(g),plev=1,1)
+  @test ggdag ≈ itensor(Matrix{ComplexF64}(I, 2, 2),inds(ggdag))
+end
+
+@testset "1q gate: T" begin
+  i = Index(2)
+  g = gate_T(i) 
+  @test plev(inds(g)[1]) == 1 
+  @test plev(inds(g)[2]) == 0 
+  ggdag = g * prime(dag(g),plev=1,1)
+  @test ggdag ≈ itensor(Matrix{ComplexF64}(I, 2, 2),inds(ggdag))
+end
+
+@testset "1q gate: Kp" begin
+  i = Index(2)
+  g = gate_Kp(i) 
+  @test plev(inds(g)[1]) == 1 
+  @test plev(inds(g)[2]) == 0 
+  ggdag = g * prime(dag(g),plev=1,1)
+  @test ggdag ≈ itensor(Matrix{ComplexF64}(I, 2, 2),inds(ggdag))
+end
+
+@testset "1q gate: Km" begin
+  i = Index(2)
+  g = gate_Km(i) 
+  @test plev(inds(g)[1]) == 1 
+  @test plev(inds(g)[2]) == 0 
+  ggdag = g * prime(dag(g),plev=1,1)
+  @test ggdag ≈ itensor(Matrix{ComplexF64}(I, 2, 2),inds(ggdag))
+end
+
+@testset "1q gate: Rx" begin
+  i = Index(2)
+  θ = π * rand()
+  g = gate_Rx(i,θ) 
+  @test plev(inds(g)[1]) == 1 
+  @test plev(inds(g)[2]) == 0 
+  ggdag = g * prime(dag(g),plev=1,1)
+  @test ggdag ≈ itensor(Matrix{ComplexF64}(I, 2, 2),inds(ggdag))
+end
+
+@testset "1q gate: Ry" begin
+  i = Index(2)
+  θ = π * rand()
+  g = gate_Ry(i,θ) 
+  @test plev(inds(g)[1]) == 1 
+  @test plev(inds(g)[2]) == 0 
+  ggdag = g * prime(dag(g),plev=1,1)
+  @test ggdag ≈ itensor(Matrix{ComplexF64}(I, 2, 2),inds(ggdag))
+end
+
+@testset "1q gate: Rz" begin
+  i = Index(2)
   ϕ = 2π * rand()
-  gate = RZ(ϕ)
-  gg_dag = gate * dag(prime(gate,plev=0,2))
-  identity = ITensor(Matrix{ComplexF64}(I, 2, 2),inds(gg_dag))
-  @test gg_dag ≈ identity
-  
-  # Test U3 gate
-  angles = rand!(qc.rng, zeros(3))
+  g = gate_Rz(i,ϕ) 
+  @test plev(inds(g)[1]) == 1 
+  @test plev(inds(g)[2]) == 0 
+  ggdag = g * prime(dag(g),plev=1,1)
+  @test ggdag ≈ itensor(Matrix{ComplexF64}(I, 2, 2),inds(ggdag))
+end
+@testset "1q gate: Rn" begin  
+  i = Index(2)
+  angles = rand(3)
   θ = π * angles[1]
   ϕ = 2π * angles[2]
   λ = 2π * angles[3]
-  gate = U3(θ,ϕ,λ)
-  gg_dag = gate * dag(prime(gate,plev=0,2))
-  identity = ITensor(Matrix{ComplexF64}(I, 2, 2),inds(gg_dag))
-  @test gg_dag ≈ identity
+  g = gate_Rn(i,θ,ϕ,λ)
+  @test plev(inds(g)[1]) == 1 
+  @test plev(inds(g)[2]) == 0 
+  ggdag = g * prime(dag(g),plev=1,1)
+  @test ggdag ≈ itensor(Matrix{ComplexF64}(I, 2, 2),inds(ggdag))
 end
 
-@testset "Two-qubit gates" begin
-  # Test Swap gate
-  sw_dag = dag(gates.Swap)
-  sw_dag = setprime(sw_dag,plev=2,1)
-  sw_dag = prime(sw_dag,plev=0,2)
-  gg_dag = gates.Swap * sw_dag
-  identity = ITensor(reshape(Matrix{ComplexF64}(I, 4, 4),(2,2,2,2)),inds(gg_dag))
-  @test gg_dag ≈ identity
+@testset "2q gate: Sw" begin  
+  i = Index(2)
+  j = Index(2)
+  g = gate_Sw(i,j)
+  @test plev(inds(g)[1]) == 1 && plev(inds(g)[2]) == 1 
+  @test plev(inds(g)[3]) == 0 && plev(inds(g)[4]) == 0 
+  ggdag = g * prime(dag(g),plev=1,1)
+  @test ggdag ≈ itensor(reshape(Matrix{ComplexF64}(I, 4, 4),(2,2,2,2)),inds(ggdag))
+end
 
-  ## Test cX gate
-  #cx = cX([1,2])
-  #cx_dag = dag(cx)
-  #cx_dag = setprime(cx_dag,plev=2,1)
-  #cx_dag = prime(cx_dag,plev=0,2)
-  #gg_dag = cx * cx_dag
-  #identity = ITensor(reshape(Matrix{ComplexF64}(I, 4, 4),(2,2,2,2)),inds(gg_dag))
-  #@test gg_dag ≈ identity
-  #
-  ## Test reverse cX gate
-  #cx = cX([2,1])
-  #cx_dag = dag(cx)
-  #cx_dag = setprime(cx_dag,plev=2,1)
-  #cx_dag = prime(cx_dag,plev=0,2)
-  #gg_dag = cx * cx_dag
-  #identity = ITensor(reshape(Matrix{ComplexF64}(I, 4, 4),(2,2,2,2)),inds(gg_dag))
-  #@test gg_dag ≈ identity
-  #
-  #cy = cY([1,2])
-  #cy_dag = dag(cy)
-  #cy_dag = setprime(cy_dag,plev=2,1)
-  #cy_dag = prime(cy_dag,plev=0,2)
-  #gg_dag = cy * cy_dag
-  #identity = ITensor(reshape(Matrix{ComplexF64}(I, 4, 4),(2,2,2,2)),inds(gg_dag))
-  #@test gg_dag ≈ identity
-  #
-  #cy = cY([2,1])
-  #cy_dag = dag(cy)
-  #cy_dag = setprime(cy_dag,plev=2,1)
-  #cy_dag = prime(cy_dag,plev=0,2)
-  #gg_dag = cy * cy_dag
-  #identity = ITensor(reshape(Matrix{ComplexF64}(I, 4, 4),(2,2,2,2)),inds(gg_dag))
-  #@test gg_dag ≈ identity
- 
-  # Test cZ gate
-  #cz = cZ([1,2])
-  #cz_dag = dag(cz)
-  #cz_dag = setprime(cz_dag,plev=2,1)
-  #cz_dag = prime(cz_dag,plev=0,2)
-  #gg_dag = cz * cz_dag
-  #identity = ITensor(reshape(Matrix{ComplexF64}(I, 4, 4),(2,2,2,2)),inds(gg_dag))
-  #@test gg_dag ≈ identity
-  #
-  #cz = cZ([2,1])
-  #cz_dag = dag(cz)
-  #cz_dag = setprime(cz_dag,plev=2,1)
-  #cz_dag = prime(cz_dag,plev=0,2)
-  #gg_dag = cz * cz_dag
-  #identity = ITensor(reshape(Matrix{ComplexF64}(I, 4, 4),(2,2,2,2)),inds(gg_dag))
-  #@test gg_dag ≈ identity
+@testset "2q gate: Cx" begin  
+  i = Index(2)
+  j = Index(2)
+  g = gate_Cx(i,j)
+  @test plev(inds(g)[1]) == 1 && plev(inds(g)[2]) == 1 
+  @test plev(inds(g)[3]) == 0 && plev(inds(g)[4]) == 0 
+  ggdag = g * prime(dag(g),plev=1,1)
+  @test ggdag ≈ itensor(reshape(Matrix{ComplexF64}(I, 4, 4),(2,2,2,2)),inds(ggdag))
+end
+
+@testset "2q gate: Cy" begin  
+  i = Index(2)
+  j = Index(2)
+  g = gate_Cy(i,j)
+  @test plev(inds(g)[1]) == 1 && plev(inds(g)[2]) == 1 
+  @test plev(inds(g)[3]) == 0 && plev(inds(g)[4]) == 0 
+  ggdag = g * prime(dag(g),plev=1,1)
+  @test ggdag ≈ itensor(reshape(Matrix{ComplexF64}(I, 4, 4),(2,2,2,2)),inds(ggdag))
+end
+
+@testset "2q gate: Cz" begin  
+  i = Index(2)
+  j = Index(2)
+  g = gate_Cz(i,j)
+  @test plev(inds(g)[1]) == 1 && plev(inds(g)[2]) == 1 
+  @test plev(inds(g)[3]) == 0 && plev(inds(g)[4]) == 0 
+  ggdag = g * prime(dag(g),plev=1,1)
+  @test ggdag ≈ itensor(reshape(Matrix{ComplexF64}(I, 4, 4),(2,2,2,2)),inds(ggdag))
+end
+
+@testset "Gate generation" begin
+  i = Index(2)
+  j = Index(2)
+  
+  g = gate_Id(i) 
+  x = gate("I",i) 
+  @test g ≈ x 
+  
+  g = gate_X(i) 
+  x = gate("X",i) 
+  @test g ≈ x 
+  
+  g = gate_Y(i) 
+  x = gate("Y",i) 
+  @test g ≈ x 
+  
+  g = gate_Z(i) 
+  x = gate("Z",i) 
+  @test g ≈ x 
+  
+  g = gate_H(i) 
+  x = gate("H",i) 
+  @test g ≈ x 
+  
+  g = gate_S(i) 
+  x = gate("S",i) 
+  @test g ≈ x 
+  
+  g = gate_T(i) 
+  x = gate("T",i) 
+  @test g ≈ x 
+  
+  g = gate_Kp(i) 
+  x = gate("Kp",i) 
+  @test g ≈ x 
+  
+  g = gate_Km(i) 
+  x = gate("Km",i) 
+  @test g ≈ x 
+  
+  θ = π * rand()
+  g = gate_Rx(i,θ) 
+  x = gate("Rx",i,angles=θ)
+  @test g ≈ x 
+
+  θ = π * rand()
+  g = gate_Ry(i,θ) 
+  x = gate("Ry",i,angles=θ)
+  @test g ≈ x 
+  
+  ϕ = 2π * rand()
+  g = gate_Rz(i,ϕ) 
+  x = gate("Rz",i,angles=ϕ)
+  @test g ≈ x 
+  
+  angles = rand(3)
+  θ = π * angles[1]
+  ϕ = 2π * angles[2]
+  λ = 2π * angles[3]
+  g = gate_Rn(i,θ,ϕ,λ)
+  x = gate("Rn",i,angles=[θ,ϕ,λ])
+  @test g ≈ x 
+
+  g = gate_Sw(i,j)
+  x = gate("Sw",i,j)
+  @test g ≈ x
+
+  g = gate_Cx(i,j)
+  x = gate("Cx",i,j)
+  @test g ≈ x
+  
+  g = gate_Cy(i,j)
+  x = gate("Cy",i,j)
+  @test g ≈ x
+  
+  g = gate_Cz(i,j)
+  x = gate("Cz",i,j)
+  @test g ≈ x
+
 end
 
