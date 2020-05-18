@@ -1,5 +1,5 @@
-include("../src/tnqpt.jl")
-using Main.TNQPT
+include("../src/PastaQ.jl")
+using Main.PastaQ
 using HDF5, JLD
 using ITensors
 using Test
@@ -31,86 +31,43 @@ function FullMatrix(mpo::MPO)
   return matrix
 end
 
-@testset "Quantum gates" begin
-  qgates = QuantumGates()
-  
-  gg_dag = qgates.X * dag(prime(qgates.X,plev=0,2))
-  identity = ITensor(Matrix{ComplexF64}(I, 2, 2),inds(gg_dag))
-  @test gg_dag ≈ identity
-  
-  gg_dag = qgates.Y * dag(prime(qgates.Y,plev=0,2))
-  identity = ITensor(Matrix{ComplexF64}(I, 2, 2),inds(gg_dag))
-  @test gg_dag ≈ identity 
-  
-  gg_dag = qgates.Z * dag(prime(qgates.Z,plev=0,2))
-  identity = ITensor(Matrix{ComplexF64}(I, 2, 2),inds(gg_dag))
-  @test gg_dag ≈ identity
-  
-  gg_dag = qgates.H * dag(prime(qgates.H,plev=0,2))
-  identity = ITensor(Matrix{ComplexF64}(I, 2, 2),inds(gg_dag))
-  @test gg_dag ≈ identity
-  
-  gg_dag = qgates.Kp * dag(prime(qgates.Kp,plev=0,2))
-  identity = ITensor(Matrix{ComplexF64}(I, 2, 2),inds(gg_dag))
-  @test gg_dag ≈ identity
-  
-  gg_dag = qgates.Km * dag(prime(qgates.Km,plev=0,2))
-  identity = ITensor(Matrix{ComplexF64}(I, 2, 2),inds(gg_dag))
-  @test gg_dag ≈ identity
-  
-  cx = cX([1,2])
-  cx_dag = dag(cx)
-  cx_dag = setprime(cx_dag,plev=2,1)
-  cx_dag = prime(cx_dag,plev=0,2)
-  gg_dag = cx * cx_dag
-  identity = ITensor(reshape(Matrix{ComplexF64}(I, 4, 4),(2,2,2,2)),inds(gg_dag))
-  @test gg_dag ≈ identity
-  
-end
-
 @testset "Single-qubit circuit MPO" begin
   N=10
   testdata = load("testdata/quantumcircuit_unitary_singlequbit.jld")
-  qgates = QuantumGates()
+  gates = QuantumGates()
   qc = QuantumCircuit(N=N)
-  LoadQuantumCircuit(qc,qgates,testdata["gate_list"])
+  LoadQuantumCircuit(qc,gates,testdata["gate_list"])
   full_unitary  = FullMatrix(qc.U)
   exact_unitary = ITensor(testdata["full_unitary"],inds(full_unitary))
-  #@show norm(full_unitary-exact_unitary)
-  #" The norm checks out (with my TN module), but comparison fails"
-  @test full_unitary ≈ exact_unitary #atol=1e-10
+  @test full_unitary ≈ exact_unitary
 end
 
 @testset "Two-qubit circuit MPO" begin
   N=10
   testdata = load("testdata/quantumcircuit_unitary_twoqubit.jld")
-  qgates = QuantumGates()
+  gates = QuantumGates()
   cutoff=1e-10
   qc = QuantumCircuit(N=N)
-  LoadQuantumCircuit(qc,qgates,testdata["gate_list"],cutoff=cutoff)
+  LoadQuantumCircuit(qc,gates,testdata["gate_list"],cutoff=cutoff)
   full_unitary  = FullMatrix(qc.U)
   exact_unitary = ITensor(testdata["full_unitary"],inds(full_unitary))
-  @test full_unitary ≈ exact_unitary #atol=1e-10
-  #println("cutoff = ",cutoff," chi = ",maxlinkdim(qc.U))
+  @test full_unitary ≈ exact_unitary
 end
 
 @testset "Run circuit with in the computational basis" begin
   N=5
   testdata = load("testdata/quantumcircuit_run_computational.jld")
-  qgates = QuantumGates()
+  gates = QuantumGates()
   qc = QuantumCircuit(N=N)
   cutoff=1e-10
-  LoadQuantumCircuit(qc,qgates,testdata["gate_list"],cutoff=cutoff)
+  LoadQuantumCircuit(qc,gates,testdata["gate_list"],cutoff=cutoff)
   full_unitary  = FullMatrix(qc.U)
   exact_unitary = ITensor(testdata["full_unitary"],inds(full_unitary))
   @test full_unitary ≈ exact_unitary
   psi = InitializeQubits(qc)
   psi_out = ApplyCircuit(qc,psi)
-  #@show psi_out
   psi_vec = FullVector(psi_out)
   exact_psi = ITensor(testdata["psi"],inds(psi_vec))
-  #@show psi_vec
-  #@show exact_psi
   @test psi_vec ≈ exact_psi
 end
 
