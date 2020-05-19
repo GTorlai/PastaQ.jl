@@ -1,4 +1,4 @@
-module PastaQ 
+module PastaQ
 
 using ITensors
 using Random
@@ -9,7 +9,6 @@ using HDF5
 include("exports.jl")
 include("quantumcircuit/quantumgates.jl")
 include("quantumcircuit/quantumcircuit.jl")
-#include("utils.jl")
-#include("quantumcircuit/circuitexperiment.jl")
+include("utils.jl")
 
-end
+end # module

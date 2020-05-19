@@ -173,54 +173,54 @@ end
   j = Index(2)
   
   g = gate_Id(i) 
-  x = gate("I",i) 
+  x = quantumgate("I",i) 
   @test g ≈ x 
   
   g = gate_X(i) 
-  x = gate("X",i) 
+  x = quantumgate("X",i) 
   @test g ≈ x 
   
   g = gate_Y(i) 
-  x = gate("Y",i) 
+  x = quantumgate("Y",i) 
   @test g ≈ x 
   
   g = gate_Z(i) 
-  x = gate("Z",i) 
+  x = quantumgate("Z",i) 
   @test g ≈ x 
   
   g = gate_H(i) 
-  x = gate("H",i) 
+  x = quantumgate("H",i) 
   @test g ≈ x 
   
   g = gate_S(i) 
-  x = gate("S",i) 
+  x = quantumgate("S",i) 
   @test g ≈ x 
   
   g = gate_T(i) 
-  x = gate("T",i) 
+  x = quantumgate("T",i) 
   @test g ≈ x 
   
   g = gate_Kp(i) 
-  x = gate("Kp",i) 
+  x = quantumgate("Kp",i) 
   @test g ≈ x 
   
   g = gate_Km(i) 
-  x = gate("Km",i) 
+  x = quantumgate("Km",i) 
   @test g ≈ x 
   
   θ = π * rand()
   g = gate_Rx(i,θ) 
-  x = gate("Rx",i,angles=θ)
+  x = quantumgate("Rx",i,angles=θ)
   @test g ≈ x 
 
   θ = π * rand()
   g = gate_Ry(i,θ) 
-  x = gate("Ry",i,angles=θ)
+  x = quantumgate("Ry",i,angles=θ)
   @test g ≈ x 
   
   ϕ = 2π * rand()
   g = gate_Rz(i,ϕ) 
-  x = gate("Rz",i,angles=ϕ)
+  x = quantumgate("Rz",i,angles=ϕ)
   @test g ≈ x 
   
   angles = rand(3)
@@ -228,23 +228,23 @@ end
   ϕ = 2π * angles[2]
   λ = 2π * angles[3]
   g = gate_Rn(i,θ,ϕ,λ)
-  x = gate("Rn",i,angles=[θ,ϕ,λ])
+  x = quantumgate("Rn",i,angles=[θ,ϕ,λ])
   @test g ≈ x 
 
   g = gate_Sw(i,j)
-  x = gate("Sw",i,j)
+  x = quantumgate("Sw",i,j)
   @test g ≈ x
 
   g = gate_Cx(i,j)
-  x = gate("Cx",i,j)
+  x = quantumgate("Cx",i,j)
   @test g ≈ x
   
   g = gate_Cy(i,j)
-  x = gate("Cy",i,j)
+  x = quantumgate("Cy",i,j)
   @test g ≈ x
   
   g = gate_Cz(i,j)
-  x = gate("Cz",i,j)
+  x = quantumgate("Cz",i,j)
   @test g ≈ x
 
 end

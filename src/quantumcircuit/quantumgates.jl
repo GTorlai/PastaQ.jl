@@ -102,7 +102,7 @@ end
 
 """ This is a comment 
 """
-function gate(gate_id::String,site_ind::Index...;angles=nothing)
+function quantumgate(gate_id::String,site_ind::Index...;angles=nothing)
   if gate_id == "I"
     return gate_Id(site_ind[1])
   

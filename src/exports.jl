@@ -18,5 +18,16 @@ export
   gate_Cx,
   gate_Cy,
   gate_Cz,
-  gate
+  quantumgate,
 
+# quantumcircuit.jl
+  # Methods
+  InitializeCircuit,
+  InitializeQubits,
+  ApplyGate,
+  ApplyOneSiteGate,
+
+# utils.jl
+  # Methods
+  FullVector,
+  FullMatrix

@@ -1,0 +1,4 @@
+name = "PastaQ"
+uuid = "30b07047-aa8b-4c78-a4e8-24d720215c19"
+authors = ["gtorlai <torlaigiacomo@gmail.com>"]
+version = "0.1.0"

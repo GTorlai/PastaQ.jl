@@ -1,19 +1,13 @@
 ## A Package for Simulation, Tomography and Analysis of Quantum Computers
 
-#### Main modules
+#### Ongoing
 
-+ Tensor-network simulator (unitary and noisy circuits)
-+ Quantum state tomography (pure w MPS, mixed with LPDO)
-+ Quantum process tomography (unitary/noisy with LPDO)
++ Quantum Circuits
+  + Working on single and two-qubit gates
 
-#### Applications List
-+ Quantum Information
-	+ Quantum Fourier Transform
-	+ Quantum phase estimation
-+ State tomography
-	+ Quantum Ising model
-	+ Noisy GHZ state
-	+ Molecular ground state
-+ Process tomography
-	+ Random quantum circuits
-	+ Noisy surface code
+#### ToDo List
+
++ Tensor-network simulator
+  + QuantumGates
+    + Add custom gates
+
