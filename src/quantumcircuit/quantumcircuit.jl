@@ -1,11 +1,11 @@
 # Quantum circuit
-function InitializeCircuit(N::Int)
+function initializecircuit(N::Int)
   sites = [Index(2; tags="Site, n=$s") for s in 1:N]
   U = MPO(sites, "Id")
   return U
 end
 
-function InitializeQubits(N::Int)
+function initializequbits(N::Int)
   if (N==1)
     site = Index(2,tags="Site, n=1")
     m = itensor([1. 0.],site)
@@ -17,16 +17,12 @@ function InitializeQubits(N::Int)
   return psi
 end
 
-function ApplyGate!(M::Union{MPS,MPO},
+function applygate!(M::MPS,
                    gate_id::String,
                    site::Int;
                    kwargs...)
   site_ind = firstind(M[site],"Site")
   gate = quantumgate(gate_id, site_ind; kwargs...)
-  ApplyOneSiteGate!(M,gate,site)
-end
-
-function ApplyOneSiteGate!(M::MPS,gate::ITensor,site::Int)
   M[site] = gate * M[site]
+  noprime!(M[site])
 end
-

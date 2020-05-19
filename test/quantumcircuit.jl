@@ -7,13 +7,13 @@ using LinearAlgebra
 
 @testset "qubits initialization" begin
   N = 1
-  psi =InitializeQubits(N)
+  psi = initializequbits(N)
   @test length(psi) == 1
   @test length(inds(psi[1],"Link")) == 0
   N = 5
-  psi =InitializeQubits(N)
+  psi =initializequbits(N)
   @test length(psi) == 5
-  psi_vec = FullVector(psi)
+  psi_vec = fullvector(psi)
   exact_vec = zeros(1<<N)
   exact_vec[1] = 1.0
   exact_vec = itensor(exact_vec,inds(psi_vec))
@@ -22,7 +22,7 @@ end
 
 @testset "circuit initialization" begin
   N=5
-  U = InitializeCircuit(N)
+  U = initializecircuit(N)
   @test length(U) == 5
   identity = itensor(reshape([1 0;0 1],(1,2,2)),inds(U[1]))
   @test U[1] ≈ identity

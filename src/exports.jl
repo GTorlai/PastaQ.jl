@@ -22,11 +22,10 @@ export
 
 # quantumcircuit.jl
   # Methods
-  InitializeCircuit,
-  InitializeQubits,
-  ApplyGate!,
-  ApplyOneSiteGate!,
+  initializecircuit,
+  initializequbits,
+  ipplyGate!,
 
 # utils.jl
   # Methods
-  FullVector
+  fullvector

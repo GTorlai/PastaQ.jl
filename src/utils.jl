@@ -1,4 +1,4 @@
-function FullVector(mps::MPS)
+function fullvector(mps::MPS)
   if length(mps) == 1
     return mps
   else
