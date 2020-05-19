@@ -11,3 +11,5 @@
   + QuantumGates
     + Add custom gates
 
++ Utils
+  + Add a nice print function
