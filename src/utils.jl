@@ -1,14 +1,26 @@
-function fullvector(mps::MPS)
+function fullvector(mps::MPS;order="native")
   if length(mps) == 1
-    return mps
+    return mps[1]
   else
-    vector = mps[1] * mps[2]
-    C = combiner(inds(vector,tags="n=1")[1],inds(vector,tags="n=2")[1],tags="comb")
-    vector = vector * C
-    for j in 3:length(mps)
-      vector = vector * mps[j]
-      C = combiner(inds(vector,tags="comb")[1],inds(vector,tags="n=$j")[1],tags="comb")
+    N = length(mps)
+    if (order == "native")
+      vector = mps[1] * mps[2]
+      C = combiner(firstind(vector,tags="n=1"),firstind(vector,tags="n=2"),tags="comb")
       vector = vector * C
+      for j in 3:length(N)
+        vector = vector * mps[j]
+        C = combiner(firstind(vector,tags="comb"),firstind(vector,tags="n=$j"),tags="comb")
+        vector = vector * C
+      end
+    else
+      vector = mps[N] * mps[N-1]
+      C = combiner(firstind(vector,tags="n=$N"),firstind(vector,tags="n=$(N-1)"),tags="comb")
+      vector = vector * C
+      for j in reverse(1:N-2)
+        vector = vector * mps[j]
+        C = combiner(firstind(vector,tags="comb"),firstind(vector,tags="n=$j"),tags="comb")
+        vector = vector * C
+      end
     end
     return vector
   end
