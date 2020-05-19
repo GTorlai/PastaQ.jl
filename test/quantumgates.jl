@@ -89,7 +89,7 @@ end
 @testset "1q gate: Rx" begin
   i = Index(2)
   θ = π * rand()
-  g = gate_Rx(i,θ) 
+  g = gate_Rx(i,θ=θ) 
   @test plev(inds(g)[1]) == 1 
   @test plev(inds(g)[2]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)
@@ -99,7 +99,7 @@ end
 @testset "1q gate: Ry" begin
   i = Index(2)
   θ = π * rand()
-  g = gate_Ry(i,θ) 
+  g = gate_Ry(i,θ=θ) 
   @test plev(inds(g)[1]) == 1 
   @test plev(inds(g)[2]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)
@@ -109,7 +109,7 @@ end
 @testset "1q gate: Rz" begin
   i = Index(2)
   ϕ = 2π * rand()
-  g = gate_Rz(i,ϕ) 
+  g = gate_Rz(i,ϕ=ϕ) 
   @test plev(inds(g)[1]) == 1 
   @test plev(inds(g)[2]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)
@@ -121,7 +121,7 @@ end
   θ = π * angles[1]
   ϕ = 2π * angles[2]
   λ = 2π * angles[3]
-  g = gate_Rn(i,θ,ϕ,λ)
+  g = gate_Rn(i,θ=θ,ϕ=ϕ,λ=λ)
   @test plev(inds(g)[1]) == 1 
   @test plev(inds(g)[2]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)
@@ -209,26 +209,26 @@ end
   @test g ≈ x 
   
   θ = π * rand()
-  g = gate_Rx(i,θ) 
-  x = quantumgate("Rx",i,angles=θ)
+  g = gate_Rx(i,θ=θ) 
+  x = quantumgate("Rx",i,θ=θ)
   @test g ≈ x 
 
   θ = π * rand()
-  g = gate_Ry(i,θ) 
-  x = quantumgate("Ry",i,angles=θ)
+  g = gate_Ry(i,θ=θ) 
+  x = quantumgate("Ry",i,θ=θ)
   @test g ≈ x 
   
   ϕ = 2π * rand()
-  g = gate_Rz(i,ϕ) 
-  x = quantumgate("Rz",i,angles=ϕ)
+  g = gate_Rz(i,ϕ=ϕ) 
+  x = quantumgate("Rz",i,ϕ=ϕ)
   @test g ≈ x 
   
   angles = rand(3)
   θ = π * angles[1]
   ϕ = 2π * angles[2]
   λ = 2π * angles[3]
-  g = gate_Rn(i,θ,ϕ,λ)
-  x = quantumgate("Rn",i,angles=[θ,ϕ,λ])
+  g = gate_Rn(i,θ=θ,ϕ=ϕ,λ=λ)
+  x = quantumgate("Rn",i,θ=θ,ϕ=ϕ,λ=λ)
   @test g ≈ x 
 
   g = gate_Sw(i,j)
