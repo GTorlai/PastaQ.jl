@@ -139,5 +139,5 @@ quantumgate("X", i)
 function quantumgate(gate_id::String,
                      site_inds::Index...;
                      kwargs...)
-  return quantumgates[gate_id](site_inds; kwargs...)
+  return quantumgates[gate_id](site_inds...; kwargs...)
 end
