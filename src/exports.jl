@@ -24,7 +24,7 @@ export
   # Methods
   initializecircuit,
   initializequbits,
-  applyGate!,
+  applygate!,
 
 # utils.jl
   # Methods
