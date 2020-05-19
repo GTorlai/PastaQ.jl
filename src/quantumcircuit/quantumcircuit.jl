@@ -26,3 +26,13 @@ function applygate!(M::MPS,
   M[site] = gate * M[site]
   noprime!(M[site])
 end
+
+function applygate!(M::MPS,
+                   gate_id::String,
+                   site::Array;
+                   kwargs...)
+  #site_ind = firstind(M[site],"Site")
+  #gate = quantumgate(gate_id, site_ind; kwargs...)
+  #M[site] = gate * M[site]
+  #noprime!(M[site])
+end
