@@ -25,10 +25,4 @@ export
   InitializeCircuit,
   InitializeQubits,
   ApplyGate!,
-  ApplyOneSiteGate!,
-
-# utils.jl
-  # Methods
-  FullVector,
-  FullMatrix,
-  PrintState
+  ApplyOneSiteGate!
