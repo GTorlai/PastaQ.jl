@@ -29,6 +29,4 @@ export
 
 # utils.jl
   # Methods
-  FullVector,
-  FullMatrix,
-  PrintState
+  FullVector

@@ -1,7 +1,7 @@
-include("../src/PastaQ.jl")
-using Main.PastaQ
-using HDF5, JLD
+using PastaQ
 using ITensors
+using HDF5
+using JLD
 using Test
 using LinearAlgebra
 
