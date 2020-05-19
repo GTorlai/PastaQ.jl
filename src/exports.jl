@@ -25,4 +25,8 @@ export
   InitializeCircuit,
   InitializeQubits,
   ApplyGate!,
-  ApplyOneSiteGate!
+  ApplyOneSiteGate!,
+
+# utils.jl
+  # Methods
+  FullVector

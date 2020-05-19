@@ -5,8 +5,6 @@ using JLD
 using Test
 using LinearAlgebra
 
-include("utils.jl")
-
 @testset "qubits initialization" begin
   N = 1
   psi =InitializeQubits(N)

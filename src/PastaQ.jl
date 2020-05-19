@@ -9,5 +9,6 @@ using HDF5
 include("exports.jl")
 include("quantumcircuit/quantumgates.jl")
 include("quantumcircuit/quantumcircuit.jl")
+include("utils.jl")
 
 end # module
