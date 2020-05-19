@@ -1,5 +1,5 @@
 # Identity
-function gate_Id(i::Index)
+function gate_I(i::Index)
   return itensor([1 0;
                   0 1],i',i)
 end
@@ -44,25 +44,27 @@ function gate_Km(i::Index)
                                1 im],i',i)
 end
 
-function gate_Rx(i::Index,θ::Float64)
+function gate_Rx(i::Index; θ::Float64)
   gate = [cos(θ/2.)     -im*sin(θ/2.);
           -im*sin(θ/2.)     cos(θ/2.)]
   return itensor(gate,i',i)
 end
 
-function gate_Ry(i::Index,θ::Float64)
+function gate_Ry(i::Index; θ::Float64)
   gate = [cos(θ/2.)     -sin(θ/2.);
           sin(θ/2.)     cos(θ/2.)]
   return itensor(gate,i',i)
 end
 
-function gate_Rz(i::Index,ϕ::Float64)
+function gate_Rz(i::Index; ϕ::Float64)
   gate = [exp(-im*ϕ/2.)  0;
           0              exp(im*ϕ/2.)]
   return itensor(gate,i',i)
 end
 
-function gate_Rn(i::Index,θ::Float64,ϕ::Float64,λ::Float64)
+function gate_Rn(i::Index; θ::Float64,
+                           ϕ::Float64,
+                           λ::Float64)
   gate = [cos(θ/2.)                -exp(im*λ) * sin(θ/2.);
           exp(im*ϕ) * sin(θ/2.)    exp(im*(ϕ+λ)) * cos(θ/2.)]
   return itensor(gate,i',i)
@@ -100,62 +102,42 @@ function gate_Cz(i::Index,j::Index)
   return itensor(gate,i',j',i,j)
 end
 
-""" This is a comment 
+# A global dictionary of gate functions
+quantumgates = Dict()
+
+quantumgates["I"]  = gate_I
+quantumgates["X"]  = gate_X
+quantumgates["Y"]  = gate_Y
+quantumgates["Z"]  = gate_Z
+quantumgates["H"]  = gate_H
+quantumgates["S"]  = gate_S
+quantumgates["T"]  = gate_T
+quantumgates["Kp"] = gate_Kp
+quantumgates["Km"] = gate_Km
+quantumgates["Rx"] = gate_Rx
+quantumgates["Ry"] = gate_Ry
+quantumgates["Rz"] = gate_Rz
+quantumgates["Rn"] = gate_Rn
+quantumgates["Sw"] = gate_Sw
+quantumgates["Cx"] = gate_Cx
+quantumgates["Cy"] = gate_Cy
+quantumgates["Cz"] = gate_Cz
+    
 """
-function quantumgate(gate_id::String,site_ind::Index...;angles=nothing)
-  if gate_id == "I"
-    return gate_Id(site_ind[1])
-  
-  elseif gate_id == "X"
-    return gate_X(site_ind[1])
+    quantumgate(gate_id::String,
+                site_inds::Index...;
+                kwargs...)
 
-  elseif gate_id == "Y"
-    return gate_Y(site_ind[1])
+Make the specified gate with the specified indices.
 
-  elseif gate_id == "Z"
-    return gate_Z(site_ind[1])
-
-  elseif gate_id == "H"
-    return gate_H(site_ind[1])
-
-  elseif gate_id == "S"
-    return gate_S(site_ind[1])
-
-  elseif gate_id == "T"
-    return gate_T(site_ind[1])
-
-  elseif gate_id == "Kp"
-    return gate_Kp(site_ind[1])
-  
-  elseif gate_id == "Km"
-    return gate_Km(site_ind[1])
-  
-  elseif gate_id == "Rx"
-    return gate_Rx(site_ind[1],angles[1])
- 
-  elseif gate_id == "Ry"
-    return gate_Ry(site_ind[1],angles[1])
-  
-  elseif gate_id == "Rz"
-    return gate_Rz(site_ind[1],angles[1])
-  
-  elseif gate_id == "Rn"
-    return gate_Rn(site_ind[1],angles[1],angles[2],angles[3])
-  
-  elseif gate_id == "Sw"
-    return gate_Sw(site_ind[1],site_ind[2])
-    
-  elseif gate_id == "Cx"
-    return gate_Cx(site_ind[1],site_ind[2])
-    
-  elseif gate_id == "Cy"
-    return gate_Cy(site_ind[1],site_ind[2])
-    
-  elseif gate_id == "Cz"
-    return gate_Cz(site_ind[1],site_ind[2])
-    
-  else
-    throw(ArgumentError("Gate name '$gate_id' not recognized"))
-  end
-
+# Example
+```julia
+i = Index(2; tags = "i")
+quantumgate("X", i)
+```
+"""
+function quantumgate(gate_id::String,
+                     site_inds::Index...;
+                     kwargs...)
+  return quantumgates[gate_id](site_inds; kwargs...)
 end

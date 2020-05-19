@@ -19,15 +19,13 @@ end
 
 function ApplyGate!(M::Union{MPS,MPO},
                    gate_id::String,
-                   site;
-                   angles=nothing)
-  if typeof(site) == Int 
-    site_ind = firstind(M[site],"Site")
-    gate = quantumgate(gate_id,site_ind,angles=angles)
-    ApplyOneSiteGate!(M,gate,site)
-  end
+                   site::Int;
+                   kwargs...)
+  site_ind = firstind(M[site],"Site")
+  gate = quantumgate(gate_id, site_ind; kwargs...)
+  ApplyOneSiteGate!(M,gate,site)
 end
-                
+
 function ApplyOneSiteGate!(M::MPS,gate::ITensor,site::Int)
   M[site] = gate * M[site]
 end
