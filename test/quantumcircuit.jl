@@ -34,3 +34,174 @@ end
   @test U[N] ≈ identity
 end
 
+@testset "apply gate: Id" begin
+  psi = initializequbits(1)
+  applygate!(psi,"I",1)
+  @test array(psi[1]) ≈ [1.,0.]
+end
+
+@testset "apply gate: X" begin
+  psi = initializequbits(1)
+  applygate!(psi,"X",1)
+  @test array(psi[1]) ≈ [0.,1.]
+  applygate!(psi,"X",1)
+  @test array(psi[1]) ≈ [1.,0.]
+end
+
+@testset "apply gate: Y" begin
+  psi = initializequbits(1)
+  applygate!(psi,"Y",1)
+  @test array(psi[1]) ≈ [0.,im]
+  psi = initializequbits(1)
+  applygate!(psi,"X",1)
+  applygate!(psi,"Y",1)
+  @test array(psi[1]) ≈ [-im,0.]
+end
+
+@testset "apply gate: Z" begin
+  psi = initializequbits(1)
+  applygate!(psi,"Z",1)
+  @test array(psi[1]) ≈ [1.,0.]
+  psi = initializequbits(1)
+  applygate!(psi,"X",1)
+  applygate!(psi,"Z",1)
+  @test array(psi[1]) ≈ [0.,-1.]
+end
+
+@testset "apply gate: H" begin
+  psi = initializequbits(1)
+  applygate!(psi,"H",1)
+  @test array(psi[1]) ≈ 1/sqrt(2.)*[1.,1.]
+  psi = initializequbits(1)
+  applygate!(psi,"X",1)
+  applygate!(psi,"H",1)
+  @test array(psi[1]) ≈ 1/sqrt(2.)*[1.,-1.]
+end
+
+@testset "apply gate: S" begin
+  psi = initializequbits(1)
+  applygate!(psi,"S",1)
+  @test array(psi[1]) ≈ [1.,0.]
+  psi = initializequbits(1)
+  applygate!(psi,"X",1)
+  applygate!(psi,"S",1)
+  @test array(psi[1]) ≈ [0.,im]
+end
+
+@testset "apply gate: T" begin
+  psi = initializequbits(1)
+  applygate!(psi,"T",1)
+  @test array(psi[1]) ≈ [1.,0.]
+  psi = initializequbits(1)
+  applygate!(psi,"X",1)
+  applygate!(psi,"T",1)
+  @test array(psi[1]) ≈ [0.,exp(im*π/4)]
+end
+
+@testset "apply gate: Kp" begin
+  psi = initializequbits(1)
+  applygate!(psi,"Kp",1)
+  @test array(psi[1]) ≈ 1/sqrt(2.)*[1.,im]
+  psi = initializequbits(1)
+  applygate!(psi,"X",1)
+  applygate!(psi,"Kp",1)
+  @test array(psi[1]) ≈ 1/sqrt(2.)*[1.,-im]
+end
+
+@testset "apply gate: Km" begin
+  psi = initializequbits(1)
+  applygate!(psi,"Km",1)
+  @test array(psi[1]) ≈ 1/sqrt(2.)*[1.,1.]
+  psi = initializequbits(1)
+  applygate!(psi,"X",1)
+  applygate!(psi,"Km",1)
+  @test array(psi[1]) ≈ 1/sqrt(2.)*[-im,im]
+end
+
+@testset "apply gate: Rx" begin
+  θ = π * rand()
+  psi = initializequbits(1)
+  applygate!(psi,"Rx",1,θ=θ)
+  @test array(psi[1]) ≈ [cos(θ/2.),-im*sin(θ/2.)]
+  psi = initializequbits(1)
+  applygate!(psi,"X",1)
+  applygate!(psi,"Rx",1,θ=θ)
+  @test array(psi[1]) ≈ [-im*sin(θ/2.),cos(θ/2.)]
+end
+
+@testset "apply gate: Ry" begin
+  θ = π * rand()
+  psi = initializequbits(1)
+  applygate!(psi,"Ry",1,θ=θ)
+  @test array(psi[1]) ≈ [cos(θ/2.),sin(θ/2.)]
+  psi = initializequbits(1)
+  applygate!(psi,"X",1)
+  applygate!(psi,"Ry",1,θ=θ)
+  @test array(psi[1]) ≈ [-sin(θ/2.),cos(θ/2.)]
+end
+
+@testset "apply gate: Rz" begin
+  ϕ = 2π * rand()
+  psi = initializequbits(1)
+  applygate!(psi,"Rz",1,ϕ=ϕ)
+  @test array(psi[1]) ≈ [exp(-im*ϕ/2.), 0.]
+  psi = initializequbits(1)
+  applygate!(psi,"X",1)
+  applygate!(psi,"Rz",1,ϕ=ϕ)
+  @test array(psi[1]) ≈ [0.,exp(im*ϕ/2.)]
+end
+
+@testset "apply gate: Rn" begin
+  angles = rand(3)
+  θ = π * angles[1]
+  ϕ = 2π * angles[2]
+  λ = 2π * angles[3]
+  psi = initializequbits(1)
+  applygate!(psi,"Rn",1,θ=θ,ϕ=ϕ,λ=λ)
+  @test array(psi[1]) ≈ [cos(θ/2.),exp(im*ϕ) * sin(θ/2.)]
+  psi = initializequbits(1)
+  applygate!(psi,"X",1)
+  applygate!(psi,"Rn",1,θ=θ,ϕ=ϕ,λ=λ)
+  @test array(psi[1]) ≈ [-exp(im*λ) * sin(θ/2.),exp(im*(ϕ+λ)) * cos(θ/2.)]
+end
+
+#@testset "apply gate: Sw" begin
+#  psi = initializequbits(2)
+#  applygate!(psi,"Sw",[1,2])
+#  psi_vec = array(fullvector(psi))
+#  @test psi_vec ≈ [1.,0.,0.,0.]
+#  psi = initializequbits(2)
+#  applygate!(psi,"X",1)
+#  applygate!(psi,"Sw",[1,2])
+#  psi_vec = array(fullvector(psi))
+#  @test psi_vec ≈ [0.,1.,0.,0.]
+#  psi = initializequbits(2)
+#  applygate!(psi,"X",2)
+#  applygate!(psi,"Sw",[1,2])
+#  psi_vec = array(fullvector(psi))
+#  @test psi_vec ≈ [0.,0.,1.,0.]
+#  psi = initializequbits(2)
+#  applygate!(psi,"X",1)
+#  applygate!(psi,"X",2)
+#  applygate!(psi,"Sw",[1,2])
+#  psi_vec = array(fullvector(psi))
+#  @test psi_vec ≈ [0.,0.,0.,1.]
+#  
+#  #@test psi_vec ≈ [1.,0.,0.,0.]
+#  #@test array(psi[1]) ≈ [cos(θ/2.),exp(im*ϕ) * sin(θ/2.)]
+#  #psi = initializequbits(1)
+#  #applygate!(psi,"X",1)
+#  #applygate!(psi,"Rn",1,θ=θ,ϕ=ϕ,λ=λ)
+#  #@test array(psi[1]) ≈ [-exp(im*λ) * sin(θ/2.),exp(im*(ϕ+λ)) * cos(θ/2.)]
+#end
+
+
+
+
+
+
+
+
+
+
+
