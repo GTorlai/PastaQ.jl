@@ -7,7 +7,7 @@ using LinearAlgebra
 
 @testset "1q gate: Id" begin
   i = Index(2)
-  g = gate_Id(i) 
+  g = gate_I(i) 
   @test plev(inds(g)[1]) == 1 
   @test plev(inds(g)[2]) == 0 
   @test g ≈ itensor(Matrix{Int}(I, 2, 2),inds(g))
@@ -172,7 +172,7 @@ end
   i = Index(2)
   j = Index(2)
   
-  g = gate_Id(i) 
+  g = gate_I(i) 
   x = quantumgate("I",i) 
   @test g ≈ x 
   

@@ -1,7 +1,7 @@
 export 
 # quantumgates.jl
   # Methods
-  gate_Id,
+  gate_I,
   gate_X,
   gate_Y,
   gate_Z,
