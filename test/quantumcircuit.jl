@@ -10,13 +10,13 @@ using LinearAlgebra
   psi = initializequbits(N)
   @test length(psi) == 1
   @test length(inds(psi[1],"Link")) == 0
+  @test fullvector(psi) ≈ [1, 0]
   N = 5
-  psi =initializequbits(N)
+  psi = initializequbits(N)
   @test length(psi) == 5
   psi_vec = fullvector(psi,order="natural")
   exact_vec = zeros(1<<N)
   exact_vec[1] = 1.0
-  exact_vec = itensor(exact_vec,inds(psi_vec))
   @test psi_vec ≈ exact_vec
 end
 
