@@ -1,6 +1,6 @@
 function fullvector(mps::MPS;order="native")
   if length(mps) == 1
-    return mps[1]
+    return array(mps[1])
   else
     N = length(mps)
     if (order == "native")
@@ -22,14 +22,14 @@ function fullvector(mps::MPS;order="native")
         vector = vector * C
       end
     end
-    return vector
+    return array(vector)
   end
 end
 
 function fullmatrix(tensor::ITensor;order="native")
   N = Int(length(inds(tensor))/2)
   if ( N == 1)
-    return tensor
+    return array(tensor)
   else
     indices = inds(tensor,plev=0)
     if order == "native"
@@ -51,7 +51,7 @@ function fullmatrix(tensor::ITensor;order="native")
         matrix = tensor * Cb * Ck
       end
     end
-    return matrix
+    return array(matrix)
   end
 end
 
