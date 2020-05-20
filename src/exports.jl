@@ -30,6 +30,8 @@ export
   # Methods
   hadamardlayer!,
   rand1Qrotationlayer!,
+  Cxlayer!,
+
 # utils.jl
   # Methods
   fullvector,
