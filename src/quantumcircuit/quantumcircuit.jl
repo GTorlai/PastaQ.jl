@@ -27,7 +27,7 @@ function applygate!(M::MPS,
   noprime!(M[site])
 end
 
-function applygate!(M::MPS,gate::ITensor)
+function applygate!(M::MPS,gate::ITensor{2})
   site_tag = tags(firstind(gate,"Site"))[2]
   site = parse(Int,String(site_tag)[end])
   M[site] = gate * M[site]
@@ -71,31 +71,28 @@ function applygate!(M::MPS,
   end
 end
 
-function applygate!(M::MPS, gate::ITensor; cutoff = 1e-10)
+function applygate!(M::MPS, gate::ITensor{4}; cutoff = 1e-10)
   site_tags = (tags(inds(gate,plev=1)[1])[2],tags(inds(gate,plev=1)[2])[2])
   s1 = parse(Int,String(site_tags[1])[end])
   s2 = parse(Int,String(site_tags[2])[end])
   @assert(abs(s1-s2)==1)
-
   orthogonalize!(M,s1)
-
   blob = M[s1] * M[s2]
   blob = gate * blob
   noprime!(blob)
-  
   if s1==1
-    row_ind = firstind(blob,tags="n=$s1)")
+    row_ind = firstind(blob,tags="n=$s1")
     U,S,V = svd(blob,row_ind,cutoff=cutoff)
     M[s1] = U*S
     M[s2] = V
   elseif s1 == length(M)-1
-    row_ind = firstind(blob,tags="n=$s2)")
+    row_ind = firstind(blob,tags="n=$s2")
     U,S,V = svd(blob,row_ind,cutoff=cutoff)
     M[s1] = V
     M[s2] = U*S
   else
     row_ind = (commonind(M[s1],M[s1-1]),
-               firstind(blob,tags="n=$s1)"))
+               firstind(blob,tags="n=$s1"))
     U,S,V = svd(blob,row_ind,cutoff=cutoff)
     M[s1] = U*S
     M[s2] = V

@@ -313,23 +313,95 @@ end
 
   # USE APPLYGATE ON ITENSOR
   
-  ## CONTROL - TARGET
-  #psi = initializequbits(2)
-  ## |00> -> |00> = (1 0 0 0) (natural order)
-  #site_ind1 = firstind(psi[1],"Site")
-  #site_ind2 = firstind(psi[2],"Site")
-  #gate = quantumgate("Cx",site_ind1,site_ind2)
-  #applygate!(psi,gate)
-  #psi_vec = fullvector(psi)
-  #@test psi_vec ≈ [1.,0.,0.,0.]
+  # CONTROL - TARGET
+  psi = initializequbits(2)
+  # |00> -> |00> = (1 0 0 0) (natural order)
+  site_ind1 = firstind(psi[1],"Site")
+  site_ind2 = firstind(psi[2],"Site")
+  gate = quantumgate("Cx",site_ind1,site_ind2)
+  applygate!(psi,gate)
+  psi_vec = fullvector(psi)
+  @test psi_vec ≈ [1.,0.,0.,0.]
   
-  ## TARGET - CONTROL
-  #psi = initializequbits(2)
-  ## |00> -> |00> = (1 0 0 0) (natural order)
-  #applygate!(psi,"Cx",[2,1])
-  #psi_vec = fullvector(psi)
-  #@test psi_vec ≈ [1.,0.,0.,0.]
+  psi = initializequbits(2)
+  # |10> -> |11> = (0 0 0 1) (natural order)
+  site_ind1 = firstind(psi[1],"Site")
+  site_ind2 = firstind(psi[2],"Site")
+  gate = quantumgate("X",site_ind1)
+  applygate!(psi,gate)
+  gate = quantumgate("Cx",site_ind1,site_ind2)
+  applygate!(psi,gate)
+  psi_vec = fullvector(psi)
+  @test psi_vec ≈ [0.,0.,0.,1.]
   
+  psi = initializequbits(2)
+  # |01> -> |01> = (0 1 0 0) (natural order)
+  site_ind1 = firstind(psi[1],"Site")
+  site_ind2 = firstind(psi[2],"Site")
+  gate = quantumgate("X",site_ind2) 
+  applygate!(psi,gate)
+  gate = quantumgate("Cx",site_ind1,site_ind2)
+  applygate!(psi,gate)
+  psi_vec = fullvector(psi)
+  @test psi_vec ≈ [0.,1.,0.,0.]
+  
+  psi = initializequbits(2)
+  # |11> -> |10> = (0 0 1 0) (natural order)
+  site_ind1 = firstind(psi[1],"Site")
+  site_ind2 = firstind(psi[2],"Site")
+  gate = quantumgate("X",site_ind1) 
+  applygate!(psi,gate)
+  gate = quantumgate("X",site_ind2) 
+  applygate!(psi,gate)
+  gate = quantumgate("Cx",site_ind1,site_ind2)
+  applygate!(psi,gate)
+  psi_vec = fullvector(psi)
+  @test psi_vec ≈ [0.,0.,1.,0.]
+ 
+  # TARGET - CONTROL
+  psi = initializequbits(2)
+  # |00> -> |00> = (1 0 0 0) (natural order)
+  site_ind1 = firstind(psi[2],"Site")
+  site_ind2 = firstind(psi[1],"Site")
+  gate = quantumgate("Cx",site_ind1,site_ind2)
+  applygate!(psi,gate)
+  psi_vec = fullvector(psi)
+  @test psi_vec ≈ [1.,0.,0.,0.]
+  
+  psi = initializequbits(2)
+  # |10> -> |10> = (0 0 1 0) (natural order)
+  site_ind1 = firstind(psi[2],"Site")
+  site_ind2 = firstind(psi[1],"Site")
+  gate = quantumgate("X",site_ind2) 
+  applygate!(psi,gate)
+  gate = quantumgate("Cx",site_ind1,site_ind2)
+  applygate!(psi,gate)
+  psi_vec = fullvector(psi)
+  @test psi_vec ≈ [0.,0.,1.,0.]
+  
+  psi = initializequbits(2)
+  # |01> -> |11> = (0 0 0 1) (natural order)
+  site_ind1 = firstind(psi[2],"Site")
+  site_ind2 = firstind(psi[1],"Site")
+  gate = quantumgate("X",site_ind1) 
+  applygate!(psi,gate)
+  gate = quantumgate("Cx",site_ind1,site_ind2)
+  applygate!(psi,gate)
+  psi_vec = fullvector(psi)
+  @test psi_vec ≈ [0.,0.,0.,1.]
+  
+  psi = initializequbits(2)
+  # |11> -> |01> = (0 1 0 0) (natural order)
+  site_ind1 = firstind(psi[2],"Site")
+  site_ind2 = firstind(psi[1],"Site")
+  gate = quantumgate("X",site_ind2) 
+  applygate!(psi,gate)
+  gate = quantumgate("X",site_ind1) 
+  applygate!(psi,gate)
+  gate = quantumgate("Cx",site_ind1,site_ind2)
+  applygate!(psi,gate)
+  psi_vec = fullvector(psi)
+  @test psi_vec ≈ [0.,1.,0.,0.]
 
 end
 
