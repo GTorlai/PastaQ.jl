@@ -26,6 +26,10 @@ export
   initializequbits,
   applygate!,
 
+# circuits.jl
+  # Methods
+  hadamardlayer!,
+  rand1Qrotationlayer!,
 # utils.jl
   # Methods
   fullvector,
