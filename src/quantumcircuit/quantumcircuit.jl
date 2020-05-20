@@ -15,15 +15,15 @@ end
 
 # Make a 1Q gate tensor from gate_id,site and params
 function makegate(M::MPS, gate_id::String, site::Int; kwargs...)
-  site_ind = siteind(M,site)#firstind(M[site],"Site")
+  site_ind = siteind(M,site)
   gate = quantumgate(gate_id, site_ind; kwargs...)
   return gate 
 end
 
 # Make a 2Q gate tensor from gate_id,site and params
 function makegate(M::MPS,gate_id::String, site::Array; kwargs...)
-  site_ind1 = siteind(M,site[1])#firstind(M[site[1]],"Site")
-  site_ind2 = siteind(M,site[2])#firstind(M[site[2]],"Site")
+  site_ind1 = siteind(M,site[1])
+  site_ind2 = siteind(M,site[2])
   gate = quantumgate(gate_id,site_ind1,site_ind2; kwargs...)
   return gate
 end
@@ -104,13 +104,13 @@ function getsitenumber(i::Index)
   return nothing
 end
 
-
 # Apply 1Q gate using a pre-generated gate tensor
 function applygate!(M::MPS,gate::ITensor{2}; cutoff = 1e-10)
   site = getsitenumber(firstind(gate,"Site")) 
   M[site] = gate * M[site]
   noprime!(M[site])
 end
+
 # Apply 2Q gate using a pre-generated gate tensor
 function applygate!(M::MPS, gate::ITensor{4}; cutoff = 1e-10)
   s1 = getsitenumber(inds(gate,plev=1)[1]) 
