@@ -1,15 +1,3 @@
+![alt text](https://github.com/GTorlai/PastaQ.jl/blob/master/docs/pastaQ_logo.jpg?raw=true)
+
 ## A Package for Simulation, Tomography and Analysis of Quantum Computers
-
-#### Ongoing
-
-+ Quantum Circuits
-  + Working on single and two-qubit gates
-
-#### ToDo List
-
-+ Tensor-network simulator
-  + QuantumGates
-    + Add custom gates
-
-+ Utils
-  + Add a nice print function
