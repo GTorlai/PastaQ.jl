@@ -52,7 +52,7 @@ end
 @testset "fullmatrix for Itensor - natural" begin
   i = Index(2)
   gate = quantumgate("X",i)
-  gate_mat = fullmatrix(gate,order="native")
+  gate_mat = fullmatrix(gate,order="natural")
   @test gate_mat ≈ [0 1;1 0] 
   
   j = Index(2)
