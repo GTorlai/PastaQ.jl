@@ -28,4 +28,5 @@ export
 
 # utils.jl
   # Methods
-  fullvector
+  fullvector,
+  fullmatrix
