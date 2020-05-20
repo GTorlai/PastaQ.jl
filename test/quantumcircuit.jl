@@ -589,15 +589,42 @@ end
 
 end
 
-#data = load("testdata/quantumcircuit_testunitary_rand1Qrotationlayer.jld")
-#N = data["N"]
-#gates = data["gates"]
-#full_unitary = data["full_unitary"]
-#
-#@show gates
-#@show full_unitary
+@testset "runcircuit: hadamardlayer N=10" begin
+  data = load("testdata/quantumcircuit_testunitary_hadamardlayer.jld")
+  N = data["N"]
+  gate_list = data["gates"]
+  exact_unitary = data["full_unitary"]
+  exact_psi     = data["full_psi"]  
+  psi = initializequbits(N)
+  gates = makecircuit(psi,gate_list)
+  runcircuit!(psi,gates)
+  @test exact_psi ≈ fullvector(psi,order="native")
+end
 
 
+@testset "runcircuit: rand1Qrotationlayer N=10" begin
+  data = load("testdata/quantumcircuit_testunitary_rand1Qrotationlayer.jld")
+  N = data["N"]
+  gate_list = data["gates"]
+  exact_unitary = data["full_unitary"]
+  exact_psi     = data["full_psi"]  
+  psi = initializequbits(N)
+  gates = makecircuit(psi,gate_list)
+  runcircuit!(psi,gates)
+  @test exact_psi ≈ fullvector(psi,order="native")
+end
 
+
+@testset "runcircuit: randomRnCx N=10" begin
+  data = load("testdata/quantumcircuit_testunitary_randomRnCx.jld")
+  N = data["N"]
+  gate_list = data["gates"]
+  exact_unitary = data["full_unitary"]
+  exact_psi     = data["full_psi"]  
+  psi = initializequbits(N)
+  gates = makecircuit(psi,gate_list)
+  runcircuit!(psi,gates)
+  @test exact_psi ≈ fullvector(psi,order="native")
+end
 
 

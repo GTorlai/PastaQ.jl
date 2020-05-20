@@ -1,4 +1,3 @@
-# Quantum circuit
 
 # Initialize the circuit MPO
 function initializecircuit(N::Int)
