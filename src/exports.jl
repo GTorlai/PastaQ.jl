@@ -24,7 +24,11 @@ export
   # Methods
   initializecircuit,
   initializequbits,
+  getsitenumber,
   applygate!,
+  makegate,
+  makecircuit,
+  runcircuit!,
 
 # circuits.jl
   # Methods
