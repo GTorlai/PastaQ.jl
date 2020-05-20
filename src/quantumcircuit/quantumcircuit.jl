@@ -8,28 +8,22 @@ end
 
 # Initialize the qubit MPS to |000...00>
 function initializequbits(N::Int)
-  if (N==1)
-    site = Index(2,tags="Site, n=1")
-    m = itensor([1. 0.],site)
-    psi = MPS([m])
-  else
-    sites = [Index(2; tags="Site, n=$s") for s in 1:N]
-    psi = productMPS(sites, [1 for i in 1:length(sites)])
-  end
+  sites = [Index(2; tags="Site, n=$s") for s in 1:N]
+  psi = productMPS(sites, [1 for i in 1:length(sites)])
   return psi
 end
 
 # Make a 1Q gate tensor from gate_id,site and params
 function makegate(M::MPS, gate_id::String, site::Int; kwargs...)
-  site_ind = firstind(M[site],"Site")
+  site_ind = siteind(M,site)#firstind(M[site],"Site")
   gate = quantumgate(gate_id, site_ind; kwargs...)
   return gate 
 end
 
 # Make a 2Q gate tensor from gate_id,site and params
 function makegate(M::MPS,gate_id::String, site::Array; kwargs...)
-  site_ind1 = firstind(M[site[1]],"Site")
-  site_ind2 = firstind(M[site[2]],"Site")
+  site_ind1 = siteind(M,site[1])#firstind(M[site[1]],"Site")
+  site_ind2 = siteind(M,site[2])#firstind(M[site[2]],"Site")
   gate = quantumgate(gate_id,site_ind1,site_ind2; kwargs...)
   return gate
 end
