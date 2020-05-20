@@ -14,7 +14,7 @@ using LinearAlgebra
   N = 5
   psi = initializequbits(N)
   @test length(psi) == 5
-  psi_vec = fullvector(psi,order="natural")
+  psi_vec = fullvector(psi)
   exact_vec = zeros(1<<N)
   exact_vec[1] = 1.0
   @test psi_vec ≈ exact_vec
@@ -170,21 +170,21 @@ end
   psi = initializequbits(2)
   # |00> -> |00> = (1 0 0 0) (natural order)
   applygate!(psi,"Cx",[1,2])
-  psi_vec = fullvector(psi,order="natural")
+  psi_vec = fullvector(psi)
   @test psi_vec ≈ [1.,0.,0.,0.]
   
   psi = initializequbits(2)
   # |10> -> |11> = (0 0 0 1) (natural order)
   applygate!(psi,"X",1)
   applygate!(psi,"Cx",[1,2])
-  psi_vec = fullvector(psi,order="natural")
+  psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,0.,0.,1.]
   
   psi = initializequbits(2)
   # |01> -> |01> = (0 1 0 0) (natural order)
   applygate!(psi,"X",2)
   applygate!(psi,"Cx",[1,2])
-  psi_vec = fullvector(psi,order="natural")
+  psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,1.,0.,0.]
   
   psi = initializequbits(2)
@@ -192,28 +192,28 @@ end
   applygate!(psi,"X",1)
   applygate!(psi,"X",2)
   applygate!(psi,"Cx",[1,2])
-  psi_vec = fullvector(psi,order="natural")
+  psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,0.,1.,0.]
   
   # TARGET - CONTROL
   psi = initializequbits(2)
   # |00> -> |00> = (1 0 0 0) (natural order)
   applygate!(psi,"Cx",[2,1])
-  psi_vec = fullvector(psi,order="natural")
+  psi_vec = fullvector(psi)
   @test psi_vec ≈ [1.,0.,0.,0.]
   
   psi = initializequbits(2)
   # |10> -> |10> = (0 0 1 0) (natural order)
   applygate!(psi,"X",1)
   applygate!(psi,"Cx",[2,1])
-  psi_vec = fullvector(psi,order="natural")
+  psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,0.,1.,0.]
   
   psi = initializequbits(2)
   # |01> -> |11> = (0 0 0 1) (natural order)
   applygate!(psi,"X",2)
   applygate!(psi,"Cx",[2,1])
-  psi_vec = fullvector(psi,order="natural")
+  psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,0.,0.,1.]
   
   psi = initializequbits(2)
@@ -221,7 +221,7 @@ end
   applygate!(psi,"X",1)
   applygate!(psi,"X",2)
   applygate!(psi,"Cx",[2,1])
-  psi_vec = fullvector(psi,order="natural")
+  psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,1.,0.,0.]
 
 end
@@ -231,21 +231,21 @@ end
   psi = initializequbits(2)
   # |00> -> |00> = (1 0 0 0) (natural order)
   applygate!(psi,"Cy",[1,2])
-  psi_vec = fullvector(psi,order="natural")
+  psi_vec = fullvector(psi)
   @test psi_vec ≈ [1.,0.,0.,0.]
   
   psi = initializequbits(2)
   # |10> -> i|11> = (0 0 0 i) (natural order)
   applygate!(psi,"X",1)
   applygate!(psi,"Cy",[1,2])
-  psi_vec = fullvector(psi,order="natural")
+  psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,0.,0.,im]
   
   psi = initializequbits(2)
   # |01> -> |01> = (0 1 0 0) (natural order)
   applygate!(psi,"X",2)
   applygate!(psi,"Cy",[1,2])
-  psi_vec = fullvector(psi,order="natural")
+  psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,1.,0.,0.]
   
   psi = initializequbits(2)
@@ -253,28 +253,28 @@ end
   applygate!(psi,"X",1)
   applygate!(psi,"X",2)
   applygate!(psi,"Cy",[1,2])
-  psi_vec = fullvector(psi,order="natural")
+  psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,0.,-im,0.]
   
   # TARGET - CONTROL
   psi = initializequbits(2)
   # |00> -> |00> = (1 0 0 0) (natural order)
   applygate!(psi,"Cy",[2,1])
-  psi_vec = fullvector(psi,order="natural")
+  psi_vec = fullvector(psi)
   @test psi_vec ≈ [1.,0.,0.,0.]
   
   psi = initializequbits(2)
   # |10> -> |10> = (0 0 1 0) (natural order)
   applygate!(psi,"X",1)
   applygate!(psi,"Cy",[2,1])
-  psi_vec = fullvector(psi,order="natural")
+  psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,0.,1.,0.]
   
   psi = initializequbits(2)
   # |01> -> i|11> = (0 0 0 i) (natural order)
   applygate!(psi,"X",2)
   applygate!(psi,"Cy",[2,1])
-  psi_vec = fullvector(psi,order="natural")
+  psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,0.,0.,im]
   
   psi = initializequbits(2)
@@ -282,33 +282,31 @@ end
   applygate!(psi,"X",1)
   applygate!(psi,"X",2)
   applygate!(psi,"Cy",[2,1])
-  psi_vec = fullvector(psi,order="natural")
+  psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,-im,0.,0.]
 
 end
-
-
 
 @testset "apply gate: Cz" begin
   # CONTROL - TARGET
   psi = initializequbits(2)
   # |00> -> |00> = (1 0 0 0) (natural order)
   applygate!(psi,"Cz",[1,2])
-  psi_vec = fullvector(psi,order="natural")
+  psi_vec = fullvector(psi)
   @test psi_vec ≈ [1.,0.,0.,0.]
   
   psi = initializequbits(2)
   # |10> -> |10> = (0 0 1 0) (natural order)
   applygate!(psi,"X",1)
   applygate!(psi,"Cz",[1,2])
-  psi_vec = fullvector(psi,order="natural")
+  psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,0.,1.,0.]
   
   psi = initializequbits(2)
   # |01> -> |01> = (0 1 0 0) (natural order)
   applygate!(psi,"X",2)
   applygate!(psi,"Cz",[1,2])
-  psi_vec = fullvector(psi,order="natural")
+  psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,1.,0.,0.]
   
   psi = initializequbits(2)
@@ -316,7 +314,7 @@ end
   applygate!(psi,"X",1)
   applygate!(psi,"X",2)
   applygate!(psi,"Cz",[1,2])
-  psi_vec = fullvector(psi,order="natural")
+  psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,0.,0.,-1.]
   
 
@@ -324,21 +322,21 @@ end
   psi = initializequbits(2)
   # |00> -> |00> = (1 0 0 0) (natural order)
   applygate!(psi,"Cz",[2,1])
-  psi_vec = fullvector(psi,order="natural")
+  psi_vec = fullvector(psi)
   @test psi_vec ≈ [1.,0.,0.,0.]
   
   psi = initializequbits(2)
   # |10> -> |10> = (0 0 1 0) (natural order)
   applygate!(psi,"X",1)
   applygate!(psi,"Cz",[2,1])
-  psi_vec = fullvector(psi,order="natural")
+  psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,0.,1.,0.]
   
   psi = initializequbits(2)
   # |01> -> |01> = (0 1 0 0) (natural order)
   applygate!(psi,"X",2)
   applygate!(psi,"Cz",[2,1])
-  psi_vec = fullvector(psi,order="natural")
+  psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,1.,0.,0.]
   
   psi = initializequbits(2)
@@ -346,7 +344,7 @@ end
   applygate!(psi,"X",1)
   applygate!(psi,"X",2)
   applygate!(psi,"Cz",[2,1])
-  psi_vec = fullvector(psi,order="natural")
+  psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,0.,0.,-1.]
 
 end
@@ -356,21 +354,21 @@ end
   psi = initializequbits(2)
   # |00> -> |00> = (1 0 0 0) (natural order)
   applygate!(psi,"Sw",[1,2])
-  psi_vec = fullvector(psi,order="natural")
+  psi_vec = fullvector(psi)
   @test psi_vec ≈ [1.,0.,0.,0.]
   
   psi = initializequbits(2)
   # |10> -> |01> = (0 1 0 0) (natural order)
   applygate!(psi,"X",1)
   applygate!(psi,"Sw",[1,2])
-  psi_vec = fullvector(psi,order="natural")
+  psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,1.,0.,0.]
   
   psi = initializequbits(2)
   # |01> -> |10> = (0 0 1 0) (natural order)
   applygate!(psi,"X",2)
   applygate!(psi,"Sw",[1,2])
-  psi_vec = fullvector(psi,order="natural")
+  psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,0.,1.,0.]
   
   psi = initializequbits(2)
@@ -378,28 +376,28 @@ end
   applygate!(psi,"X",1)
   applygate!(psi,"X",2)
   applygate!(psi,"Sw",[1,2])
-  psi_vec = fullvector(psi,order="natural")
+  psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,0.,0.,1.]
   
   # CONTROL - TARGET
   psi = initializequbits(2)
   # |00> -> |00> = (1 0 0 0) (natural order)
   applygate!(psi,"Sw",[2,1])
-  psi_vec = fullvector(psi,order="natural")
+  psi_vec = fullvector(psi)
   @test psi_vec ≈ [1.,0.,0.,0.]
   
   psi = initializequbits(2)
   # |10> -> |01> = (0 1 0 0) (natural order)
   applygate!(psi,"X",1)
   applygate!(psi,"Sw",[2,1])
-  psi_vec = fullvector(psi,order="natural")
+  psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,1.,0.,0.]
   
   psi = initializequbits(2)
   # |01> -> |10> = (0 0 1 0) (natural order)
   applygate!(psi,"X",2)
   applygate!(psi,"Sw",[2,1])
-  psi_vec = fullvector(psi,order="natural")
+  psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,0.,1.,0.]
   
   psi = initializequbits(2)
@@ -407,17 +405,8 @@ end
   applygate!(psi,"X",1)
   applygate!(psi,"X",2)
   applygate!(psi,"Sw",[2,1])
-  psi_vec = fullvector(psi,order="natural")
+  psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,0.,0.,1.]
 
 end
-
-
-
-
-
-
-
-
-
 
