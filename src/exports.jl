@@ -24,7 +24,17 @@ export
   # Methods
   initializecircuit,
   initializequbits,
+  getsitenumber,
   applygate!,
+  makegate,
+  makecircuit,
+  runcircuit!,
+
+# circuits.jl
+  # Methods
+  hadamardlayer!,
+  rand1Qrotationlayer!,
+  Cxlayer!,
 
 # utils.jl
   # Methods

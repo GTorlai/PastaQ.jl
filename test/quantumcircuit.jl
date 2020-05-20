@@ -35,47 +35,134 @@ end
 end
 
 @testset "apply gate: Id" begin
+  # Apply gate using gate informations
   psi = initializequbits(1)
   applygate!(psi,"I",1)
-  @test array(psi[1]) ≈ [1.,0.]
-end
+  @test fullvector(psi) ≈ [1.,0.]
+  
+  # Build gate first, then apply using an ITensor
+  psi = initializequbits(2)
+  site = 1
+  site_ind = firstind(psi[site],"Site")
+  gate = quantumgate("I",site_ind)
+  applygate!(psi,gate)
+  @test fullvector(psi) ≈ [1.,0.,0.,0.]
+  
+  # Build gate first, then apply using an ITensor
+  psi = initializequbits(2)
+  site = 2
+  site_ind = firstind(psi[site],"Site")
+  gate = quantumgate("I",site_ind)
+  applygate!(psi,gate)
+  @test fullvector(psi) ≈ [1.,0.,0.,0.]
 
+end
+  
 @testset "apply gate: X" begin
+  # Apply gate using gate informations
   psi = initializequbits(1)
   applygate!(psi,"X",1)
-  @test array(psi[1]) ≈ [0.,1.]
+  @test fullvector(psi) ≈ [0.,1.]
   applygate!(psi,"X",1)
-  @test array(psi[1]) ≈ [1.,0.]
+  @test fullvector(psi) ≈ [1.,0.]
+  
+  # Build gate first, then apply using an ITensor
+  psi = initializequbits(2)
+  site = 1
+  site_ind = firstind(psi[site],"Site")
+  gate = quantumgate("X",site_ind)
+  applygate!(psi,gate)
+  @test fullvector(psi) ≈ [0.,0.,1.,0.]
+  
+  # Build gate first, then apply using an ITensor
+  psi = initializequbits(2)
+  site = 2
+  site_ind = firstind(psi[site],"Site")
+  gate = quantumgate("X",site_ind)
+  applygate!(psi,gate)
+  @test fullvector(psi) ≈ [0.,1.,0.,0.]
 end
 
 @testset "apply gate: Y" begin
+  # Apply gate using gate informations
   psi = initializequbits(1)
   applygate!(psi,"Y",1)
-  @test array(psi[1]) ≈ [0.,im]
+  @test fullvector(psi) ≈ [0.,im]
   psi = initializequbits(1)
   applygate!(psi,"X",1)
   applygate!(psi,"Y",1)
-  @test array(psi[1]) ≈ [-im,0.]
+  @test fullvector(psi) ≈ [-im,0.]
+  
+  # Build gate first, then apply using an ITensor
+  psi = initializequbits(2)
+  site = 1
+  site_ind = firstind(psi[site],"Site")
+  gate = quantumgate("Y",site_ind)
+  applygate!(psi,gate)
+  @test fullvector(psi) ≈ [0.,0.,im,0.]
+  
+  # Build gate first, then apply using an ITensor
+  psi = initializequbits(2)
+  site = 2
+  site_ind = firstind(psi[site],"Site")
+  gate = quantumgate("Y",site_ind)
+  applygate!(psi,gate)
+  @test fullvector(psi) ≈ [0.,im,0.,0.]
 end
 
 @testset "apply gate: Z" begin
+  # Apply gate using gate informations
   psi = initializequbits(1)
   applygate!(psi,"Z",1)
-  @test array(psi[1]) ≈ [1.,0.]
+  @test fullvector(psi) ≈ [1.,0.]
   psi = initializequbits(1)
   applygate!(psi,"X",1)
   applygate!(psi,"Z",1)
-  @test array(psi[1]) ≈ [0.,-1.]
+  @test fullvector(psi) ≈ [0.,-1.]
+  
+  # Build gate first, then apply using an ITensor
+  psi = initializequbits(2)
+  site = 1
+  site_ind = firstind(psi[site],"Site")
+  gate = quantumgate("Z",site_ind)
+  applygate!(psi,gate)
+  @test fullvector(psi) ≈ [1.,0.,0.,0.]
+  
+  # Build gate first, then apply using an ITensor
+  psi = initializequbits(2)
+  site = 2
+  site_ind = firstind(psi[site],"Site")
+  gate = quantumgate("Z",site_ind)
+  applygate!(psi,gate)
+  @test fullvector(psi) ≈ [1.,0.,0.,0.]
 end
 
 @testset "apply gate: H" begin
+  # Apply gate using gate informations
   psi = initializequbits(1)
   applygate!(psi,"H",1)
-  @test array(psi[1]) ≈ 1/sqrt(2.)*[1.,1.]
+  @test fullvector(psi) ≈ 1/sqrt(2.)*[1.,1.]
   psi = initializequbits(1)
   applygate!(psi,"X",1)
   applygate!(psi,"H",1)
-  @test array(psi[1]) ≈ 1/sqrt(2.)*[1.,-1.]
+  @test fullvector(psi) ≈ 1/sqrt(2.)*[1.,-1.]
+
+  # Build gate first, then apply using an ITensor
+  psi = initializequbits(2)
+  site = 1
+  site_ind = firstind(psi[site],"Site")
+  gate = quantumgate("H",site_ind)
+  applygate!(psi,gate)
+  @test fullvector(psi) ≈ 1/sqrt(2.)*[1.,0.,1.,0.]
+  
+  # Build gate first, then apply using an ITensor
+  psi = initializequbits(2)
+  site = 2
+  site_ind = firstind(psi[site],"Site")
+  gate = quantumgate("H",site_ind)
+  applygate!(psi,gate)
+  @test fullvector(psi) ≈ 1/sqrt(2.)*[1.,1.,0.,0.]
+  
 end
 
 @testset "apply gate: S" begin
@@ -221,6 +308,98 @@ end
   applygate!(psi,"X",1)
   applygate!(psi,"X",2)
   applygate!(psi,"Cx",[2,1])
+  psi_vec = fullvector(psi)
+  @test psi_vec ≈ [0.,1.,0.,0.]
+
+  # USE APPLYGATE ON ITENSOR
+  
+  # CONTROL - TARGET
+  psi = initializequbits(2)
+  # |00> -> |00> = (1 0 0 0) (natural order)
+  site_ind1 = firstind(psi[1],"Site")
+  site_ind2 = firstind(psi[2],"Site")
+  gate = quantumgate("Cx",site_ind1,site_ind2)
+  applygate!(psi,gate)
+  psi_vec = fullvector(psi)
+  @test psi_vec ≈ [1.,0.,0.,0.]
+  
+  psi = initializequbits(2)
+  # |10> -> |11> = (0 0 0 1) (natural order)
+  site_ind1 = firstind(psi[1],"Site")
+  site_ind2 = firstind(psi[2],"Site")
+  gate = quantumgate("X",site_ind1)
+  applygate!(psi,gate)
+  gate = quantumgate("Cx",site_ind1,site_ind2)
+  applygate!(psi,gate)
+  psi_vec = fullvector(psi)
+  @test psi_vec ≈ [0.,0.,0.,1.]
+  
+  psi = initializequbits(2)
+  # |01> -> |01> = (0 1 0 0) (natural order)
+  site_ind1 = firstind(psi[1],"Site")
+  site_ind2 = firstind(psi[2],"Site")
+  gate = quantumgate("X",site_ind2) 
+  applygate!(psi,gate)
+  gate = quantumgate("Cx",site_ind1,site_ind2)
+  applygate!(psi,gate)
+  psi_vec = fullvector(psi)
+  @test psi_vec ≈ [0.,1.,0.,0.]
+  
+  psi = initializequbits(2)
+  # |11> -> |10> = (0 0 1 0) (natural order)
+  site_ind1 = firstind(psi[1],"Site")
+  site_ind2 = firstind(psi[2],"Site")
+  gate = quantumgate("X",site_ind1) 
+  applygate!(psi,gate)
+  gate = quantumgate("X",site_ind2) 
+  applygate!(psi,gate)
+  gate = quantumgate("Cx",site_ind1,site_ind2)
+  applygate!(psi,gate)
+  psi_vec = fullvector(psi)
+  @test psi_vec ≈ [0.,0.,1.,0.]
+ 
+  # TARGET - CONTROL
+  psi = initializequbits(2)
+  # |00> -> |00> = (1 0 0 0) (natural order)
+  site_ind1 = firstind(psi[2],"Site")
+  site_ind2 = firstind(psi[1],"Site")
+  gate = quantumgate("Cx",site_ind1,site_ind2)
+  applygate!(psi,gate)
+  psi_vec = fullvector(psi)
+  @test psi_vec ≈ [1.,0.,0.,0.]
+  
+  psi = initializequbits(2)
+  # |10> -> |10> = (0 0 1 0) (natural order)
+  site_ind1 = firstind(psi[2],"Site")
+  site_ind2 = firstind(psi[1],"Site")
+  gate = quantumgate("X",site_ind2) 
+  applygate!(psi,gate)
+  gate = quantumgate("Cx",site_ind1,site_ind2)
+  applygate!(psi,gate)
+  psi_vec = fullvector(psi)
+  @test psi_vec ≈ [0.,0.,1.,0.]
+  
+  psi = initializequbits(2)
+  # |01> -> |11> = (0 0 0 1) (natural order)
+  site_ind1 = firstind(psi[2],"Site")
+  site_ind2 = firstind(psi[1],"Site")
+  gate = quantumgate("X",site_ind1) 
+  applygate!(psi,gate)
+  gate = quantumgate("Cx",site_ind1,site_ind2)
+  applygate!(psi,gate)
+  psi_vec = fullvector(psi)
+  @test psi_vec ≈ [0.,0.,0.,1.]
+  
+  psi = initializequbits(2)
+  # |11> -> |01> = (0 1 0 0) (natural order)
+  site_ind1 = firstind(psi[2],"Site")
+  site_ind2 = firstind(psi[1],"Site")
+  gate = quantumgate("X",site_ind2) 
+  applygate!(psi,gate)
+  gate = quantumgate("X",site_ind1) 
+  applygate!(psi,gate)
+  gate = quantumgate("Cx",site_ind1,site_ind2)
+  applygate!(psi,gate)
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,1.,0.,0.]
 
@@ -409,4 +588,43 @@ end
   @test psi_vec ≈ [0.,0.,0.,1.]
 
 end
+
+@testset "runcircuit: hadamardlayer N=10" begin
+  data = load("testdata/quantumcircuit_testunitary_hadamardlayer.jld")
+  N = data["N"]
+  gate_list = data["gates"]
+  exact_unitary = data["full_unitary"]
+  exact_psi     = data["full_psi"]  
+  psi = initializequbits(N)
+  gates = makecircuit(psi,gate_list)
+  runcircuit!(psi,gates)
+  @test exact_psi ≈ fullvector(psi,order="native")
+end
+
+
+@testset "runcircuit: rand1Qrotationlayer N=10" begin
+  data = load("testdata/quantumcircuit_testunitary_rand1Qrotationlayer.jld")
+  N = data["N"]
+  gate_list = data["gates"]
+  exact_unitary = data["full_unitary"]
+  exact_psi     = data["full_psi"]  
+  psi = initializequbits(N)
+  gates = makecircuit(psi,gate_list)
+  runcircuit!(psi,gates)
+  @test exact_psi ≈ fullvector(psi,order="native")
+end
+
+
+@testset "runcircuit: randomRnCx N=10" begin
+  data = load("testdata/quantumcircuit_testunitary_randomRnCx.jld")
+  N = data["N"]
+  gate_list = data["gates"]
+  exact_unitary = data["full_unitary"]
+  exact_psi     = data["full_psi"]  
+  psi = initializequbits(N)
+  gates = makecircuit(psi,gate_list)
+  runcircuit!(psi,gates)
+  @test exact_psi ≈ fullvector(psi,order="native")
+end
+
 

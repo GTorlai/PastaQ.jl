@@ -16,7 +16,7 @@ function fullvector(mps::MPS;order="reverse")
       vector = mps[1] * mps[2]
       C = combiner(firstind(vector,tags="n=1"),firstind(vector,tags="n=2"),tags="comb")
       vector = vector * C
-      for j in 3:length(N)
+      for j in 3:N
         vector = vector * mps[j]
         C = combiner(firstind(vector,tags="comb"),firstind(vector,tags="n=$j"),tags="comb")
         vector = vector * C
