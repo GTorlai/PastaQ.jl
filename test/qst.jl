@@ -162,12 +162,22 @@ function numgradsnll(psi::MPS,data::Array;accuracy=1e-8)
   return grad_r-grad_i
 end
 
-@testset "qst: lognormalization" begin
+@testset "qst: normalizations" begin
   N = 10
+  qst = QST(N=N)
+  PastaQ.normalize!(qst.psi)
+  @test normalization(qst.psi) ≈ 1
   qst = QST(N=N)
   logZ = lognormalization(qst.psi)
   Z = normalization(qst.psi)
   @test logZ ≈ log(Z)
+  qst = QST(N=N)
+  logZ1 = lognormalization(qst.psi)
+  logZ2,_ = lognormalize!(qst.psi)
+  @test logZ1 ≈ logZ2
+  qst = QST(N=N)
+  lognormalize!(qst.psi)
+  @test normalization(qst.psi) ≈ 1
 end
 
 @testset "qst: real grad logZ" begin
@@ -180,6 +190,7 @@ end
   end
   qst = QST(N=N)
   logZ,localnorms = lognormalize!(qst.psi)
+  @test normalization(qpt.psi) ≈ 1
   alg_grad_localnorm,_ = gradlogZ(qst.psi,localnorms)
   for j in 1:N
     @test array(alg_grad[j]) ≈ array(alg_grad_localnorm[j]) atol=1e-5
@@ -201,6 +212,7 @@ end
 
   qst = QST(N=N)
   logZ,localnorms = lognormalize!(qst.psi)
+  @test normalization(qst.psi) ≈ 1
   alg_grad_localnorm,loss = gradnll(qst.psi,data,localnorms)
   for j in 1:N
     @test array(alg_grad[j]) ≈ array(alg_grad_localnorm[j]) atol=1e-3
