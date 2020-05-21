@@ -44,6 +44,7 @@ export
   normalization,
   normalize!,
   lognormalization,
+  lognormalize!,
   projectpsi,
   nll,
   gradlogZ,
