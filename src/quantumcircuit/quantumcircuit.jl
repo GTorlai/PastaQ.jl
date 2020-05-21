@@ -101,6 +101,7 @@ function makecircuit(M::MPS,gatesdata::Array)
   return gates
 end
 
+# Changed it so it makes namedtupled
 function statepreparationcircuit(mps::MPS,prep::Array)
   circuit = []
   for j in 1:N
@@ -180,17 +181,25 @@ function getsitenumber(i::Index)
 end
 
 # Apply 1Q gate using a pre-generated gate tensor
-function applygate!(M::MPS,gate::ITensor{2}; cutoff = 1e-10)
+function applygate!(M::MPS,gate::ITensor{2}; kwargs...)
   site = getsitenumber(firstind(gate,"Site")) 
   M[site] = gate * M[site]
   noprime!(M[site])
 end
+
+#function swap()
+#  #call swapinds/swapin from ITensors
+#end
 
 # Apply 2Q gate using a pre-generated gate tensor
 function applygate!(M::MPS, gate::ITensor{4}; cutoff = 1e-10)
   s1 = getsitenumber(inds(gate,plev=1)[1]) 
   s2 = getsitenumber(inds(gate,plev=1)[2]) 
   
+  if abs(s1-s2)!=1
+      # do swaps
+      nothing
+  end
   @assert(abs(s1-s2)==1)
   #TODO use swaps to handle long-range gates
   
@@ -217,24 +226,24 @@ function applygate!(M::MPS, gate::ITensor{4}; cutoff = 1e-10)
   end
 end
 
+function runcircuit(M::MPS,gates;cutoff=1e-10)
+  return runcircuit!(copy(M),gates;cutoff=cutoff)
+end
+
 function runcircuit!(M::MPS,gates;cutoff=1e-10)
-  for g in 1:length(gates)
-    gate = gates[g]
-    applygate!(M,gates[g],cutoff=cutoff)
+  for gate in gates
+    applygate!(M,gate,cutoff=cutoff)
   end
+  return M
 end
 
 function measure(mps::MPS,nshots::Int)
-  #measurements = Array[]#{undef,length(mps)}
   measurements = Matrix{Int64}(undef, nshots, length(mps))
   orthogonalize!(mps,1)
   for n in 1:nshots
     measurement = sample(mps)
     measurement .-= 1
-    #measurements[n,:] = measurement
-    #push!(measurements,measurement)
     measurements[n,:] = measurement
   end
   return measurements
 end
-

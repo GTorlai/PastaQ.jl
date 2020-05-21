@@ -28,6 +28,7 @@ export
   applygate!,
   makegate,
   makecircuit,
+  runcircuit,
   runcircuit!,
   measure,
 

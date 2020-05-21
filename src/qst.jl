@@ -1,5 +1,3 @@
-using Printf
-
 struct QST
   N::Int
   d::Int
@@ -9,7 +7,6 @@ struct QST
   σ::Float64
   parstype::String
   psi::MPS
-  infos::Dict
 end
 
 function QST(;N::Int,
@@ -19,7 +16,6 @@ function QST(;N::Int,
              σ::Float64=0.1,
              parstype="real")
 
-  infos = Dict()
   rng = MersenneTwister(seed)
   
   sites = [Index(d; tags="Site, n=$s") for s in 1:N]
@@ -49,13 +45,7 @@ function QST(;N::Int,
   
   psi = MPS(M)
 
-  infos["N"]     = N
-  infos["d"]     = d
-  infos["chi"]   = χ
-  infos["seed"]  = seed
-  infos["sigma"] = σ
-    
-  return QST(N,d,χ,seed,rng,σ,parstype,psi,infos)
+  return QST(N,d,χ,seed,rng,σ,parstype,psi)
 end
 
 function normalization(psi::MPS)
@@ -89,15 +79,7 @@ function lognormalization(psi::MPS)
 end
 
 function psiofx(psi::MPS,x::Array)
-  #if any(val->val==0, x)
-  #  x.+=1
-  #end
-  psix = psi[1] * setelt(siteind(psi,1)=>x[1])
-  for j in 2:length(psi)
-    psix = psix * psi[j]
-    psix = psix * setelt(siteind(psi,j)=>x[j])
-  end
-  return psix[]
+  return inner(psi,productMPS(siteinds(psi),x))
 end
 
 function psi2ofx(psi::MPS,x::Array)
@@ -110,7 +92,6 @@ function nll(psi::MPS,data::Array)
   for n in 1:size(data)[1]
     x = data[n,:]
     x .+= 1
-    #loss -= log(psi2ofx(psi,data[n,:]))/size(data)[1]
     loss -= log(psi2ofx(psi,x))/size(data)[1]
   end
   return loss
@@ -129,7 +110,6 @@ function gradnll(psi::MPS,data::Array)
   for n in 1:size(data)[1]
     x = data[n,:] 
     x.+=1
-    #println(x)
     L[1] = psi[1] * setelt(siteind(psi,1)=>x[1])
     for j in 2:N-1
       L[j] = L[j-1] * psi[j] * setelt(siteind(psi,j)=>x[j]) 
