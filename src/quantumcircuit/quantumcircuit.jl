@@ -1,26 +1,55 @@
-
-# Initialize the circuit MPO
 function initializecircuit(N::Int)
   sites = [Index(2; tags="Site, n=$s") for s in 1:N]
   U = MPO(sites, "Id")
   return U
 end
 
-# Initialize the qubit MPS to |000...00>
+"""
+    initializecircuit(N::Int)
+
+Create an MPS for N sites on the ``|000\\dots0\\rangle`` state.
+"""
 function initializequbits(N::Int)
   sites = [Index(2; tags="Site, n=$s") for s in 1:N]
   psi = productMPS(sites, [1 for i in 1:length(sites)])
   return psi
 end
 
-# Make a 1Q gate tensor from gate_id,site and params
+"""
+    makegate(M::MPS, gate_id::String, site::Int; kwargs...)
+
+Create an ITensor for a single-qubit gate, using the indices 
+of a given MPS. Additional parameters can be provided for parametric
+gates.
+# Example 1: X gate on site 3
+```julia
+psi = initializequbits(10)
+gate = makegate(psi,"X",3)
+```
+# Example 2: ``\\phi = \\pi`` rotation around the Z axis on site 2
+```julia
+psi = initializequbits(10)
+gate = makegate(psi, "Rz", 3, ϕ = π)
+```
+"""
 function makegate(M::MPS, gate_id::String, site::Int; kwargs...)
   site_ind = siteind(M,site)
   gate = quantumgate(gate_id, site_ind; kwargs...)
   return gate 
 end
 
-# Make a 2Q gate tensor from gate_id,site and params
+"""
+    makegate(M::MPS, gate_id::String, site::Array; kwargs...)
+
+Create an ITensor for a two-qubit gate, using the indices 
+of a given MPS. Additional parameters can be provided for parametric
+gates.
+# Example: Cx gate on site [2,3]
+```julia
+psi = initializequbits(10)
+gate = makegate(psi,"Cx",[2,3])
+```
+"""
 function makegate(M::MPS,gate_id::String, site::Array; kwargs...)
   site_ind1 = siteind(M,site[1])
   site_ind2 = siteind(M,site[2])
@@ -28,7 +57,23 @@ function makegate(M::MPS,gate_id::String, site::Array; kwargs...)
   return gate
 end
 
-# Make a gate from gatedata (gate_id,site and params)
+"""
+    makegate(M::MPS, gatedata::NamedTuple)
+
+Create an ITensor for a two-qubit gate, using the indices 
+of a given MPS. The gate is specified by a NamedTuple with structure
+gatedata = (gate,site,params)
+
+# Example: Rn rotation
+```julia
+psi = initializequbits(10)
+gatedata = (gate = "Rn",
+            site = 4,
+            params = (θ = 1.7,ϕ = 0.9,λ = 4.2))
+
+gate = makegate(psi,gatedata)
+```
+"""
 function makegate(M::MPS, gatedata::NamedTuple)
   id = gatedata.gate
   site = gatedata.site
@@ -37,7 +82,16 @@ function makegate(M::MPS, gatedata::NamedTuple)
   return gate
 end
 
-# Build the tensor of the circuit
+"""
+    makecircuit(M::MPS, gatedata::Array)
+
+Create an Array of ITensors corresponding to the sequence of
+quantum gates contained in gatedata.
+
+gatedata = [gatedata_1,gatedata_2,...,gatedata_K]
+where
+gatedata_k = (gate,site,params)
+"""
 function makecircuit(M::MPS,gatesdata::Array)
   gates = []
   for g in 1:length(gatesdata)
@@ -47,7 +101,6 @@ function makecircuit(M::MPS,gatesdata::Array)
   return gates
 end
 
-# Apply 1Q gate in the form ("X",1), ("Rn",2,(pi,pi,pi/2))
 function applygate!(M::MPS,
                    gate_id::String,
                    site::Int;
@@ -148,4 +201,21 @@ function runcircuit!(M::MPS,gates;cutoff=1e-10)
     applygate!(M,gates[g],cutoff=cutoff)
   end
 end
+
+function measure(mps::MPS,nshots::Int)
+  measurements = Array[]
+  orthogonalize!(mps,1)
+  for n in 1:nshots
+    measurement = sample(mps)
+    measurement .-= 1
+    push!(measurements,measurement)
+  end
+  return measurements
+end
+
+#function statepreparation(mps::MPS,prep::Array)
+#  
+#
+#end
+
 

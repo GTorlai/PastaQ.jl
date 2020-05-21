@@ -29,6 +29,7 @@ export
   makegate,
   makecircuit,
   runcircuit!,
+  measure,
 
 # circuits.jl
   # Methods
