@@ -12,5 +12,5 @@ include("quantumcircuit/quantumgates.jl")
 include("quantumcircuit/quantumcircuit.jl")
 include("quantumcircuit/circuits.jl")
 include("optimizer.jl")
-include("qpt.jl")
+include("qst.jl")
 end # module

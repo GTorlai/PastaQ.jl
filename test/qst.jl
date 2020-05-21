@@ -83,6 +83,16 @@ function numgradslogZ(psi::MPS;accuracy=1e-8)
   return grad_r-grad_i
 end
 
+
+
+@testset "qst: lognormalization" begin
+  N = 10
+  qst = QST(N=N)
+  logZ = lognormalization(qst.psi)
+  Z = normalization(qst.psi)
+  @test logZ ≈ log(Z)
+end
+
 @testset "qst: grad logZ" begin
   N = 5
   qst = QST(N=N)
