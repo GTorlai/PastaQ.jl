@@ -10,7 +10,7 @@ struct QST
   infos::Dict
 end
 
-function QPT(;N::Int,
+function QST(;N::Int,
              d::Int=2,
              χ::Int=2,
              seed::Int=1234,
@@ -56,4 +56,27 @@ function QPT(;N::Int,
   return QST(N,d,χ,seed,rng,σ,parstype,psi,infos)
 end
 
+function normalization(psi::MPS)
+  return inner(psi,psi)
+end
 
+function lognormalization(psi::MPS)
+    # Site 1
+    logZ = 0.0
+    blob = dag(psi[1]) * prime(psi[1],"Link")
+    localZ = real((dag(blob)*blob)[])
+    logZ += 0.5*log(localZ)
+    blob /= sqrt(localZ)
+
+    for j in 2:length(psi)-1
+        blob = blob * dag(psi[j]);
+        blob = blob * prime(psi[j],"Link")
+        localZ = real((dag(blob)*blob)[])
+        logZ += 0.5*log(localZ)
+        blob /= sqrt(localZ)
+    end
+    blob = blob * dag(psi[length(psi)]);
+    blob = blob * prime(psi[length(psi)],"Link")
+    logZ += log(real(blob[]))
+    return logZ
+end;

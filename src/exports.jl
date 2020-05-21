@@ -38,8 +38,11 @@ export
   Cxlayer!,
 
 # qpt,jl
-  QPT,
+  QST,
   # Methods
+  normalization,
+  lognormalization,
+
 # optimizer.jl
   Optimizer,
   # Methods
