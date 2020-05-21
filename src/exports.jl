@@ -37,12 +37,13 @@ export
   rand1Qrotationlayer!,
   Cxlayer!,
 
-# qpt,jl
+# qst,jl
   QST,
   # Methods
   normalization,
   normalize!,
   lognormalization,
+  gradlogZ,
 
 # optimizer.jl
   Optimizer,

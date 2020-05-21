@@ -84,6 +84,39 @@ function lognormalization(psi::MPS)
   blob = blob * prime(psi[length(psi)],"Link")
   logZ += log(real(blob[]))
   return logZ
-end;
+end
 
+"This takes the gradient directly, without using local normalization"
+function gradlogZ(psi::MPS)
+  N = length(psi)
+  L = Vector{ITensor}(undef, N-1)
+  R = Vector{ITensor}(undef, N)
+  
+  # Sweep right to get L
+  L[1] = dag(psi[1]) * prime(psi[1],"Link")
+  for j in 2:N-1
+    L[j] = L[j-1] * dag(psi[j])
+    L[j] = L[j] * prime(psi[j],"Link")
+  end
+  Z = L[N-1] * dag(psi[N])
+  Z = real((Z * prime(psi[N],"Link"))[])
+
+  # Sweep left to get R
+  R[N] = dag(psi[N]) * prime(psi[N],"Link")
+  for j in reverse(2:N-1)
+    R[j] = R[j+1] * dag(psi[j])
+    R[j] = R[j] * prime(psi[j],"Link")
+  end
+  ## Get the gradients of the normalization
+  gradients = Vector{ITensor}(undef, N)
+  
+  # Site 1
+  gradients[1] = noprime(psi[1] * R[2])/Z
+  for j in 2:N-1
+    gradients[j] = noprime((L[j-1] * psi[j] * R[j+1]))/Z
+  end
+  gradients[N] = noprime((L[N-1] * psi[N]))/Z
+  
+  return MPS(2*gradients),log(Z)
+end
 
