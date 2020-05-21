@@ -4,7 +4,7 @@ N = 3
 nshots = 50
 
 # Method 1: direct gate application
-psi = initializequbits(N)
+psi = qubits(N)
 
 applygate!(psi,"H",1)
 applygate!(psi,"Cx",[1,2])
@@ -15,6 +15,7 @@ samples = measure(psi,nshots)
 print("\n\n")
 
 # Method 2: build circuit from gate_list
+psi = qubits(N)
 gate_list = [(gate = "H", site = 1),
              (gate = "Cx",site = [1,2]),
              (gate = "Cx",site = [2,3])]

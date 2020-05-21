@@ -9,7 +9,7 @@ end
 
 Create an MPS for N sites on the ``|000\\dots0\\rangle`` state.
 """
-function initializequbits(N::Int)
+function qubits(N::Int)
   sites = [Index(2; tags="Site, n=$s") for s in 1:N]
   psi = productMPS(sites, [1 for i in 1:length(sites)])
   return psi
@@ -226,7 +226,7 @@ end
 
 function measure(mps::MPS,nshots::Int)
   #measurements = Array[]#{undef,length(mps)}
-  measurements = Matrix{Int64}(undef, 1000, length(mps))
+  measurements = Matrix{Int64}(undef, nshots, length(mps))
   orthogonalize!(mps,1)
   for n in 1:nshots
     measurement = sample(mps)

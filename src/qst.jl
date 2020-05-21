@@ -1,3 +1,5 @@
+using Printf
+
 struct QST
   N::Int
   d::Int
@@ -87,9 +89,9 @@ function lognormalization(psi::MPS)
 end
 
 function psiofx(psi::MPS,x::Array)
-  if any(val->val==0, x)
-    x.+=1
-  end
+  #if any(val->val==0, x)
+  #  x.+=1
+  #end
   psix = psi[1] * setelt(siteind(psi,1)=>x[1])
   for j in 2:length(psi)
     psix = psix * psi[j]
@@ -106,7 +108,10 @@ end
 function nll(psi::MPS,data::Array)
   loss = 0.0
   for n in 1:size(data)[1]
-    loss -= log(psi2ofx(psi,data[n,:]))/size(data)[1]
+    x = data[n,:]
+    x .+= 1
+    #loss -= log(psi2ofx(psi,data[n,:]))/size(data)[1]
+    loss -= log(psi2ofx(psi,x))/size(data)[1]
   end
   return loss
 end
@@ -121,12 +126,10 @@ function gradnll(psi::MPS,data::Array)
   for j in 1:N
     push!(gradients,ITensor(inds(psi[j])))
   end
-  
   for n in 1:size(data)[1]
     x = data[n,:] 
-    if any(val->val==0, x)
-      x.+=1
-    end
+    x.+=1
+    #println(x)
     L[1] = psi[1] * setelt(siteind(psi,1)=>x[1])
     for j in 2:N-1
       L[j] = L[j-1] * psi[j] * setelt(siteind(psi,j)=>x[j]) 
@@ -134,12 +137,10 @@ function gradnll(psi::MPS,data::Array)
     psix = real((L[N-1] * psi[N] * setelt(siteind(psi,N)=>x[N]))[])
     prob = norm(psix)^2
     loss -= log(prob)/size(data)[1]
-    
     R[N] = psi[N] * setelt(siteind(psi,N)=>x[N])
     for j in reverse(2:N-1)
       R[j] = R[j+1] * psi[j] * setelt(siteind(psi,j)=>x[j])
     end
-   
     gradients[1] += (R[2] * setelt(siteind(psi,1)=>x[1]))/psix
     for j in 2:N-1
       gradients[j] += (L[j-1] * setelt(siteind(psi,j)=>x[j]) * R[j+1])/psix
@@ -147,7 +148,6 @@ function gradnll(psi::MPS,data::Array)
     gradients[N] += (L[N-1] *setelt(siteind(psi,N)=>x[N]))/psix
   end
   gradients = -2*gradients/size(data)[1]
-  gradients = MPS(gradients)
   return gradients,loss 
 end
 
@@ -172,17 +172,47 @@ function gradlogZ(psi::MPS)
     R[j] = R[j+1] * dag(psi[j])
     R[j] = R[j] * prime(psi[j],"Link")
   end
-  ## Get the gradients of the normalization
+  # Get the gradients of the normalization
   gradients = Vector{ITensor}(undef, N)
-  
-  # Site 1
   gradients[1] = prime(psi[1],"Link") * R[2]/Z
   for j in 2:N-1
     gradients[j] = (L[j-1] * prime(psi[j],"Link") * R[j+1])/Z
   end
   gradients[N] = (L[N-1] * prime(psi[N],"Link"))/Z
-  
-  gradients = noprime(MPS(2*gradients))
-  return gradients,log(Z)
+  return 2*gradients,log(Z)
 end
 
+
+function statetomography(qst::QST,opt::Optimizer;
+                         data::Array,
+                         batchsize::Int64=500,
+                         epochs::Int64=10000,
+                         targetpsi::MPS)
+  for j in 1:qst.N
+    replaceinds!(targetpsi[j],inds(targetpsi[j],"Site"),inds(qst.psi[j],"Site"))
+  end
+  num_batches = Int(floor(size(data)[1]/batchsize))
+  
+  for ep in 1:epochs
+    data = data[shuffle(1:end),:]
+    loss = 0.0
+    for b in 1:num_batches
+      batch = data[(b-1)*batchsize+1:b*batchsize,:]
+      g_logZ, logZ = gradlogZ(qst.psi)
+      g_nll,nll    = gradnll(qst.psi,data)
+      gradients = g_logZ + g_nll
+      loss += (logZ + nll)/Float64(num_batches)
+      updateSGD!(qst.psi,gradients,opt)
+    end
+    psi = copy(qst.psi)
+    normalize!(psi)
+    overlap = abs(inner(psi,targetpsi))
+    print("Ep = ",ep,"  ")
+    print("Loss = ")
+    @printf("%.5E",loss)
+    print("  ")
+    print("Overlap = ")
+    @printf("%.3E",overlap)
+    print("\n")
+  end
+end

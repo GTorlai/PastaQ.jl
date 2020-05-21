@@ -23,7 +23,7 @@ export
 # quantumcircuit.jl
   # Methods
   initializecircuit,
-  initializequbits,
+  qubits,
   getsitenumber,
   applygate!,
   makegate,
@@ -47,6 +47,7 @@ export
   nll,
   gradlogZ,
   gradnll,
+  statetomography,
 
 # optimizer.jl
   Optimizer,

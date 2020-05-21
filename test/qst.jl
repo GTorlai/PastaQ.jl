@@ -163,6 +163,7 @@ function numgradsnll(psi::MPS,data::Array;accuracy=1e-8)
 end
 
 
+
 @testset "qst: lognormalization" begin
   N = 10
   qst = QST(N=N)
@@ -181,31 +182,30 @@ end
   end
 end
 
-@testset "qst: complex grad logZ" begin
-  N = 5
-  qst = QST(N=N,parstype="complex")
-  alg_grad,_ = gradlogZ(qst.psi)
-  num_grad = numgradslogZ(qst.psi)
-  for j in 1:N
-    @test array(alg_grad[j]) ≈ num_grad[j] atol=1e-5
-  end
-end
-
 @testset "qst: real grad nll" begin
   N = 5
   nsamples = 100
   Random.seed!(1234)
-  data = rand(1:2,nsamples,N)
+  data = rand(0:1,nsamples,N)
   
   qst = QST(N=N)
   num_grad = numgradsnll(qst.psi,data)
   alg_grad,loss = gradnll(qst.psi,data)
-  #loss2 = nll(qst.psi,data)
   for j in 1:N
-    @test array(alg_grad[1]) ≈ real(num_grad[1]) atol=1e-3
+    @test array(alg_grad[j]) ≈ real(num_grad[j]) atol=1e-3
   end
 end
 
+
+#@testset "qst: complex grad logZ" begin
+#  N = 5
+#  qst = QST(N=N,parstype="complex")
+#  alg_grad,_ = gradlogZ(qst.psi)
+#  num_grad = numgradslogZ(qst.psi)
+#  for j in 1:N
+#    @test array(alg_grad[j]) ≈ num_grad[j] atol=1e-5
+#  end
+#end
 #@testset "qst: complex grad nll" begin
 #N = 3
 #nsamples = 100
