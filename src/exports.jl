@@ -43,7 +43,10 @@ export
   normalization,
   normalize!,
   lognormalization,
+  projectpsi,
+  nll,
   gradlogZ,
+  gradnll,
 
 # optimizer.jl
   Optimizer,

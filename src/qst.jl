@@ -86,6 +86,71 @@ function lognormalization(psi::MPS)
   return logZ
 end
 
+function psiofx(psi::MPS,x::Array)
+  if any(val->val==0, x)
+    x.+=1
+  end
+  psix = psi[1] * setelt(siteind(psi,1)=>x[1])
+  for j in 2:length(psi)
+    psix = psix * psi[j]
+    psix = psix * setelt(siteind(psi,j)=>x[j])
+  end
+  return psix[]
+end
+
+function psi2ofx(psi::MPS,x::Array)
+  psix = psiofx(psi,x)
+  return norm(psix)^2
+end
+
+function nll(psi::MPS,data::Array)
+  loss = 0.0
+  for n in 1:size(data)[1]
+    loss -= log(psi2ofx(psi,data[n,:]))/size(data)[1]
+  end
+  return loss
+end
+
+function gradnll(psi::MPS,data::Array)
+  loss = 0.0
+
+  N = length(psi)
+  L = Vector{ITensor}(undef, N-1)
+  R = Vector{ITensor}(undef, N)
+  gradients = ITensor[]
+  for j in 1:N
+    push!(gradients,ITensor(inds(psi[j])))
+  end
+  
+  for n in 1:size(data)[1]
+    x = data[n,:] 
+    if any(val->val==0, x)
+      x.+=1
+    end
+    L[1] = psi[1] * setelt(siteind(psi,1)=>x[1])
+    for j in 2:N-1
+      L[j] = L[j-1] * psi[j] * setelt(siteind(psi,j)=>x[j]) 
+    end
+    psix = real((L[N-1] * psi[N] * setelt(siteind(psi,N)=>x[N]))[])
+    prob = norm(psix)^2
+    loss -= log(prob)/size(data)[1]
+    
+    R[N] = psi[N] * setelt(siteind(psi,N)=>x[N])
+    for j in reverse(2:N-1)
+      R[j] = R[j+1] * psi[j] * setelt(siteind(psi,j)=>x[j])
+    end
+   
+    gradients[1] += (R[2] * setelt(siteind(psi,1)=>x[1]))/psix
+    for j in 2:N-1
+      gradients[j] += (L[j-1] * setelt(siteind(psi,j)=>x[j]) * R[j+1])/psix
+    end
+    gradients[N] += (L[N-1] *setelt(siteind(psi,N)=>x[N]))/psix
+  end
+  gradients = -2*gradients/size(data)[1]
+  gradients = MPS(gradients)
+  return gradients,loss 
+end
+
 "This takes the gradient directly, without using local normalization"
 function gradlogZ(psi::MPS)
   N = length(psi)
@@ -111,12 +176,13 @@ function gradlogZ(psi::MPS)
   gradients = Vector{ITensor}(undef, N)
   
   # Site 1
-  gradients[1] = noprime(psi[1] * R[2])/Z
+  gradients[1] = prime(psi[1],"Link") * R[2]/Z
   for j in 2:N-1
-    gradients[j] = noprime((L[j-1] * psi[j] * R[j+1]))/Z
+    gradients[j] = (L[j-1] * prime(psi[j],"Link") * R[j+1])/Z
   end
-  gradients[N] = noprime((L[N-1] * psi[N]))/Z
+  gradients[N] = (L[N-1] * prime(psi[N],"Link"))/Z
   
-  return MPS(2*gradients),log(Z)
+  gradients = noprime(MPS(2*gradients))
+  return gradients,log(Z)
 end
 

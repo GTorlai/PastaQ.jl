@@ -225,12 +225,15 @@ function runcircuit!(M::MPS,gates;cutoff=1e-10)
 end
 
 function measure(mps::MPS,nshots::Int)
-  measurements = Array[]
+  #measurements = Array[]#{undef,length(mps)}
+  measurements = Matrix{Int64}(undef, 1000, length(mps))
   orthogonalize!(mps,1)
   for n in 1:nshots
     measurement = sample(mps)
     measurement .-= 1
-    push!(measurements,measurement)
+    #measurements[n,:] = measurement
+    #push!(measurements,measurement)
+    measurements[n,:] = measurement
   end
   return measurements
 end
