@@ -2,9 +2,11 @@
 
 ## A Package for Simulation, Tomography and Analysis of Quantum Computers
 
-#### ToDo List
+#### ToDo List: quantum circuit
 + Swaps for long-rate two-qubit gates
 + State preparation stage
 + Measurement basis rotation stage
-+ Data generation with MPS sampling
 + Build circuit MPO 
+
+#### ToDo List: state tomography
++ Fix NLL gradients for complex-valued MPS

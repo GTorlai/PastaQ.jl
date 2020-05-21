@@ -39,9 +39,9 @@ version = "1.10.5+5"
 
 [[ITensors]]
 deps = ["HDF5", "KrylovKit", "LinearAlgebra", "NDTensors", "Printf", "Random", "StaticArrays", "TimerOutputs"]
-git-tree-sha1 = "5f6b5e50b5062ef38e833a2b5174ec88c6a51139"
+git-tree-sha1 = "20ec8124c8c01ecf6656920e64d7e2dcbc2b683d"
 uuid = "9136182c-28ba-11e9-034c-db9fb085ebd5"
-version = "0.1.0"
+version = "0.1.1"
 
 [[InteractiveUtils]]
 deps = ["Markdown"]

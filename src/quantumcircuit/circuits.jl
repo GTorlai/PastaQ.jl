@@ -1,10 +1,10 @@
-function hadamardlayer!(N::Int,gates::Array)
+function hadamardlayer!(gates::Array,N::Int)
   for j in 1:N
     push!(gates,(gate = "H",site = j))
   end
 end
 
-function rand1Qrotationlayer!(N::Int,gates::Array;
+function rand1Qrotationlayer!(gates::Array,N::Int;
                               rng=nothing)
   for j in 1:N
     if isnothing(rng)
@@ -16,7 +16,7 @@ function rand1Qrotationlayer!(N::Int,gates::Array;
   end
 end
 
-function Cxlayer!(N::Int,gates::Array,sequence::String)
+function Cxlayer!(gates::Array,N::Int,sequence::String)
   if (N ≤ 2)
     throw(ArgumentError("Cxlayer is defined for N ≥ 3"))
   end

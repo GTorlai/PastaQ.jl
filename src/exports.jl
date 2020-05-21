@@ -23,11 +23,12 @@ export
 # quantumcircuit.jl
   # Methods
   initializecircuit,
-  initializequbits,
+  qubits,
   getsitenumber,
   applygate!,
   makegate,
   makecircuit,
+  runcircuit,
   runcircuit!,
   measure,
 
@@ -36,6 +37,23 @@ export
   hadamardlayer!,
   rand1Qrotationlayer!,
   Cxlayer!,
+
+# qst,jl
+  QST,
+  # Methods
+  normalization,
+  normalize!,
+  lognormalization,
+  projectpsi,
+  nll,
+  gradlogZ,
+  gradnll,
+  statetomography,
+
+# optimizer.jl
+  Optimizer,
+  # Methods
+  updateSGD,
 
 # utils.jl
   # Methods
