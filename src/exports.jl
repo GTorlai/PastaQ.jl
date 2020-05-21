@@ -37,6 +37,14 @@ export
   rand1Qrotationlayer!,
   Cxlayer!,
 
+# qpt,jl
+  QPT,
+  # Methods
+# optimizer.jl
+  Optimizer,
+  # Methods
+  updateSGD,
+
 # utils.jl
   # Methods
   fullvector,
