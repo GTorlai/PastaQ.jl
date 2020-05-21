@@ -41,6 +41,7 @@ export
   QST,
   # Methods
   normalization,
+  normalize!,
   lognormalization,
 
 # optimizer.jl
