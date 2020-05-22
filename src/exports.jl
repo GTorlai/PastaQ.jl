@@ -37,6 +37,7 @@ export
   hadamardlayer!,
   rand1Qrotationlayer!,
   Cxlayer!,
+  measurementcircuit,
 
 # qst,jl
   QST,

@@ -18,5 +18,6 @@ statetomography(qst,opt,
                 data = traindata,
                 batchsize=500,
                 epochs=200,
-                targetpsi=ghz)
+                targetpsi=ghz,
+                localnorm=true)
 

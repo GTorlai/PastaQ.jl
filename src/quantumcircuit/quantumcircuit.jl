@@ -101,29 +101,6 @@ function makecircuit(M::MPS,gatesdata::Array)
   return gates
 end
 
-# Changed it so it makes namedtupled
-function statepreparationcircuit(mps::MPS,prep::Array)
-  circuit = []
-  for j in 1:N
-    if prep[j] == "Xp"
-      push!(circuit,makegate(mps,"H",j))
-    elseif prep[j] == "Xm"
-      push!(circuit,makegate(mps,"X",j))
-      push!(circuit,makegate(mps,"H",j))
-    elseif prep[j] == "Yp"
-      push!(circuit,makegate(mps,"Kp",j))
-    elseif prep[j] == "Ym"
-      push!(circuit,makegate(mps,"X",j))
-      push!(circuit,makegate(mps,"Kp",j))
-    elseif prep[j] == "Zp"
-      nothing
-    elseif prep[j] == "Zm"
-      push!(circuit,makegate(mps,"X",j))
-    end
-  end
-  return circuit
-end
-
 function applygate!(M::MPS,
                    gate_id::String,
                    site::Int;

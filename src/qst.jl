@@ -84,7 +84,7 @@ function lognormalize!(psi::MPS)
   localZ = norm(blob)
   logZ = 0.5*log(localZ)
   blob /= sqrt(localZ)
-  psi[1] /= (localZ^0.25)#sqrt(localZ)
+  psi[1] /= (localZ^0.25)
   push!(localnorms,localZ^0.25)
   for j in 2:length(psi)-1
     blob = blob * dag(psi[j]);
@@ -92,7 +92,7 @@ function lognormalize!(psi::MPS)
     localZ = norm(blob)
     logZ += 0.5*log(localZ)
     blob /= sqrt(localZ)
-    psi[j] /= (localZ^0.25)#sqrt(localZ)
+    psi[j] /= (localZ^0.25)
     push!(localnorms,localZ^0.25)  
   end
   blob = blob * dag(psi[length(psi)]);
@@ -294,7 +294,10 @@ function statetomography(qst::QST,opt::Optimizer;
     end
     psi = copy(qst.psi)
     lognormalize!(psi)
-    #normalize!(psi)
+    #println(fullvector(targetpsi))
+    #println(fullvector(psi))
+    #println('\n')
+    ##normalize!(psi)
     overlap = abs(inner(psi,targetpsi))
     print("Ep = ",ep,"  ")
     print("Loss = ")
