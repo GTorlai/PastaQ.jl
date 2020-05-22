@@ -23,11 +23,11 @@ function Cxlayer!(gates::Array,N::Int,sequence::String)
   
   if sequence == "odd"
     for j in 1:2:(N-N%2)
-      push!(gates,(gate = "Cx", site = (j,j+1)))
+      push!(gates,(gate = "Cx", site = [j,j+1]))
     end
   elseif sequence == "even"
     for j in 2:2:(N+N%2-1)
-      push!(gates,(gate = "Cx", site = (j,j+1)))
+      push!(gates,(gate = "Cx", site = [j,j+1]))
     end
   else
     throw(ArgumentError("Sequence not recognized"))

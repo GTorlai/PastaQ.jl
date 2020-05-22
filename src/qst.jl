@@ -255,7 +255,8 @@ function statetomography(qst::QST,opt::Optimizer;
                          data::Array,
                          batchsize::Int64=500,
                          epochs::Int64=10000,
-                         targetpsi::MPS)
+                         targetpsi::MPS,
+                         localnorm::Bool=false)
   for j in 1:qst.N
     replaceinds!(targetpsi[j],inds(targetpsi[j],"Site"),inds(qst.psi[j],"Site"))
   end
@@ -266,14 +267,34 @@ function statetomography(qst::QST,opt::Optimizer;
     loss = 0.0
     for b in 1:num_batches
       batch = data[(b-1)*batchsize+1:b*batchsize,:]
-      g_logZ, logZ = gradlogZ(qst.psi)
-      g_nll,nll    = gradnll(qst.psi,data)
-      gradients = g_logZ + g_nll
-      loss += (logZ + nll)/Float64(num_batches)
-      updateSGD!(qst.psi,gradients,opt)
+      
+      if localnorm == true
+        #psi_copy = copy(qst.psi)
+        #logZ,localnorms = lognormalize!(psi_copy) 
+        #g_logZ, logZ = gradlogZ(psi_copy,localnorms)
+        #g_nll,nll    = gradnll(psi_copy,data,localnorms)
+        #gradients = g_logZ + g_nll
+        #loss += (logZ + nll)/Float64(num_batches)
+        #updateSGD!(qst.psi,gradients,opt)
+        
+        logZ,localnorms = lognormalize!(qst.psi) 
+        g_logZ, logZ = gradlogZ(qst.psi,localnorms)
+        g_nll,nll    = gradnll(qst.psi,data,localnorms)
+        gradients = g_logZ + g_nll
+        loss += (logZ + nll)/Float64(num_batches)
+        updateSGD!(qst.psi,gradients,opt)
+
+      else
+        g_logZ, logZ = gradlogZ(qst.psi)
+        g_nll,nll    = gradnll(qst.psi,data)
+        gradients = g_logZ + g_nll
+        loss += (logZ + nll)/Float64(num_batches)
+        updateSGD!(qst.psi,gradients,opt)
+      end
     end
     psi = copy(qst.psi)
-    normalize!(psi)
+    lognormalize!(psi)
+    #normalize!(psi)
     overlap = abs(inner(psi,targetpsi))
     print("Ep = ",ep,"  ")
     print("Loss = ")
@@ -281,6 +302,7 @@ function statetomography(qst::QST,opt::Optimizer;
     print("  ")
     print("Overlap = ")
     @printf("%.3E",overlap)
+    #print("Normalization = ",normalization(psi))
     print("\n")
   end
 end
