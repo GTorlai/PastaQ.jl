@@ -1,3 +1,5 @@
+" STANDARD GATES "
+
 # Identity
 function gate_I(i::Index)
   return itensor([1 0;
@@ -32,16 +34,6 @@ end
 function gate_T(i::Index)
   return itensor([1  0;
                   0 exp(im*π/4)],i',i)
-end
-
-function gate_Kp(i::Index)
-  return (1/sqrt(2.))*itensor([1   1;
-                               im -im],i',i)
-end
-
-function gate_Km(i::Index)
-  return (1/sqrt(2.))*itensor([1 -im;
-                               1 im],i',i)
 end
 
 function gate_Rx(i::Index; θ::Float64)
@@ -102,9 +94,30 @@ function gate_Cz(i::Index,j::Index)
   return itensor(gate,i',j',i,j)
 end
 
+function prep_Xm(i::Index)
+  return (1/sqrt(2.))*itensor([1  1;
+                              -1  1],i',i)
+end
+
+function prep_Yp(i::Index)
+  return (1/sqrt(2.))*itensor([1   1;
+                               im -im],i',i)
+end
+
+function prep_Ym(i::Index)
+  return (1/sqrt(2.))*itensor([1   1;
+                              -im im],i',i)
+end
+
+function meas_Y(i::Index)
+  return (1/sqrt(2.))*itensor([1 -im;
+                               1 im],i',i)
+end
+
 # A global dictionary of gate functions
 quantumgates = Dict()
 
+# Default gates
 quantumgates["I"]  = gate_I
 quantumgates["X"]  = gate_X
 quantumgates["Y"]  = gate_Y
@@ -112,8 +125,6 @@ quantumgates["Z"]  = gate_Z
 quantumgates["H"]  = gate_H
 quantumgates["S"]  = gate_S
 quantumgates["T"]  = gate_T
-quantumgates["Kp"] = gate_Kp
-quantumgates["Km"] = gate_Km
 quantumgates["Rx"] = gate_Rx
 quantumgates["Ry"] = gate_Ry
 quantumgates["Rz"] = gate_Rz
@@ -122,7 +133,17 @@ quantumgates["Sw"] = gate_Sw
 quantumgates["Cx"] = gate_Cx
 quantumgates["Cy"] = gate_Cy
 quantumgates["Cz"] = gate_Cz
-    
+
+quantumgates["pX+"] = gate_H
+quantumgates["pX-"] = prep_Xm
+quantumgates["pY+"] = prep_Yp
+quantumgates["pY-"] = prep_Ym
+quantumgates["pZ+"] = gate_I
+quantumgates["pZ-"] = gate_X
+
+quantumgates["mX"] = gate_H
+quantumgates["mY"] = meas_Y
+
 """
     quantumgate(gate_id::String,
                 site_inds::Index...;

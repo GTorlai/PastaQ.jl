@@ -10,8 +10,8 @@ using Printf
 include("exports.jl")
 include("utils.jl")
 include("quantumcircuit/quantumgates.jl")
+include("quantumcircuit/circuitops.jl")
 include("quantumcircuit/quantumcircuit.jl")
-include("quantumcircuit/circuits.jl")
 include("optimizer.jl")
 include("qst.jl")
 end # module

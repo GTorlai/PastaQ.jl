@@ -1,43 +1,47 @@
 export 
 # quantumgates.jl
   # Methods
-  gate_I,
-  gate_X,
-  gate_Y,
-  gate_Z,
-  gate_H,
-  gate_S,
-  gate_T,
-  gate_Kp,
-  gate_Km,
-  gate_Rx,
-  gate_Ry,
-  gate_Rz,
-  gate_Rn,
-  gate_Sw,
-  gate_Cx,
-  gate_Cy,
-  gate_Cz,
+  #gate_I,
+  #gate_X,
+  #gate_Y,
+  #gate_Z,
+  #gate_H,
+  #gate_S,
+  #gate_T,
+  #gate_Kp,
+  #gate_Km,
+  #gate_Rx,
+  #gate_Ry,
+  #gate_Rz,
+  #gate_Rn,
+  #gate_Sw,
+  #gate_Cx,
+  #gate_Cy,
+  #gate_Cz,
+  quantumgates,
   quantumgate,
 
-# quantumcircuit.jl
+# circuitops.jl
   # Methods
-  initializecircuit,
-  qubits,
   getsitenumber,
   applygate!,
   makegate,
-  makecircuit,
+
+# quantumcircuit.jl
+  QuantumCircuit,
+  # Methods
+  qubits,
+  reset!,
+  addgates!,
+  compilecircuit,
+  compilecircuit!,
   runcircuit,
   runcircuit!,
-  measure,
-
-# circuits.jl
-  # Methods
-  hadamardlayer!,
-  rand1Qrotationlayer!,
-  Cxlayer!,
-  measurementcircuit,
+  makemeasurementgates,
+  #hadamardlayer!,
+  #rand1Qrotationlayer!,
+  #Cxlayer!,
+  #generatemeasurementcircuit,
 
 # qst,jl
   QST,
@@ -50,6 +54,7 @@ export
   nll,
   gradlogZ,
   gradnll,
+  makemeasurementcircuit,
   statetomography,
 
 # optimizer.jl
