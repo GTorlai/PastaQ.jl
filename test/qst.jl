@@ -190,7 +190,7 @@ end
   end
   qst = QST(N=N)
   logZ,localnorms = lognormalize!(qst.psi)
-  @test normalization(qpt.psi) ≈ 1
+  @test normalization(qst.psi) ≈ 1
   alg_grad_localnorm,_ = gradlogZ(qst.psi,localnorms)
   for j in 1:N
     @test array(alg_grad[j]) ≈ array(alg_grad_localnorm[j]) atol=1e-5
