@@ -94,6 +94,10 @@ function gate_Cz(i::Index,j::Index)
   return itensor(gate,i',j',i,j)
 end
 
+function prep_Xp(i::Index)
+  return gate_H(i)
+end
+
 function prep_Xm(i::Index)
   return (1/sqrt(2.))*itensor([1  1;
                               -1  1],i',i)
@@ -109,9 +113,25 @@ function prep_Ym(i::Index)
                               -im im],i',i)
 end
 
+function prep_Zp(i::Index)
+  return gate_I(i)
+end
+
+function prep_Zm(i::Index)
+  return gate_X(i)
+end
+
+function meas_X(i::Index)
+  return gate_H(i)
+end
+
 function meas_Y(i::Index)
   return (1/sqrt(2.))*itensor([1 -im;
                                1 im],i',i)
+end
+
+function meas_Z(i::Index)
+  return gate_I(i)
 end
 
 # A global dictionary of gate functions
@@ -134,15 +154,16 @@ quantumgates["Cx"] = gate_Cx
 quantumgates["Cy"] = gate_Cy
 quantumgates["Cz"] = gate_Cz
 
-quantumgates["pX+"] = gate_H
+quantumgates["pX+"] = prep_Xp
 quantumgates["pX-"] = prep_Xm
 quantumgates["pY+"] = prep_Yp
 quantumgates["pY-"] = prep_Ym
-quantumgates["pZ+"] = gate_I
-quantumgates["pZ-"] = gate_X
+quantumgates["pZ+"] = prep_Zp
+quantumgates["pZ-"] = prep_Zm
 
-quantumgates["mX"] = gate_H
+quantumgates["mX"] = meas_X
 quantumgates["mY"] = meas_Y
+quantumgates["mZ"] = meas_Z
 
 """
     quantumgate(gate_id::String,
