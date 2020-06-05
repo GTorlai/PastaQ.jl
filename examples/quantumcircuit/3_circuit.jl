@@ -43,4 +43,34 @@ gates = randomquantumcircuit(N,depth)
 tensors = compilecircuit(psi,gates)
 runcircuit!(psi,tensors)
 
+""" Run circuit with different measurement bases """
+
+psi = resetqubits!(psi)
+nshots = 1000
+bases = generatemeasurementsettings(N,nshots)
+#1000×4 Array{String,2}:
+# "X"  "Y"  "Y"  "Y"
+# "X"  "Y"  "Z"  "Y"
+# "Z"  "Y"  "Y"  "Y"
+# "Y"  "Z"  "Y"  "Z"
+# ...
+depth = 4
+circuit_gates = randomquantumcircuit(N,depth)
+circuit_tensors = compilecircuit(psi,circuit_gates)
+
+samples = Matrix{Int64}(undef, nshots, N)
+
+for n in 1:nshots
+  meas_gates = makemeasurementgates(bases[1,:])
+  meas_tensors = compilecircuit(psi,meas_gates)
+  tensors = vcat(circuit_tensors,meas_tensors)
+  psi_out = runcircuit(psi,tensors)
+  #sample = measure(psi_out,1)
+  samples[n,:] = measure(psi_out,1)
+end
+
+
+
+
+
 

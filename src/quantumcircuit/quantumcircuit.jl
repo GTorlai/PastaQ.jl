@@ -93,12 +93,50 @@ basis = ["X","Z","Z","Y"]
 """
 function makepreparationgates(prep::Array)
   gate_list = []
-  for j in 1:length(basis)
-    if (basis[j]!= "Zp")
+  for j in 1:length(prep)
+    if (prep[j]!= "Zp")
       push!(gate_list,(gate = "p$(prep[j])", site = j))
     end
   end
   return gate_list
+end
+
+function generatemeasurementsettings(N::Int,numshots::Int;numbases=nothing,bases_id=nothing)
+  if isnothing(bases_id)
+    bases_id = ["X","Y","Z"]
+  end
+  # One shot per basis
+  if isnothing(numbases)
+    measurementbases = rand(bases_id,numshots,N)
+  else
+    @assert(numshots%numbases ==0)
+    shotsperbasis = numshots÷numbases
+    measurementbases = repeat(rand(bases_id,1,N),shotsperbasis)
+    for n in 1:numbases-1
+      newbases = repeat(rand(bases_id,1,N),shotsperbasis)
+      measurementbases = vcat(measurementbases,newbases)
+    end
+  end
+  return measurementbases
+end
+
+function generatepreparationsettings(N::Int,numshots::Int;numprep=nothing,prep_id=nothing)
+  if isnothing(prep_id)
+    prep_id = ["Xp","Xm","Yp","Ym","Zp","Zm"]
+  end
+  # One shot per basis
+  if isnothing(numprep)
+    preparationstates = rand(prep_id,numshots,N)
+  else
+    @assert(numshots%numprep ==0)
+    shotsperstate = numshots÷numprep
+    preparationstates = repeat(rand(prep_id,1,N),shotsperstate)
+    for n in 1:numprep-1
+      newstates = repeat(rand(prep_id,1,N),shotsperstate)
+      preparationstates = vcat(preparationstates,newstates)
+    end
+  end
+  return preparationstates
 end
 
 function measure(mps::MPS,nshots::Int)

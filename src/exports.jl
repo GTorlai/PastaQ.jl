@@ -45,6 +45,8 @@ export
   runcircuit!,
   makepreparationgates,
   makemeasurementgates,
+  generatemeasurementsettings,
+  generatepreparationsettings,
   measure,
   hadamardlayer!,
   rand1Qrotationlayer!,
