@@ -149,6 +149,36 @@ function gradlogZ(psi::MPS)
   return 2*gradients,log(Z)
 end
 
+function gradlogZ(psi::MPS,localnorm::Array)
+  N = length(psi)
+  L = Vector{ITensor}(undef, N-1)
+  R = Vector{ITensor}(undef, N)
+  
+  # Sweep right to get L
+  L[1] = dag(psi[1]) * prime(psi[1],"Link")
+  for j in 2:N-1
+    L[j] = L[j-1] * dag(psi[j])
+    L[j] = L[j] * prime(psi[j],"Link")
+  end
+  Z = L[N-1] * dag(psi[N])
+  Z = real((Z * prime(psi[N],"Link"))[])
+
+  # Sweep left to get R
+  R[N] = dag(psi[N]) * prime(psi[N],"Link")
+  for j in reverse(2:N-1)
+    R[j] = R[j+1] * dag(psi[j])
+    R[j] = R[j] * prime(psi[j],"Link")
+  end
+  # Get the gradients of the normalization
+  gradients = Vector{ITensor}(undef, N)
+  gradients[1] = prime(psi[1],"Link") * R[2]/(localnorm[1]*Z)
+  for j in 2:N-1
+    gradients[j] = (L[j-1] * prime(psi[j],"Link") * R[j+1])/(localnorm[j]*Z)
+  end
+  gradients[N] = (L[N-1] * prime(psi[N],"Link"))/(localnorm[N]*Z)
+  return 2*gradients,log(Z)
+end
+
 function gradnll(psi::MPS,data::Array)
   loss = 0.0
 
@@ -162,16 +192,17 @@ function gradnll(psi::MPS,data::Array)
   for n in 1:size(data)[1]
     x = data[n,:] 
     x.+=1
-    L[1] = psi[1] * setelt(siteind(psi,1)=>x[1])
+    L[1] = dag(psi[1]) * setelt(siteind(psi,1)=>x[1])
     for j in 2:N-1
-      L[j] = L[j-1] * psi[j] * setelt(siteind(psi,j)=>x[j]) 
+      L[j] = L[j-1] * dag(psi[j]) * setelt(siteind(psi,j)=>x[j]) 
     end
-    psix = real((L[N-1] * psi[N] * setelt(siteind(psi,N)=>x[N]))[])
-    prob = norm(psix)^2
+    psix = (L[N-1] * dag(psi[N]) * setelt(siteind(psi,N)=>x[N]))[]
+    prob = abs2(psix)
     loss -= log(prob)/size(data)[1]
-    R[N] = psi[N] * setelt(siteind(psi,N)=>x[N])
+    
+    R[N] = dag(psi[N]) * setelt(siteind(psi,N)=>x[N])
     for j in reverse(2:N-1)
-      R[j] = R[j+1] * psi[j] * setelt(siteind(psi,j)=>x[j])
+      R[j] = R[j+1] * dag(psi[j]) * setelt(siteind(psi,j)=>x[j])
     end
     gradients[1] += (R[2] * setelt(siteind(psi,1)=>x[1]))/psix
     for j in 2:N-1
@@ -182,6 +213,45 @@ function gradnll(psi::MPS,data::Array)
   gradients = -2*gradients/size(data)[1]
   return gradients,loss 
 end
+
+function gradnll(psi::MPS,data::Array,localnorm::Array)
+  loss = 0.0
+
+  N = length(psi)
+  L = Vector{ITensor}(undef, N-1)
+  R = Vector{ITensor}(undef, N)
+  gradients = ITensor[]
+  for j in 1:N
+    push!(gradients,ITensor(inds(psi[j])))
+  end
+  for n in 1:size(data)[1]
+    x = data[n,:] 
+    x.+=1
+    L[1] = dag(psi[1]) * setelt(siteind(psi,1)=>x[1])
+    for j in 2:N-1
+      L[j] = L[j-1] * dag(psi[j]) * setelt(siteind(psi,j)=>x[j]) 
+    end
+    psix = (L[N-1] * dag(psi[N]) * setelt(siteind(psi,N)=>x[N]))[]
+    prob = abs2(psix)
+    loss -= log(prob)/size(data)[1]
+    
+    R[N] = dag(psi[N]) * setelt(siteind(psi,N)=>x[N])
+    for j in reverse(2:N-1)
+      R[j] = R[j+1] * dag(psi[j]) * setelt(siteind(psi,j)=>x[j])
+    end
+
+    gradients[1] += (R[2] * setelt(siteind(psi,1)=>x[1]))/(localnorm[1]*psix)
+    for j in 2:N-1
+      gradients[j] += (L[j-1] * setelt(siteind(psi,j)=>x[j]) * R[j+1])/(localnorm[j]*psix)
+    end
+    gradients[N] += (L[N-1] *setelt(siteind(psi,N)=>x[N]))/(localnorm[N]*psix)
+  end
+  gradients = -2*gradients/size(data)[1]
+  return gradients,loss 
+end
+
+
+
 
 
 
@@ -256,69 +326,6 @@ end
 ##  return gradients,loss 
 ##end
 #
-##function gradnll(psi::MPS,data::Array,localnorm::Array)
-##  loss = 0.0
-##
-##  N = length(psi)
-##  L = Vector{ITensor}(undef, N-1)
-##  R = Vector{ITensor}(undef, N)
-##  gradients = ITensor[]
-##  for j in 1:N
-##    push!(gradients,ITensor(inds(psi[j])))
-##  end
-##  for n in 1:size(data)[1]
-##    x = data[n,:] 
-##    x.+=1
-##    L[1] = psi[1] * setelt(siteind(psi,1)=>x[1])
-##    for j in 2:N-1
-##      L[j] = L[j-1] * psi[j] * setelt(siteind(psi,j)=>x[j]) 
-##    end
-##    psix = real((L[N-1] * psi[N] * setelt(siteind(psi,N)=>x[N]))[])
-##    prob = norm(psix)^2
-##    loss -= log(prob)/size(data)[1]
-##    R[N] = psi[N] * setelt(siteind(psi,N)=>x[N])
-##    for j in reverse(2:N-1)
-##      R[j] = R[j+1] * psi[j] * setelt(siteind(psi,j)=>x[j])
-##    end
-##    gradients[1] += (R[2] * setelt(siteind(psi,1)=>x[1]))/(localnorm[1]*psix)
-##    for j in 2:N-1
-##      gradients[j] += (L[j-1] * setelt(siteind(psi,j)=>x[j]) * R[j+1])/(localnorm[j]*psix)
-##    end
-##    gradients[N] += (L[N-1] *setelt(siteind(psi,N)=>x[N]))/(localnorm[N]*psix)
-##  end
-##  gradients = -2*gradients/size(data)[1]
-##  return gradients,loss 
-##end
-#
-##function gradlogZ(psi::MPS,localnorm::Array)
-##  N = length(psi)
-##  L = Vector{ITensor}(undef, N-1)
-##  R = Vector{ITensor}(undef, N)
-##  
-##  # Sweep right to get L
-##  L[1] = dag(psi[1]) * prime(psi[1],"Link")
-##  for j in 2:N-1
-##    L[j] = L[j-1] * dag(psi[j])
-##    L[j] = L[j] * prime(psi[j],"Link")
-##  end
-##  Z = L[N-1] * dag(psi[N])
-##  Z = real((Z * prime(psi[N],"Link"))[])
-##
-##  # Sweep left to get R
-##  R[N] = dag(psi[N]) * prime(psi[N],"Link")
-##  for j in reverse(2:N-1)
-##    R[j] = R[j+1] * dag(psi[j])
-##    R[j] = R[j] * prime(psi[j],"Link")
-##  end
-##  # Get the gradients of the normalization
-##  gradients = Vector{ITensor}(undef, N)
-##  gradients[1] = prime(psi[1],"Link") * R[2]/(localnorm[1]*Z)
-##  for j in 2:N-1
-##    gradients[j] = (L[j-1] * prime(psi[j],"Link") * R[j+1])/(localnorm[j]*Z)
-##  end
-##  gradients[N] = (L[N-1] * prime(psi[N],"Link"))/(localnorm[N]*Z)
-##  return 2*gradients,log(Z)
-##end
 #
 #function statetomography(qst::QST,opt::Optimizer;
 #                         data::Array,
