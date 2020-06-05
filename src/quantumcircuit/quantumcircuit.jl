@@ -8,16 +8,14 @@ function qubits(N::Int)
   return psi
 end
 
+function resetqubits!(psi::MPS)
+  sites = siteinds(psi)
+  psi = productMPS(sites, [1 for i in 1:length(sites)])
+  return psi
+end
 """----------------------------------------------
                   CIRCUIT FUNCTIONS 
 ------------------------------------------------- """
-
-#"""
-#Add a single gate to gates data structure 
-#"""
-#function addgate!(gates::Array,newgate::NamedTuple)
-#  push!(gates,newgate)
-#end
 
 """
 Add a list of gates to gates (data structure) 

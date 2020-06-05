@@ -121,6 +121,24 @@ end
   @test exact_psi ≈ fullvector(psi)
 end
 
+
+@testset "reset qubits" begin
+  N = 5
+  depth = 5
+  gates = randomquantumcircuit(N,depth)
+  psi = qubits(N)
+  tensors = compilecircuit(psi,gates)
+  runcircuit!(psi,tensors)
+  
+  psi = resetqubits!(psi)
+  psi_vec = fullvector(psi)
+
+  exact_vec = zeros(1<<N)
+  exact_vec[1] = 1.0
+  @test psi_vec ≈ exact_vec
+end
+
+
 #@testset "runcircuit: randomRnCx N=10" begin
 #  data = load("testdata/quantumcircuit_testunitary_randomRnCx.jld")
 #  N = data["N"]

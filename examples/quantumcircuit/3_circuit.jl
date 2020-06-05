@@ -1,0 +1,46 @@
+using PastaQ
+
+""" Build a circuit manually and run """
+# Initialize the quantum state
+N = 4
+psi = qubits(N) 
+# Define the gates data structure
+gates = [
+  (gate = "X" , site = 1),
+  (gate = "Cx", site = [1,2]),
+  (gate = "Rx", site = 2,params=(θ=0.5,)),
+  (gate = "Rn", site = 3,params=(θ=0.5,ϕ=0.2,λ=1.2)),
+  (gate = "Cz", site = [3,4])]
+
+# Compile the gates into tensors
+tensors = compilecircuit(psi,gates)
+
+# Run the circuit (in-place)
+runcircuit!(psi,tensors)
+
+# Set the state to |0000...> (but keep the indices)
+psi = resetqubits!(psi)
+
+# Run the circuit without modifying initial state
+psi_out = runcircuit(psi,tensors)
+
+""" Build a circuit using layers and run """
+
+gates = []
+
+hadamardlayer!(gates,N)
+rand1Qrotationlayer!(gates,N)
+Cxlayer!(gates,N,sequence = "odd")
+Cxlayer!(gates,N,sequence = "even")
+
+tensors = compilecircuit(psi,gates)
+
+runcircuit!(psi,tensors)
+
+""" Use pre-made circuit """
+depth = 4
+gates = randomquantumcircuit(N,depth)
+tensors = compilecircuit(psi,gates)
+runcircuit!(psi,tensors)
+
+
