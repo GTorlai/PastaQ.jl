@@ -62,7 +62,6 @@ function empiricalprobability(samples::Matrix)
   return prob
 end
 
-
 @testset "qubits initialization" begin
   N = 1
   psi = qubits(N)
@@ -158,6 +157,41 @@ end
   @test psi_vec ≈ exact_vec
 end
 
+@testset "generation of preparation states" begin
+  N = 4
+  nshots = 100
+  states = generatepreparationsettings(N,nshots)
+  @test size(states)[1] == nshots
+  @test size(states)[2] == N
+  
+  states = generatepreparationsettings(N,nshots,numprep=10)
+  @test size(states)[1] == nshots
+  @test size(states)[2] == N
+  
+  for i in 1:10
+    for j in 1:10
+      @test states[10*(i-1)+j] == states[10*(i-1)+1]
+    end
+  end
+end
+
+@testset "generation of measurement bases" begin
+  N = 4
+  nshots = 100
+  bases = generatemeasurementsettings(N,nshots)
+  @test size(bases)[1] == nshots
+  @test size(bases)[2] == N
+  
+  bases = generatemeasurementsettings(N,nshots,numbases=10)
+  @test size(bases)[1] == nshots
+  @test size(bases)[2] == N
+  
+  for i in 1:10
+    for j in 1:10
+      @test bases[10*(i-1)+j] == bases[10*(i-1)+1]
+    end
+  end
+end
 
 @testset "measurements" begin
   N = 4
@@ -176,11 +210,6 @@ end
   data_prob = empiricalprobability(samples)
   @test prob ≈ data_prob atol=1e-2
 end
-
-
-
-
-
 
 #@testset "runcircuit: randomRnCx N=10" begin
 #  data = load("testdata/quantumcircuit_testunitary_randomRnCx.jld")
