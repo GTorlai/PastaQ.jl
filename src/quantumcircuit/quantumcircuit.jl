@@ -1,26 +1,3 @@
-mutable struct QuantumCircuit
-  N::Int
-  seed::Int
-  rng::MersenneTwister
-  gates::Array
-  tensors::Array
-end
-
-function QuantumCircuit(;N::Int,
-                         seed::Int=1234)
-
-  rng = MersenneTwister(seed)
-  gates        = []
-  tensors      = []
-  
-  return QuantumCircuit(N,seed,rng,
-                        gates,tensors)
-end
-
-"""----------------------------------------------
-                  INITIALIZATIONS 
-------------------------------------------------- """
-
 """
 initialize the wavefunction
 Create an MPS for N sites on the ``|000\\dots0\\rangle`` state.
@@ -31,27 +8,19 @@ function qubits(N::Int)
   return psi
 end
 
-"""
-Reset the gates and tensor in QuantumCircuit
-"""
-function reset!(qc::QuantumCircuit)
-  qc.gates = []
-  qc.tensors = []
-end
-
 """----------------------------------------------
                   CIRCUIT FUNCTIONS 
 ------------------------------------------------- """
 
 #"""
-#Add a single gate to quantumcircuit.gates
+#Add a single gate to gates data structure 
 #"""
 #function addgate!(gates::Array,newgate::NamedTuple)
 #  push!(gates,newgate)
 #end
 
 """
-Add a list of gates to quantumcircuit.gates
+Add a list of gates to gates (data structure) 
 """
 function addgates!(gates::Array,newgates::Array)
   for newgate in newgates
@@ -62,7 +31,7 @@ end
 """
 Compile the gates into tensors and return
 """
-function compilecircuit(gates::Array,mps::MPS)
+function compilecircuit(mps::MPS,gates::Array)
   tensors = []
   for gate in gates
     push!(tensors,makegate(mps,gate))
@@ -73,7 +42,7 @@ end
 """
 Compile news gates into existing tensors list 
 """
-function compilecircuit!(tensors::Array,gates::Array,mps::MPS)
+function compilecircuit!(tensors::Array,mps::MPS,gates::Array)
   for gate in gates
     push!(tensors,makegate(mps,gate))
   end
@@ -116,51 +85,40 @@ function makemeasurementgates(basis::Array)
   return gate_list
 end
 
+"""
+Given as input a measurement basis, returns the corresponding
+gate data structure.
+Example:
+basis = ["X","Z","Z","Y"]
+-> gate_list = [(gate = "mX", site = 1),
+                (gate = "mY", site = 4)]
+"""
+function makepreparationgates(prep::Array)
+  gate_list = []
+  for j in 1:length(basis)
+    if (basis[j]!= "Zp")
+      push!(gate_list,(gate = "p$(prep[j])", site = j))
+    end
+  end
+  return gate_list
+end
 
-## Set up custom state preparation
-#function setup_statepreparation(qc::QuantumCircuit;
-#                                kwargs...)
-##TODO
-#
-#end
-#
-#"""
+function measure(mps::MPS,nshots::Int)
+  orthogonalize!(mps,1)
+  if (nshots>1)
+    measurements = sample(mps)
+    measurements .-= 1
+  else
+    measurements = Matrix{Int64}(undef, nshots, length(mps))
+    for n in 1:nshots
+      measurement = sample(mps)
+      measurement .-= 1
+      measurements[n,:] = measurement
+    end
+  end
+  return measurements
+end
 
-                                
-#
-## Changed it so it makes namedtupled
-#function statepreparationcircuit(mps::MPS,prep::Array)
-#  circuit = []
-#  for j in 1:N
-#    if prep[j] == "Xp"
-#      push!(circuit,makegate(mps,"H",j))
-#    elseif prep[j] == "Xm"
-#      push!(circuit,makegate(mps,"X",j))
-#      push!(circuit,makegate(mps,"H",j))
-#    elseif prep[j] == "Yp"
-#      push!(circuit,makegate(mps,"Kp",j))
-#    elseif prep[j] == "Ym"
-#      push!(circuit,makegate(mps,"X",j))
-#      push!(circuit,makegate(mps,"Kp",j))
-#    elseif prep[j] == "Zp"
-#      nothing
-#    elseif prep[j] == "Zm"
-#      push!(circuit,makegate(mps,"X",j))
-#    end
-#  end
-#  return circuit
-#end
-#function measure(mps::MPS,nshots::Int)
-#  measurements = Matrix{Int64}(undef, nshots, length(mps))
-#  orthogonalize!(mps,1)
-#  for n in 1:nshots
-#    measurement = sample(mps)
-#    measurement .-= 1
-#    measurements[n,:] = measurement
-#  end
-#  return measurements
-#end
-#
 #function measure(mps::MPS,nshots::Int,bases::Array)
 #  measurements = Matrix{Int64}(undef, nshots, length(mps))
 #  measurement_bases = Matrix{String}(undef,nshots,length(mps)) 
@@ -177,72 +135,56 @@ end
 #  return measurements,measurement_bases
 #end
 #
-#
-#" INNER CIRCUITS "
-#
-#function hadamardlayer!(gates::Array,N::Int)
-#  for j in 1:N
-#    push!(gates,(gate = "H",site = j))
-#  end
-#end
-#
-#function rand1Qrotationlayer!(gates::Array,N::Int;
-#                              rng=nothing)
-#  for j in 1:N
-#    if isnothing(rng)
-#      θ,ϕ,λ = rand!(zeros(3))
-#    else
-#      θ,ϕ,λ = rand!(rng,zeros(3))
-#    end
-#    push!(gates,(gate = "Rn",site = j, params = (θ = θ, ϕ = ϕ, λ = λ)))
-#  end
-#end
-#
-#function Cxlayer!(gates::Array,N::Int,sequence::String)
-#  if (N ≤ 2)
-#    throw(ArgumentError("Cxlayer is defined for N ≥ 3"))
-#  end
-#  
-#  if sequence == "odd"
-#    for j in 1:2:(N-N%2)
-#      push!(gates,(gate = "Cx", site = [j,j+1]))
-#    end
-#  elseif sequence == "even"
-#    for j in 2:2:(N+N%2-1)
-#      push!(gates,(gate = "Cx", site = [j,j+1]))
-#    end
-#  else
-#    throw(ArgumentError("Sequence not recognized"))
-#  end
-#end
-#
-#"""
-#    initializecircuit(N::Int)
-#"""
-#function initializecircuit(N::Int)
-#  sites = [Index(2; tags="Site, n=$s") for s in 1:N]
-#  U = MPO(sites, "Id")
-#  return U
-#end
-#
 
-#
-#  circuit = []
-#  basis = []
-#  randomsamples = rand(1:length(bases),N)
-#  for j in 1:N
-#    localbasis = bases[randomsamples[j]]
-#    push!(basis,localbasis)
-#    if localbasis == "X"
-#      push!(circuit,(gate = "H", site = j))
-#    elseif localbasis == "Y"
-#      push!(circuit,(gate = "Km", site = j))
-#    elseif localbasis =="Z"
-#      nothing
-#    else
-#      throw(argumenterror("Basis not recognized"))
-#    end
-#  end
-#  return basis,circuit
-#end
-#
+" INNER CIRCUITS "
+
+function hadamardlayer!(gates::Array,N::Int)
+  for j in 1:N
+    push!(gates,(gate = "H",site = j))
+  end
+end
+
+function rand1Qrotationlayer!(gates::Array,N::Int;
+                              rng=nothing)
+  for j in 1:N
+    if isnothing(rng)
+      θ,ϕ,λ = rand!(zeros(3))
+    else
+      θ,ϕ,λ = rand!(rng,zeros(3))
+    end
+    push!(gates,(gate = "Rn",site = j, 
+                 params = (θ = π*θ, ϕ = 2*π*ϕ, λ = 2*π*λ)))
+  end
+end
+
+function Cxlayer!(gates::Array,N::Int;sequence::String)
+  if (N ≤ 2)
+    throw(ArgumentError("Cxlayer is defined for N ≥ 3"))
+  end
+  
+  if sequence == "odd"
+    for j in 1:2:(N-N%2)
+      push!(gates,(gate = "Cx", site = [j,j+1]))
+    end
+  elseif sequence == "even"
+    for j in 2:2:(N+N%2-1)
+      push!(gates,(gate = "Cx", site = [j,j+1]))
+    end
+  else
+    throw(ArgumentError("Sequence not recognized"))
+  end
+end
+
+function randomquantumcircuit(N::Int,depth::Int;rng=nothing)
+  gates = []
+  for d in 1:depth
+    rand1Qrotationlayer!(gates,N,rng=rng)
+    if d%2==1
+      Cxlayer!(gates,N,sequence="odd")
+    else
+      Cxlayer!(gates,N,sequence="even")
+    end
+  end
+  return gates
+end
+

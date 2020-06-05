@@ -35,7 +35,6 @@ export
   makegate,
 
 # quantumcircuit.jl
-  QuantumCircuit,
   # Methods
   qubits,
   reset!,
@@ -44,11 +43,13 @@ export
   compilecircuit!,
   runcircuit,
   runcircuit!,
+  makepreparationgates,
   makemeasurementgates,
-  #hadamardlayer!,
-  #rand1Qrotationlayer!,
-  #Cxlayer!,
-  #generatemeasurementcircuit,
+  measure,
+  hadamardlayer!,
+  rand1Qrotationlayer!,
+  Cxlayer!,
+  randomquantumcircuit,
 
 # qst,jl
   QST,
