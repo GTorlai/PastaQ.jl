@@ -167,7 +167,6 @@ function measure(mps::MPS,nshots::Int)
   return measurements
 end
 
-" INNER CIRCUITS "
 """
 Append a layer of Hadamard gates
 """
