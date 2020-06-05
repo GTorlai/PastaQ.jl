@@ -4,9 +4,9 @@
 
 #### ToDo List: quantum circuit
 + Swaps for long-rate two-qubit gates
-+ State preparation stage
-+ Measurement basis rotation stage
 + Build circuit MPO 
+
 
 #### ToDo List: state tomography
 + Fix NLL gradients for complex-valued MPS
++ Add gradients for measurement bases rotations

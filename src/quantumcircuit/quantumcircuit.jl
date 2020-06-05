@@ -103,7 +103,7 @@ end
 
 function measure(mps::MPS,nshots::Int)
   orthogonalize!(mps,1)
-  if (nshots>1)
+  if (nshots==1)
     measurements = sample(mps)
     measurements .-= 1
   else
@@ -116,23 +116,6 @@ function measure(mps::MPS,nshots::Int)
   end
   return measurements
 end
-
-#function measure(mps::MPS,nshots::Int,bases::Array)
-#  measurements = Matrix{Int64}(undef, nshots, length(mps))
-#  measurement_bases = Matrix{String}(undef,nshots,length(mps)) 
-#  for n in 1:nshots
-#    psi = copy(mps)
-#    basis,gate_list = generatemeasurementcircuit(length(mps),bases)
-#    circuit = makecircuit(psi,gate_list)
-#    runcircuit!(psi,circuit)
-#    measurement = sample!(psi)
-#    measurement .-= 1
-#    measurements[n,:] = measurement
-#    measurement_bases[n,:] = basis
-#  end
-#  return measurements,measurement_bases
-#end
-#
 
 " INNER CIRCUITS "
 

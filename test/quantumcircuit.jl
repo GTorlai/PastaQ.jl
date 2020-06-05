@@ -43,6 +43,26 @@ function runcircuitFULL(N::Int,tensors::Array)
   return psi
 end
 
+function state_to_int(state::Array)
+  index = 0
+  for j in 1:length(state)
+    index += 2^(j-1)*state[length(state)+1-j]
+  end
+  return index
+end
+
+function empiricalprobability(samples::Matrix)
+  prob = zeros((1<<size(samples)[2]))
+  for n in 1:size(samples)[1]
+    sample = samples[n,:]
+    index = state_to_int(sample)
+    prob[index+1] += 1
+  end
+  prob = prob / size(samples)[1]
+  return prob
+end
+
+
 @testset "qubits initialization" begin
   N = 1
   psi = qubits(N)
@@ -137,6 +157,29 @@ end
   exact_vec[1] = 1.0
   @test psi_vec ≈ exact_vec
 end
+
+
+@testset "measurements" begin
+  N = 4
+  depth = 10
+  psi = qubits(N)
+  gates = randomquantumcircuit(N,depth)
+  tensors = compilecircuit(psi,gates)
+  runcircuit!(psi,tensors)
+  psi_vec = fullvector(psi)
+  prob = abs2.(psi_vec)
+  
+  nshots = 100000
+  samples = measure(psi,nshots)
+  @test size(samples)[1] == nshots
+  @test size(samples)[2] == N
+  data_prob = empiricalprobability(samples)
+  @test prob ≈ data_prob atol=1e-2
+end
+
+
+
+
 
 
 #@testset "runcircuit: randomRnCx N=10" begin
