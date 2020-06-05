@@ -75,15 +75,18 @@ function applygate!(M::MPS,
   noprime!(M[site])
 end
 
-# Apply 2Q gate in the form ("Cx", (1,2))
+# Apply 2Q gate in the form ("Cx", [1,2])
 function applygate!(M::MPS,
                    gate_id::String,
                    site::Array;
                    cutoff = 1e-10,
                    kwargs...)
   
+  # Check that the qubits are NN
+  # TODO remove and insert swap gates
   @assert(abs(site[1]-site[2])==1)
-
+  
+  # Construct the gate tensor
   gate = makegate(M,gate_id,site; kwargs...)
   
   orthogonalize!(M,site[1])
@@ -110,6 +113,7 @@ function applygate!(M::MPS,
     M[site[2]] = V
   end
 end
+
 # Apply 1Q gate using a pre-generated gate tensor
 function applygate!(M::MPS,gate::ITensor{2}; kwargs...)
   site = getsitenumber(firstind(gate,"Site")) 
@@ -117,18 +121,15 @@ function applygate!(M::MPS,gate::ITensor{2}; kwargs...)
   noprime!(M[site])
 end
 
-#function swap()
-#  #call swapinds/swapin from ITensors
-#end
-
 # Apply 2Q gate using a pre-generated gate tensor
 function applygate!(M::MPS, gate::ITensor{4}; cutoff = 1e-10)
   s1 = getsitenumber(inds(gate,plev=1)[1]) 
   s2 = getsitenumber(inds(gate,plev=1)[2]) 
   
   if abs(s1-s2)!=1
-      # do swaps
-      nothing
+    #TODO  
+    # do swaps
+    nothing
   end
   @assert(abs(s1-s2)==1)
   #TODO use swaps to handle long-range gates
@@ -156,6 +157,7 @@ function applygate!(M::MPS, gate::ITensor{4}; cutoff = 1e-10)
   end
 end
 
+# Retrieve the qubit number from a site index
 function getsitenumber(i::Index)
   for n in 1:length(tags(i))
     str_n = String(tags(i)[n])
@@ -165,5 +167,4 @@ function getsitenumber(i::Index)
   end
   return nothing
 end
-
 

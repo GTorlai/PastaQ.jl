@@ -46,7 +46,7 @@ runcircuit!(psi,tensors)
 """ Run circuit with different measurement bases """
 
 psi = resetqubits!(psi)
-nshots = 1000
+nshots = 100
 bases = generatemeasurementsettings(N,nshots)
 #1000×4 Array{String,2}:
 # "X"  "Y"  "Y"  "Y"
@@ -67,10 +67,45 @@ for n in 1:nshots
   psi_out = runcircuit(psi,tensors)
   #sample = measure(psi_out,1)
   samples[n,:] = measure(psi_out,1)
+  println(bases[n,:],samples[n,:])
 end
+println("\n\n")
 
+""" Run circuit with different preparation states / measurement bases """
 
+psi = resetqubits!(psi)
+nshots = 100
+bases = generatemeasurementsettings(N,nshots)
+#1000×4 Array{String,2}:
+# "X"  "Y"  "Y"  "Y"
+# "X"  "Y"  "Z"  "Y"
+# "Z"  "Y"  "Y"  "Y"
+# "Y"  "Z"  "Y"  "Z"
+# ...
+prep = generatepreparationsettings(N,nshots)
+#1000×4 Array{String,2}:
+# "Ym"  "Ym"  "Xm"  "Yp"
+# "Xm"  "Zm"  "Yp"  "Zp"
+# "Zm"  "Zm"  "Xm"  "Zm"
+# "Xp"  "Xp"  "Yp"  "Yp"
 
+depth = 4
+circuit_gates = randomquantumcircuit(N,depth)
+circuit_tensors = compilecircuit(psi,circuit_gates)
 
+samples = Matrix{Int64}(undef, nshots, N)
 
+for n in 1:nshots
+  prep_gates = makepreparationgates(prep[n,:])
+  prep_tensors = compilecircuit(psi,prep_gates)
+  tensors = vcat(prep_tensors,circuit_tensors)
+
+  meas_gates = makemeasurementgates(bases[n,:])
+  meas_tensors = compilecircuit(psi,meas_gates)
+  tensors = vcat(tensors,meas_tensors)
+  
+  psi_out = runcircuit(psi,tensors)
+  samples[n,:] = measure(psi_out,1)
+  println(prep[n,:],bases[n,:],samples[n,:])
+end
 

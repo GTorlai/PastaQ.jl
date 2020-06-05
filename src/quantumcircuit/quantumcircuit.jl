@@ -47,13 +47,13 @@ function compilecircuit!(tensors::Array,mps::MPS,gates::Array)
   return tensors
 end
 
-""" Run the quantumcircuit.tensors without modifying input state
+""" Run the a quantum circuit without modifying input state
 """
 function runcircuit(mps::MPS,tensors::Array;cutoff=1e-10)
   return runcircuit!(copy(mps),tensors;cutoff=cutoff)
 end
 
-""" Run quantumcircuit.tensors on the input state"""
+""" Run a quantum circuit on the input state"""
 function runcircuit!(mps::MPS,tensors::Array;cutoff=1e-10)
   for gate in tensors
     applygate!(mps,gate,cutoff=cutoff)
@@ -84,12 +84,12 @@ function makemeasurementgates(basis::Array)
 end
 
 """
-Given as input a measurement basis, returns the corresponding
+Given as input a preparation state, returns the corresponding
 gate data structure.
 Example:
-basis = ["X","Z","Z","Y"]
--> gate_list = [(gate = "mX", site = 1),
-                (gate = "mY", site = 4)]
+prep = ["X+","Z+","Z+","Y+"]
+-> gate_list = [(gate = "pX+", site = 1),
+                (gate = "pY+", site = 4)]
 """
 function makepreparationgates(prep::Array)
   gate_list = []
@@ -101,6 +101,11 @@ function makepreparationgates(prep::Array)
   return gate_list
 end
 
+"""
+Generate a set of measurement bases:
+- nshots = total number of bases
+if numbases=nothing: nshots different bases
+"""
 function generatemeasurementsettings(N::Int,numshots::Int;numbases=nothing,bases_id=nothing)
   if isnothing(bases_id)
     bases_id = ["X","Y","Z"]
@@ -120,9 +125,14 @@ function generatemeasurementsettings(N::Int,numshots::Int;numbases=nothing,bases
   return measurementbases
 end
 
+"""
+Generate a set of preparation states:
+- nshots = total number of states
+if numprep=nothing: nshots different states
+"""
 function generatepreparationsettings(N::Int,numshots::Int;numprep=nothing,prep_id=nothing)
   if isnothing(prep_id)
-    prep_id = ["Xp","Xm","Yp","Ym","Zp","Zm"]
+    prep_id = ["X+","X-","Y+","Y-","Z+","Z-"]
   end
   # One shot per basis
   if isnothing(numprep)
@@ -138,7 +148,9 @@ function generatepreparationsettings(N::Int,numshots::Int;numprep=nothing,prep_i
   end
   return preparationstates
 end
-
+"""
+Perform a projective measurements on a wavefunction
+"""
 function measure(mps::MPS,nshots::Int)
   orthogonalize!(mps,1)
   if (nshots==1)
@@ -156,13 +168,18 @@ function measure(mps::MPS,nshots::Int)
 end
 
 " INNER CIRCUITS "
-
+"""
+Append a layer of Hadamard gates
+"""
 function hadamardlayer!(gates::Array,N::Int)
   for j in 1:N
     push!(gates,(gate = "H",site = j))
   end
 end
 
+"""
+Append a layer of random single-qubit rotations
+"""
 function rand1Qrotationlayer!(gates::Array,N::Int;
                               rng=nothing)
   for j in 1:N
@@ -176,6 +193,9 @@ function rand1Qrotationlayer!(gates::Array,N::Int;
   end
 end
 
+"""
+Append a layer of CX gates
+"""
 function Cxlayer!(gates::Array,N::Int;sequence::String)
   if (N ≤ 2)
     throw(ArgumentError("Cxlayer is defined for N ≥ 3"))
@@ -194,6 +214,9 @@ function Cxlayer!(gates::Array,N::Int;sequence::String)
   end
 end
 
+"""
+Generate a random quantum circuit
+"""
 function randomquantumcircuit(N::Int,depth::Int;rng=nothing)
   gates = []
   for d in 1:depth
