@@ -56,9 +56,7 @@ export
 # qst,jl
   QST,
   # Methods
-  normalization,
   normalize!,
-  lognormalization,
   lognormalize!,
   projectpsi,
   nll,

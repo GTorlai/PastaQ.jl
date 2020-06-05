@@ -19,17 +19,17 @@ function numgradslogZ(psi::MPS;accuracy=1e-8)
     epsilon[i] = accuracy
     eps = ITensor(epsilon,inds(psi[1]))
     psi[1] += eps
-    loss_p = lognormalization(psi)
+    loss_p = 2.0*lognorm(psi)
     psi[1] -= eps
-    loss_m = lognormalization(psi)
+    loss_m = 2.0*lognorm(psi)
     grad_r[1][i] = (loss_p-loss_m)/(accuracy)
     
     epsilon[i] = im*accuracy
     eps = ITensor(epsilon,inds(psi[1]))
     psi[1] += eps
-    loss_p = lognormalization(psi)
+    loss_p = 2.0*lognorm(psi)
     psi[1] -= eps
-    loss_m = lognormalization(psi)
+    loss_m = 2.0*lognorm(psi)
     grad_i[1][i] = (loss_p-loss_m)/(im*accuracy)
     
     epsilon[i] = 0.0
@@ -41,17 +41,17 @@ function numgradslogZ(psi::MPS;accuracy=1e-8)
       epsilon[i] = accuracy
       eps = ITensor(epsilon,inds(psi[j]))
       psi[j] += eps
-      loss_p = lognormalization(psi)
+      loss_p = 2.0*lognorm(psi)
       psi[j] -= eps
-      loss_m = lognormalization(psi)
+      loss_m = 2.0*lognorm(psi)
       grad_r[j][i] = (loss_p-loss_m)/(accuracy)
       
       epsilon[i] = im*accuracy
       eps = ITensor(epsilon,inds(psi[j]))
       psi[j] += eps
-      loss_p = lognormalization(psi)
+      loss_p = 2.0*lognorm(psi)
       psi[j] -= eps
-      loss_m = lognormalization(psi)
+      loss_m = 2.0*lognorm(psi)
       grad_i[j][i] = (loss_p-loss_m)/(im*accuracy)
 
       epsilon[i] = 0.0
@@ -63,17 +63,17 @@ function numgradslogZ(psi::MPS;accuracy=1e-8)
     epsilon[i] = accuracy
     eps = ITensor(epsilon,inds(psi[N]))
     psi[N] += eps
-    loss_p = lognormalization(psi)
+    loss_p = 2.0*lognorm(psi)
     psi[N] -= eps
-    loss_m = lognormalization(psi)
+    loss_m = 2.0*lognorm(psi)
     grad_r[N][i] = (loss_p-loss_m)/(accuracy)
 
     epsilon[i] = im*accuracy
     eps = ITensor(epsilon,inds(psi[N]))
     psi[N] += eps
-    loss_p = lognormalization(psi)
+    loss_p = 2.0*lognorm(psi)
     psi[N] -= eps
-    loss_m = lognormalization(psi)
+    loss_m = 2.0*lognorm(psi)
     grad_i[N][i] = (loss_p-loss_m)/(im*accuracy)
     
     epsilon[i] = 0.0
@@ -162,22 +162,15 @@ function numgradsnll(psi::MPS,data::Array;accuracy=1e-8)
   return grad_r-grad_i
 end
 
-@testset "qst: normalizations" begin
+@testset "qst: lognormalizations" begin
   N = 10
   qst = QST(N=N)
-  PastaQ.normalize!(qst.psi)
-  @test normalization(qst.psi) ≈ 1
-  qst = QST(N=N)
-  logZ = lognormalization(qst.psi)
-  Z = normalization(qst.psi)
-  @test logZ ≈ log(Z)
-  qst = QST(N=N)
-  logZ1 = lognormalization(qst.psi)
+  logZ1 = 2.0*lognorm(qst.psi)
   logZ2,_ = lognormalize!(qst.psi)
   @test logZ1 ≈ logZ2
   qst = QST(N=N)
   lognormalize!(qst.psi)
-  @test normalization(qst.psi) ≈ 1
+  @test norm(qst.psi) ≈ 1
 end
 
 @testset "qst: real grad logZ" begin
@@ -188,13 +181,13 @@ end
   for j in 1:N
     @test array(alg_grad[j]) ≈ num_grad[j] atol=1e-5
   end
-  qst = QST(N=N)
-  logZ,localnorms = lognormalize!(qst.psi)
-  @test normalization(qst.psi) ≈ 1
-  alg_grad_localnorm,_ = gradlogZ(qst.psi,localnorms)
-  for j in 1:N
-    @test array(alg_grad[j]) ≈ array(alg_grad_localnorm[j]) atol=1e-5
-  end
+  #qst = QST(N=N)
+  #logZ,localnorms = lognormalize!(qst.psi)
+  #@test normalization(qst.psi) ≈ 1
+  #alg_grad_localnorm,_ = gradlogZ(qst.psi,localnorms)
+  #for j in 1:N
+  #  @test array(alg_grad[j]) ≈ array(alg_grad_localnorm[j]) atol=1e-5
+  #end
 end
 
 @testset "qst: real grad nll" begin
@@ -210,13 +203,13 @@ end
     @test array(alg_grad[j]) ≈ real(num_grad[j]) atol=1e-3
   end
 
-  qst = QST(N=N)
-  logZ,localnorms = lognormalize!(qst.psi)
-  @test normalization(qst.psi) ≈ 1
-  alg_grad_localnorm,loss = gradnll(qst.psi,data,localnorms)
-  for j in 1:N
-    @test array(alg_grad[j]) ≈ array(alg_grad_localnorm[j]) atol=1e-3
-  end
+  #qst = QST(N=N)
+  #logZ,localnorms = lognormalize!(qst.psi)
+  #@test normalization(qst.psi) ≈ 1
+  #alg_grad_localnorm,loss = gradnll(qst.psi,data,localnorms)
+  #for j in 1:N
+  #  @test array(alg_grad[j]) ≈ array(alg_grad_localnorm[j]) atol=1e-3
+  #end
 end
 
 #@testset "qst: complex grad logZ" begin
