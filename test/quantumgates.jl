@@ -68,24 +68,6 @@ end
   @test ggdag ≈ itensor(Matrix{ComplexF64}(I, 2, 2),inds(ggdag))
 end
 
-@testset "1q gate: Kp" begin
-  i = Index(2)
-  g = gate_Kp(i) 
-  @test plev(inds(g)[1]) == 1 
-  @test plev(inds(g)[2]) == 0 
-  ggdag = g * prime(dag(g),plev=1,1)
-  @test ggdag ≈ itensor(Matrix{ComplexF64}(I, 2, 2),inds(ggdag))
-end
-
-@testset "1q gate: Km" begin
-  i = Index(2)
-  g = gate_Km(i) 
-  @test plev(inds(g)[1]) == 1 
-  @test plev(inds(g)[2]) == 0 
-  ggdag = g * prime(dag(g),plev=1,1)
-  @test ggdag ≈ itensor(Matrix{ComplexF64}(I, 2, 2),inds(ggdag))
-end
-
 @testset "1q gate: Rx" begin
   i = Index(2)
   θ = π * rand()
@@ -122,6 +104,87 @@ end
   ϕ = 2π * angles[2]
   λ = 2π * angles[3]
   g = gate_Rn(i,θ=θ,ϕ=ϕ,λ=λ)
+  @test plev(inds(g)[1]) == 1 
+  @test plev(inds(g)[2]) == 0 
+  ggdag = g * prime(dag(g),plev=1,1)
+  @test ggdag ≈ itensor(Matrix{ComplexF64}(I, 2, 2),inds(ggdag))
+end
+
+@testset "1q gate: prep X-" begin
+  i = Index(2)
+  g = prep_Xm(i) 
+  @test plev(inds(g)[1]) == 1 
+  @test plev(inds(g)[2]) == 0 
+  ggdag = g * prime(dag(g),plev=1,1)
+  @test ggdag ≈ itensor(Matrix{ComplexF64}(I, 2, 2),inds(ggdag))
+end
+
+@testset "1q gate: prep X+" begin
+  i = Index(2)
+  g = prep_Xp(i) 
+  @test plev(inds(g)[1]) == 1 
+  @test plev(inds(g)[2]) == 0 
+  ggdag = g * prime(dag(g),plev=1,1)
+  @test ggdag ≈ itensor(Matrix{ComplexF64}(I, 2, 2),inds(ggdag))
+end
+
+@testset "1q gate: prep Y-" begin
+  i = Index(2)
+  g = prep_Ym(i) 
+  @test plev(inds(g)[1]) == 1 
+  @test plev(inds(g)[2]) == 0 
+  ggdag = g * prime(dag(g),plev=1,1)
+  @test ggdag ≈ itensor(Matrix{ComplexF64}(I, 2, 2),inds(ggdag))
+end
+
+@testset "1q gate: prep Y+" begin
+  i = Index(2)
+  g = prep_Yp(i) 
+  @test plev(inds(g)[1]) == 1 
+  @test plev(inds(g)[2]) == 0 
+  ggdag = g * prime(dag(g),plev=1,1)
+  @test ggdag ≈ itensor(Matrix{ComplexF64}(I, 2, 2),inds(ggdag))
+end
+
+@testset "1q gate: prep Z-" begin
+  i = Index(2)
+  g = prep_Zm(i) 
+  @test plev(inds(g)[1]) == 1 
+  @test plev(inds(g)[2]) == 0 
+  ggdag = g * prime(dag(g),plev=1,1)
+  @test ggdag ≈ itensor(Matrix{ComplexF64}(I, 2, 2),inds(ggdag))
+end
+
+@testset "1q gate: prep Z+" begin
+  i = Index(2)
+  g = prep_Zp(i) 
+  @test plev(inds(g)[1]) == 1 
+  @test plev(inds(g)[2]) == 0 
+  ggdag = g * prime(dag(g),plev=1,1)
+  @test ggdag ≈ itensor(Matrix{ComplexF64}(I, 2, 2),inds(ggdag))
+end
+
+@testset "1q gate: meas X" begin
+  i = Index(2)
+  g = meas_X(i) 
+  @test plev(inds(g)[1]) == 1 
+  @test plev(inds(g)[2]) == 0 
+  ggdag = g * prime(dag(g),plev=1,1)
+  @test ggdag ≈ itensor(Matrix{ComplexF64}(I, 2, 2),inds(ggdag))
+end
+
+@testset "1q gate: meas Y" begin
+  i = Index(2)
+  g = meas_Y(i) 
+  @test plev(inds(g)[1]) == 1 
+  @test plev(inds(g)[2]) == 0 
+  ggdag = g * prime(dag(g),plev=1,1)
+  @test ggdag ≈ itensor(Matrix{ComplexF64}(I, 2, 2),inds(ggdag))
+end
+
+@testset "1q gate: meas Z" begin
+  i = Index(2)
+  g = meas_X(i) 
   @test plev(inds(g)[1]) == 1 
   @test plev(inds(g)[2]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)
@@ -200,14 +263,6 @@ end
   x = quantumgate("T",i) 
   @test g ≈ x 
   
-  g = gate_Kp(i) 
-  x = quantumgate("Kp",i) 
-  @test g ≈ x 
-  
-  g = gate_Km(i) 
-  x = quantumgate("Km",i) 
-  @test g ≈ x 
-  
   θ = π * rand()
   g = gate_Rx(i,θ=θ) 
   x = quantumgate("Rx",i,θ=θ)
@@ -231,6 +286,42 @@ end
   x = quantumgate("Rn",i,θ=θ,ϕ=ϕ,λ=λ)
   @test g ≈ x 
 
+  g = prep_Xp(i) 
+  x = quantumgate("pX+",i) 
+  @test g ≈ x 
+  
+  g = prep_Xm(i) 
+  x = quantumgate("pX-",i) 
+  @test g ≈ x 
+  
+  g = prep_Yp(i) 
+  x = quantumgate("pY+",i) 
+  @test g ≈ x 
+  
+  g = prep_Ym(i) 
+  x = quantumgate("pY-",i) 
+  @test g ≈ x 
+  
+  g = prep_Zp(i) 
+  x = quantumgate("pZ+",i) 
+  @test g ≈ x 
+  
+  g = prep_Zm(i) 
+  x = quantumgate("pZ-",i) 
+  @test g ≈ x 
+  
+  g = meas_X(i) 
+  x = quantumgate("mX",i) 
+  @test g ≈ x 
+  
+  g = meas_Y(i) 
+  x = quantumgate("mY",i) 
+  @test g ≈ x 
+  
+  g = meas_Z(i) 
+  x = quantumgate("mZ",i) 
+  @test g ≈ x 
+  
   g = gate_Sw(i,j)
   x = quantumgate("Sw",i,j)
   @test g ≈ x
