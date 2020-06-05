@@ -4,8 +4,9 @@ using Test
   @testset "$filename" for filename in (
     "utils.jl",
     "quantumgates.jl",
-    "quantumcircuit.jl",
-    "qst.jl"
+    "circuitops.jl"
+    #"quantumcircuit.jl",
+    #"qst.jl"
   )
     println("Running $filename")
     include(filename)
