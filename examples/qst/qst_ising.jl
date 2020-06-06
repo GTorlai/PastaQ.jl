@@ -35,12 +35,12 @@ for n in 1:nshots
 end
 
 χ = maxlinkdim(psi_ising)
-qst = QST(N=N,χ=χ,σ=0.1)
+psi = initializeQST(N,χ=χ,σ=0.1)
 opt = Optimizer(η = 0.1)
-statetomography(qst,opt,
-                samples = samples,
-                bases = bases,
-                batchsize=500,
-                epochs=1000,
-                targetpsi=psi_ising,
-                localnorm=true)
+statetomography!(psi,opt,
+                 samples = samples,
+                 bases = bases,
+                 batchsize=500,
+                 epochs=1000,
+                 targetpsi=psi_ising,
+                 localnorm=true)

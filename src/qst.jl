@@ -1,19 +1,5 @@
-struct QST
-  N::Int  
-  d::Int
-  χ::Int
-  seed::Int
-  rng::MersenneTwister
-  σ::Float64
-  psi::MPS
-end
 
-function QST(;N::Int,
-             d::Int=2,
-             χ::Int=2,
-             seed::Int=1234,
-             σ::Float64=0.1)
-
+function initializeQST(N::Int;d::Int=2,χ::Int=2,seed::Int=1234,σ::Float64=0.1)
   rng = MersenneTwister(seed)
   
   sites = [Index(d; tags="Site, n=$s") for s in 1:N]
@@ -36,8 +22,7 @@ function QST(;N::Int,
   push!(M,ITensor(rand_mat,links[N-1],sites[N]))
   
   psi = MPS(M)
-
-  return QST(N,d,χ,seed,rng,σ,psi)
+  return psi
 end
 
 """
@@ -243,7 +228,6 @@ function gradnll(psi::MPS,data::Array,bases::Array;localnorm=nothing)
   return gradients,loss 
 end
 
-
 """
 Compute the total gradients
 """
@@ -255,15 +239,15 @@ function gradients(psi::MPS,data::Array,bases::Array;localnorm=nothing)
   return grads,loss
 end
 
-function statetomography(qst::QST,opt::Optimizer;
-                         samples::Array,
-                         bases::Array,
-                         batchsize::Int64=500,
-                         epochs::Int64=10000,
-                         targetpsi::MPS,
-                         localnorm::Bool=false)
-  for j in 1:qst.N
-    replaceinds!(targetpsi[j],inds(targetpsi[j],"Site"),inds(qst.psi[j],"Site"))
+function statetomography!(psi::MPS,opt::Optimizer;
+                          samples::Array,
+                          bases::Array,
+                          batchsize::Int64=500,
+                          epochs::Int64=10000,
+                          targetpsi::MPS,
+                          localnorm::Bool=false)
+  for j in 1:length(psi)
+    replaceinds!(targetpsi[j],inds(targetpsi[j],"Site"),inds(psi[j],"Site"))
   end
   num_batches = Int(floor(size(samples)[1]/batchsize))
   
@@ -278,19 +262,19 @@ function statetomography(qst::QST,opt::Optimizer;
       batch_bases   = bases[(b-1)*batchsize+1:b*batchsize,:]
       
       if localnorm == true
-        psi_norm = copy(qst.psi)
+        psi_norm = copy(psi)
         logZ,localnorms = lognormalize!(psi_norm) 
         grads,loss = gradients(psi_norm,batch_samples,batch_bases,localnorm=localnorms)
       else
-        grads,loss = gradients(qst.psi,batch_samples,batch_bases)
+        grads,loss = gradients(psi,batch_samples,batch_bases)
       end
       avg_loss += loss/Float64(num_batches)
-      updateSGD!(qst.psi,grads,opt)
+      updateSGD!(psi,grads,opt)
     end
-    psi = copy(qst.psi)
-    lognormalize!(psi)
-    @assert norm(psi) ≈ 1
-    fidelity = abs2(inner(psi,targetpsi))
+    psi_eval = copy(psi)
+    lognormalize!(psi_eval)
+    @assert norm(psi_eval) ≈ 1
+    fidelity = abs2(inner(psi_eval,targetpsi))
     print("Ep = ",ep,"  ")
     print("Loss = ")
     @printf("%.5E",avg_loss)
