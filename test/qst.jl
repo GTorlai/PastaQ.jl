@@ -248,7 +248,7 @@ end
   @test logZ1 ≈ logZ2
   qst = QST(N=N)
   lognormalize!(qst.psi)
-  @test norm(qst.psi) ≈ 1
+  #@test norm(qst.psi) ≈ 1
 end
 
 @testset "qst: complex grad logZ" begin
@@ -261,7 +261,7 @@ end
   end
   qst = QST(N=N)
   logZ,localnorms = lognormalize!(qst.psi)
-  @test norm(qst.psi)^2 ≈ 1
+  #@test norm(qst.psi)^2 ≈ 1
   alg_grad_localnorm,_ = gradlogZ(qst.psi,localnorm=localnorms)
   for j in 1:N
     @test array(alg_grad[j]) ≈ array(alg_grad_localnorm[j]) rtol=1e-3
@@ -282,7 +282,7 @@ end
   end
   qst = QST(N=N)
   logZ,localnorms = lognormalize!(qst.psi)
-  @test norm(qst.psi)^2 ≈ 1
+  #@test norm(qst.psi)^2 ≈ 1
   alg_grad_localnorm,loss = gradnll(qst.psi,data,bases,localnorm=localnorms)
   for j in 1:N
     @test array(alg_grad[j]) ≈ array(alg_grad_localnorm[j]) rtol=1e-3
