@@ -48,32 +48,9 @@ function QST(;N::Int,
   return QST(N,d,χ,seed,rng,σ,parstype,psi)
 end
 
-#function normalize!(psi::MPS)
-#  Z = norm(psi)^2
-#  for j in 1:length(psi)
-#    psi[j] /= sqrt(Z^(1/(length(psi))))
-#  end
-#end
-#
-#function lognormalization(psi::MPS)
-#  blob = dag(psi[1]) * prime(psi[1],"Link")
-#  localZ = norm(blob)
-#  logZ = 0.5*log(localZ)
-#  blob /= sqrt(localZ)
-#
-#  for j in 2:length(psi)-1
-#    blob = blob * dag(psi[j]);
-#    blob = blob * prime(psi[j],"Link")
-#    localZ = norm(blob)
-#    logZ += 0.5*log(localZ)
-#    blob /= sqrt(localZ)
-#  end
-#  blob = blob * dag(psi[length(psi)]);
-#  blob = blob * prime(psi[length(psi)],"Link")
-#  logZ += log(real(blob[]))
-#  return logZ
-#end
-
+"""
+Normalize the MPS locally and store the local norms
+"""
 function lognormalize!(psi::MPS)
   localnorms = []
   blob = dag(psi[1]) * prime(psi[1],"Link")
@@ -100,25 +77,9 @@ function lognormalize!(psi::MPS)
   return logZ,localnorms
 end
 
-function psiofx(psi::MPS,x::Array)
-  return inner(psi,productMPS(siteinds(psi),x))
-end
-
-function psi2ofx(psi::MPS,x::Array)
-  psix = psiofx(psi,x)
-  return norm(psix)^2
-end
-
-function nll(psi::MPS,data::Array)
-  loss = 0.0
-  for n in 1:size(data)[1]
-    x = data[n,:]
-    x .+= 1
-    loss -= log(psi2ofx(psi,x))/size(data)[1]
-  end
-  return loss
-end
-
+"""
+Gradients of logZ
+"""
 function gradlogZ(psi::MPS)
   N = length(psi)
   L = Vector{ITensor}(undef, N-1)
@@ -149,6 +110,9 @@ function gradlogZ(psi::MPS)
   return 2*gradients,log(Z)
 end
 
+"""
+Gradients of logZ using local normalizations
+"""
 function gradlogZ(psi::MPS,localnorm::Array)
   N = length(psi)
   L = Vector{ITensor}(undef, N-1)
@@ -179,7 +143,50 @@ function gradlogZ(psi::MPS,localnorm::Array)
   return 2*gradients,log(Z)
 end
 
-function gradnll(psi::MPS,data::Array)
+"""
+Negative log likelihood (multiple bases)
+"""
+function nll(psi::MPS,data::Array,bases::Array)
+  N = length(psi)
+  loss = 0.0
+  for n in 1:size(data)[1]
+    x = data[n,:]
+    x .+= 1
+    basis = bases[n,:]
+    
+    if (basis[1] == "Z")
+      psix = dag(psi[1]) * setelt(siteind(psi,1)=>x[1])
+    else
+      rotation = makegate(psi,"m$(basis[1])",1)
+      psi_r = dag(psi[1]) * dag(rotation)
+      psix = noprime!(psi_r) * setelt(siteind(psi,1)=>x[1])
+    end
+    for j in 2:N-1
+      if (basis[j] == "Z")
+        psix = psix * dag(psi[j]) * setelt(siteind(psi,j)=>x[j])
+      else
+        rotation = makegate(psi,"m$(basis[j])",j)
+        psi_r = dag(psi[j]) * dag(rotation)
+        psix = psix * noprime!(psi_r) * setelt(siteind(psi,j)=>x[j])
+      end
+    end
+    if (basis[N] == "Z")
+      psix = (psix * dag(psi[N]) * setelt(siteind(psi,N)=>x[N]))[]
+    else
+      rotation = makegate(psi,"m$(basis[N])",N)
+      psi_r = dag(psi[N]) * dag(rotation)
+      psix = (psix * noprime!(psi_r) * setelt(siteind(psi,N)=>x[N]))[]
+    end
+    prob = abs2(psix)
+    loss -= log(prob)/size(data)[1]
+  end
+  return loss
+end
+
+"""
+Gradients of NLL (multiple bases)
+"""
+function gradnll(psi::MPS,data::Array,bases::Array)
   loss = 0.0
 
   N = length(psi)
@@ -192,29 +199,87 @@ function gradnll(psi::MPS,data::Array)
   for n in 1:size(data)[1]
     x = data[n,:] 
     x.+=1
-    L[1] = dag(psi[1]) * setelt(siteind(psi,1)=>x[1])
-    for j in 2:N-1
-      L[j] = L[j-1] * dag(psi[j]) * setelt(siteind(psi,j)=>x[j]) 
+    basis = bases[n,:]
+    
+    """ LEFT ENVIRONMENTS """
+    if (basis[1] == "Z")
+      L[1] = dag(psi[1]) * setelt(siteind(psi,1)=>x[1])
+    else
+      rotation = makegate(psi,"m$(basis[1])",1)
+      psi_r = dag(psi[1]) * dag(rotation)
+      L[1] = noprime!(psi_r) * setelt(siteind(psi,1)=>x[1])
     end
-    psix = (L[N-1] * dag(psi[N]) * setelt(siteind(psi,N)=>x[N]))[]
+    for j in 2:N-1
+      if (basis[j] == "Z")
+        L[j] = L[j-1] * dag(psi[j]) * setelt(siteind(psi,j)=>x[j])
+      else
+        rotation = makegate(psi,"m$(basis[j])",j)
+        psi_r = dag(psi[j]) * dag(rotation)
+        L[j] = L[j-1] * noprime!(psi_r) * setelt(siteind(psi,j)=>x[j])
+      end
+    end
+    if (basis[N] == "Z")
+      psix = (L[N-1] * dag(psi[N]) * setelt(siteind(psi,N)=>x[N]))[]
+    else
+      rotation = makegate(psi,"m$(basis[N])",N)
+      psi_r = dag(psi[N]) * dag(rotation)
+      psix = (L[N-1] * noprime!(psi_r) * setelt(siteind(psi,N)=>x[N]))[]
+    end
     prob = abs2(psix)
     loss -= log(prob)/size(data)[1]
     
-    R[N] = dag(psi[N]) * setelt(siteind(psi,N)=>x[N])
+    """ RIGHT ENVIRONMENTS """
+    if (basis[N] == "Z")
+      R[N] = dag(psi[N]) * setelt(siteind(psi,N)=>x[N])
+    else
+      rotation = makegate(psi,"m$(basis[N])",N)
+      psi_r = dag(psi[N]) * dag(rotation)
+      R[N] = noprime!(psi_r) * setelt(siteind(psi,N)=>x[N])
+    end
     for j in reverse(2:N-1)
-      R[j] = R[j+1] * dag(psi[j]) * setelt(siteind(psi,j)=>x[j])
+      if (basis[j] == "Z")
+        R[j] = R[j+1] * dag(psi[j]) * setelt(siteind(psi,j)=>x[j])
+      else
+        rotation = makegate(psi,"m$(basis[j])",j)
+        psi_r = dag(psi[j]) * dag(rotation)
+        R[j] = R[j+1] * noprime!(psi_r) * setelt(siteind(psi,j)=>x[j])
+      end
     end
-    gradients[1] += (R[2] * setelt(siteind(psi,1)=>x[1]))/psix
+    
+    """ GRADIENTS """
+    if (basis[1] == "Z")
+      gradients[1] += (R[2] * setelt(siteind(psi,1)=>x[1]))/psix
+    else
+      rotation = makegate(psi,"m$(basis[1])",1)
+      projection = dag(rotation) * prime(setelt(siteind(psi,1)=>x[1]))
+      gradients[1] += (R[2] * projection)/psix
+    end
     for j in 2:N-1
-      gradients[j] += (L[j-1] * setelt(siteind(psi,j)=>x[j]) * R[j+1])/psix
+      if (basis[j] == "Z")
+        gradients[j] += (L[j-1] * setelt(siteind(psi,j)=>x[j]) * R[j+1])/psix
+      else
+        rotation = makegate(psi,"m$(basis[j])",j)
+        projection = dag(rotation) * prime(setelt(siteind(psi,j)=>x[j]))
+        gradients[j] += (L[j-1] * projection * R[j+1])/psix
+      end
     end
-    gradients[N] += (L[N-1] *setelt(siteind(psi,N)=>x[N]))/psix
+    if (basis[N] == "Z")
+      gradients[N] += (L[N-1] * setelt(siteind(psi,N)=>x[N]))/psix
+    else
+      rotation = makegate(psi,"m$(basis[N])",N)
+      projection = dag(rotation) * prime(setelt(siteind(psi,N)=>x[N]))
+      gradients[N] += (L[N-1] * projection)/psix
+    end
   end
   gradients = -2*gradients/size(data)[1]
+  
   return gradients,loss 
 end
 
-function gradnll(psi::MPS,data::Array,localnorm::Array)
+"""
+Gradients of NLL with local norms (computational basis)
+"""
+function gradnll(psi::MPS,data::Array,bases::Array,localnorm::Array)
   loss = 0.0
 
   N = length(psi)
@@ -227,24 +292,77 @@ function gradnll(psi::MPS,data::Array,localnorm::Array)
   for n in 1:size(data)[1]
     x = data[n,:] 
     x.+=1
-    L[1] = dag(psi[1]) * setelt(siteind(psi,1)=>x[1])
-    for j in 2:N-1
-      L[j] = L[j-1] * dag(psi[j]) * setelt(siteind(psi,j)=>x[j]) 
+    basis = bases[n,:]
+    
+    """ LEFT ENVIRONMENTS """
+    if (basis[1] == "Z")
+      L[1] = dag(psi[1]) * setelt(siteind(psi,1)=>x[1])
+    else
+      rotation = makegate(psi,"m$(basis[1])",1)
+      psi_r = dag(psi[1]) * dag(rotation)
+      L[1] = noprime!(psi_r) * setelt(siteind(psi,1)=>x[1])
     end
-    psix = (L[N-1] * dag(psi[N]) * setelt(siteind(psi,N)=>x[N]))[]
+    for j in 2:N-1
+      if (basis[j] == "Z")
+        L[j] = L[j-1] * dag(psi[j]) * setelt(siteind(psi,j)=>x[j])
+      else
+        rotation = makegate(psi,"m$(basis[j])",j)
+        psi_r = dag(psi[j]) * dag(rotation)
+        L[j] = L[j-1] * noprime!(psi_r) * setelt(siteind(psi,j)=>x[j])
+      end
+    end
+    if (basis[N] == "Z")
+      psix = (L[N-1] * dag(psi[N]) * setelt(siteind(psi,N)=>x[N]))[]
+    else
+      rotation = makegate(psi,"m$(basis[N])",N)
+      psi_r = dag(psi[N]) * dag(rotation)
+      psix = (L[N-1] * noprime!(psi_r) * setelt(siteind(psi,N)=>x[N]))[]
+    end
     prob = abs2(psix)
     loss -= log(prob)/size(data)[1]
     
-    R[N] = dag(psi[N]) * setelt(siteind(psi,N)=>x[N])
+    """ RIGHT ENVIRONMENTS """
+    if (basis[N] == "Z")
+      R[N] = dag(psi[N]) * setelt(siteind(psi,N)=>x[N])
+    else
+      rotation = makegate(psi,"m$(basis[N])",N)
+      psi_r = dag(psi[N]) * dag(rotation)
+      R[N] = noprime!(psi_r) * setelt(siteind(psi,N)=>x[N])
+    end
     for j in reverse(2:N-1)
-      R[j] = R[j+1] * dag(psi[j]) * setelt(siteind(psi,j)=>x[j])
+      if (basis[j] == "Z")
+        R[j] = R[j+1] * dag(psi[j]) * setelt(siteind(psi,j)=>x[j])
+      else
+        rotation = makegate(psi,"m$(basis[j])",j)
+        psi_r = dag(psi[j]) * dag(rotation)
+        R[j] = R[j+1] * noprime!(psi_r) * setelt(siteind(psi,j)=>x[j])
+      end
     end
-
-    gradients[1] += (R[2] * setelt(siteind(psi,1)=>x[1]))/(localnorm[1]*psix)
+    
+    """ GRADIENTS """
+    if (basis[1] == "Z")
+      gradients[1] += (R[2] * setelt(siteind(psi,1)=>x[1]))/(localnorm[1]*psix)
+    else
+      rotation = makegate(psi,"m$(basis[1])",1)
+      projection = dag(rotation) * prime(setelt(siteind(psi,1)=>x[1]))
+      gradients[1] += (R[2] * projection)/(localnorm[1]*psix)
+    end
     for j in 2:N-1
-      gradients[j] += (L[j-1] * setelt(siteind(psi,j)=>x[j]) * R[j+1])/(localnorm[j]*psix)
+      if (basis[j] == "Z")
+        gradients[j] += (L[j-1] * setelt(siteind(psi,j)=>x[j]) * R[j+1])/(localnorm[j]*psix)
+      else
+        rotation = makegate(psi,"m$(basis[j])",j)
+        projection = dag(rotation) * prime(setelt(siteind(psi,j)=>x[j]))
+        gradients[j] += (L[j-1] * projection * R[j+1])/(localnorm[j]*psix)
+      end
     end
-    gradients[N] += (L[N-1] *setelt(siteind(psi,N)=>x[N]))/(localnorm[N]*psix)
+    if (basis[N] == "Z")
+      gradients[N] += (L[N-1] * setelt(siteind(psi,N)=>x[N]))/(localnorm[N]*psix)
+    else
+      rotation = makegate(psi,"m$(basis[N])",N)
+      projection = dag(rotation) * prime(setelt(siteind(psi,N)=>x[N]))
+      gradients[N] += (L[N-1] * projection)/(localnorm[N]*psix)
+    end
   end
   gradients = -2*gradients/size(data)[1]
   return gradients,loss 
@@ -255,133 +373,132 @@ end
 
 
 
-##function nll(psi0::MPS,data::Array,bases::Array)
-##  loss = 0.0
-##  for n in 1:size(data)[1]
-##    x = data[n,:]
-##    x .+= 1
-##    basis = bases[n,:]
-##    psi = copy(psi0)
-##    circuit = makemeasurementcircuit(psi0,basis)
-##    runcircuit!(psi,circuit)
-##    loss -= log(psi2ofx(psi,x))/size(data)[1]
-##  end
-##  return loss
-##end
-##
+""" OLD FUNCTIONS """
 
-##function makemeasurementcircuit(psi::MPS,basis::Array)
-##  gate_list = []
-##  for j in 1:length(psi)
-##    if basis[j] == "X"
-##      push!(gate_list,(gate = "H", site = j))
-##    elseif basis[j] == "Y"
-##      push!(gate_list,(gate = "Km", site = j))
-##    elseif basis[j] =="Z"
-##      nothing
-##    else
-##      throw(argumenterror("Basis not recognized"))
-##    end
-##  end
-##  circuit = makecircuit(psi,gate_list)
-##  return circuit
-##end
-##
-##function gradnll(psi0::MPS,data::Array,bases::Array)
-##  loss = 0.0
-##
-##  N = length(psi0)
-##  L = Vector{ITensor}(undef, N-1)
-##  R = Vector{ITensor}(undef, N)
-##  gradients = ITensor[]
-##  for j in 1:N
-##    push!(gradients,ITensor(inds(psi0[j])))
-##  end
-##  for n in 1:size(data)[1]
-##    x = data[n,:] 
-##    x.+=1
-##    basis = bases[n,:]
-##    psi = copy(psi0)
-##    circuit = makemeasurementcircuit(psi,basis)
-##    runcircuit!(psi,circuit)
-##
-##    L[1] = psi[1] * setelt(siteind(psi,1)=>x[1])
-##    for j in 2:N-1
-##      L[j] = L[j-1] * psi[j] * setelt(siteind(psi,j)=>x[j]) 
-##    end
-##    psix = real((L[N-1] * psi[N] * setelt(siteind(psi,N)=>x[N]))[])
-##    prob = norm(psix)^2
-##    loss -= log(prob)/size(data)[1]
-##    R[N] = psi[N] * setelt(siteind(psi,N)=>x[N])
-##    for j in reverse(2:N-1)
-##      R[j] = R[j+1] * psi[j] * setelt(siteind(psi,j)=>x[j])
-##    end
-##    gradients[1] += (R[2] * setelt(siteind(psi,1)=>x[1]))/psix
-##    for j in 2:N-1
-##      gradients[j] += (L[j-1] * setelt(siteind(psi,j)=>x[j]) * R[j+1])/psix
-##    end
-##    gradients[N] += (L[N-1] *setelt(siteind(psi,N)=>x[N]))/psix
-##  end
-##  gradients = -2*gradients/size(data)[1]
-##  return gradients,loss 
-##end
-#
-#
-#function statetomography(qst::QST,opt::Optimizer;
-#                         data::Array,
-#                         batchsize::Int64=500,
-#                         epochs::Int64=10000,
-#                         targetpsi::MPS,
-#                         localnorm::Bool=false)
-#  for j in 1:qst.N
-#    replaceinds!(targetpsi[j],inds(targetpsi[j],"Site"),inds(qst.psi[j],"Site"))
-#  end
-#  num_batches = Int(floor(size(data)[1]/batchsize))
-#  
-#  for ep in 1:epochs
-#    data = data[shuffle(1:end),:]
-#    loss = 0.0
-#    for b in 1:num_batches
-#      batch = data[(b-1)*batchsize+1:b*batchsize,:]
-#      
-#      if localnorm == true
-#        #psi_copy = copy(qst.psi)
-#        #logZ,localnorms = lognormalize!(psi_copy) 
-#        #g_logZ, logZ = gradlogZ(psi_copy,localnorms)
-#        #g_nll,nll    = gradnll(psi_copy,data,localnorms)
-#        #gradients = g_logZ + g_nll
-#        #loss += (logZ + nll)/Float64(num_batches)
-#        #updateSGD!(qst.psi,gradients,opt)
-#        
-#        logZ,localnorms = lognormalize!(qst.psi) 
-#        g_logZ, logZ = gradlogZ(qst.psi,localnorms)
-#        g_nll,nll    = gradnll(qst.psi,data,localnorms)
-#        gradients = g_logZ + g_nll
-#        loss += (logZ + nll)/Float64(num_batches)
-#        updateSGD!(qst.psi,gradients,opt)
-#
-#      else
-#        g_logZ, logZ = gradlogZ(qst.psi)
-#        g_nll,nll    = gradnll(qst.psi,data)
-#        gradients = g_logZ + g_nll
-#        loss += (logZ + nll)/Float64(num_batches)
-#        updateSGD!(qst.psi,gradients,opt)
-#      end
-#    end
-#    psi = copy(qst.psi)
-#    lognormalize!(psi)
-#    #println(fullvector(targetpsi))
-#    #println(fullvector(psi))
-#    #println('\n')
-#    ##normalize!(psi)
-#    overlap = abs(inner(psi,targetpsi))
-#    print("Ep = ",ep,"  ")
-#    print("Loss = ")
-#    @printf("%.5E",loss)
-#    print("  ")
-#    print("Overlap = ")
-#    @printf("%.3E",overlap)
-#    #print("Normalization = ",normalization(psi))
-#    print("\n")
-#  end
+#"""
+#<x|psi>
+#"""
+#function psiofx(psi::MPS,x::Array)
+#  return inner(psi,productMPS(siteinds(psi),x))
 #end
+#
+#"""
+#|<x|psi>|^2
+#"""
+#function psi2ofx(psi::MPS,x::Array)
+#  psix = psiofx(psi,x)
+#  return abs2(psix)
+#end
+#
+#
+#"""
+#Negative log likelihood (computational basis)
+#"""
+#function nll(psi::MPS,data::Array)
+#  loss = 0.0
+#  for n in 1:size(data)[1]
+#    x = data[n,:]
+#    x .+= 1
+#    loss -= log(psi2ofx(psi,x))/size(data)[1]
+#  end
+#  return loss
+#end
+#
+#
+#"""
+#Negative log likelihood (multiple bases)
+#"""
+#function nll(psi::MPS,data::Array,bases::Array)
+#  loss = 0.0
+#  for n in 1:size(data)[1]
+#    x = data[n,:]
+#    x .+= 1
+#    basis = bases[n,:]
+#    gates = makemeasurementgates(basis)
+#    tensors = compilecircuit(psi,gates)
+#    psi_r = runcircuit(psi,tensors)
+#    loss -= log(psi2ofx(psi_r,x))/size(data)[1]
+#  end
+#  return loss
+#end
+#
+#
+#"""
+#Gradients of NLL (computational basis)
+#"""
+#function gradnll(psi::MPS,data::Array)
+#  loss = 0.0
+#
+#  N = length(psi)
+#  L = Vector{ITensor}(undef, N-1)
+#  R = Vector{ITensor}(undef, N)
+#  gradients = ITensor[]
+#  for j in 1:N
+#    push!(gradients,ITensor(inds(psi[j])))
+#  end
+#  for n in 1:size(data)[1]
+#    x = data[n,:] 
+#    x.+=1
+#    L[1] = dag(psi[1]) * setelt(siteind(psi,1)=>x[1])
+#    for j in 2:N-1
+#      L[j] = L[j-1] * dag(psi[j]) * setelt(siteind(psi,j)=>x[j]) 
+#    end
+#    psix = (L[N-1] * dag(psi[N]) * setelt(siteind(psi,N)=>x[N]))[]
+#    prob = abs2(psix)
+#    loss -= log(prob)/size(data)[1]
+#    
+#    R[N] = dag(psi[N]) * setelt(siteind(psi,N)=>x[N])
+#    for j in reverse(2:N-1)
+#      R[j] = R[j+1] * dag(psi[j]) * setelt(siteind(psi,j)=>x[j])
+#    end
+#    gradients[1] += (R[2] * setelt(siteind(psi,1)=>x[1]))/psix
+#    for j in 2:N-1
+#      gradients[j] += (L[j-1] * setelt(siteind(psi,j)=>x[j]) * R[j+1])/psix
+#    end
+#    gradients[N] += (L[N-1] *setelt(siteind(psi,N)=>x[N]))/psix
+#  end
+#  gradients = -2*gradients/size(data)[1]
+#  return gradients,loss 
+#end
+#
+#"""
+#Gradients of NLL with local norms (computational basis)
+#"""
+#function gradnll(psi::MPS,data::Array;localnorm::Array)
+#  loss = 0.0
+#
+#  N = length(psi)
+#  L = Vector{ITensor}(undef, N-1)
+#  R = Vector{ITensor}(undef, N)
+#  gradients = ITensor[]
+#  for j in 1:N
+#    push!(gradients,ITensor(inds(psi[j])))
+#  end
+#  for n in 1:size(data)[1]
+#    x = data[n,:] 
+#    x.+=1
+#    L[1] = dag(psi[1]) * setelt(siteind(psi,1)=>x[1])
+#    for j in 2:N-1
+#      L[j] = L[j-1] * dag(psi[j]) * setelt(siteind(psi,j)=>x[j]) 
+#    end
+#    psix = (L[N-1] * dag(psi[N]) * setelt(siteind(psi,N)=>x[N]))[]
+#    prob = abs2(psix)
+#    loss -= log(prob)/size(data)[1]
+#    
+#    R[N] = dag(psi[N]) * setelt(siteind(psi,N)=>x[N])
+#    for j in reverse(2:N-1)
+#      R[j] = R[j+1] * dag(psi[j]) * setelt(siteind(psi,j)=>x[j])
+#    end
+#
+#    gradients[1] += (R[2] * setelt(siteind(psi,1)=>x[1]))/(localnorm[1]*psix)
+#    for j in 2:N-1
+#      gradients[j] += (L[j-1] * setelt(siteind(psi,j)=>x[j]) * R[j+1])/(localnorm[j]*psix)
+#    end
+#    gradients[N] += (L[N-1] *setelt(siteind(psi,N)=>x[N]))/(localnorm[N]*psix)
+#  end
+#  gradients = -2*gradients/size(data)[1]
+#  return gradients,loss 
+#end
+
+
+#

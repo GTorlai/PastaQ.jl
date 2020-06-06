@@ -82,7 +82,6 @@ function numgradslogZ(psi::MPS;accuracy=1e-8)
   return grad_r-grad_i
 end
 
-
 function numgradsnll(psi::MPS,data::Array;accuracy=1e-8)
   N = length(psi)
   grad_r = []
@@ -162,6 +161,85 @@ function numgradsnll(psi::MPS,data::Array;accuracy=1e-8)
   return grad_r-grad_i
 end
 
+function numgradsnll(psi::MPS,data::Array,bases::Array;accuracy=1e-8)
+  N = length(psi)
+  grad_r = []
+  grad_i = []
+  for j in 1:N
+    push!(grad_r,zeros(ComplexF64,size(psi[j])))
+    push!(grad_i,zeros(ComplexF64,size(psi[j])))
+  end
+  
+  epsilon = zeros(ComplexF64,size(psi[1]));
+  # Site 1
+  for i in 1:length(epsilon)
+    epsilon[i] = accuracy
+    eps = ITensor(epsilon,inds(psi[1]))
+    psi[1] += eps
+    loss_p = nll(psi,data,bases) 
+    psi[1] -= eps
+    loss_m = nll(psi,data,bases) 
+    grad_r[1][i] = (loss_p-loss_m)/(accuracy)
+    
+    epsilon[i] = im*accuracy
+    eps = ITensor(epsilon,inds(psi[1]))
+    psi[1] += eps
+    loss_p = nll(psi,data,bases) 
+    psi[1] -= eps
+    loss_m = nll(psi,data,bases) 
+    grad_i[1][i] = (loss_p-loss_m)/(im*accuracy)
+    
+    epsilon[i] = 0.0
+  end
+
+  for j in 2:N-1
+    epsilon = zeros(ComplexF64,size(psi[j]));
+    for i in 1:length(epsilon)
+      epsilon[i] = accuracy
+      eps = ITensor(epsilon,inds(psi[j]))
+      psi[j] += eps
+      loss_p = nll(psi,data,bases) 
+      psi[j] -= eps
+      loss_m = nll(psi,data,bases) 
+      grad_r[j][i] = (loss_p-loss_m)/(accuracy)
+      
+      epsilon[i] = im*accuracy
+      eps = ITensor(epsilon,inds(psi[j]))
+      psi[j] += eps
+      loss_p = nll(psi,data,bases) 
+      psi[j] -= eps
+      loss_m = nll(psi,data,bases) 
+      grad_i[j][i] = (loss_p-loss_m)/(im*accuracy)
+
+      epsilon[i] = 0.0
+    end
+ end
+
+  # Site N
+  epsilon = zeros(ComplexF64,size(psi[N]));
+  for i in 1:length(epsilon)
+    epsilon[i] = accuracy
+    eps = ITensor(epsilon,inds(psi[N]))
+    psi[N] += eps
+    loss_p = nll(psi,data,bases) 
+    psi[N] -= eps
+    loss_m = nll(psi,data,bases) 
+    grad_r[N][i] = (loss_p-loss_m)/(accuracy)
+
+    epsilon[i] = im*accuracy
+    eps = ITensor(epsilon,inds(psi[N]))
+    psi[N] += eps
+    loss_p = nll(psi,data,bases) 
+    psi[N] -= eps
+    loss_m = nll(psi,data,bases) 
+    grad_i[N][i] = (loss_p-loss_m)/(im*accuracy)
+    
+    epsilon[i] = 0.0
+  end
+
+  return grad_r-grad_i
+end
+
 @testset "qst: lognormalizations" begin
   N = 10
   qst = QST(N=N)
@@ -172,24 +250,6 @@ end
   lognormalize!(qst.psi)
   @test norm(qst.psi) ≈ 1
 end
-
-@testset "qst: real grad logZ" begin
-  N = 5
-  qst = QST(N=N)
-  alg_grad,_ = gradlogZ(qst.psi)
-  num_grad = numgradslogZ(qst.psi)
-  for j in 1:N
-    @test array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
-  end
-  qst = QST(N=N)
-  logZ,localnorms = lognormalize!(qst.psi)
-  @test norm(qst.psi)^2 ≈ 1
-  alg_grad_localnorm,_ = gradlogZ(qst.psi,localnorms)
-  for j in 1:N
-    @test array(alg_grad[j]) ≈ array(alg_grad_localnorm[j]) rtol=1e-3
-  end
-end
-
 @testset "qst: complex grad logZ" begin
   N = 5
   qst = QST(N=N,parstype="complex")
@@ -207,47 +267,91 @@ end
   end
 end
 
-@testset "qst: real grad nll" begin
+@testset "qst: complex grad nll with bases" begin
   N = 5
   nsamples = 100
   Random.seed!(1234)
   data = rand(0:1,nsamples,N)
-  
-  qst = QST(N=N)
-  num_grad = numgradsnll(qst.psi,data)
-  alg_grad,loss = gradnll(qst.psi,data)
-  for j in 1:N
-    @test array(alg_grad[j]) ≈ real(num_grad[j]) rtol=1e-3
-  end
-
-  qst = QST(N=N)
-  logZ,localnorms = lognormalize!(qst.psi)
-  @test norm(qst.psi)^2 ≈ 1
-  alg_grad_localnorm,loss = gradnll(qst.psi,data,localnorms)
-  for j in 1:N
-    @test array(alg_grad[j]) ≈ array(alg_grad_localnorm[j]) rtol=1e-3
-  end
-end
-
-@testset "qst: complex grad nll" begin
-  N = 2
-  nsamples = 100
-  Random.seed!(1234)
-  data = rand(0:1,nsamples,N)
-  
+  bases = generatemeasurementsettings(N,nsamples,bases_id=["X","Y","Z"]) 
   qst = QST(N=N,parstype="complex")
-  num_grad = numgradsnll(qst.psi,data)
-  alg_grad,loss = gradnll(qst.psi,data)
+  num_grad = numgradsnll(qst.psi,data,bases)
+  alg_grad,loss = gradnll(qst.psi,data,bases)
   for j in 1:N
     @test array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
   end
-
   qst = QST(N=N,parstype="complex")
   logZ,localnorms = lognormalize!(qst.psi)
   @test norm(qst.psi)^2 ≈ 1
-  alg_grad_localnorm,loss = gradnll(qst.psi,data,localnorms)
+  alg_grad_localnorm,loss = gradnll(qst.psi,data,bases,localnorms)
   for j in 1:N
     @test array(alg_grad[j]) ≈ array(alg_grad_localnorm[j]) rtol=1e-3
   end
 end
+
+
+
+
+""" OLD """
+#
+#@testset "qst: real grad logZ" begin
+#  N = 5
+#  qst = QST(N=N)
+#  alg_grad,_ = gradlogZ(qst.psi)
+#  num_grad = numgradslogZ(qst.psi)
+#  for j in 1:N
+#    @test array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
+#  end
+#  qst = QST(N=N)
+#  logZ,localnorms = lognormalize!(qst.psi)
+#  @test norm(qst.psi)^2 ≈ 1
+#  alg_grad_localnorm,_ = gradlogZ(qst.psi,localnorm = localnorms)
+#  for j in 1:N
+#    @test array(alg_grad[j]) ≈ array(alg_grad_localnorm[j]) rtol=1e-3
+#  end
+#end
+#
+#
+#@testset "qst: real grad nll" begin
+#  N = 5
+#  nsamples = 100
+#  Random.seed!(1234)
+#  data = rand(0:1,nsamples,N)
+#  
+#  qst = QST(N=N)
+#  num_grad = numgradsnll(qst.psi,data)
+#  alg_grad,loss = gradnll(qst.psi,data)
+#  for j in 1:N
+#    @test array(alg_grad[j]) ≈ real(num_grad[j]) rtol=1e-3
+#  end
+#
+#  qst = QST(N=N)
+#  logZ,localnorms = lognormalize!(qst.psi)
+#  @test norm(qst.psi)^2 ≈ 1
+#  alg_grad_localnorm,loss = gradnll(qst.psi,data,localnorm = localnorms)
+#  for j in 1:N
+#    @test array(alg_grad[j]) ≈ array(alg_grad_localnorm[j]) rtol=1e-3
+#  end
+#end
+
+#@testset "qst: complex grad nll" begin
+#  N = 2
+#  nsamples = 100
+#  Random.seed!(1234)
+#  data = rand(0:1,nsamples,N)
+#  
+#  qst = QST(N=N,parstype="complex")
+#  num_grad = numgradsnll(qst.psi,data)
+#  alg_grad,loss = gradnll(qst.psi,data)
+#  for j in 1:N
+#    @test array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
+#  end
+#
+#  qst = QST(N=N,parstype="complex")
+#  logZ,localnorms = lognormalize!(qst.psi)
+#  @test norm(qst.psi)^2 ≈ 1
+#  alg_grad_localnorm,loss = gradnll(qst.psi,data,localnorm = localnorms)
+#  for j in 1:N
+#    @test array(alg_grad[j]) ≈ array(alg_grad_localnorm[j]) rtol=1e-3
+#  end
+#end
 
