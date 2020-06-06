@@ -6,7 +6,7 @@ using Test
     "quantumgates.jl",
     "circuitops.jl",
     "quantumcircuit.jl",
-    #"qst.jl"
+    "qst.jl"
   )
     println("Running $filename")
     include(filename)
