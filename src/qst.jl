@@ -1,5 +1,7 @@
-
-function initializeQST(N::Int;d::Int=2,χ::Int=2,seed::Int=1234,σ::Float64=0.1)
+"""
+Initializer for MPS state tomography
+"""
+function initializeQST(N::Int,χ::Int;d::Int=2,seed::Int=1234,σ::Float64=0.1)
   rng = MersenneTwister(seed)
   
   sites = [Index(d; tags="Site, n=$s") for s in 1:N]
@@ -26,29 +28,29 @@ function initializeQST(N::Int;d::Int=2,χ::Int=2,seed::Int=1234,σ::Float64=0.1)
 end
 
 """
-Normalize the MPS locally and store the local norms
+Normalize the MPS/LPDO locally and store the local norms
 """
-function lognormalize!(psi::MPS)
+function lognormalize!(M::Union{MPS,MPO})
   localnorms = []
-  blob = dag(psi[1]) * prime(psi[1],"Link")
+  blob = dag(M[1]) * prime(M[1],"Link")
   localZ = norm(blob)
   logZ = 0.5*log(localZ)
   blob /= sqrt(localZ)
-  psi[1] /= (localZ^0.25)
+  M[1] /= (localZ^0.25)
   push!(localnorms,localZ^0.25)
-  for j in 2:length(psi)-1
-    blob = blob * dag(psi[j]);
-    blob = blob * prime(psi[j],"Link")
+  for j in 2:length(M)-1
+    blob = blob * dag(M[j]);
+    blob = blob * prime(M[j],"Link")
     localZ = norm(blob)
     logZ += 0.5*log(localZ)
     blob /= sqrt(localZ)
-    psi[j] /= (localZ^0.25)
+    M[j] /= (localZ^0.25)
     push!(localnorms,localZ^0.25)  
   end
-  blob = blob * dag(psi[length(psi)]);
-  blob = blob * prime(psi[length(psi)],"Link")
+  blob = blob * dag(M[length(M)]);
+  blob = blob * prime(M[length(M)],"Link")
   localZ = norm(blob)
-  psi[length(psi)] /= sqrt(localZ)
+  M[length(M)] /= sqrt(localZ)
   push!(localnorms,sqrt(localZ))
   logZ += log(real(blob[]))
   return logZ,localnorms
@@ -95,10 +97,10 @@ function nll(psi::MPS,data::Array,bases::Array)
 end
 
 """
-Gradients of logZ using local normalizations
+Gradients of logZ 
 """
-function gradlogZ(psi::MPS;localnorm=nothing)
-  N = length(psi)
+function gradlogZ(M::Union{MPS,MPO};localnorm=nothing)
+  N = length(M)
   L = Vector{ITensor}(undef, N-1)
   R = Vector{ITensor}(undef, N)
   
@@ -107,29 +109,30 @@ function gradlogZ(psi::MPS;localnorm=nothing)
   end
   
   # Sweep right to get L
-  L[1] = dag(psi[1]) * prime(psi[1],"Link")
+  L[1] = dag(M[1]) * prime(M[1],"Link")
   for j in 2:N-1
-    L[j] = L[j-1] * dag(psi[j])
-    L[j] = L[j] * prime(psi[j],"Link")
+    L[j] = L[j-1] * dag(M[j])
+    L[j] = L[j] * prime(M[j],"Link")
   end
-  Z = L[N-1] * dag(psi[N])
-  Z = real((Z * prime(psi[N],"Link"))[])
+  Z = L[N-1] * dag(M[N])
+  Z = real((Z * prime(M[N],"Link"))[])
 
   # Sweep left to get R
-  R[N] = dag(psi[N]) * prime(psi[N],"Link")
+  R[N] = dag(M[N]) * prime(M[N],"Link")
   for j in reverse(2:N-1)
-    R[j] = R[j+1] * dag(psi[j])
-    R[j] = R[j] * prime(psi[j],"Link")
+    R[j] = R[j+1] * dag(M[j])
+    R[j] = R[j] * prime(M[j],"Link")
   end
   # Get the gradients of the normalization
   gradients = Vector{ITensor}(undef, N)
-  gradients[1] = prime(psi[1],"Link") * R[2]/(localnorm[1]*Z)
+  gradients[1] = prime(M[1],"Link") * R[2]/(localnorm[1]*Z)
   for j in 2:N-1
-    gradients[j] = (L[j-1] * prime(psi[j],"Link") * R[j+1])/(localnorm[j]*Z)
+    gradients[j] = (L[j-1] * prime(M[j],"Link") * R[j+1])/(localnorm[j]*Z)
   end
-  gradients[N] = (L[N-1] * prime(psi[N],"Link"))/(localnorm[N]*Z)
+  gradients[N] = (L[N-1] * prime(M[N],"Link"))/(localnorm[N]*Z)
   return 2*gradients,log(Z)
 end
+
 
 """
 Gradients of NLL with local norms (computational basis)
@@ -284,4 +287,69 @@ function statetomography!(psi::MPS,opt::Optimizer;
     print("\n")
   end
 end
+
+
+
+
+""" LPDO """
+
+"""
+Initialize for LPDO state tomography
+"""
+function initializeQST(N::Int,χ::Int,ξ::Int;d::Int=2,seed::Int=1234,σ::Float64=0.1)
+  rng = MersenneTwister(seed)
+  
+  sites = [Index(d; tags="Site,  n=$s") for s in 1:N]
+  links = [Index(χ; tags="Link,  l=$l") for l in 1:N-1]
+  kraus = [Index(ξ; tags="Kraus, k=$s") for s in 1:N]
+
+  M = ITensor[]
+  # Site 1 
+  rand_mat = σ * (ones(d,χ,ξ) - 2*rand!(rng,zeros(d,χ,ξ)))
+  rand_mat += im * σ * (ones(d,χ,ξ) - 2*rand!(rng,zeros(d,χ,ξ)))
+  push!(M,ITensor(rand_mat,sites[1],links[1],kraus[1]))
+  # Site 2..N-1
+  for j in 2:N-1
+    rand_mat = σ * (ones(d,χ,ξ,χ) - 2*rand!(rng,zeros(d,χ,ξ,χ)))
+    rand_mat += im * σ * (ones(d,χ,ξ,χ) - 2*rand!(rng,zeros(d,χ,ξ,χ)))
+    push!(M,ITensor(rand_mat,sites[j],links[j-1],kraus[j],links[j]))
+  end
+  # Site N
+  rand_mat = σ * (ones(d,χ,ξ) - 2*rand!(rng,zeros(d,χ,ξ)))
+  rand_mat += im * σ * (ones(d,χ,ξ) - 2*rand!(rng,zeros(d,χ,ξ)))
+  push!(M,ITensor(rand_mat,sites[N],links[N-1],kraus[N]))
+  
+  lpdo = MPO(M)
+  return lpdo
+end
+
+#"""
+#Normalize the LPDO locally and store the local norms
+#"""
+#function lognormalize!(lpdo::MPO)
+#  localnorms = []
+#  blob = dag(lpdo[1]) * prime(lpdo[1],"Link")
+#  localZ = norm(blob)
+#  logZ = 0.5*log(localZ)
+#  blob /= sqrt(localZ)
+#  lpdo[1] /= (localZ^0.25)
+#  push!(localnorms,localZ^0.25)
+#  for j in 2:length(lpdo)-1
+#    blob = blob * dag(lpdo[j])
+#    blob = blob * prime(lpdo[j],"Link")
+#    localZ = norm(blob)
+#    logZ += 0.5*log(localZ)
+#    blob /= sqrt(localZ)
+#    lpdo[j] /= (localZ^0.25)
+#    push!(localnorms,localZ^0.25)  
+#  end
+#  blob = blob * dag(lpdo[length(lpdo)]);
+#  blob = blob * prime(lpdo[length(lpdo)],"Link")
+#  localZ = norm(blob)
+#  lpdo[length(lpdo)] /= sqrt(localZ)
+#  push!(localnorms,sqrt(localZ))
+#  logZ += log(real(blob[]))
+#  return logZ,localnorms
+#end
+
 
