@@ -61,7 +61,7 @@ circuit_tensors = compilecircuit(psi,circuit_gates)
 samples = Matrix{Int64}(undef, nshots, N)
 
 for n in 1:nshots
-  meas_gates = makemeasurementgates(bases[1,:])
+  meas_gates = makemeasurementgates(bases[n,:])
   meas_tensors = compilecircuit(psi,meas_gates)
   tensors = vcat(circuit_tensors,meas_tensors)
   psi_out = runcircuit(psi,tensors)

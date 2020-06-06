@@ -240,60 +240,18 @@ function numgradsnll(psi::MPS,data::Array,bases::Array;accuracy=1e-8)
   return grad_r-grad_i
 end
 
-@testset "qst: lognormalizations" begin
-  N = 10
-  qst = QST(N=N)
-  logZ1 = 2.0*lognorm(qst.psi)
-  logZ2,_ = lognormalize!(qst.psi)
-  @test logZ1 ≈ logZ2
-  qst = QST(N=N)
-  lognormalize!(qst.psi)
-  @test norm(qst.psi) ≈ 1
-end
-@testset "qst: complex grad logZ" begin
-  N = 5
-  qst = QST(N=N,parstype="complex")
-  alg_grad,_ = gradlogZ(qst.psi)
-  num_grad = numgradslogZ(qst.psi)
-  for j in 1:N
-    @test array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
-  end
-  qst = QST(N=N,parstype="complex")
-  logZ,localnorms = lognormalize!(qst.psi)
-  @test norm(qst.psi)^2 ≈ 1
-  alg_grad_localnorm,_ = gradlogZ(qst.psi,localnorms)
-  for j in 1:N
-    @test array(alg_grad[j]) ≈ array(alg_grad_localnorm[j]) rtol=1e-3
-  end
-end
-
-@testset "qst: complex grad nll with bases" begin
-  N = 5
-  nsamples = 100
-  Random.seed!(1234)
-  data = rand(0:1,nsamples,N)
-  bases = generatemeasurementsettings(N,nsamples,bases_id=["X","Y","Z"]) 
-  qst = QST(N=N,parstype="complex")
-  num_grad = numgradsnll(qst.psi,data,bases)
-  alg_grad,loss = gradnll(qst.psi,data,bases)
-  for j in 1:N
-    @test array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
-  end
-  qst = QST(N=N,parstype="complex")
-  logZ,localnorms = lognormalize!(qst.psi)
-  @test norm(qst.psi)^2 ≈ 1
-  alg_grad_localnorm,loss = gradnll(qst.psi,data,bases,localnorms)
-  for j in 1:N
-    @test array(alg_grad[j]) ≈ array(alg_grad_localnorm[j]) rtol=1e-3
-  end
-end
-
-
-
-
-""" OLD """
+#@testset "qst: lognormalization" begin
+#  N = 10
+#  qst = QST(N=N)
+#  logZ1 = 2.0*lognorm(qst.psi)
+#  logZ2,_ = lognormalize!(qst.psi)
+#  @test logZ1 ≈ logZ2
+#  qst = QST(N=N)
+#  lognormalize!(qst.psi)
+#  @test norm(qst.psi) ≈ 1
+#end
 #
-#@testset "qst: real grad logZ" begin
+#@testset "qst: complex grad logZ" begin
 #  N = 5
 #  qst = QST(N=N)
 #  alg_grad,_ = gradlogZ(qst.psi)
@@ -304,54 +262,66 @@ end
 #  qst = QST(N=N)
 #  logZ,localnorms = lognormalize!(qst.psi)
 #  @test norm(qst.psi)^2 ≈ 1
-#  alg_grad_localnorm,_ = gradlogZ(qst.psi,localnorm = localnorms)
+#  alg_grad_localnorm,_ = gradlogZ(qst.psi,localnorm=localnorms)
 #  for j in 1:N
 #    @test array(alg_grad[j]) ≈ array(alg_grad_localnorm[j]) rtol=1e-3
 #  end
 #end
 #
-#
-#@testset "qst: real grad nll" begin
+#@testset "qst: complex grad nll with bases" begin
 #  N = 5
 #  nsamples = 100
 #  Random.seed!(1234)
 #  data = rand(0:1,nsamples,N)
-#  
+#  bases = generatemeasurementsettings(N,nsamples,bases_id=["X","Y","Z"]) 
 #  qst = QST(N=N)
-#  num_grad = numgradsnll(qst.psi,data)
-#  alg_grad,loss = gradnll(qst.psi,data)
+#  num_grad = numgradsnll(qst.psi,data,bases)
+#  alg_grad,loss = gradnll(qst.psi,data,bases)
 #  for j in 1:N
-#    @test array(alg_grad[j]) ≈ real(num_grad[j]) rtol=1e-3
+#    @test array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
 #  end
-#
 #  qst = QST(N=N)
 #  logZ,localnorms = lognormalize!(qst.psi)
 #  @test norm(qst.psi)^2 ≈ 1
-#  alg_grad_localnorm,loss = gradnll(qst.psi,data,localnorm = localnorms)
+#  alg_grad_localnorm,loss = gradnll(qst.psi,data,bases,localnorm=localnorms)
 #  for j in 1:N
 #    @test array(alg_grad[j]) ≈ array(alg_grad_localnorm[j]) rtol=1e-3
 #  end
 #end
 
-#@testset "qst: complex grad nll" begin
-#  N = 2
-#  nsamples = 100
-#  Random.seed!(1234)
-#  data = rand(0:1,nsamples,N)
-#  
-#  qst = QST(N=N,parstype="complex")
-#  num_grad = numgradsnll(qst.psi,data)
-#  alg_grad,loss = gradnll(qst.psi,data)
-#  for j in 1:N
-#    @test array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
-#  end
-#
-#  qst = QST(N=N,parstype="complex")
-#  logZ,localnorms = lognormalize!(qst.psi)
-#  @test norm(qst.psi)^2 ≈ 1
-#  alg_grad_localnorm,loss = gradnll(qst.psi,data,localnorm = localnorms)
-#  for j in 1:N
-#    @test array(alg_grad[j]) ≈ array(alg_grad_localnorm[j]) rtol=1e-3
-#  end
-#end
+
+@testset "qst: full gradients" begin
+  N = 5
+  nsamples = 100
+  Random.seed!(1234)
+  data = rand(0:1,nsamples,N)
+  bases = generatemeasurementsettings(N,nsamples,bases_id=["X","Y","Z"])
+
+  qst = QST(N=N)
+  logZ = 2.0*log(norm(qst.psi))
+  NLL  = nll(qst.psi,data,bases)
+  ex_loss = logZ + NLL
+  num_gradZ = numgradslogZ(qst.psi)
+  num_gradNLL = numgradsnll(qst.psi,data,bases)
+  num_grads = num_gradZ + num_gradNLL
+
+  alg_grads,loss = gradients(qst.psi,data,bases)
+  @test ex_loss ≈ loss
+  for j in 1:N
+    @test array(alg_grads[j]) ≈ num_grads[j] rtol=1e-3
+  end
+
+  qst = QST(N=N)
+  logZ,localnorms = lognormalize!(qst.psi)
+  NLL  = nll(qst.psi,data,bases)
+  ex_loss = NLL
+  @test norm(qst.psi)^2 ≈ 1
+  
+  alg_grads,loss = gradients(qst.psi,data,bases,localnorm=localnorms)
+  @test ex_loss ≈ loss
+  for j in 1:N
+    @test array(alg_grads[j]) ≈ num_grads[j] rtol=1e-3
+  end
+end
+
 

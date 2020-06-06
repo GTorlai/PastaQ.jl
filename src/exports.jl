@@ -56,13 +56,14 @@ export
 # qst,jl
   QST,
   # Methods
-  normalize!,
+  #normalize!,
   lognormalize!,
-  projectpsi,
+  #projectpsi,
   nll,
   gradlogZ,
   gradnll,
-  makemeasurementcircuit,
+  gradients,
+  #makemeasurementcircuit,
   statetomography,
 
 # optimizer.jl
