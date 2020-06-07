@@ -68,6 +68,7 @@ export
 # optimizers/
   Optimizer,
   Sgd,
+  Momentum,
   # Methods
   update!,
 
