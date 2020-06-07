@@ -54,17 +54,16 @@ export
   randomquantumcircuit,
 
 # qst,jl
-  QST,
   # Methods
-  #normalize!,
+  initializeQST,
   lognormalize!,
-  #projectpsi,
   nll,
   gradlogZ,
   gradnll,
   gradients,
-  #makemeasurementcircuit,
-  statetomography,
+  fidelity,
+  getdensityoperator,
+  statetomography!,
 
 # optimizer.jl
   Optimizer,

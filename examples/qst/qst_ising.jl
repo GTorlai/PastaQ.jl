@@ -3,7 +3,7 @@ using PastaQ
 using Random
 Random.seed!(123456)
 
-N = 3
+N = 50
 sites = siteinds("S=1/2",N)
 
 # Get the Ising ground state
@@ -24,7 +24,8 @@ cutoff!(sweeps, 1E-10)
 energy, psi_ising = dmrg(H,psi0, sweeps)
 println("Final energy = $energy")
 
-nshots = 1000
+nshots = 50000
+println("Generating data...")
 bases = generatemeasurementsettings(N,nshots)
 samples = Matrix{Int64}(undef, nshots, N)
 for n in 1:nshots
@@ -35,12 +36,13 @@ for n in 1:nshots
 end
 
 χ = maxlinkdim(psi_ising)
-qst = QST(N=N,χ=χ,σ=0.1)
-opt = Optimizer(η = 0.1)
-statetomography(qst,opt,
-                samples = samples,
-                bases = bases,
-                batchsize=500,
-                epochs=1000,
-                targetpsi=psi_ising,
-                localnorm=true)
+psi = initializeQST(N,χ,σ=0.1)
+opt = Optimizer(η = 0.05)
+println("Training...")
+statetomography!(psi,opt,
+                 samples = samples,
+                 bases = bases,
+                 batchsize=1000,
+                 epochs=1000,
+                 target=psi_ising,
+                 localnorm=true)

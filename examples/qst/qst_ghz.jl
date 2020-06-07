@@ -23,13 +23,25 @@ for n in 1:nshots
 end
 
 χ = 2
-qst = QST(N=N,χ=χ)
+psi = initializeQST(N,χ)
 opt = Optimizer(η = 0.01)
-statetomography(qst,opt,
+statetomography!(psi,opt,
                 samples = samples,
                 bases = bases,
                 batchsize=500,
                 epochs=1000,
-                targetpsi=ghz,
+                target=ghz,
                 localnorm=true)
 
+#χ = 2
+#ξ = 2
+#lpdo = initializeQST(N,χ,ξ)
+#opt = Optimizer(η = 0.01)
+#statetomography!(lpdo,opt,
+#                samples = samples,
+#                bases = bases,
+#                batchsize=500,
+#                epochs=1000,
+#                target=ghz,
+#                localnorm=true)
+#

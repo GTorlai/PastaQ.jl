@@ -21,6 +21,12 @@ function makegate(M::MPS, gate_id::String, site::Int; kwargs...)
   return gate 
 end
 
+function makegate(M::MPO, gate_id::String, site::Int; kwargs...)
+  site_ind = firstind(M[site],tags="Site")#siteind(M,site)
+  gate = quantumgate(gate_id, site_ind; kwargs...)
+  return gate 
+end
+
 """
     makegate(M::MPS, gate_id::String, site::Array; kwargs...)
 
