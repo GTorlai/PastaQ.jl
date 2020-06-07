@@ -54,7 +54,6 @@ export
   randomquantumcircuit,
 
 # qst,jl
-  #QST,
   # Methods
   initializeQST,
   lognormalize!,
@@ -62,6 +61,8 @@ export
   gradlogZ,
   gradnll,
   gradients,
+  fidelity,
+  getdensityoperator,
   statetomography!,
 
 # optimizer.jl

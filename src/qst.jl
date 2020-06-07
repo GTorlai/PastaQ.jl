@@ -55,6 +55,7 @@ function lognormalize!(M::Union{MPS,MPO})
   logZ += log(real(blob[]))
   return logZ,localnorms
 end
+
 """
 Gradients of logZ 
 """
@@ -241,57 +242,6 @@ function gradients(M::Union{MPS,MPO},data::Array,bases::Array;localnorm=nothing)
   return grads,loss
 end
 
-"""
-Run QST
-"""
-function statetomography!(psi::MPS,opt::Optimizer;
-                          samples::Array,
-                          bases::Array,
-                          batchsize::Int64=500,
-                          epochs::Int64=10000,
-                          targetpsi::MPS,
-                          localnorm::Bool=false)
-  for j in 1:length(psi)
-    replaceinds!(targetpsi[j],inds(targetpsi[j],"Site"),inds(psi[j],"Site"))
-  end
-  num_batches = Int(floor(size(samples)[1]/batchsize))
-  
-  for ep in 1:epochs
-    permut = shuffle(1:size(samples)[1])
-    samples = samples[permut,:]
-    bases   = bases[permut,:]
-    
-    avg_loss = 0.0
-    for b in 1:num_batches
-      batch_samples = samples[(b-1)*batchsize+1:b*batchsize,:]
-      batch_bases   = bases[(b-1)*batchsize+1:b*batchsize,:]
-      
-      if localnorm == true
-        psi_norm = copy(psi)
-        logZ,localnorms = lognormalize!(psi_norm) 
-        grads,loss = gradients(psi_norm,batch_samples,batch_bases,localnorm=localnorms)
-      else
-        grads,loss = gradients(psi,batch_samples,batch_bases)
-      end
-      avg_loss += loss/Float64(num_batches)
-      updateSGD!(psi,grads,opt)
-    end
-    psi_eval = copy(psi)
-    lognormalize!(psi_eval)
-    @assert norm(psi_eval) ≈ 1
-    fidelity = abs2(inner(psi_eval,targetpsi))
-    print("Ep = ",ep,"  ")
-    print("Loss = ")
-    @printf("%.5E",avg_loss)
-    print("  ")
-    print("Fidelity = ")
-    @printf("%.3E",fidelity)
-    print("\n")
-  end
-end
-
-
-
 
 """ LPDO """
 
@@ -301,9 +251,9 @@ Initialize for LPDO state tomography
 function initializeQST(N::Int,χ::Int,ξ::Int;d::Int=2,seed::Int=1234,σ::Float64=0.1)
   rng = MersenneTwister(seed)
   
-  sites = [Index(d; tags="Site,  n=$s") for s in 1:N]
-  links = [Index(χ; tags="Link,  l=$l") for l in 1:N-1]
-  kraus = [Index(ξ; tags="Kraus, k=$s") for s in 1:N]
+  sites = [Index(d; tags="Site,n=$s") for s in 1:N]
+  links = [Index(χ; tags="Link,l=$l") for l in 1:N-1]
+  kraus = [Index(ξ; tags="Kraus,k=$s") for s in 1:N]
 
   M = ITensor[]
   # Site 1 
@@ -325,6 +275,35 @@ function initializeQST(N::Int,χ::Int,ξ::Int;d::Int=2,seed::Int=1234,σ::Float6
   return lpdo
 end
 
+function getdensityoperator(lpdo::MPO)
+  noprime!(lpdo)
+  N = length(lpdo)
+  M = ITensor[]
+  prime!(lpdo[1],tags="Site")
+  prime!(lpdo[1],tags="Link")
+  tmp = noprime(dag(lpdo[1])) * lpdo[1]
+  Cdn = combiner(inds(tmp,tags="Link"),tags="Link,l=1")
+  push!(M,tmp * Cdn)
+  
+  for j in 2:N-1
+    prime!(lpdo[j],tags="Site")
+    prime!(lpdo[j],tags="Link")
+    tmp = noprime(dag(lpdo[j])) * lpdo[j] 
+    Cup = Cdn
+    #Cup = combiner(inds(tmp,tags="Link,l=$(j-1)"),tags="Link,l=$(j-1)")
+    Cdn = combiner(inds(tmp,tags="Link,l=$j"),tags="Link,l=$j")
+    push!(M,tmp * Cup * Cdn)
+  end
+  prime!(lpdo[N],tags="Site")
+  prime!(lpdo[N],tags="Link")
+  tmp = noprime(dag(lpdo[N])) * lpdo[N]
+  Cup = Cdn
+  #Comb = C = combiner(inds(tmp,tags="Link"),tags="Link,l=$(N-1)")
+  push!(M,tmp * Cdn)
+  rho = MPO(M)
+  noprime!(lpdo)
+  return rho
+end
 
 """
 Negative log likelihood for LPDO
@@ -493,4 +472,64 @@ function gradnll(lpdo::MPO,data::Array,bases::Array;localnorm=nothing)
   gradients = -2.0*gradients/size(data)[1]
   return gradients,loss 
 end
+
+function fidelity(psi::MPS,target::MPS)
+  psi_eval = copy(psi)
+  lognormalize!(psi_eval)
+  @assert norm(psi_eval) ≈ 1
+  fidelity = abs2(inner(psi_eval,target))
+  return fidelity
+end
+
+#function fidelity(lpdo::MPO,target::MPS)
+#
+#end
+"""
+Run QST
+"""
+function statetomography!(psi::MPS,opt::Optimizer;
+                          samples::Array,
+                          bases::Array,
+                          batchsize::Int64=500,
+                          epochs::Int64=10000,
+                          target::MPS,
+                          localnorm::Bool=false)
+  for j in 1:length(psi)
+    replaceinds!(target[j],inds(target[j],"Site"),inds(psi[j],"Site"))
+  end
+  num_batches = Int(floor(size(samples)[1]/batchsize))
+  
+  for ep in 1:epochs
+    permut = shuffle(1:size(samples)[1])
+    samples = samples[permut,:]
+    bases   = bases[permut,:]
+    
+    avg_loss = 0.0
+    for b in 1:num_batches
+      batch_samples = samples[(b-1)*batchsize+1:b*batchsize,:]
+      batch_bases   = bases[(b-1)*batchsize+1:b*batchsize,:]
+      
+      if localnorm == true
+        psi_norm = copy(psi)
+        logZ,localnorms = lognormalize!(psi_norm) 
+        grads,loss = gradients(psi_norm,batch_samples,batch_bases,localnorm=localnorms)
+      else
+        grads,loss = gradients(psi,batch_samples,batch_bases)
+      end
+      avg_loss += loss/Float64(num_batches)
+      updateSGD!(psi,grads,opt)
+    end
+    F = fidelity(psi,target)
+    print("Ep = ",ep,"  ")
+    print("Loss = ")
+    @printf("%.5E",avg_loss)
+    print("  ")
+    print("Fidelity = ")
+    @printf("%.3E",F)
+    print("\n")
+  end
+end
+
+
+
 

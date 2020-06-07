@@ -35,7 +35,7 @@ for n in 1:nshots
 end
 
 χ = maxlinkdim(psi_ising)
-psi = initializeQST(N,χ=χ,σ=0.1)
+psi = initializeQST(N,χ,σ=0.1)
 opt = Optimizer(η = 0.1)
 statetomography!(psi,opt,
                  samples = samples,

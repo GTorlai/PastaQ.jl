@@ -23,7 +23,7 @@ for n in 1:nshots
 end
 
 χ = 2
-psi = initializeQST(N,χ=χ)
+psi = initializeQST(N,χ)
 opt = Optimizer(η = 0.01)
 statetomography!(psi,opt,
                 samples = samples,
