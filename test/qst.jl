@@ -374,7 +374,7 @@ end
   num_grad = numgradsnll(lpdo,data,bases)
   alg_grad,loss = gradnll(lpdo,data,bases)
   ex_loss = nll(lpdo,data,bases)
-  @test ex_loss == loss
+  @test ex_loss ≈ loss
   for j in 1:N
     @test array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
   end
