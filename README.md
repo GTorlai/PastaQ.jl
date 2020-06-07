@@ -8,5 +8,6 @@
 
 
 #### ToDo List: state tomography
-+ Fix NLL gradients for complex-valued MPS
-+ Add gradients for measurement bases rotations
++ Custom preparation states/measurements
++ Build GHZ with local depolarization
++ Advanced optimizers
