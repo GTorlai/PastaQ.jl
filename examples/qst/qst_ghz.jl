@@ -29,7 +29,19 @@ statetomography!(psi,opt,
                 samples = samples,
                 bases = bases,
                 batchsize=500,
-                epochs=10,
-                targetpsi=ghz,
+                epochs=1000,
+                target=ghz,
                 localnorm=true)
 
+#χ = 2
+#ξ = 2
+#lpdo = initializeQST(N,χ,ξ)
+#opt = Optimizer(η = 0.01)
+#statetomography!(lpdo,opt,
+#                samples = samples,
+#                bases = bases,
+#                batchsize=500,
+#                epochs=1000,
+#                target=ghz,
+#                localnorm=true)
+#

@@ -290,6 +290,10 @@ end
   rho = getdensityoperator(lpdo)
   rho_mat = fullmatrix(rho)
   
+  for j in 1:length(lpdo)
+    replaceind!(psi[j],firstind(psi[j],"Site"),firstind(lpdo[j],"Site"))
+  end
+
   F = fidelity(lpdo,psi)
   ex_F = dot(psi_vec,rho_mat * psi_vec)
   @test F ≈ ex_F
