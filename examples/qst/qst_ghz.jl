@@ -2,25 +2,9 @@ using PastaQ
 using Random
 
 Random.seed!(123456)
-
 N = 3
-
-ghz = qubits(N)
-
-applygate!(ghz,"H",1)
-applygate!(ghz,"Cx",[1,2])
-applygate!(ghz,"Cx",[2,3])
-
-nshots = 1000
-bases = generatemeasurementsettings(N,nshots)
-samples = Matrix{Int64}(undef, nshots, N)
-
-for n in 1:nshots
-  meas_gates = makemeasurementgates(bases[n,:])
-  meas_tensors = compilecircuit(ghz,meas_gates)
-  psi_out = runcircuit(ghz,meas_tensors)
-  samples[n,:] = measure(psi_out,1)
-end
+input_path = "../../data/qst/data_ghz_N$(N).h5"
+samples,bases,target = loadtrainingdataQST(input_path)
 
 χ = 2
 psi = initializeQST(N,χ)
@@ -30,18 +14,6 @@ statetomography!(psi,opt,
                 bases = bases,
                 batchsize=500,
                 epochs=1000,
-                target=ghz,
+                target=target,
                 localnorm=true)
 
-#χ = 2
-#ξ = 2
-#lpdo = initializeQST(N,χ,ξ)
-#opt = Sgd(η = 0.01)
-#statetomography!(lpdo,opt,
-#                samples = samples,
-#                bases = bases,
-#                batchsize=500,
-#                epochs=1000,
-#                target=ghz,
-#                localnorm=true)
-#

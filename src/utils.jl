@@ -1,3 +1,11 @@
+function loadtrainingdataQST(input_path::String)
+  data_file = h5open(input_path,"r")
+  samples = read(data_file,"samples")
+  bases = read(data_file,"bases")
+  target = read(data_file,"psi",MPS)
+  return samples,bases,target
+end
+
 function fullvector(mps::MPS;order="reverse")
   if length(mps) == 1
     return array(mps[1])
