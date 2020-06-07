@@ -290,7 +290,6 @@ function getdensityoperator(lpdo::MPO)
     prime!(lpdo[j],tags="Link")
     tmp = noprime(dag(lpdo[j])) * lpdo[j] 
     Cup = Cdn
-    #Cup = combiner(inds(tmp,tags="Link,l=$(j-1)"),tags="Link,l=$(j-1)")
     Cdn = combiner(inds(tmp,tags="Link,l=$j"),tags="Link,l=$j")
     push!(M,tmp * Cup * Cdn)
   end
@@ -298,7 +297,6 @@ function getdensityoperator(lpdo::MPO)
   prime!(lpdo[N],tags="Link")
   tmp = noprime(dag(lpdo[N])) * lpdo[N]
   Cup = Cdn
-  #Comb = C = combiner(inds(tmp,tags="Link"),tags="Link,l=$(N-1)")
   push!(M,tmp * Cdn)
   rho = MPO(M)
   noprime!(lpdo)
@@ -481,9 +479,15 @@ function fidelity(psi::MPS,target::MPS)
   return fidelity
 end
 
-#function fidelity(lpdo::MPO,target::MPS)
-#
-#end
+function fidelity(lpdo::MPO,target::MPS)
+  for j in 1:length(lpdo)
+    replaceind!(target[j],firstind(target[j],"Site"),firstind(lpdo[j],"Site"))
+  end
+  A = lpdo * target
+  fidelity = inner(A,A)
+  return fidelity
+end
+
 """
 Run QST
 """
