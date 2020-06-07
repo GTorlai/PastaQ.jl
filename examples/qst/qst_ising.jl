@@ -37,7 +37,7 @@ end
 
 χ = maxlinkdim(psi_ising)
 psi = initializeQST(N,χ,σ=0.1)
-opt = Optimizer(η = 0.05)
+opt = Sgd(η = 0.05)
 println("Training...")
 statetomography!(psi,opt,
                  samples = samples,

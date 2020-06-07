@@ -24,7 +24,7 @@ end
 
 χ = 2
 psi = initializeQST(N,χ)
-opt = Optimizer(η = 0.01)
+opt = Sgd(η = 0.01)
 statetomography!(psi,opt,
                 samples = samples,
                 bases = bases,
@@ -36,7 +36,7 @@ statetomography!(psi,opt,
 #χ = 2
 #ξ = 2
 #lpdo = initializeQST(N,χ,ξ)
-#opt = Optimizer(η = 0.01)
+#opt = Sgd(η = 0.01)
 #statetomography!(lpdo,opt,
 #                samples = samples,
 #                bases = bases,

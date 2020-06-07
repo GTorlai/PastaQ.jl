@@ -371,7 +371,7 @@ function statetomography!(model::Union{MPS,MPO},
         grads,loss = gradients(model,batch_samples,batch_bases)
       end
       avg_loss += loss/Float64(num_batches)
-      updateSGD!(model,grads,opt)
+      update!(model,grads,opt)
     end
     F = fidelity(model,target)
     print("Ep = ",ep,"  ")

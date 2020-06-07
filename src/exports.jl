@@ -65,10 +65,11 @@ export
   getdensityoperator,
   statetomography!,
 
-# optimizer.jl
+# optimizers/
   Optimizer,
+  Sgd,
   # Methods
-  updateSGD,
+  update!,
 
 # utils.jl
   # Methods
