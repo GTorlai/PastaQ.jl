@@ -130,93 +130,134 @@ function gradnll(psi::MPS,data::Array,bases::Array;localnorm=nothing)
   loss = 0.0
 
   N = length(psi)
-  L = Vector{ITensor}(undef, N-1)
-  R = Vector{ITensor}(undef, N)
-  
+
+  s = siteinds(psi)
+
+  links = [linkind(psi, n) for n in 1:N-1]
+
+  ElT = eltype(psi[1])
+
+  L = Vector{ITensor{1}}(undef, N)
+  Lpsi = Vector{ITensor}(undef, N)
+  for n in 1:N-1
+    L[n] = ITensor(ElT, undef, links[n])
+    Lpsi[n] = ITensor(ElT, undef, s[n], links[n])
+  end
+  Lpsi[N] = ITensor(ElT, undef, s[N])
+
+  R = Vector{ITensor{1}}(undef, N)
+  Rpsi = Vector{ITensor}(undef, N)
+  for n in N:-1:2
+    R[n] = ITensor(ElT, undef, links[n-1])
+    Rpsi[n] = ITensor(ElT, undef, links[n-1], s[n])
+  end
+  Rpsi[1] = ITensor(ElT, undef, s[1])
+
   if isnothing(localnorm)
     localnorm = ones(N)
   end
-  
-  gradients = ITensor[]
-  for j in 1:N
-    push!(gradients,ITensor(inds(psi[j])))
-  end
+
+  psidag = dag(psi)
+
+  gradients = [ITensor(ElT, inds(psi[j])) for j in 1:N]
+
+  #grads = [ITensor(ElT, undef, inds(psi[j])) for j in 1:N]
+
+  # Projection vectors
+  vs = [ITensor(ElT, undef, s[j]) for j in 1:N]
+
   for n in 1:size(data)[1]
     x = data[n,:] 
-    x.+=1
+    x .+= 1
     basis = bases[n,:]
     
     """ LEFT ENVIRONMENTS """
     if (basis[1] == "Z")
-      L[1] = dag(psi[1]) * setelt(siteind(psi,1)=>x[1])
+      vs[1] .= setelt(s[1]=>x[1])
     else
-      rotation = makegate(psi,"m$(basis[1])",1)
-      psi_r = dag(psi[1]) * dag(rotation)
-      L[1] = noprime!(psi_r) * setelt(siteind(psi,1)=>x[1])
+      rotation = dag(makegate("m$(basis[1])",s[1]))
+      proj = complex(setelt(s[1]=>x[1]))'
+      vs[1] .= rotation .* proj
     end
+    L[1] .= psidag[1] .* vs[1]
     for j in 2:N-1
       if (basis[j] == "Z")
-        L[j] = L[j-1] * dag(psi[j]) * setelt(siteind(psi,j)=>x[j])
+        vs[j] .= setelt(s[j]=>x[j])
       else
-        rotation = makegate(psi,"m$(basis[j])",j)
-        psi_r = dag(psi[j]) * dag(rotation)
-        L[j] = L[j-1] * noprime!(psi_r) * setelt(siteind(psi,j)=>x[j])
+        rotation = dag(makegate("m$(basis[j])", s[j]))
+        proj = complex(setelt(s[j]=>x[j]))'
+        vs[j] .= rotation .* proj
       end
+      Lpsi[j] .= L[j-1] .* psidag[j]
+      L[j] .= Lpsi[j] .* vs[j]
     end
     if (basis[N] == "Z")
-      psix = (L[N-1] * dag(psi[N]) * setelt(siteind(psi,N)=>x[N]))[]
+      vs[N] .= setelt(s[N]=>x[N])
     else
-      rotation = makegate(psi,"m$(basis[N])",N)
-      psi_r = dag(psi[N]) * dag(rotation)
-      psix = (L[N-1] * noprime!(psi_r) * setelt(siteind(psi,N)=>x[N]))[]
+      rotation = dag(makegate("m$(basis[N])", s[N]))
+      proj = complex(setelt(s[N]=>x[N]))'
+      vs[N] .= rotation .* proj
     end
+    Lpsi[N] .= L[N-1] .* psidag[N]
+    psix = (Lpsi[N] * vs[N])[]
     prob = abs2(psix)
     loss -= log(prob)/size(data)[1]
     
     """ RIGHT ENVIRONMENTS """
     if (basis[N] == "Z")
-      R[N] = dag(psi[N]) * setelt(siteind(psi,N)=>x[N])
+      vs[N] .= setelt(s[N]=>x[N])
     else
-      rotation = makegate(psi,"m$(basis[N])",N)
-      psi_r = dag(psi[N]) * dag(rotation)
-      R[N] = noprime!(psi_r) * setelt(siteind(psi,N)=>x[N])
+      rotation = dag(makegate("m$(basis[N])", s[N]))
+      proj = complex(setelt(s[N]=>x[N]))'
+      vs[N] .= rotation .* proj
     end
+    R[N] .= psidag[N] .* vs[N]
     for j in reverse(2:N-1)
       if (basis[j] == "Z")
-        R[j] = R[j+1] * dag(psi[j]) * setelt(siteind(psi,j)=>x[j])
+        vs[j] .= setelt(s[j]=>x[j])
       else
-        rotation = makegate(psi,"m$(basis[j])",j)
-        psi_r = dag(psi[j]) * dag(rotation)
-        R[j] = R[j+1] * noprime!(psi_r) * setelt(siteind(psi,j)=>x[j])
+        rotation = dag(makegate("m$(basis[j])", s[j]))
+        proj = complex(setelt(s[j]=>x[j]))'
+        vs[j] .= rotation .* proj
       end
+      Rpsi[j] .= psidag[j] .* R[j+1]
+      R[j] .= Rpsi[j] .* vs[j]
     end
-    
+
     """ GRADIENTS """
     if (basis[1] == "Z")
-      gradients[1] += (R[2] * setelt(siteind(psi,1)=>x[1]))/(localnorm[1]*psix)
+      vs[1] .= complex(setelt(s[1]=>x[1]))
     else
-      rotation = makegate(psi,"m$(basis[1])",1)
-      projection = dag(rotation) * prime(setelt(siteind(psi,1)=>x[1]))
-      gradients[1] += (R[2] * projection)/(localnorm[1]*psix)
+      rotation = dag(makegate("m$(basis[1])",s[1]))
+      proj = complex(setelt(s[1]=>x[1]))'
+      vs[1] .= rotation .* proj
     end
+    grad = R[2] * vs[1]
+    gradients[1] += grad / (localnorm[1] * psix)
     for j in 2:N-1
       if (basis[j] == "Z")
-        gradients[j] += (L[j-1] * setelt(siteind(psi,j)=>x[j]) * R[j+1])/(localnorm[j]*psix)
+        vs[j] .= complex(setelt(s[j]=>x[j]))
       else
-        rotation = makegate(psi,"m$(basis[j])",j)
-        projection = dag(rotation) * prime(setelt(siteind(psi,j)=>x[j]))
-        gradients[j] += (L[j-1] * projection * R[j+1])/(localnorm[j]*psix)
+        rotation = dag(makegate("m$(basis[j])",s[j]))
+        proj = complex(setelt(s[j]=>x[j]))'
+        vs[j] .= rotation .* proj
       end
+      grad = L[j-1] * vs[j] * R[j+1]
+      gradients[j] += grad / (localnorm[j] * psix)
     end
     if (basis[N] == "Z")
-      gradients[N] += (L[N-1] * setelt(siteind(psi,N)=>x[N]))/(localnorm[N]*psix)
+      vs[N] .= complex(setelt(s[N]=>x[N]))
     else
-      rotation = makegate(psi,"m$(basis[N])",N)
-      projection = dag(rotation) * prime(setelt(siteind(psi,N)=>x[N]))
-      gradients[N] += (L[N-1] * projection)/(localnorm[N]*psix)
+      rotation = dag(makegate("m$(basis[N])",s[N]))
+      proj = complex(setelt(s[N]=>x[N]))'
+      vs[N] .= rotation .* proj
     end
+    grad = L[N-1] * vs[N]
+    gradients[N] += grad / (localnorm[N] * psix)
   end
-  gradients = -2*gradients/size(data)[1]
+  for g in gradients
+    g .= -2/size(data)[1] .* g
+  end
   return gradients,loss 
 end
 
@@ -445,33 +486,34 @@ Negative log likelihood for MPS
 function nll(psi::MPS,data::Array,bases::Array)
   N = length(psi)
   loss = 0.0
+  s = siteinds(psi)
   for n in 1:size(data)[1]
     x = data[n,:]
     x .+= 1
     basis = bases[n,:]
     
     if (basis[1] == "Z")
-      psix = dag(psi[1]) * setelt(siteind(psi,1)=>x[1])
+      psix = dag(psi[1]) * setelt(s[1]=>x[1])
     else
       rotation = makegate(psi,"m$(basis[1])",1)
       psi_r = dag(psi[1]) * dag(rotation)
-      psix = noprime!(psi_r) * setelt(siteind(psi,1)=>x[1])
+      psix = noprime!(psi_r) * setelt(s[1]=>x[1])
     end
     for j in 2:N-1
       if (basis[j] == "Z")
-        psix = psix * dag(psi[j]) * setelt(siteind(psi,j)=>x[j])
+        psix = psix * dag(psi[j]) * setelt(s[j]=>x[j])
       else
         rotation = makegate(psi,"m$(basis[j])",j)
         psi_r = dag(psi[j]) * dag(rotation)
-        psix = psix * noprime!(psi_r) * setelt(siteind(psi,j)=>x[j])
+        psix = psix * noprime!(psi_r) * setelt(s[j]=>x[j])
       end
     end
     if (basis[N] == "Z")
-      psix = (psix * dag(psi[N]) * setelt(siteind(psi,N)=>x[N]))[]
+      psix = (psix * dag(psi[N]) * setelt(s[N]=>x[N]))[]
     else
       rotation = makegate(psi,"m$(basis[N])",N)
       psi_r = dag(psi[N]) * dag(rotation)
-      psix = (psix * noprime!(psi_r) * setelt(siteind(psi,N)=>x[N]))[]
+      psix = (psix * noprime!(psi_r) * setelt(s[N]=>x[N]))[]
     end
     prob = abs2(psix)
     loss -= log(prob)/size(data)[1]
