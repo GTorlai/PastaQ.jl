@@ -161,7 +161,7 @@ function gradnll(psi::MPS,data::Array,bases::Array;localnorm=nothing)
 
   gradients = [ITensor(ElT, inds(psi[j])) for j in 1:N]
 
-  grads = [ITensor(ElT, undef, inds(psi[j])) for j in 1:N]
+  #grads = [ITensor(ElT, undef, inds(psi[j])) for j in 1:N]
 
   # Projection vectors
   vs = [ITensor(ElT, undef, s[j]) for j in 1:N]
@@ -223,37 +223,37 @@ function gradnll(psi::MPS,data::Array,bases::Array;localnorm=nothing)
       Rpsi[j] .= psidag[j] .* R[j+1]
       R[j] .= Rpsi[j] .* vs[j]
     end
-    
+
     """ GRADIENTS """
     if (basis[1] == "Z")
-      vs[1] .= setelt(s[1]=>x[1])
+      vs[1] .= complex(setelt(s[1]=>x[1]))
     else
-      rotation = dag(makegate("m$(basis[1])", s[1]))
+      rotation = dag(makegate("m$(basis[1])",s[1]))
       proj = complex(setelt(s[1]=>x[1]))'
       vs[1] .= rotation .* proj
     end
-    grads[1] = R[2] * vs[1]
-    gradients[1] .+= grads[1] ./ (localnorm[1]*psix)
+    grad = R[2] * vs[1]
+    gradients[1] += grad / (localnorm[1] * psix)
     for j in 2:N-1
       if (basis[j] == "Z")
-        vs[j] .= setelt(s[j]=>x[j])
+        vs[j] .= complex(setelt(s[j]=>x[j]))
       else
-        rotation = dag(makegate("m$(basis[j])", s[j]))
+        rotation = dag(makegate("m$(basis[j])",s[j]))
         proj = complex(setelt(s[j]=>x[j]))'
         vs[j] .= rotation .* proj
       end
-      Lv_j = L[j-1] * vs[j]
-      grads[j] = Lv_j * R[j+1]
-      gradients[j] .+= (1 / localnorm[j]*psix ) .* grads[j]
+      grad = L[j-1] * vs[j] * R[j+1]
+      gradients[j] += grad / (localnorm[j] * psix)
     end
     if (basis[N] == "Z")
+      vs[N] .= complex(setelt(s[N]=>x[N]))
     else
-      rotation = dag(makegate("m$(basis[N])", s[N]))
+      rotation = dag(makegate("m$(basis[N])",s[N]))
       proj = complex(setelt(s[N]=>x[N]))'
       vs[N] .= rotation .* proj
     end
-    grads[N] = L[N-1] * vs[N]
-    gradients[N] .+= grads[N] ./ (localnorm[N]*psix)
+    grad = L[N-1] * vs[N]
+    gradients[N] += grad / (localnorm[N] * psix)
   end
   for g in gradients
     g .= -2/size(data)[1] .* g
