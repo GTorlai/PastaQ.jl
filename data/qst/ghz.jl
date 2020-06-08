@@ -5,7 +5,7 @@ using HDF5
 
 Random.seed!(1234)
 
-N = 30
+N = 20
 
 sites = [Index(2; tags="Site, n=$s") for s in 1:N]
 links = [Index(2; tags="Link, l=$l") for l in 1:N-1]
