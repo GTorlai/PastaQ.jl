@@ -27,6 +27,11 @@ function makegate(M::MPO, gate_id::String, site::Int; kwargs...)
   return gate 
 end
 
+function makegate(gate_id::String, site_ind::Index; kwargs...)
+  gate = quantumgate(gate_id, site_ind; kwargs...)
+  return gate 
+end
+
 """
     makegate(M::MPS, gate_id::String, site::Array; kwargs...)
 
