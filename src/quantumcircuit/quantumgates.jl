@@ -2,44 +2,46 @@
 
 # Identity
 function gate_I(i::Index)
-  return itensor([1 0;
-                  0 1],i',i)
+  return itensor([1.0 0.0;
+                  0.0 1.0],i',i)
 end
 
 # Pauli X
 function gate_X(i::Index)
-  return itensor([0 1;
-                  1 0],i',i)
+  return itensor([0.0 1.0;
+                  1.0 0.0],i',i)
 end
 
 # Pauli Y
 function gate_Y(i::Index)
-  return itensor([0 -im;
-                  im  0],i',i)
+  return itensor([0.0+0.0im -1.0im;
+                  1.0im      0.0+0.0im],i',i)
 end
 
 # Pauli Z
 function gate_Z(i::Index)
-  return itensor([1  0;
-                  0 -1],i',i)
+  return itensor([1.0  0.0;
+                  0.0 -1.0],i',i)
 end
+
+const inv_sqrt2 = 0.7071067811865475
 
 # Hadamard
 function gate_H(i::Index)
-  return (1/sqrt(2.))*itensor([1  1;
-                               1 -1],i',i)
+  return itensor([inv_sqrt2  inv_sqrt2;
+                  inv_sqrt2 -inv_sqrt2],i',i)
 end
 
 # S gate
 function gate_S(i::Index)
-  return itensor([1  0;
-                  0 im],i',i)
+  return itensor([1.0+0.0im 0.0im;
+                  0.0im     1.0im],i',i)
 end
 
 # T gate
 function gate_T(i::Index)
-  return itensor([1  0;
-                  0 exp(im*π/4)],i',i)
+  return itensor([1.0+0.0im  0.0im;
+                  0.0im      inv_sqrt2 + inv_sqrt2*im],i',i)
 end
 
 # Rotation around X axis
@@ -74,10 +76,10 @@ end
 
 # Swap gate
 function gate_Sw(i::Index,j::Index)
-  gate = reshape([1 0 0 0;
-                  0 0 1 0;
-                  0 1 0 0;
-                  0 0 0 1],(2,2,2,2))
+  gate = reshape([1.0 0.0 0.0 0.0;
+                  0.0 0.0 1.0 0.0;
+                  0.0 1.0 0.0 0.0;
+                  0.0 0.0 0.0 1.0],(2,2,2,2))
   return itensor(gate,i',j',i,j)
 end
 
@@ -115,20 +117,20 @@ end
 
 # State preparation: |0> -> |->
 function prep_Xm(i::Index)
-  return (1/sqrt(2.))*itensor([1  1;
-                              -1  1],i',i)
+  return itensor([ inv_sqrt2  inv_sqrt2;
+                  -inv_sqrt2  inv_sqrt2],i',i)
 end
 
 # State preparation: |0> -> |r>
 function prep_Yp(i::Index)
-  return (1/sqrt(2.))*itensor([1   1;
-                               im -im],i',i)
+  return itensor([inv_sqrt2+0.0im   inv_sqrt2+0.0im;
+                  inv_sqrt2*im     -inv_sqrt2*im],i',i)
 end
 
 # State preparation: |0> -> |l>
 function prep_Ym(i::Index)
-  return (1/sqrt(2.))*itensor([1   1;
-                              -im im],i',i)
+  return itensor([ inv_sqrt2+0.0im  inv_sqrt2+0.0im;
+                  -inv_sqrt2*im     inv_sqrt2*im],i',i)
 end
 
 # State preparation: |0> -> |0>
@@ -148,8 +150,8 @@ end
 
 # Measurement rotation: |sY> -> |sZ>
 function meas_Y(i::Index)
-  return (1/sqrt(2.))*itensor([1 -im;
-                               1 im],i',i)
+  return itensor([inv_sqrt2+0.0im -inv_sqrt2*im;
+                  inv_sqrt2+0.0im  inv_sqrt2*im],i',i)
 end
 
 # Measurement rotation: |sZ> -> |sZ>

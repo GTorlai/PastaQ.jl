@@ -53,7 +53,7 @@ export
   Cxlayer!,
   randomquantumcircuit,
 
-# qst,jl
+# statetomography,jl
   # Methods
   initializeQST,
   lognormalize!,
