@@ -1,9 +1,8 @@
 function loadtrainingdataQST(input_path::String)
   data_file = h5open(input_path,"r")
-  samples = read(data_file,"samples")
-  bases = read(data_file,"bases")
+  data = read(data_file,"data")
   target = read(data_file,"psi",MPS)
-  return samples,bases,target
+  return data,target
 end
 
 function fullvector(mps::MPS;order="reverse")

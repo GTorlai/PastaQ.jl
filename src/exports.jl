@@ -49,6 +49,8 @@ export
   generatemeasurementsettings,
   generatepreparationsettings,
   measure,
+  generatedata,
+  convertdata,
   hadamardlayer!,
   rand1Qrotationlayer!,
   Cxlayer!,
@@ -64,7 +66,7 @@ export
   gradients,
   fidelity,
   getdensityoperator,
-  statetomography!,
+  statetomography,
 
 # optimizers/
   Optimizer,

@@ -148,6 +148,7 @@ function generatepreparationsettings(N::Int,numshots::Int;numprep=nothing,prep_i
   end
   return preparationstates
 end
+
 """
 Perform a projective measurements on a wavefunction
 """
@@ -166,6 +167,51 @@ function measure(mps::MPS,nshots::Int)
   end
   return measurements
 end
+
+"""
+Generate a dataset of measurements in different bases
+"""
+function generatedata(psi::MPS,nshots::Int,bases::Array)
+  data = Matrix{String}(undef, nshots,length(psi))
+  for n in 1:nshots
+    meas_gates = makemeasurementgates(bases[n,:])
+    meas_tensors = compilecircuit(psi,meas_gates)
+    psi_out = runcircuit(psi,meas_tensors)
+    measurement = measure(psi_out,1)
+    data[n,:] = convertdata(measurement,bases[n,:])
+  end
+  return data 
+end
+
+"""
+Convert a data point from (sample,basis) -> data
+Ex: (0,1,0,0) (X,Z,Y,X) -> (X+,Z-,Y+,X+)
+"""
+function convertdata(datapoint::Array,basis::Array)
+  newdata = []
+  for j in 1:length(datapoint)
+    if basis[j] == "X"
+      if datapoint[j] == 0
+        push!(newdata,"X+")
+      else
+        push!(newdata,"X-")
+      end
+    elseif basis[j] == "Y"
+      if datapoint[j] == 0
+        push!(newdata,"Y+")
+      else
+        push!(newdata,"Y-")
+      end
+    elseif basis[j] == "Z"
+      if datapoint[j] == 0
+        push!(newdata,"Z+")
+      else
+        push!(newdata,"Z-")
+      end
+    end
+  end
+  return newdata
+end 
 
 """
 Append a layer of Hadamard gates
