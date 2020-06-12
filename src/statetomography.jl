@@ -322,35 +322,31 @@ end
 """
 Run QST
 """
-function statetomography!(model::Union{MPS,MPO},
-                          opt::Optimizer;
-                          samples::Array,
-                          bases::Array,
-                          batchsize::Int64=500,
-                          epochs::Int64=10000,
-                          target::MPS,
-                          localnorm::Bool=false)
+function statetomography(model::Union{MPS,MPO},
+                         opt::Optimizer;
+                         data::Array,
+                         batchsize::Int64=500,
+                         epochs::Int64=10000,
+                         target::MPS,
+                         localnorm::Bool=false)
   for j in 1:length(model)
     replaceind!(target[j],firstind(target[j],"Site"),firstind(model[j],"Site"))
   end
-  num_batches = Int(floor(size(samples)[1]/batchsize))
+  num_batches = Int(floor(size(data)[1]/batchsize))
   
   for ep in 1:epochs
-    permut = shuffle(1:size(samples)[1])
-    samples = samples[permut,:]
-    bases   = bases[permut,:]
+    data = data[shuffle(1:end),:]
     
     avg_loss = 0.0
     for b in 1:num_batches
-      batch_samples = samples[(b-1)*batchsize+1:b*batchsize,:]
-      batch_bases   = bases[(b-1)*batchsize+1:b*batchsize,:]
+      batch = data[(b-1)*batchsize+1:b*batchsize,:]
       
       if localnorm == true
         model_norm = copy(model)
         logZ,localnorms = lognormalize!(model_norm) 
-        grads,loss = gradients(model_norm,batch_samples,batch_bases,localnorm=localnorms)
+        grads,loss = gradients(model_norm,batch,localnorm=localnorms)
       else
-        grads,loss = gradients(model,batch_samples,batch_bases)
+        grads,loss = gradients(model,batch)
       end
       avg_loss += loss/Float64(num_batches)
       update!(model,grads,opt)
@@ -487,53 +483,4 @@ end
 #  end
 #  return loss
 #end
-
-
-
-
-
-""" OLD """
-
-#"""
-#Negative log likelihood for MPS
-#"""
-#function nll(psi::MPS,data::Array,bases::Array)
-#  N = length(psi)
-#  loss = 0.0
-#  s = siteinds(psi)
-#  for n in 1:size(data)[1]
-#    x = data[n,:]
-#    x .+= 1
-#    basis = bases[n,:]
-#    
-#    if (basis[1] == "Z")
-#      psix = dag(psi[1]) * setelt(s[1]=>x[1])
-#    else
-#      rotation = makegate(psi,"m$(basis[1])",1)
-#      psi_r = dag(psi[1]) * dag(rotation)
-#      psix = noprime!(psi_r) * setelt(s[1]=>x[1])
-#    end
-#    for j in 2:N-1
-#      if (basis[j] == "Z")
-#        psix = psix * dag(psi[j]) * setelt(s[j]=>x[j])
-#      else
-#        rotation = makegate(psi,"m$(basis[j])",j)
-#        psi_r = dag(psi[j]) * dag(rotation)
-#        psix = psix * noprime!(psi_r) * setelt(s[j]=>x[j])
-#      end
-#    end
-#    if (basis[N] == "Z")
-#      psix = (psix * dag(psi[N]) * setelt(s[N]=>x[N]))[]
-#    else
-#      rotation = makegate(psi,"m$(basis[N])",N)
-#      psi_r = dag(psi[N]) * dag(rotation)
-#      psix = (psix * noprime!(psi_r) * setelt(s[N]=>x[N]))[]
-#    end
-#    prob = abs2(psix)
-#    loss -= log(prob)/size(data)[1]
-#  end
-#  return loss
-#end
-
-
 

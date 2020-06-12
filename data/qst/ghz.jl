@@ -30,19 +30,12 @@ psi = MPS(M)
 
 nshots = 50000
 bases = generatemeasurementsettings(N,nshots,bases_id=["X","Y","Z"])
-samples = Matrix{Int64}(undef, nshots, N)
 
-for n in 1:nshots
-  meas_gates = makemeasurementgates(bases[n,:])
-  meas_tensors = compilecircuit(psi,meas_gates)
-  psi_out = runcircuit(psi,meas_tensors)
-  samples[n,:] = measure(psi_out,1)
-end
+data = generatedata(psi,nshots,bases)
 
 output_path = "data_ghz_N$(N).h5"
 h5open(output_path, "w") do file
-  write(file,"samples",samples)
-  write(file,"bases",bases)
+  write(file,"data",data)
   write(file,"psi",psi)
 end
 

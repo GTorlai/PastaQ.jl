@@ -66,7 +66,7 @@ export
   gradients,
   fidelity,
   getdensityoperator,
-  statetomography!,
+  statetomography,
 
 # optimizers/
   Optimizer,
