@@ -161,7 +161,7 @@ function gradnll(psi::MPS,data::Array,bases::Array;localnorm=nothing)
 
   gradients = [ITensor(ElT, inds(psi[j])) for j in 1:N]
 
-  #grads = [ITensor(ElT, undef, inds(psi[j])) for j in 1:N]
+  grads = [ITensor(ElT, undef, inds(psi[j])) for j in 1:N]
 
   # Projection vectors
   vs = [ITensor(ElT, undef, s[j]) for j in 1:N]
@@ -232,8 +232,8 @@ function gradnll(psi::MPS,data::Array,bases::Array;localnorm=nothing)
       proj = complex(setelt(s[1]=>x[1]))'
       vs[1] .= rotation .* proj
     end
-    grad = R[2] * vs[1]
-    gradients[1] += grad / (localnorm[1] * psix)
+    grads[1] .= vs[1] .* R[2]
+    gradients[1] .+= grads[1] ./ (localnorm[1] * psix)
     for j in 2:N-1
       if (basis[j] == "Z")
         vs[j] .= complex(setelt(s[j]=>x[j]))
@@ -242,8 +242,9 @@ function gradnll(psi::MPS,data::Array,bases::Array;localnorm=nothing)
         proj = complex(setelt(s[j]=>x[j]))'
         vs[j] .= rotation .* proj
       end
-      grad = L[j-1] * vs[j] * R[j+1]
-      gradients[j] += grad / (localnorm[j] * psix)
+      Rpsi[j] .= L[j-1] .* vs[j]
+      grads[j] .= Rpsi[j] .* R[j+1]
+      gradients[j] .+= grads[j] ./ (localnorm[j] * psix)
     end
     if (basis[N] == "Z")
       vs[N] .= complex(setelt(s[N]=>x[N]))
@@ -252,8 +253,8 @@ function gradnll(psi::MPS,data::Array,bases::Array;localnorm=nothing)
       proj = complex(setelt(s[N]=>x[N]))'
       vs[N] .= rotation .* proj
     end
-    grad = L[N-1] * vs[N]
-    gradients[N] += grad / (localnorm[N] * psix)
+    grads[N] .= L[N-1] .* vs[N]
+    gradients[N] .+= grads[N] ./ (localnorm[N] * psix)
   end
   for g in gradients
     g .= -2/size(data)[1] .* g
