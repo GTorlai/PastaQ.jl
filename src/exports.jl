@@ -49,6 +49,8 @@ export
   generatemeasurementsettings,
   generatepreparationsettings,
   measure,
+  generatedata,
+  convertdata,
   hadamardlayer!,
   rand1Qrotationlayer!,
   Cxlayer!,
