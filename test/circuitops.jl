@@ -224,6 +224,106 @@ end
   @test array(psi[1]) ≈ [0.,exp(im*π/4)]
 end
 
+@testset "apply gate: Rx" begin
+  θ = π * rand()
+  psi = qubits(1)
+  applygate!(psi,"Rx",1,θ=θ)
+  @test array(psi[1]) ≈ [cos(θ/2.),-im*sin(θ/2.)]
+  psi = qubits(1)
+  applygate!(psi,"X",1)
+  applygate!(psi,"Rx",1,θ=θ)
+  @test array(psi[1]) ≈ [-im*sin(θ/2.),cos(θ/2.)]
+
+  θ = π * rand()
+  psi = qubits(1)
+  gate_data = (gate = "Rx",site=1,params=(θ=θ,))
+  gate = makegate(psi,gate_data)
+  applygate!(psi,gate)
+  @test array(psi[1]) ≈ [cos(θ/2.),-im*sin(θ/2.)]
+  psi = qubits(1)
+  applygate!(psi,"X",1)
+  gate_data = (gate = "Rx",site=1,params=(θ=θ,))
+  gate = makegate(psi,gate_data)
+  applygate!(psi,gate)
+  @test array(psi[1]) ≈ [-im*sin(θ/2.),cos(θ/2.)]
+end
+
+@testset "apply gate: Ry" begin
+  θ = π * rand()
+  psi = qubits(1)
+  applygate!(psi,"Ry",1,θ=θ)
+  @test array(psi[1]) ≈ [cos(θ/2.),sin(θ/2.)]
+  psi = qubits(1)
+  applygate!(psi,"X",1)
+  applygate!(psi,"Ry",1,θ=θ)
+  @test array(psi[1]) ≈ [-sin(θ/2.),cos(θ/2.)]
+
+  θ = π * rand()
+  psi = qubits(1)
+  gate_data = (gate = "Ry",site=1,params=(θ=θ,))
+  gate = makegate(psi,gate_data)
+  applygate!(psi,gate)
+  @test array(psi[1]) ≈ [cos(θ/2.),sin(θ/2.)]
+  psi = qubits(1)
+  applygate!(psi,"X",1)
+  gate_data = (gate = "Ry",site=1,params=(θ=θ,))
+  gate = makegate(psi,gate_data)
+  applygate!(psi,gate)
+  @test array(psi[1]) ≈ [-sin(θ/2.),cos(θ/2.)]
+
+end
+
+@testset "apply gate: Rz" begin
+  ϕ = 2π * rand()
+  psi = qubits(1)
+  applygate!(psi,"Rz",1,ϕ=ϕ)
+  @test array(psi[1]) ≈ [exp(-im*ϕ/2.), 0.]
+  psi = qubits(1)
+  applygate!(psi,"X",1)
+  applygate!(psi,"Rz",1,ϕ=ϕ)
+  @test array(psi[1]) ≈ [0.,exp(im*ϕ/2.)]
+  
+  ϕ = 2π * rand()
+  psi = qubits(1)
+  gate_data = (gate = "Rz",site=1,params=(ϕ=ϕ,))
+  gate=makegate(psi,gate_data)
+  applygate!(psi,gate)
+  @test array(psi[1]) ≈ [exp(-im*ϕ/2.), 0.]
+  psi = qubits(1)
+  applygate!(psi,"X",1)
+  gate_data = (gate = "Rz",site=1,params=(ϕ=ϕ,))
+  gate=makegate(psi,gate_data)
+  applygate!(psi,gate)
+  @test array(psi[1]) ≈ [0.,exp(im*ϕ/2.)]
+end
+
+@testset "apply gate: Rn" begin
+  angles = rand(3)
+  θ = π * angles[1]
+  ϕ = 2π * angles[2]
+  λ = 2π * angles[3]
+  psi = qubits(1)
+  applygate!(psi,"Rn",1,θ=θ,ϕ=ϕ,λ=λ)
+  @test array(psi[1]) ≈ [cos(θ/2.),exp(im*ϕ) * sin(θ/2.)]
+  psi = qubits(1)
+  applygate!(psi,"X",1)
+  applygate!(psi,"Rn",1,θ=θ,ϕ=ϕ,λ=λ)
+  @test array(psi[1]) ≈ [-exp(im*λ) * sin(θ/2.),exp(im*(ϕ+λ)) * cos(θ/2.)]
+
+  psi = qubits(1)
+  gate_data = (gate = "Rn",site=1,params=(θ=θ,ϕ=ϕ,λ=λ))
+  gate=makegate(psi,gate_data)
+  applygate!(psi,gate)
+  @test array(psi[1]) ≈ [cos(θ/2.),exp(im*ϕ) * sin(θ/2.)]
+  psi = qubits(1)
+  applygate!(psi,"X",1)
+  gate_data = (gate = "Rn",site=1,params=(θ=θ,ϕ=ϕ,λ=λ))
+  gate=makegate(psi,gate_data)
+  applygate!(psi,gate)
+  @test array(psi[1]) ≈ [-exp(im*λ) * sin(θ/2.),exp(im*(ϕ+λ)) * cos(θ/2.)]
+
+end
+
 
 @testset "apply gate: prep X+" begin
   psi = qubits(1)
@@ -379,105 +479,7 @@ end
   @test fullvector(psi) ≈ [0.,1.]
 end
 
-@testset "apply gate: Rx" begin
-  θ = π * rand()
-  psi = qubits(1)
-  applygate!(psi,"Rx",1,θ=θ)
-  @test array(psi[1]) ≈ [cos(θ/2.),-im*sin(θ/2.)]
-  psi = qubits(1)
-  applygate!(psi,"X",1)
-  applygate!(psi,"Rx",1,θ=θ)
-  @test array(psi[1]) ≈ [-im*sin(θ/2.),cos(θ/2.)]
 
-  θ = π * rand()
-  psi = qubits(1)
-  gate_data = (gate = "Rx",site=1,params=(θ=θ,))
-  gate = makegate(psi,gate_data)
-  applygate!(psi,gate)
-  @test array(psi[1]) ≈ [cos(θ/2.),-im*sin(θ/2.)]
-  psi = qubits(1)
-  applygate!(psi,"X",1)
-  gate_data = (gate = "Rx",site=1,params=(θ=θ,))
-  gate = makegate(psi,gate_data)
-  applygate!(psi,gate)
-  @test array(psi[1]) ≈ [-im*sin(θ/2.),cos(θ/2.)]
-end
-
-@testset "apply gate: Ry" begin
-  θ = π * rand()
-  psi = qubits(1)
-  applygate!(psi,"Ry",1,θ=θ)
-  @test array(psi[1]) ≈ [cos(θ/2.),sin(θ/2.)]
-  psi = qubits(1)
-  applygate!(psi,"X",1)
-  applygate!(psi,"Ry",1,θ=θ)
-  @test array(psi[1]) ≈ [-sin(θ/2.),cos(θ/2.)]
-
-  θ = π * rand()
-  psi = qubits(1)
-  gate_data = (gate = "Ry",site=1,params=(θ=θ,))
-  gate = makegate(psi,gate_data)
-  applygate!(psi,gate)
-  @test array(psi[1]) ≈ [cos(θ/2.),sin(θ/2.)]
-  psi = qubits(1)
-  applygate!(psi,"X",1)
-  gate_data = (gate = "Ry",site=1,params=(θ=θ,))
-  gate = makegate(psi,gate_data)
-  applygate!(psi,gate)
-  @test array(psi[1]) ≈ [-sin(θ/2.),cos(θ/2.)]
-
-end
-
-@testset "apply gate: Rz" begin
-  ϕ = 2π * rand()
-  psi = qubits(1)
-  applygate!(psi,"Rz",1,ϕ=ϕ)
-  @test array(psi[1]) ≈ [exp(-im*ϕ/2.), 0.]
-  psi = qubits(1)
-  applygate!(psi,"X",1)
-  applygate!(psi,"Rz",1,ϕ=ϕ)
-  @test array(psi[1]) ≈ [0.,exp(im*ϕ/2.)]
-  
-  ϕ = 2π * rand()
-  psi = qubits(1)
-  gate_data = (gate = "Rz",site=1,params=(ϕ=ϕ,))
-  gate=makegate(psi,gate_data)
-  applygate!(psi,gate)
-  @test array(psi[1]) ≈ [exp(-im*ϕ/2.), 0.]
-  psi = qubits(1)
-  applygate!(psi,"X",1)
-  gate_data = (gate = "Rz",site=1,params=(ϕ=ϕ,))
-  gate=makegate(psi,gate_data)
-  applygate!(psi,gate)
-  @test array(psi[1]) ≈ [0.,exp(im*ϕ/2.)]
-end
-
-@testset "apply gate: Rn" begin
-  angles = rand(3)
-  θ = π * angles[1]
-  ϕ = 2π * angles[2]
-  λ = 2π * angles[3]
-  psi = qubits(1)
-  applygate!(psi,"Rn",1,θ=θ,ϕ=ϕ,λ=λ)
-  @test array(psi[1]) ≈ [cos(θ/2.),exp(im*ϕ) * sin(θ/2.)]
-  psi = qubits(1)
-  applygate!(psi,"X",1)
-  applygate!(psi,"Rn",1,θ=θ,ϕ=ϕ,λ=λ)
-  @test array(psi[1]) ≈ [-exp(im*λ) * sin(θ/2.),exp(im*(ϕ+λ)) * cos(θ/2.)]
-
-  psi = qubits(1)
-  gate_data = (gate = "Rn",site=1,params=(θ=θ,ϕ=ϕ,λ=λ))
-  gate=makegate(psi,gate_data)
-  applygate!(psi,gate)
-  @test array(psi[1]) ≈ [cos(θ/2.),exp(im*ϕ) * sin(θ/2.)]
-  psi = qubits(1)
-  applygate!(psi,"X",1)
-  gate_data = (gate = "Rn",site=1,params=(θ=θ,ϕ=ϕ,λ=λ))
-  gate=makegate(psi,gate_data)
-  applygate!(psi,gate)
-  @test array(psi[1]) ≈ [-exp(im*λ) * sin(θ/2.),exp(im*(ϕ+λ)) * cos(θ/2.)]
-
-end
 
 @testset "apply gate: Cx" begin
   # CONTROL - TARGET

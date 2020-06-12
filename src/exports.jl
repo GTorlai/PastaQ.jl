@@ -27,7 +27,8 @@ export
   meas_Z,
   quantumgates,
   quantumgate,
-
+  measprojections,
+  measproj,
 # circuitops.jl
   # Methods
   getsitenumber,

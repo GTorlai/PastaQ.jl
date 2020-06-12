@@ -51,7 +51,69 @@ using LinearAlgebra
   ggdag = g * prime(dag(g),plev=1,1)
   @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
    
+  g = quantumgate("pX+",i) 
+  @test plev(inds(g)[1]) == 1 
+  @test plev(inds(g)[2]) == 0 
+  ggdag = g * prime(dag(g),plev=1,1)
+  @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
   θ = π * rand()
+  
+  g = quantumgate("pX-",i) 
+  @test plev(inds(g)[1]) == 1 
+  @test plev(inds(g)[2]) == 0 
+  ggdag = g * prime(dag(g),plev=1,1)
+  @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
+  θ = π * rand()
+  
+  g = quantumgate("pY+",i) 
+  @test plev(inds(g)[1]) == 1 
+  @test plev(inds(g)[2]) == 0 
+  ggdag = g * prime(dag(g),plev=1,1)
+  @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
+  θ = π * rand()
+  
+  g = quantumgate("pY-",i) 
+  @test plev(inds(g)[1]) == 1 
+  @test plev(inds(g)[2]) == 0 
+  ggdag = g * prime(dag(g),plev=1,1)
+  @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
+  θ = π * rand()
+  
+  g = quantumgate("pZ+",i) 
+  @test plev(inds(g)[1]) == 1 
+  @test plev(inds(g)[2]) == 0 
+  ggdag = g * prime(dag(g),plev=1,1)
+  @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
+  θ = π * rand()
+  
+  g = quantumgate("pZ-",i) 
+  @test plev(inds(g)[1]) == 1 
+  @test plev(inds(g)[2]) == 0 
+  ggdag = g * prime(dag(g),plev=1,1)
+  @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
+  θ = π * rand()
+  
+  g = quantumgate("mX",i) 
+  @test plev(inds(g)[1]) == 1 
+  @test plev(inds(g)[2]) == 0 
+  ggdag = g * prime(dag(g),plev=1,1)
+  @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
+  θ = π * rand()
+  
+  g = quantumgate("mY",i) 
+  @test plev(inds(g)[1]) == 1 
+  @test plev(inds(g)[2]) == 0 
+  ggdag = g * prime(dag(g),plev=1,1)
+  @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
+  θ = π * rand()
+  
+  g = quantumgate("mZ",i) 
+  @test plev(inds(g)[1]) == 1 
+  @test plev(inds(g)[2]) == 0 
+  ggdag = g * prime(dag(g),plev=1,1)
+  @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
+  θ = π * rand()
+  
   g = quantumgate("Rx",i,θ=θ)
   @test plev(inds(g)[1]) == 1 
   @test plev(inds(g)[2]) == 0 

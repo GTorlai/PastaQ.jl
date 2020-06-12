@@ -102,55 +102,55 @@ function gate_Cz()
           0 0 1 0;
           0 0 0 -1]
 end
-#
-## State preparation: |0> -> |+>
-#function prep_Xp(i::Index)
-#  return gate_H(i)
-#end
-#
-## State preparation: |0> -> |->
-#function prep_Xm(i::Index)
-#  return itensor([ inv_sqrt2  inv_sqrt2;
-#                  -inv_sqrt2  inv_sqrt2],i',i)
-#end
-#
-## State preparation: |0> -> |r>
-#function prep_Yp(i::Index)
-#  return itensor([inv_sqrt2+0.0im   inv_sqrt2+0.0im;
-#                  inv_sqrt2*im     -inv_sqrt2*im],i',i)
-#end
-#
-## State preparation: |0> -> |l>
-#function prep_Ym(i::Index)
-#  return itensor([ inv_sqrt2+0.0im  inv_sqrt2+0.0im;
-#                  -inv_sqrt2*im     inv_sqrt2*im],i',i)
-#end
-#
-## State preparation: |0> -> |0>
-#function prep_Zp(i::Index)
-#  return gate_I(i)
-#end
-#
-## State preparation: |0> -> |1>
-#function prep_Zm(i::Index)
-#  return gate_X(i)
-#end
-#
-## Measurement rotation: |sX> -> |sZ>
-#function meas_X(i::Index)
-#  return gate_H(i)
-#end
-#
-## Measurement rotation: |sY> -> |sZ>
-#function meas_Y(i::Index)
-#  return itensor([inv_sqrt2+0.0im -inv_sqrt2*im;
-#                  inv_sqrt2+0.0im  inv_sqrt2*im],i',i)
-#end
-#
-## Measurement rotation: |sZ> -> |sZ>
-#function meas_Z(i::Index)
-#  return gate_I(i)
-#end
+
+# State preparation: |0> -> |+>
+function prep_Xp()
+  return gate_H()
+end
+
+# State preparation: |0> -> |->
+function prep_Xm()
+  return [ inv_sqrt2  inv_sqrt2;
+          -inv_sqrt2  inv_sqrt2]
+end
+
+# State preparation: |0> -> |r>
+function prep_Yp()
+  return [inv_sqrt2+0.0im   inv_sqrt2+0.0im;
+          inv_sqrt2*im     -inv_sqrt2*im]
+end
+
+# State preparation: |0> -> |l>
+function prep_Ym()
+  return [ inv_sqrt2+0.0im  inv_sqrt2+0.0im;
+          -inv_sqrt2*im     inv_sqrt2*im]
+end
+
+# State preparation: |0> -> |0>
+function prep_Zp()
+  return gate_I()
+end
+
+# State preparation: |0> -> |1>
+function prep_Zm()
+  return gate_X()
+end
+
+# Measurement rotation: |sX> -> |sZ>
+function meas_X()
+  return gate_H()
+end
+
+# Measurement rotation: |sY> -> |sZ>
+function meas_Y()
+  return [inv_sqrt2+0.0im -inv_sqrt2*im;
+          inv_sqrt2+0.0im  inv_sqrt2*im]
+end
+
+# Measurement rotation: |sZ> -> |sZ>
+function meas_Z()
+  return gate_I()
+end
 
 # A global dictionary of gate functions
 quantumgates = Dict()
@@ -172,16 +172,16 @@ quantumgates["Cx"] = gate_Cx
 quantumgates["Cy"] = gate_Cy
 quantumgates["Cz"] = gate_Cz
 
-#quantumgates["pX+"] = prep_Xp
-#quantumgates["pX-"] = prep_Xm
-#quantumgates["pY+"] = prep_Yp
-#quantumgates["pY-"] = prep_Ym
-#quantumgates["pZ+"] = prep_Zp
-#quantumgates["pZ-"] = prep_Zm
-#
-#quantumgates["mX"] = meas_X
-#quantumgates["mY"] = meas_Y
-#quantumgates["mZ"] = meas_Z
+quantumgates["pX+"] = prep_Xp
+quantumgates["pX-"] = prep_Xm
+quantumgates["pY+"] = prep_Yp
+quantumgates["pY-"] = prep_Ym
+quantumgates["pZ+"] = prep_Zp
+quantumgates["pZ-"] = prep_Zm
+
+quantumgates["mX"] = meas_X
+quantumgates["mY"] = meas_Y
+quantumgates["mZ"] = meas_Z
 
 """
     quantumgate(gate_id::String,
@@ -208,3 +208,31 @@ function quantumgate(gate_id::String,
   end
   return itensor(quantumgates[gate_id](; kwargs...), is'..., is...)
 end
+
+measprojections = Dict()
+measprojections["X+"] = complex([inv_sqrt2;inv_sqrt2]) 
+measprojections["X-"] = complex([inv_sqrt2;-inv_sqrt2])
+measprojections["Y+"] = complex([inv_sqrt2;im*inv_sqrt2])
+measprojections["Y-"] = complex([inv_sqrt2;-im*inv_sqrt2])
+measprojections["Z+"] = complex([1;0])
+measprojections["Z-"] = complex([0;1])
+
+
+function measproj(proj_id::String,
+                  site_ind::Index)
+  # Note: the dag is to take into account that object
+  # we are projecting into is a bra
+  return dag(itensor(measprojections[proj_id], site_ind'))
+end
+
+
+
+
+
+
+
+
+
+
+
+
