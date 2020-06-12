@@ -27,7 +27,8 @@ export
   meas_Z,
   quantumgates,
   quantumgate,
-
+  measprojections,
+  measproj,
 # circuitops.jl
   # Methods
   getsitenumber,
@@ -68,6 +69,7 @@ export
 # optimizers/
   Optimizer,
   Sgd,
+  Momentum,
   # Methods
   update!,
 

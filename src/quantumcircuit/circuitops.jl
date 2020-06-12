@@ -105,24 +105,27 @@ function applygate!(M::MPS,
   blob = M[site[1]] * M[site[2]]
   blob = gate * blob
   noprime!(blob)
+  U,S,V = svd(blob,inds(M[site[1]]),cutoff=cutoff)
+  M[site[1]] = U
+  M[site[2]] = S*V
   
-  if site[1]==1
-    row_ind = firstind(blob,tags="n=$(site[1])")
-    U,S,V = svd(blob,row_ind,cutoff=cutoff)
-    M[site[1]] = U*S
-    M[site[2]] = V
-  elseif site[1] == length(M)-1
-    row_ind = firstind(blob,tags="n=$(site[2])")
-    U,S,V = svd(blob,row_ind,cutoff=cutoff)
-    M[site[1]] = V
-    M[site[2]] = U*S
-  else
-    row_ind = (commonind(M[site[1]],M[site[1]-1]),
-               firstind(blob,tags="n=$(site[1])"))
-    U,S,V = svd(blob,row_ind,cutoff=cutoff)
-    M[site[1]] = U*S
-    M[site[2]] = V
-  end
+  #if site[1]==1
+  #  row_ind = firstind(blob,tags="n=$(site[1])")
+  #  U,S,V = svd(blob,row_ind,cutoff=cutoff)
+  #  M[site[1]] = U*S
+  #  M[site[2]] = V
+  #elseif site[1] == length(M)-1
+  #  row_ind = firstind(blob,tags="n=$(site[2])")
+  #  U,S,V = svd(blob,row_ind,cutoff=cutoff)
+  #  M[site[1]] = V
+  #  M[site[2]] = U*S
+  #else
+  #  row_ind = (commonind(M[site[1]],M[site[1]-1]),
+  #             firstind(blob,tags="n=$(site[1])"))
+  #  U,S,V = svd(blob,row_ind,cutoff=cutoff)
+  #  M[site[1]] = U*S
+  #  M[site[2]] = V
+  #end
 end
 
 # Apply 1Q gate using a pre-generated gate tensor
@@ -149,23 +152,26 @@ function applygate!(M::MPS, gate::ITensor{4}; cutoff = 1e-10)
   blob = M[s1] * M[s2]
   blob = gate * blob
   noprime!(blob)
-  if s1==1
-    row_ind = firstind(blob,tags="n=$s1")
-    U,S,V = svd(blob,row_ind,cutoff=cutoff)
-    M[s1] = U*S
-    M[s2] = V
-  elseif s1 == length(M)-1
-    row_ind = firstind(blob,tags="n=$s2")
-    U,S,V = svd(blob,row_ind,cutoff=cutoff)
-    M[s1] = V
-    M[s2] = U*S
-  else
-    row_ind = (commonind(M[s1],M[s1-1]),
-               firstind(blob,tags="n=$s1"))
-    U,S,V = svd(blob,row_ind,cutoff=cutoff)
-    M[s1] = U*S
-    M[s2] = V
-  end
+  U,S,V = svd(blob,inds(M[s1]),cutoff=cutoff)
+  M[s1] = U
+  M[s2] = S*V
+  #if s1==1
+  #  row_ind = firstind(blob,tags="n=$s1")
+  #  U,S,V = svd(blob,row_ind,cutoff=cutoff)
+  #  M[s1] = U*S
+  #  M[s2] = V
+  #elseif s1 == length(M)-1
+  #  row_ind = firstind(blob,tags="n=$s2")
+  #  U,S,V = svd(blob,row_ind,cutoff=cutoff)
+  #  M[s1] = V
+  #  M[s2] = U*S
+  #else
+  #  row_ind = (commonind(M[s1],M[s1-1]),
+  #             firstind(blob,tags="n=$s1"))
+  #  U,S,V = svd(blob,row_ind,cutoff=cutoff)
+  #  M[s1] = U*S
+  #  M[s2] = V
+  #end
 end
 
 # Retrieve the qubit number from a site index

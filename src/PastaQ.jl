@@ -13,5 +13,6 @@ include("quantumcircuit/quantumgates.jl")
 include("quantumcircuit/circuitops.jl")
 include("quantumcircuit/quantumcircuit.jl")
 include("optimizers/sgd.jl")
+include("optimizers/momentum.jl")
 include("statetomography.jl")
 end # module
