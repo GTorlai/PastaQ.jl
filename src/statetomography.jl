@@ -427,7 +427,7 @@ function fidelity(lpdo::MPO,target::MPS)
   lpdo_eval = copy(lpdo)
   lognormalize!(lpdo_eval)
   @assert norm(lpdo_eval) ≈ 1
-  A = lpdo_eval * target
+  A = *(lpdo_eval,target,method="naive")
   fidelity = abs(inner(A,A))
   return fidelity
 end
