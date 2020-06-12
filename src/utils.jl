@@ -40,7 +40,7 @@ function fullmatrix(tensor::ITensor;order="reverse")
     return array(tensor)
   else
     indices = inds(tensor,plev=0)
-    if order == "native"
+    if order == "reverse"
       Cb = combiner(prime(indices[N]),prime(indices[N-1]),tags="bra")
       Ck = combiner(indices[N],indices[N-1],tags="ket")
       matrix = tensor * Cb * Ck
@@ -49,7 +49,7 @@ function fullmatrix(tensor::ITensor;order="reverse")
         Ck = combiner(firstind(matrix,tags="ket"),indices[j])
         matrix = tensor * Cb * Ck
       end
-    elseif order == "reverse"
+    elseif order == "native"
       Cb = combiner(prime(indices[1]),prime(indices[2]),tags="bra")
       Ck = combiner(indices[1],indices[2],tags="ket")
       matrix = tensor * Cb * Ck

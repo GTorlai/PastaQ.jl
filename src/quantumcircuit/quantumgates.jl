@@ -81,18 +81,18 @@ end
 # Controlled-X
 function gate_Cx()
   return [1 0 0 0;
-          0 1 0 0;
           0 0 0 1;
-          0 0 1 0]
+          0 0 1 0;
+          0 1 0 0]
   #return itensor(gate,i',j',i,j)
 end
 
 # Controlled-Y
 function gate_Cy()
   return [1 0 0 0;
-          0 1 0 0;
           0 0 0 -im;
-          0 0 im 0]
+          0 0 1 0;
+          0 im 0 0]
 end
 
 # Controlled-Z
@@ -201,11 +201,11 @@ function quantumgate(gate_id::String,
                      reverse_order=true,
                      kwargs...)
 
-  if reverse_order
-    is = IndexSet(reverse(site_inds)...)
-  else
-    is = IndexSet(site_inds...)
-  end
+  #if reverse_order
+  #  is = IndexSet(reverse(site_inds)...)
+  #else
+  is = IndexSet(site_inds...)
+  #end
   return itensor(quantumgates[gate_id](; kwargs...), is'..., is...)
 end
 
