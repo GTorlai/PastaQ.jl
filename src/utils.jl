@@ -34,36 +34,6 @@ function fullvector(mps::MPS;order="reverse")
   end
 end
 
-function fullmatrix(tensor::ITensor;order="reverse")
-  N = Int(length(inds(tensor))/2)
-  if ( N == 1)
-    return array(tensor)
-  else
-    indices = inds(tensor,plev=0)
-    if order == "reverse"
-      Cb = combiner(prime(indices[N]),prime(indices[N-1]),tags="bra")
-      Ck = combiner(indices[N],indices[N-1],tags="ket")
-      matrix = tensor * Cb * Ck
-      for j in reverse(1:N-2)
-        Cb = combiner(firstind(matrix,tags="bra"),prime(indices[j]))
-        Ck = combiner(firstind(matrix,tags="ket"),indices[j])
-        matrix = tensor * Cb * Ck
-      end
-    elseif order == "native"
-      Cb = combiner(prime(indices[1]),prime(indices[2]),tags="bra")
-      Ck = combiner(indices[1],indices[2],tags="ket")
-      matrix = tensor * Cb * Ck
-      for j in 3:N
-        Cb = combiner(firstind(matrix,tags="bra"),prime(indices[j]))
-        Ck = combiner(firstind(matrix,tags="ket"),indices[j])
-        matrix = tensor * Cb * Ck
-      end
-    end
-    return array(matrix)
-  end
-end
-
-
 function fullmatrix(mpo::MPO;order="reverse")
   if length(mpo) == 1
     return array(mpo[1])
@@ -94,3 +64,34 @@ function fullmatrix(mpo::MPO;order="reverse")
     return array(matrix)
   end
 end
+
+#function fullmatrix(tensor::ITensor;order="reverse")
+#  N = Int(length(inds(tensor))/2)
+#  if ( N == 1)
+#    return array(tensor)
+#  else
+#    indices = inds(tensor,plev=0)
+#    if order == "reverse"
+#      Cb = combiner(prime(indices[N]),prime(indices[N-1]),tags="bra")
+#      Ck = combiner(indices[N],indices[N-1],tags="ket")
+#      matrix = tensor * Cb * Ck
+#      for j in reverse(1:N-2)
+#        Cb = combiner(firstind(matrix,tags="bra"),prime(indices[j]))
+#        Ck = combiner(firstind(matrix,tags="ket"),indices[j])
+#        matrix = tensor * Cb * Ck
+#      end
+#    elseif order == "native"
+#      Cb = combiner(prime(indices[1]),prime(indices[2]),tags="bra")
+#      Ck = combiner(indices[1],indices[2],tags="ket")
+#      matrix = tensor * Cb * Ck
+#      for j in 3:N
+#        Cb = combiner(firstind(matrix,tags="bra"),prime(indices[j]))
+#        Ck = combiner(firstind(matrix,tags="ket"),indices[j])
+#        matrix = tensor * Cb * Ck
+#      end
+#    end
+#    return array(matrix)
+#  end
+#end
+
+

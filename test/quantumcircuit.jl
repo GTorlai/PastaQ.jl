@@ -6,7 +6,7 @@ using Test
 using LinearAlgebra
 
 function runcircuitFULL(N::Int,tensors::Array)
-  """ Assumes NN gates, and for 2q gates-> [q,q+1] """
+  """ Assumes NN gates, and for 2q gates-> [q+1,q] """
   ngates = length(tensors)
   id_mat = [1. 0.;0. 1.]
   U = 1.0
@@ -14,24 +14,25 @@ function runcircuitFULL(N::Int,tensors::Array)
     U = kron(U,id_mat)
   end
   for tensor in tensors
-    #loop_size = N+1-length(inds(tensor))÷2
     u = 1.0
     # 1q gate
     if (length(inds(tensor)) == 2)
       site = getsitenumber(firstind(tensor,"Site"))
       for j in 1:N
         if (j == site)
-          u = kron(u,fullmatrix(tensor))
+          #u = kron(u,fullmatrix(tensor))
+          u = kron(u,array(tensor))
         else
           u = kron(u,id_mat)
         end
       end
     #2q gate
     else
-      site = getsitenumber(inds(tensor,plev=1)[1])
+      site = getsitenumber(inds(tensor,plev=1)[2])
       for j in 1:N-1
         if (j == site)
-          u = kron(u,fullmatrix(tensor))
+          #u = kron(u,fullmatrix(tensor))
+          u = kron(u,reshape(array(tensor),(4,4)))
         else
           u = kron(u,id_mat)
         end
@@ -211,53 +212,132 @@ end
   @test prob ≈ data_prob atol=1e-2
 end
 
-#@testset "runcircuit: randomRnCx N=10" begin
-#  data = load("testdata/quantumcircuit_testunitary_randomRnCx.jld")
-#  N = data["N"]
-#  gate_list = data["gates"]
-#  exact_unitary = data["full_unitary"]
-#  exact_psi     = data["full_psi"]  
-#  psi = qubits(N)
-#  gates = compilecircuit(psi,gate_list)
-#  runcircuit!(psi,gates)
-#  @test exact_psi ≈ fullvector(psi,order="native")
-#end
+
+@testset "measurement projections" begin
+  N = 10
+  nshots = 20
+  psi = qubits(N)
+  bases = generatemeasurementsettings(N,nshots)
+  
+  depth = 8
+  gates = randomquantumcircuit(N,depth)
+  gates = randomquantumcircuit(N,depth)
+  tensors = compilecircuit(psi,gates)
+  runcircuit!(psi,tensors)
+  s = siteinds(psi)
+
+  for n in 1:nshots
+    basis = bases[n,:]
+    meas_gates = makemeasurementgates(basis)
+    meas_tensors = compilecircuit(psi,meas_gates)
+    psi_out = runcircuit(psi,meas_tensors)
+    x1 = measure(psi_out,1)
+    x1 .+= 1 
+    
+    if (basis[1] == "Z")
+      psi1 = psi_out[1] * setelt(s[1]=>x1[1])
+    else
+      rotation = makegate(psi_out,"m$(basis[1])",1)
+      psi_r = psi_out[1] * rotation
+      psi1 = noprime!(psi_r) * setelt(s[1]=>x1[1])
+    end
+    for j in 2:N-1
+      if (basis[j] == "Z")
+        psi1 = psi1 * psi_out[j] * setelt(s[j]=>x1[j])
+      else
+        rotation = makegate(psi_out,"m$(basis[j])",j)
+        psi_r = psi_out[j] * rotation
+        psi1 = psi1 * noprime!(psi_r) * setelt(s[j]=>x1[j])
+      end
+    end
+    if (basis[N] == "Z")
+      psi1 = (psi1 * psi_out[N] * setelt(s[N]=>x1[N]))[]
+    else
+      rotation = makegate(psi_out,"m$(basis[N])",N)
+      psi_r = psi_out[N] * rotation
+      psi1 = (psi1 * noprime!(psi_r) * setelt(s[N]=>x1[N]))[]
+    end
+    
+    # Change format of data
+    x2 = []
+    for j in 1:N
+      if basis[j] == "X"
+        if x1[j] == 1
+          push!(x2,"X+")
+        else
+          push!(x2,"X-")
+        end
+      elseif basis[j] == "Y"
+        if x1[j] == 1
+          push!(x2,"Y+")
+        else
+          push!(x2,"Y-")
+        end
+      elseif basis[j] == "Z"
+        if x1[j] == 1
+          push!(x2,"Z+")
+        else
+          push!(x2,"Z-")
+        end
+      end
+    end
+  
+    psi2 = psi_out[1] * dag(measproj(x2[1],s[1]))
+    for j in 2:N
+      psi_r = psi_out[j] * dag(measproj(x2[j],s[j]))
+      psi2 = psi2 * psi_r
+    end
+    psi2 = psi2[]
+    @test psi1 ≈ psi2
+
+    
+    if (basis[1] == "Z")
+      psi1 = dag(psi_out[1]) * setelt(s[1]=>x1[1])
+    else
+      rotation = makegate(psi_out,"m$(basis[1])",1)
+      psi_r = dag(psi_out[1]) * dag(rotation)
+      psi1 = noprime!(psi_r) * setelt(s[1]=>x1[1])
+    end
+    for j in 2:N-1
+      if (basis[j] == "Z")
+        psi1 = psi1 * dag(psi_out[j]) * setelt(s[j]=>x1[j])
+      else
+        rotation = makegate(psi_out,"m$(basis[j])",j)
+        psi_r = dag(psi_out[j]) * dag(rotation)
+        psi1 = psi1 * noprime!(psi_r) * setelt(s[j]=>x1[j])
+      end
+    end
+    if (basis[N] == "Z")
+      psi1 = (psi1 * dag(psi_out[N]) * setelt(s[N]=>x1[N]))[]
+    else
+      rotation = makegate(psi_out,"m$(basis[N])",N)
+      psi_r = dag(psi_out[N]) * dag(rotation)
+      psi1 = (psi1 * noprime!(psi_r) * setelt(s[N]=>x1[N]))[]
+    end
+  
+    psi2 = dag(psi_out[1]) * measproj(x2[1],s[1])
+    for j in 2:N
+      psi_r = dag(psi_out[j]) * measproj(x2[j],s[j])
+      psi2 = psi2 * psi_r
+    end
+    psi2 = psi2[]
+    @test psi1 ≈ psi2
+
+  end
+end
+
 #
-#@testset "runcircuit: hadamardlayer N=10" begin
-#  data = load("testdata/quantumcircuit_testunitary_hadamardlayer.jld")
-#  N = data["N"]
-#  gate_list = data["gates"]
-#  exact_unitary = data["full_unitary"]
-#  exact_psi     = data["full_psi"]  
-#  psi = qubits(N)
-#  gates = compilecircuit(psi,gate_list)
-#  runcircuit!(psi,gates)
-#  @test exact_psi ≈ fullvector(psi)
+#@testset "circuit initialization" begin
+#  N=5
+#  U = initializecircuit(N)
+#  @test length(U) == 5
+#  identity = itensor(reshape([1 0;0 1],(1,2,2)),inds(U[1]))
+#  @test U[1] ≈ identity
+#  for s in 2:N-1
+#    identity = itensor(reshape([1 0;0 1],(1,1,2,2)),inds(U[s]))
+#    @test U[s] ≈ identity
+#  end
+#  identity = itensor(reshape([1 0;0 1],(1,2,2)),inds(U[N]))
+#  @test U[N] ≈ identity
 #end
 
-#@testset "runcircuit: rand1Qrotationlayer N=10" begin
-#  data = load("testdata/quantumcircuit_testunitary_rand1Qrotationlayer.jld")
-#  N = data["N"]
-#  gate_list = data["gates"]
-#  exact_unitary = data["full_unitary"]
-#  exact_psi     = data["full_psi"]  
-#  psi = qubits(N)
-#  gates = compilecircuit(psi,gate_list)
-#  runcircuit!(psi,gates)
-#  @test exact_psi ≈ fullvector(psi,order="native")
-#end
-##
-##@testset "circuit initialization" begin
-##  N=5
-##  U = initializecircuit(N)
-##  @test length(U) == 5
-##  identity = itensor(reshape([1 0;0 1],(1,2,2)),inds(U[1]))
-##  @test U[1] ≈ identity
-##  for s in 2:N-1
-##    identity = itensor(reshape([1 0;0 1],(1,1,2,2)),inds(U[s]))
-##    @test U[s] ≈ identity
-##  end
-##  identity = itensor(reshape([1 0;0 1],(1,2,2)),inds(U[N]))
-##  @test U[N] ≈ identity
-##end
-#
