@@ -16,4 +16,5 @@ println("Training...")
                  batchsize=1000,
                  epochs=5,
                  target=target,
-                 localnorm=true)
+                 localnorm=true,
+                 globalnorm=false)

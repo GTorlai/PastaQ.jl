@@ -328,7 +328,11 @@ function statetomography(model::Union{MPS,MPO},
                          batchsize::Int64=500,
                          epochs::Int64=10000,
                          target::MPS,
-                         localnorm::Bool=false)
+                         localnorm::Bool=false,
+                         globalnorm::Bool=false)
+  if (localnorm && globnorm)
+    error("Both input norms are set to true")
+  end
   for j in 1:length(model)
     replaceind!(target[j],firstind(target[j],"Site"),firstind(model[j],"Site"))
   end
@@ -341,10 +345,13 @@ function statetomography(model::Union{MPS,MPO},
     for b in 1:num_batches
       batch = data[(b-1)*batchsize+1:b*batchsize,:]
       
-      if localnorm == true
+      if localnorm
         model_norm = copy(model)
         logZ,localnorms = lognormalize!(model_norm) 
         grads,loss = gradients(model_norm,batch,localnorm=localnorms)
+      elseif globalnorm
+        logZ,localnorms = lognormalize!(model)
+        grads,loss = gradients(model,batch)
       else
         grads,loss = gradients(model,batch)
       end
