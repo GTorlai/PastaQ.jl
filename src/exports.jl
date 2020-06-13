@@ -38,6 +38,7 @@ export
 # quantumcircuit.jl
   # Methods
   qubits,
+  circuit,
   resetqubits!,
   addgates!,
   compilecircuit,

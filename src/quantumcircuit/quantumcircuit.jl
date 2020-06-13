@@ -13,6 +13,14 @@ function resetqubits!(psi::MPS)
   psi = productMPS(sites, [1 for i in 1:length(sites)])
   return psi
 end
+
+function circuit(N::Int)
+  sites = [Index(2; tags="Site, n=$s") for s in 1:N]
+  U = MPO(sites, "Id")
+  return U
+end
+
+
 """----------------------------------------------
                   CIRCUIT FUNCTIONS 
 ------------------------------------------------- """
@@ -29,36 +37,36 @@ end
 """
 Compile the gates into tensors and return
 """
-function compilecircuit(mps::MPS,gates::Array)
-  tensors = []
+function compilecircuit(M::Union{MPS,MPO},gates::Array)
+  gate_tensors = []
   for gate in gates
-    push!(tensors,makegate(mps,gate))
+    push!(gate_tensors,makegate(M,gate))
   end
-  return tensors
+  return gate_tensors
 end
 
 """
 Compile news gates into existing tensors list 
 """
-function compilecircuit!(tensors::Array,mps::MPS,gates::Array)
+function compilecircuit!(gate_tensors::Array,M::Union{MPS,MPO},gates::Array)
   for gate in gates
-    push!(tensors,makegate(mps,gate))
+    push!(gate_tensors,makegate(M,gate))
   end
-  return tensors
+  return gate_tensors
 end
 
 """ Run the a quantum circuit without modifying input state
 """
-function runcircuit(mps::MPS,tensors::Array;cutoff=1e-10)
-  return runcircuit!(copy(mps),tensors;cutoff=cutoff)
+function runcircuit(M::Union{MPS,MPO},gate_tensors::Array;cutoff=1e-10)
+  return runcircuit!(copy(M),gate_tensors;cutoff=cutoff)
 end
 
 """ Run a quantum circuit on the input state"""
-function runcircuit!(mps::MPS,tensors::Array;cutoff=1e-10)
-  for gate in tensors
-    applygate!(mps,gate,cutoff=cutoff)
+function runcircuit!(M::Union{MPS,MPO},gate_tensors::Array;cutoff=1e-10)
+  for gate_tensor in gate_tensors
+    applygate!(M,gate_tensor,cutoff=cutoff)
   end
-  return mps
+  return M
 end
 
 """----------------------------------------------
