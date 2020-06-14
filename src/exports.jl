@@ -29,9 +29,12 @@ export
   quantumgate,
   measprojections,
   measproj,
+
 # circuitops.jl
   # Methods
   getsitenumber,
+  swap!,
+  unswap!,
   applygate!,
   makegate,
 
