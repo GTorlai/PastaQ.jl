@@ -70,28 +70,32 @@ function applygate!(M::MPO,gate::ITensor{2}; kwargs...)
   prime!(M[site],tags="Site",-1)
 end
 
-# Apply 2Q gate in the form ("Cx", [1,2])
-function applygate!(M::MPS,
-                   gate_id::String,
-                   site::Array;
-                   cutoff = 1e-10,
-                   kwargs...)
-  
-  # Check that the qubits are NN
-  # TODO remove and insert swap gates
-  @assert(abs(site[1]-site[2])==1)
-  
-  # Construct the gate tensor
-  gate = makegate(M,gate_id,site; kwargs...)
-  
-  orthogonalize!(M,site[1])
+function swap!(M::MPS,site1::Int,site2::Int,cutoff::Float64)
+  nswaps = abs(site1-site2)-1
+  if site1 > site2
+    start = site2
+  else
+    start = site1
+  end
+  for n in 1:nswaps
+    replacebond!(M,start+n-1,M[start+n-1]*M[start+n],swapsites=true,cutoff=cutoff)
+  end
+  newsite1 = start+nswaps
+  newsite2 = newsite1 + 1
+  return M,newsite1,newsite2 
+end
 
-  blob = M[site[1]] * M[site[2]]
-  blob = gate * blob
-  noprime!(blob)
-  U,S,V = svd(blob,inds(M[site[1]]),cutoff=cutoff)
-  M[site[1]] = U
-  M[site[2]] = S*V
+function unswap!(M::MPS,site1::Int,site2::Int,cutoff::Float64)
+  nswaps = abs(site1-site2)-1
+  if site1 > site2
+    start = site2
+  else
+    start = site1
+  end
+  for n in 1:nswaps
+    replacebond!(M,start+nswaps-n,M[start+nswaps-n+1]*M[start+nswaps-n],swapsites=true,cutoff=cutoff)
+  end
+  return M
 end
 
 # Apply 2Q gate using a pre-generated gate tensor
@@ -99,21 +103,23 @@ function applygate!(M::MPS, gate::ITensor{4}; cutoff = 1e-10)
   s1 = getsitenumber(inds(gate,plev=1)[1]) 
   s2 = getsitenumber(inds(gate,plev=1)[2]) 
   
-  if abs(s1-s2)!=1
-    #TODO  
-    # do swaps
-    nothing
+  if abs(s1-s2) != 1
+    M,site1,site2 = swap!(M,s1,s2,cutoff)
+  else
+    site1=s1
+    site2=s2
   end
-  @assert(abs(s1-s2)==1)
-  #TODO use swaps to handle long-range gates
-  
-  orthogonalize!(M,s1)
-  blob = M[s1] * M[s2]
+  orthogonalize!(M,site1)
+  blob = M[site1] * M[site2]
   blob = gate * blob
   noprime!(blob)
-  U,S,V = svd(blob,inds(M[s1]),cutoff=cutoff)
-  M[s1] = U
-  M[s2] = S*V
+  U,S,V = svd(blob,inds(M[site1]),cutoff=cutoff)
+  M[site1] = U
+  M[site2] = S*V
+  
+  if abs(s1-s2) != 1
+    M = unswap!(M,s1,s2,cutoff)
+  end
 end
 
 # Apply 2Q gate using a pre-generated gate tensor
@@ -132,6 +138,18 @@ function applygate!(M::MPO, gate::ITensor{4}; cutoff = 1e-10)
   U,S,V = svd(blob,inds(M[s1]),cutoff=cutoff)
   M[s1] = U
   M[s2] = S*V
+end
+
+# Apply 2Q gate in the form ("Cx", [1,2])
+function applygate!(M::Union{MPS,MPO},
+                   gate_id::String,
+                   site::Array;
+                   cutoff = 1e-10,
+                   kwargs...)
+  
+  # Construct the gate tensor
+  gate = makegate(M,gate_id,site; kwargs...)
+  applygate!(M,gate,cutoff=cutoff) 
 end
 
 # Retrieve the qubit number from a site index
