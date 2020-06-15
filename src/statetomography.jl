@@ -330,7 +330,7 @@ function statetomography(model::Union{MPS,MPO},
                          target::MPS,
                          localnorm::Bool=false,
                          globalnorm::Bool=false)
-  if (localnorm && globnorm)
+  if (localnorm && globalnorm)
     error("Both input norms are set to true")
   end
   for j in 1:length(model)
