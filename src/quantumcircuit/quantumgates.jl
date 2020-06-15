@@ -159,7 +159,7 @@ function meas_Z(T = ComplexF64)
 end
 
 # A global dictionary of gate functions
-quantumgates = Dict()
+quantumgates = Dict{String, Function}()
 
 # Default gates
 quantumgates["I"]  = gate_I
@@ -222,22 +222,22 @@ function quantumgate(gate_id::String,
                      kwargs...)
 end
 
-measprojections = Dict()
-measprojections["X+"] =
-  measproj_Xp(T = ComplexF64) = T[inv_sqrt2; inv_sqrt2]
-measprojections["X-"] =
-  measproj_Xm(T = ComplexF64) = T[inv_sqrt2; -inv_sqrt2]
-measprojections["Y+"] =
-  measproj_Yp(T = ComplexF64) = T[inv_sqrt2+0.0im; 0.0+im*inv_sqrt2]
-measprojections["Y-"] =
-  measproj_Ym(T = ComplexF64) = T[inv_sqrt2+0.0im; 0.0-im*inv_sqrt2]
-measprojections["Z+"] =
-  measproj_Zp(T = ComplexF64) = T[1; 0]
-measprojections["Z-"] =
-  measproj_Zm(T = ComplexF64) = T[0; 1]
+measproj_Xp(T = ComplexF64) = T[inv_sqrt2; inv_sqrt2]
+measproj_Xm(T = ComplexF64) = T[inv_sqrt2; -inv_sqrt2]
+measproj_Yp(T = ComplexF64) = T[inv_sqrt2+0.0im; 0.0+im*inv_sqrt2]
+measproj_Ym(T = ComplexF64) = T[inv_sqrt2+0.0im; 0.0-im*inv_sqrt2]
+measproj_Zp(T = ComplexF64) = T[1; 0]
+measproj_Zm(T = ComplexF64) = T[0; 1]
 
+measprojections = Dict{String, Function}()
+measprojections["X+"] = measproj_Xp
+measprojections["X-"] = measproj_Xm
+measprojections["Y+"] = measproj_Yp
+measprojections["Y-"] = measproj_Ym
+measprojections["Z+"] = measproj_Zp
+measprojections["Z-"] = measproj_Zm
 
-function measproj(T,
+function measproj(T::Type{<:Number},
                   proj_id::String,
                   site_ind::Index)
   return itensor(measprojections[proj_id](T), site_ind)
