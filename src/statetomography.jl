@@ -34,7 +34,12 @@ end
 """
 Initializer for LPDO state tomography
 """
-function initializeQST(N::Int,χ::Int,ξ::Int;d::Int=2,seed::Int=1234,σ::Float64=0.1)
+function initializeQST(N::Int,
+                       χ::Int,
+                       ξ::Int;
+                       d::Int=2,
+                       seed::Int=1234,
+                       σ::Float64=0.1)
   rng = MersenneTwister(seed)
   
   sites = [Index(d; tags="Site,n=$s") for s in 1:N]
@@ -339,6 +344,8 @@ function statetomography(model::Union{MPS,MPO},
   if (localnorm && globalnorm)
     error("Both input norms are set to true")
   end
+  model = copy(model)
+  target = copy(target)
   for j in 1:length(model)
     replaceind!(target[j],firstind(target[j],"Site"),firstind(model[j],"Site"))
   end
@@ -381,6 +388,7 @@ function statetomography(model::Union{MPS,MPO},
     tot_time += ep_time
   end
   @printf("Total Time = %.3f sec",tot_time)
+  return model
 end
 
 
