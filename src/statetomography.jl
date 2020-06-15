@@ -1,7 +1,11 @@
 """
 Initializer for MPS state tomography
 """
-function initializeQST(N::Int,χ::Int;d::Int=2,seed::Int=1234,σ::Float64=0.1)
+function initializeQST(N::Int,
+                       χ::Int;
+                       d::Int=2,
+                       seed::Int=1234,
+                       σ::Float64=0.1)
   rng = MersenneTwister(seed)
   
   sites = [Index(d; tags="Site, n=$s") for s in 1:N]
@@ -9,18 +13,18 @@ function initializeQST(N::Int,χ::Int;d::Int=2,seed::Int=1234,σ::Float64=0.1)
 
   M = ITensor[]
   # Site 1 
-  rand_mat = σ * (ones(d,χ) - 2*rand!(rng,zeros(d,χ)))
-  rand_mat += im * σ * (ones(d,χ) - 2*rand!(rng,zeros(d,χ)))
+  rand_mat = σ * (ones(d,χ) - 2*rand(rng,d,χ))
+  rand_mat += im * σ * (ones(d,χ) - 2*rand(rng,d,χ))
   push!(M,ITensor(rand_mat,sites[1],links[1]))
   # Site 2..N-1
   for j in 2:N-1
-    rand_mat = σ * (ones(χ,d,χ) - 2*rand!(rng,zeros(χ,d,χ)))
-    rand_mat += im * σ * (ones(χ,d,χ) - 2*rand!(rng,zeros(χ,d,χ)))
+    rand_mat = σ * (ones(χ,d,χ) - 2*rand(rng,χ,d,χ))
+    rand_mat += im * σ * (ones(χ,d,χ) - 2*rand(rng,χ,d,χ))
     push!(M,ITensor(rand_mat,links[j-1],sites[j],links[j]))
   end
   # Site N
-  rand_mat = σ * (ones(χ,d) - 2*rand!(rng,zeros(χ,d)))
-  rand_mat += im * σ * (ones(χ,d) - 2*rand!(rng,zeros(χ,d)))
+  rand_mat = σ * (ones(χ,d) - 2*rand(rng,χ,d))
+  rand_mat += im * σ * (ones(χ,d) - 2*rand(rng,χ,d))
   push!(M,ITensor(rand_mat,links[N-1],sites[N]))
   
   psi = MPS(M)
@@ -30,7 +34,12 @@ end
 """
 Initializer for LPDO state tomography
 """
-function initializeQST(N::Int,χ::Int,ξ::Int;d::Int=2,seed::Int=1234,σ::Float64=0.1)
+function initializeQST(N::Int,
+                       χ::Int,
+                       ξ::Int;
+                       d::Int=2,
+                       seed::Int=1234,
+                       σ::Float64=0.1)
   rng = MersenneTwister(seed)
   
   sites = [Index(d; tags="Site,n=$s") for s in 1:N]
@@ -186,15 +195,17 @@ function gradnll(psi::MPS,data::Array;localnorm=nothing)
     end
 
     """ GRADIENTS """
+    # TODO: fuse into one call to mul!
     grads[1] .= measproj(x[1],s[1]) .* R[2] 
-    gradients[1] .+= grads[1] ./ (localnorm[1] * psix)
+    gradients[1] .+= (1 / (localnorm[1] * psix)) .* grads[1]
     for j in 2:N-1
       Rpsi[j] .= L[j-1] .* measproj(x[j],s[j])
+      # TODO: fuse into one call to mul!
       grads[j] .= Rpsi[j] .* R[j+1]
-      gradients[j] .+= grads[j] ./ (localnorm[j] * psix)
+      gradients[j] .+= (1 / (localnorm[j] * psix)) .* grads[j]
     end
     grads[N] .= L[N-1] .* measproj(x[N],s[N])
-    gradients[N] .+= grads[N] ./ (localnorm[N] * psix)
+    gradients[N] .+= (1 / (localnorm[N] * psix)) .* grads[N]
   end
   for g in gradients
     g .= -2/size(data)[1] .* g
@@ -333,12 +344,18 @@ function statetomography(model::Union{MPS,MPO},
   if (localnorm && globalnorm)
     error("Both input norms are set to true")
   end
+  model = copy(model)
+  target = copy(target)
   for j in 1:length(model)
     replaceind!(target[j],firstind(target[j],"Site"),firstind(model[j],"Site"))
   end
   num_batches = Int(floor(size(data)[1]/batchsize))
   
+  tot_time = 0.0
+
   for ep in 1:epochs
+    ep_time = @elapsed begin
+
     data = data[shuffle(1:end),:]
     
     avg_loss = 0.0
@@ -358,15 +375,20 @@ function statetomography(model::Union{MPS,MPO},
       avg_loss += loss/Float64(num_batches)
       update!(model,grads,opt)
     end
+
+    end # end @elapsed
+
     F = fidelity(model,target)
-    print("Ep = ",ep,"  ")
-    print("Loss = ")
-    @printf("%.5E",avg_loss)
-    print("  ")
-    print("Fidelity = ")
-    @printf("%.3E",F)
+    print("Ep = $ep  ")
+    @printf("Loss = %.5E  ",avg_loss)
+    @printf("Fidelity = %.3E  ",F)
+    @printf("Time = %.3f sec",ep_time)
     print("\n")
+
+    tot_time += ep_time
   end
+  @printf("Total Time = %.3f sec",tot_time)
+  return model
 end
 
 
