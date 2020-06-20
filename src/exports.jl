@@ -29,15 +29,19 @@ export
   quantumgate,
   measprojections,
   measproj,
+
 # circuitops.jl
   # Methods
   getsitenumber,
+  swap!,
+  unswap!,
   applygate!,
   makegate,
 
 # quantumcircuit.jl
   # Methods
   qubits,
+  circuit,
   resetqubits!,
   addgates!,
   compilecircuit,

@@ -9,39 +9,101 @@ function runcircuitFULL(N::Int,tensors::Array)
   """ Assumes NN gates, and for 2q gates-> [q+1,q] """
   ngates = length(tensors)
   id_mat = [1. 0.;0. 1.]
+  swap   = [1 0 0 0;
+            0 0 1 0;
+            0 1 0 0;
+            0 0 0 1]
   U = 1.0
   for j in 1:N
     U = kron(U,id_mat)
   end
   for tensor in tensors
-    u = 1.0
     # 1q gate
     if (length(inds(tensor)) == 2)
       site = getsitenumber(firstind(tensor,"Site"))
+      u = 1.0
       for j in 1:N
         if (j == site)
-          #u = kron(u,fullmatrix(tensor))
           u = kron(u,array(tensor))
         else
           u = kron(u,id_mat)
         end
       end
+      U = u * U
     #2q gate
     else
-      site = getsitenumber(inds(tensor,plev=1)[2])
-      for j in 1:N-1
-        if (j == site)
-          #u = kron(u,fullmatrix(tensor))
-          u = kron(u,reshape(array(tensor),(4,4)))
+      site1 = getsitenumber(inds(tensor,plev=1)[2])
+      site2 = getsitenumber(inds(tensor,plev=1)[1])
+      site = min(site1,site2)
+      if (site1<site2)
+        gate = reshape(array(tensor),(4,4))
+      else
+        gate = swap * reshape(array(tensor),(4,4)) * swap
+      end
+      # NN 2q gate
+      if abs(site1-site2) == 1
+        u = 1.0
+        #if (site1<site2)
+        #  gate = reshape(array(tensor),(4,4))
+        #else
+        #  gate = swap * reshape(array(tensor),(4,4)) * swap
+        #  #gate = swap * gate
+        #end
+        for j in 1:N-1
+          if (j == site)
+            u = kron(u,gate)
+          else
+            u = kron(u,id_mat)
+          end
+        end
+        U = u * U
+      else
+        nswaps = abs(site1-site2)-1
+        if site1 > site2
+          start = site2
         else
-          u = kron(u,id_mat)
+          start = site1
+        end
+        # Swap
+        for n in 1:nswaps
+          u = 1.0
+          for j in 1:N-1
+            if j == start+n-1
+              u = kron(u,swap)
+            else
+              u = kron(u,id_mat)
+            end
+          end
+          U = u * U
+        end
+        # Gate
+        u = 1.0
+        for j in 1:N-1
+          if j == start+nswaps
+            u = kron(u,gate)
+            #u = kron(u,reshape(array(tensor),(4,4)))
+          else
+            u = kron(u,id_mat)
+          end
+        end
+        U = u * U
+        # Unswap
+        for n in 1:nswaps
+          u = 1.0
+          for j in 1:N-1
+            if j == start+nswaps-n
+              u = kron(u,swap)
+            else
+              u = kron(u,id_mat)
+            end
+          end
+          U = u * U
         end
       end
     end
-    U = u * U
   end
   psi = U[:,1]
-  return psi
+  return psi,U
 end
 
 function state_to_int(state::Array)
@@ -78,17 +140,32 @@ end
   @test psi_vec ≈ exact_vec
 end
 
+@testset "circuit MPO initialization" begin
+  N = 5
+  U = circuit(N)
+  @test length(U) == N
+  U_mat = fullmatrix(U)
+  exact_mat = Matrix{ComplexF64}(I, 1<<N, 1<<N)
+  @test U_mat ≈ exact_mat
+end
+
 @testset "runcircuit: hadamardlayer N=10" begin
   N = 10 
   gates = []
   hadamardlayer!(gates,N)
   @test length(gates) == N
   psi = qubits(N)
-  tensors = compilecircuit(psi,gates)
-  @test length(tensors) == N
-  runcircuit!(psi,tensors)
-  exact_psi = runcircuitFULL(N,tensors)
+  gate_tensors = compilecircuit(psi,gates)
+  @test length(gate_tensors) == N
+  runcircuit!(psi,gate_tensors)
+  
+  U = circuit(N)
+  gate_tensors = compilecircuit(U,gates)
+  runcircuit!(U,gate_tensors)
+  
+  exact_psi,exact_U = runcircuitFULL(N,gate_tensors)
   @test exact_psi ≈ fullvector(psi)
+  @test exact_U ≈ fullmatrix(U)
 end
 
 @testset "runcircuit: rand1Qrotationlayer N=10" begin
@@ -97,11 +174,17 @@ end
   rand1Qrotationlayer!(gates,N)
   @test length(gates) == N
   psi = qubits(N)
-  tensors = compilecircuit(psi,gates)
-  @test length(tensors) == N
-  runcircuit!(psi,tensors)
-  exact_psi = runcircuitFULL(N,tensors)
+  gate_tensors = compilecircuit(psi,gates)
+  @test length(gate_tensors) == N
+  runcircuit!(psi,gate_tensors)
+  
+  U = circuit(N)
+  gate_tensors = compilecircuit(U,gates)
+  runcircuit!(U,gate_tensors)
+
+  exact_psi,exact_U = runcircuitFULL(N,gate_tensors)
   @test exact_psi ≈ fullvector(psi)
+  @test exact_U ≈ fullmatrix(U)
 end
 
 @testset "runcircuit: Cx layer N=10" begin
@@ -110,21 +193,33 @@ end
   Cxlayer!(gates,N,sequence = "odd") 
   @test length(gates) == N÷2
   psi = qubits(N)
-  tensors = compilecircuit(psi,gates)
-  @test length(tensors) == N÷2
-  runcircuit!(psi,tensors)
-  exact_psi = runcircuitFULL(N,tensors)
-  @test exact_psi ≈ fullvector(psi)
+  gate_tensors = compilecircuit(psi,gates)
+  @test length(gate_tensors) == N÷2
+  runcircuit!(psi,gate_tensors)
+
+  U = circuit(N)
+  gate_tensors = compilecircuit(U,gates)
+  runcircuit!(U,gate_tensors)
   
+  exact_psi,exact_U = runcircuitFULL(N,gate_tensors)
+  @test exact_psi ≈ fullvector(psi)
+  @test exact_U ≈ fullmatrix(U)
+
   gates = []
   Cxlayer!(gates,N,sequence = "even") 
   @test length(gates) == N÷2-1
   psi = qubits(N)
-  tensors = compilecircuit(psi,gates)
-  @test length(tensors) == N÷2-1
-  runcircuit!(psi,tensors)
-  exact_psi = runcircuitFULL(N,tensors)
+  gate_tensors = compilecircuit(psi,gates)
+  @test length(gate_tensors) == N÷2-1
+  runcircuit!(psi,gate_tensors)
+  
+  U = circuit(N)
+  gate_tensors = compilecircuit(U,gates)
+  runcircuit!(U,gate_tensors)
+
+  exact_psi,exact_U = runcircuitFULL(N,gate_tensors)
   @test exact_psi ≈ fullvector(psi)
+  @test exact_U ≈ fullmatrix(U)
 end
 
 @testset "runcircuit: random quantum circuit" begin
@@ -134,21 +229,70 @@ end
   ngates = N*depth + depth÷2 * (N-1)
   @test length(gates) == ngates
   psi = qubits(N)
-  tensors = compilecircuit(psi,gates)
-  @test length(tensors) == ngates
-  runcircuit!(psi,tensors)
-  exact_psi = runcircuitFULL(N,tensors)
+  gate_tensors = compilecircuit(psi,gates)
+  @test length(gate_tensors) == ngates
+  runcircuit!(psi,gate_tensors)
+  
+  U = circuit(N)
+  gate_tensors = compilecircuit(U,gates)
+  runcircuit!(U,gate_tensors)
+
+  exact_psi,exact_U = runcircuitFULL(N,gate_tensors)
   @test exact_psi ≈ fullvector(psi)
+  @test exact_U ≈ fullmatrix(U)
 end
 
+@testset "runcircuit: inverted gate order" begin
+  N = 10
+  gates = randomquantumcircuit(N,2)
+  
+  for n in 1:10
+    s1 = rand(2:N)
+    s2 = s1-1
+    push!(gates,(gate = "Cx", site = [s1,s2]))
+  end
+  psi = qubits(N)
+  gate_tensors = compilecircuit(psi,gates) 
+  runcircuit!(psi,gate_tensors)
+  
+  U = circuit(N)
+  gate_tensors = compilecircuit(U,gates)
+  runcircuit!(U,gate_tensors)
+
+  exact_psi,exact_U = runcircuitFULL(N,gate_tensors)
+  @test exact_psi ≈ fullvector(psi)
+  @test exact_U ≈ fullmatrix(U)
+end
+
+@testset "runcircuit: long range gates" begin
+  N = 10
+  gates = randomquantumcircuit(N,2)
+  
+  for n in 1:10
+    s1 = rand(1:N)
+    s2 = rand(1:N)
+    while s2 == s1
+      s2 = rand(1:N)
+    end
+    @assert s1 != s2
+    push!(gates,(gate = "Cx", site = [s1,s2]))
+  end
+  psi = qubits(N)
+  gate_tensors = compilecircuit(psi,gates) 
+  runcircuit!(psi,gate_tensors)
+  
+  exact_psi,exact_U = runcircuitFULL(N,gate_tensors)
+  @test exact_psi ≈ fullvector(psi)
+
+end
 
 @testset "reset qubits" begin
   N = 5
   depth = 5
   gates = randomquantumcircuit(N,depth)
   psi = qubits(N)
-  tensors = compilecircuit(psi,gates)
-  runcircuit!(psi,tensors)
+  gate_tensors = compilecircuit(psi,gates)
+  runcircuit!(psi,gate_tensors)
   
   psi = resetqubits!(psi)
   psi_vec = fullvector(psi)
@@ -199,8 +343,8 @@ end
   depth = 10
   psi = qubits(N)
   gates = randomquantumcircuit(N,depth)
-  tensors = compilecircuit(psi,gates)
-  runcircuit!(psi,tensors)
+  gate_tensors = compilecircuit(psi,gates)
+  runcircuit!(psi,gate_tensors)
   psi_vec = fullvector(psi)
   prob = abs2.(psi_vec)
   
@@ -222,8 +366,8 @@ end
   depth = 8
   gates = randomquantumcircuit(N,depth)
   gates = randomquantumcircuit(N,depth)
-  tensors = compilecircuit(psi,gates)
-  runcircuit!(psi,tensors)
+  gate_tensors = compilecircuit(psi,gates)
+  runcircuit!(psi,gate_tensors)
   s = siteinds(psi)
 
   for n in 1:nshots
@@ -325,19 +469,3 @@ end
 
   end
 end
-
-#
-#@testset "circuit initialization" begin
-#  N=5
-#  U = initializecircuit(N)
-#  @test length(U) == 5
-#  identity = itensor(reshape([1 0;0 1],(1,2,2)),inds(U[1]))
-#  @test U[1] ≈ identity
-#  for s in 2:N-1
-#    identity = itensor(reshape([1 0;0 1],(1,1,2,2)),inds(U[s]))
-#    @test U[s] ≈ identity
-#  end
-#  identity = itensor(reshape([1 0;0 1],(1,2,2)),inds(U[N]))
-#  @test U[N] ≈ identity
-#end
-

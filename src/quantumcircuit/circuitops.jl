@@ -1,20 +1,8 @@
-"""
-    makegate(M::MPS, gate_id::String, site::Int; kwargs...)
+function makegate(gate_id::String, site_ind::Index; kwargs...)
+  gate = quantumgate(gate_id, site_ind; kwargs...)
+  return gate 
+end
 
-Create an ITensor for a single-qubit gate, using the indices 
-of a given MPS. Additional parameters can be provided for parametric
-gates.
-# Example 1: X gate on site 3
-```julia
-psi = initializequbits(10)
-gate = makegate(psi,"X",3)
-```
-# Example 2: ``\\phi = \\pi`` rotation around the Z axis on site 2
-```julia
-psi = initializequbits(10)
-gate = makegate(psi, "Rz", 3, ϕ = π)
-```
-"""
 function makegate(M::MPS, gate_id::String, site::Int; kwargs...)
   site_ind = siteind(M,site)
   gate = quantumgate(gate_id, site_ind; kwargs...)
@@ -26,24 +14,6 @@ function makegate(M::MPO, gate_id::String, site::Int; kwargs...)
   gate = quantumgate(gate_id, site_ind; kwargs...)
   return gate 
 end
-
-function makegate(gate_id::String, site_ind::Index; kwargs...)
-  gate = quantumgate(gate_id, site_ind; kwargs...)
-  return gate 
-end
-
-"""
-    makegate(M::MPS, gate_id::String, site::Array; kwargs...)
-
-Create an ITensor for a two-qubit gate, using the indices 
-of a given MPS. Additional parameters can be provided for parametric
-gates.
-# Example: Cx gate on site [2,3]
-```julia
-psi = initializequbits(10)
-gate = makegate(psi,"Cx",[2,3])
-```
-"""
 function makegate(M::MPS,gate_id::String, site::Array; kwargs...)
   site_ind1 = siteind(M,site[1])
   site_ind2 = siteind(M,site[2])
@@ -51,24 +21,14 @@ function makegate(M::MPS,gate_id::String, site::Array; kwargs...)
   return gate
 end
 
-"""
-    makegate(M::MPS, gatedata::NamedTuple)
+function makegate(M::MPO,gate_id::String, site::Array; kwargs...)
+  site_ind1 = firstind(M[site[1]],tags="Site")
+  site_ind2 = firstind(M[site[2]],tags="Site")
+  gate = quantumgate(gate_id,site_ind1,site_ind2; kwargs...)
+  return gate
+end
 
-Create an ITensor for a two-qubit gate, using the indices 
-of a given MPS. The gate is specified by a NamedTuple with structure
-gatedata = (gate,site,params)
-
-# Example: Rn rotation
-```julia
-psi = initializequbits(10)
-gatedata = (gate = "Rn",
-            site = 4,
-            params = (θ = 1.7,ϕ = 0.9,λ = 4.2))
-
-gate = makegate(psi,gatedata)
-```
-"""
-function makegate(M::MPS, gatedata::NamedTuple)
+function makegate(M::Union{MPS,MPO}, gatedata::NamedTuple)
   id = gatedata.gate
   site = gatedata.site
   params = get(gatedata, :params, NamedTuple())
@@ -86,46 +46,14 @@ function applygate!(M::MPS,
   noprime!(M[site])
 end
 
-# Apply 2Q gate in the form ("Cx", [1,2])
-function applygate!(M::MPS,
+function applygate!(M::MPO,
                    gate_id::String,
-                   site::Array;
+                   site::Int;
                    cutoff = 1e-10,
                    kwargs...)
-  
-  # Check that the qubits are NN
-  # TODO remove and insert swap gates
-  @assert(abs(site[1]-site[2])==1)
-  
-  # Construct the gate tensor
   gate = makegate(M,gate_id,site; kwargs...)
-  
-  orthogonalize!(M,site[1])
-
-  blob = M[site[1]] * M[site[2]]
-  blob = gate * blob
-  noprime!(blob)
-  U,S,V = svd(blob,inds(M[site[1]]),cutoff=cutoff)
-  M[site[1]] = U
-  M[site[2]] = S*V
-  
-  #if site[1]==1
-  #  row_ind = firstind(blob,tags="n=$(site[1])")
-  #  U,S,V = svd(blob,row_ind,cutoff=cutoff)
-  #  M[site[1]] = U*S
-  #  M[site[2]] = V
-  #elseif site[1] == length(M)-1
-  #  row_ind = firstind(blob,tags="n=$(site[2])")
-  #  U,S,V = svd(blob,row_ind,cutoff=cutoff)
-  #  M[site[1]] = V
-  #  M[site[2]] = U*S
-  #else
-  #  row_ind = (commonind(M[site[1]],M[site[1]-1]),
-  #             firstind(blob,tags="n=$(site[1])"))
-  #  U,S,V = svd(blob,row_ind,cutoff=cutoff)
-  #  M[site[1]] = U*S
-  #  M[site[2]] = V
-  #end
+  M[site] = gate * prime(M[site],tags="Site",plev=1)
+  prime!(M[site],tags="Site",-1)
 end
 
 # Apply 1Q gate using a pre-generated gate tensor
@@ -135,43 +63,93 @@ function applygate!(M::MPS,gate::ITensor{2}; kwargs...)
   noprime!(M[site])
 end
 
+# Apply 1Q gate using a pre-generated gate tensor
+function applygate!(M::MPO,gate::ITensor{2}; kwargs...)
+  site = getsitenumber(firstind(gate,"Site")) 
+  M[site] = gate * prime(M[site],tags="Site",plev=1)
+  prime!(M[site],tags="Site",-1)
+end
+
+function swap!(M::MPS,site1::Int,site2::Int,cutoff::Float64)
+  nswaps = abs(site1-site2)-1
+  if site1 > site2
+    start = site2
+  else
+    start = site1
+  end
+  for n in 1:nswaps
+    replacebond!(M,start+n-1,M[start+n-1]*M[start+n],swapsites=true,cutoff=cutoff)
+  end
+  newsite1 = start+nswaps
+  newsite2 = newsite1 + 1
+  return M,newsite1,newsite2 
+end
+
+function unswap!(M::MPS,site1::Int,site2::Int,cutoff::Float64)
+  nswaps = abs(site1-site2)-1
+  if site1 > site2
+    start = site2
+  else
+    start = site1
+  end
+  for n in 1:nswaps
+    replacebond!(M,start+nswaps-n,M[start+nswaps-n+1]*M[start+nswaps-n],swapsites=true,cutoff=cutoff)
+  end
+  return M
+end
+
 # Apply 2Q gate using a pre-generated gate tensor
 function applygate!(M::MPS, gate::ITensor{4}; cutoff = 1e-10)
   s1 = getsitenumber(inds(gate,plev=1)[1]) 
   s2 = getsitenumber(inds(gate,plev=1)[2]) 
   
-  if abs(s1-s2)!=1
-    #TODO  
-    # do swaps
-    nothing
+  if abs(s1-s2) != 1
+    M,site1,site2 = swap!(M,s1,s2,cutoff)
+  else
+    site1=s1
+    site2=s2
   end
-  @assert(abs(s1-s2)==1)
-  #TODO use swaps to handle long-range gates
-  
-  orthogonalize!(M,s1)
-  blob = M[s1] * M[s2]
+  orthogonalize!(M,site1)
+  blob = M[site1] * M[site2]
   blob = gate * blob
   noprime!(blob)
+  U,S,V = svd(blob,inds(M[site1]),cutoff=cutoff)
+  M[site1] = U
+  M[site2] = S*V
+  
+  if abs(s1-s2) != 1
+    M = unswap!(M,s1,s2,cutoff)
+  end
+end
+
+# Apply 2Q gate using a pre-generated gate tensor
+function applygate!(M::MPO, gate::ITensor{4}; cutoff = 1e-10)
+  s1 = getsitenumber(inds(gate,plev=1)[1]) 
+  s2 = getsitenumber(inds(gate,plev=1)[2]) 
+  
+  @assert(abs(s1-s2)==1)
+  #TODO use swaps to handle long-range gates
+ 
+  orthogonalize!(M,s1)
+  blob = M[s1] * M[s2]
+  blob = gate * prime(blob,tags="Site",plev=1)
+  prime!(blob,tags="Site",-1)
+  
   U,S,V = svd(blob,inds(M[s1]),cutoff=cutoff)
   M[s1] = U
   M[s2] = S*V
-  #if s1==1
-  #  row_ind = firstind(blob,tags="n=$s1")
-  #  U,S,V = svd(blob,row_ind,cutoff=cutoff)
-  #  M[s1] = U*S
-  #  M[s2] = V
-  #elseif s1 == length(M)-1
-  #  row_ind = firstind(blob,tags="n=$s2")
-  #  U,S,V = svd(blob,row_ind,cutoff=cutoff)
-  #  M[s1] = V
-  #  M[s2] = U*S
-  #else
-  #  row_ind = (commonind(M[s1],M[s1-1]),
-  #             firstind(blob,tags="n=$s1"))
-  #  U,S,V = svd(blob,row_ind,cutoff=cutoff)
-  #  M[s1] = U*S
-  #  M[s2] = V
-  #end
+end
+
+# Apply 2Q gate in the form ("Cx", [1,2])
+function applygate!(M::Union{MPS,MPO},
+                   gate_id::String,
+                   site::Array;
+                   cutoff = 1e-10,
+                   kwargs...)
+  
+  # Construct the gate tensor
+  gate = makegate(M,gate_id,site; kwargs...)
+  applygate!(M,gate,cutoff=cutoff) 
 end
 
 # Retrieve the qubit number from a site index

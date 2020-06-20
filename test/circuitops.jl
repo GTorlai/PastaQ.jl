@@ -32,7 +32,6 @@ using LinearAlgebra
   gate = makegate(psi,gate_data)
   applygate!(psi,gate)
   @test fullvector(psi) ≈ [1.,0.,0.,0.]
-
 end
   
 @testset "apply gate: X" begin
@@ -860,6 +859,5 @@ end
   applygate!(psi,"Sw",[2,1])
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,0.,0.,1.]
-
 end
 
