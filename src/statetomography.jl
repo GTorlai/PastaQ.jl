@@ -305,18 +305,18 @@ function gradnll(lpdo::MPO,data::Array;localnorm=nothing)
     Tp[1] .= prime(lpdo[1],"Link") .* dag(measproj(x[1],s[1]))
     Agrad[1] .=  Tp[1] .* measproj(x[1],s[1])
     grads[1] .= R[2] .* Agrad[1]
-    gradients[1] .+= grads[1] ./ (localnorm[1]*prob)
-    for j in 2:N-1
+    gradients[1] .+= (1 / (localnorm[1] * prob)) .* grads[1]
+     for j in 2:N-1
       Tp[j] .= prime(lpdo[j],"Link") .* dag(measproj(x[j],s[j]))
       Lgrad[j-1] .= L[j-1] .* Tp[j]
       Agrad[j] .= Lgrad[j-1] .* measproj(x[j],s[j])
       grads[j] .= R[j+1] .* Agrad[j] 
-      gradients[j] .+= grads[j] ./ (localnorm[j]*prob)
+      gradients[j] .+= (1 / (localnorm[j] * prob)) .* grads[j]
     end
     Tp[N] .= prime(lpdo[N],"Link") .* dag(measproj(x[N],s[N]))
     Lgrad[N-1] .= L[N-1] .* Tp[N]
     grads[N] .= Lgrad[N-1] .* measproj(x[N],s[N])
-    gradients[N] .+= grads[N] ./ (localnorm[N]*prob)
+    gradients[N] .+= (1 / (localnorm[N] * prob)) .* grads[N]
   end
   for g in gradients
     g .= -2/size(data)[1] .* g
