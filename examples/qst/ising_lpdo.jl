@@ -9,12 +9,13 @@ data,target = loadtrainingdataQST(input_path)
 
 χ = maxlinkdim(target)
 ξ = 4
-lpdo = initializeQST(N,χ,ξ,σ=0.1)
+lpdo0 = initializeQST(N,χ,ξ,σ=0.1)
 opt = Sgd(η = 0.1)
 println("Training...")
-@time statetomography(lpdo,opt,
-                 data = data,
-                 batchsize=1000,
-                 epochs=5,
-                 target=target,
-                 localnorm=true)
+lpdo = statetomography(lpdo0,opt,
+                       data = data,
+                       batchsize=1000,
+                       epochs=5,
+                       target=target,
+                       localnorm=true,
+                       globalnorm=false)
