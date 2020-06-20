@@ -11,10 +11,9 @@ data,target = loadtrainingdataQST(input_path)
 psi0 = initializeQST(N,χ,σ=0.1)
 opt = Sgd(η = 0.1)
 println("Training...")
-psi = statetomography(psi0,opt,
+statetomography(psi0,opt,
                       data = data,
                       batchsize=1000,
                       epochs=5,
                       target=target,
-                      localnorm=true,
-                      globalnorm=false)
+                      localnorm=true)
