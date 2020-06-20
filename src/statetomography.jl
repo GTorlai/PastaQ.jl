@@ -135,7 +135,6 @@ end
 """
 Gradients of NLL for MPS 
 """
-#function gradnll(psi::MPS,data::Array,bases::Array;localnorm=nothing)
 function gradnll(psi::MPS,data::Array;localnorm=nothing)
   loss = 0.0
 
@@ -213,111 +212,128 @@ function gradnll(psi::MPS,data::Array;localnorm=nothing)
   return gradients,loss 
 end
 
-#"""
-#Gradients of NLL for LPDO 
-#"""
-#function gradnll(lpdo::MPO,data::Array,bases::Array;localnorm=nothing)
-#  loss = 0.0
-#
-#  N = length(lpdo)
-#  L = Vector{ITensor}(undef, N-1)
-#  R = Vector{ITensor}(undef, N)
-#  
-#  if isnothing(localnorm)
-#    localnorm = ones(N)
-#  end
-#  
-#  gradients = ITensor[]
-#  for j in 1:N
-#    push!(gradients,ITensor(inds(lpdo[j])))
-#  end
-#  for n in 1:size(data)[1]
-#    x = data[n,:] 
-#    x.+=1
-#    basis = bases[n,:]
-#    
-#    """ LEFT ENVIRONMENTS """
-#    if (basis[1] == "Z")
-#      T = lpdo[1] * setelt(firstind(lpdo[1],tags="Site")=>x[1])
-#    else
-#      rotation = makegate(lpdo,"m$(basis[1])",1)
-#      T = lpdo[1] * rotation * prime(setelt(firstind(lpdo[1],tags="Site")=>x[1]))
-#    end
-#    L[1] = prime(T,"Link") * dag(T)
-#    for j in 2:N-1
-#      if (basis[j] == "Z")
-#        T = lpdo[j] * setelt(firstind(lpdo[j],tags="Site")=>x[j])
-#      else
-#        rotation = makegate(lpdo,"m$(basis[j])",j)
-#        T = lpdo[j] * rotation * prime(setelt(firstind(lpdo[j],tags="Site")=>x[j]))
-#      end
-#      L[j] = L[j-1] * prime(T,"Link")
-#      L[j] = L[j] * dag(T)
-#    end
-#    if (basis[N] == "Z")
-#      T = lpdo[N] * setelt(firstind(lpdo[N],tags="Site")=>x[N])
-#    else
-#      rotation = makegate(lpdo,"m$(basis[N])",N)
-#      T = lpdo[N] * rotation * prime(setelt(firstind(lpdo[N],tags="Site")=>x[N]))
-#    end
-#    prob = L[N-1] * prime(T,"Link")
-#    prob = prob * dag(T)
-#    prob = real(prob[])
-#    loss -= log(prob)/size(data)[1]
-#    
-#    """ RIGHT ENVIRONMENTS """
-#    if (basis[N] == "Z")
-#      T = lpdo[N] * setelt(firstind(lpdo[N],tags="Site")=>x[N])
-#    else
-#      rotation = makegate(lpdo,"m$(basis[N])",N)
-#      T = lpdo[N] * rotation * prime(setelt(firstind(lpdo[N],tags="Site")=>x[N]))
-#    end
-#    R[N] = prime(T,"Link") * dag(T)
-#    for j in reverse(2:N-1)
-#      if (basis[j] == "Z")
-#        T = lpdo[j] * setelt(firstind(lpdo[j],tags="Site")=>x[j])
-#      else
-#        rotation = makegate(lpdo,"m$(basis[j])",j)
-#        T = lpdo[j] * rotation * prime(setelt(firstind(lpdo[j],tags="Site")=>x[j]))
-#      end
-#      R[j] = R[j+1] * prime(T,"Link")
-#      R[j] = R[j] * dag(T)
-#    end
-#
-#    """ GRADIENTS """
-#    if (basis[1] == "Z")
-#      Tup = prime(lpdo[1],"Link") * setelt(firstind(lpdo[1],tags="Site")=>x[1])
-#      gradients[1] += (Tup * R[2] * setelt(firstind(lpdo[1],tags="Site")=>x[1]))/(localnorm[1]*prob)
-#    else
-#      rotation = makegate(lpdo,"m$(basis[1])",1)
-#      Tup = prime(lpdo[1],"Link") * rotation * prime(setelt(firstind(lpdo[1],tags="Site")=>x[1]))
-#      Tdown = dag(rotation) * prime(setelt(firstind(lpdo[1],tags="Site")=>x[1]))
-#      gradients[1] += (Tup * R[2] * Tdown)/(localnorm[1]*prob)
-#    end
-#    for j in 2:N-1
-#      if (basis[j] == "Z")
-#        Tup = prime(lpdo[j],"Link") * setelt(firstind(lpdo[j],tags="Site")=>x[j])
-#        gradients[1j] += (L[j-1] * Tup * R[j+1] * setelt(firstind(lpdo[j],tags="Site")=>x[j]))/(localnorm[j]*prob)
-#      else
-#        rotation = makegate(lpdo,"m$(basis[j])",j)
-#        Tup = prime(lpdo[j],"Link") * rotation * prime(setelt(firstind(lpdo[j],tags="Site")=>x[j]))
-#        Tdown = dag(rotation) * prime(setelt(firstind(lpdo[j],tags="Site")=>x[j]))
-#        gradients[j] += (L[j-1] * Tup * R[j+1] * Tdown)/(localnorm[j]*prob)
-#      end
-#    end
-#    if (basis[N] == "Z")
-#      Tup = prime(lpdo[N],"Link") * setelt(firstind(lpdo[N],tags="Site")=>x[N])
-#      gradients[N] += (Tup * L[N-1] * setelt(firstind(lpdo[N],tags="Site")=>x[N]))/(localnorm[N]*prob)
-#    else
-#      rotation = makegate(lpdo,"m$(basis[N])",N)
-#      Tup = prime(lpdo[N],"Link") * rotation * prime(setelt(firstind(lpdo[N],tags="Site")=>x[N]))
-#      Tdown = dag(rotation) * prime(setelt(firstind(lpdo[N],tags="Site")=>x[N]))
-#      gradients[N] += (Tup * L[N-1] * Tdown)/(localnorm[N]*prob)
-#    end
-#  end
-#  gradients = -2.0*gradients/size(data)[1]
-#  return gradients,loss 
-#end
+"""
+Gradients of NLL for LPDO 
+"""
+function gradnll(lpdo::MPO,data::Array;localnorm=nothing)
+  loss = 0.0
+
+  N = length(lpdo)
+  
+  s = Index[]
+  for j in 1:N
+    push!(s,firstind(lpdo[j],"Site"))
+  end
+
+  links = [linkind(lpdo, n) for n in 1:N-1]
+  
+  kraus = Index[]
+  for j in 1:N
+    push!(kraus,firstind(lpdo[j],"Kraus"))
+  end
+
+  ElT = eltype(lpdo[1])
+
+  L = Vector{ITensor{2}}(undef, N)
+  Llpdo = Vector{ITensor}(undef, N)
+  Lgrad = Vector{ITensor}(undef,N)
+  for n in 1:N-1
+    L[n] = ITensor(ElT, undef, links[n]',links[n])
+  end
+  for n in 2:N-1
+    Llpdo[n] = ITensor(ElT, undef, kraus[n],links[n]',links[n-1])
+  end
+  for n in 1:N-2
+    Lgrad[n] = ITensor(ElT,undef,links[n],kraus[n+1],links[n+1]')
+  end
+  Lgrad[N-1] = ITensor(ElT,undef,links[N-1],kraus[N])
+
+  R = Vector{ITensor{2}}(undef, N)
+  Rlpdo = Vector{ITensor}(undef, N)
+  for n in N:-1:2
+    R[n] = ITensor(ElT, undef, links[n-1]',links[n-1])
+  end 
+  for n in N-1:-1:2
+    Rlpdo[n] = ITensor(ElT, undef, links[n-1]',kraus[n],links[n])
+  end
+  
+  Agrad = Vector{ITensor}(undef, N)
+  Agrad[1] = ITensor(ElT, undef, kraus[1],links[1]',s[1])
+  for n in 2:N-1
+    Agrad[n] = ITensor(ElT, undef, links[n-1],kraus[n],links[n]',s[n])
+  end
+
+  T = Vector{ITensor}(undef,N)
+  Tp = Vector{ITensor}(undef,N)
+  T[1] = ITensor(ElT, undef, kraus[1],links[1])
+  Tp[1] = prime(T[1],"Link")
+  for n in 2:N-1
+    T[n] = ITensor(ElT, undef, kraus[n],links[n],links[n-1])
+    Tp[n] = prime(T[n],"Link")
+  end
+  T[N] = ITensor(ElT, undef, kraus[N],links[N-1])
+  Tp[N] = prime(T[N],"Link")
+  
+  if isnothing(localnorm)
+    localnorm = ones(N)
+  end
+
+  grads = Vector{ITensor}(undef,N)
+  gradients = Vector{ITensor}(undef,N)
+  grads[1] = ITensor(ElT, undef,links[1],kraus[1],s[1])
+  gradients[1] = ITensor(ElT,links[1],kraus[1],s[1])
+  for n in 2:N-1
+    grads[n] = ITensor(ElT, undef,links[n],links[n-1],kraus[n],s[n])
+    gradients[n] = ITensor(ElT,links[n],links[n-1],kraus[n],s[n])
+  end
+  grads[N] = ITensor(ElT, undef,links[N-1],kraus[N],s[N])
+  gradients[N] = ITensor(ElT, links[N-1],kraus[N],s[N])
+  
+  for n in 1:size(data)[1]
+    x = data[n,:]
+    """ LEFT ENVIRONMENTS """
+    T[1] .= lpdo[1] .* dag(measproj(x[1],s[1]))
+    L[1] .= prime(T[1],"Link") .* dag(T[1])
+    for j in 2:N-1
+      T[j] .= lpdo[j] .* dag(measproj(x[j],s[j]))
+      Llpdo[j] .= prime(T[j],"Link") .* L[j-1]
+      L[j] .= Llpdo[j] .* dag(T[j])
+    end
+    T[N] .= lpdo[N] .* dag(measproj(x[N],s[N]))
+    prob = L[N-1] * prime(T[N],"Link")
+    prob = prob * dag(T[N])
+    prob = real(prob[])
+    loss -= log(prob)/size(data)[1]
+    
+    """ RIGHT ENVIRONMENTS """
+    R[N] .= prime(T[N],"Link") .* dag(T[N])
+    for j in reverse(2:N-1)
+      Rlpdo[j] .= prime(T[j],"Link") .* R[j+1] 
+      R[j] .= Rlpdo[j] .* dag(T[j])
+    end
+    
+    """ GRADIENTS """
+    Tp[1] .= prime(lpdo[1],"Link") .* dag(measproj(x[1],s[1]))
+    Agrad[1] .=  Tp[1] .* measproj(x[1],s[1])
+    grads[1] .= R[2] .* Agrad[1]
+    gradients[1] .+= (1 / (localnorm[1] * prob)) .* grads[1]
+     for j in 2:N-1
+      Tp[j] .= prime(lpdo[j],"Link") .* dag(measproj(x[j],s[j]))
+      Lgrad[j-1] .= L[j-1] .* Tp[j]
+      Agrad[j] .= Lgrad[j-1] .* measproj(x[j],s[j])
+      grads[j] .= R[j+1] .* Agrad[j] 
+      gradients[j] .+= (1 / (localnorm[j] * prob)) .* grads[j]
+    end
+    Tp[N] .= prime(lpdo[N],"Link") .* dag(measproj(x[N],s[N]))
+    Lgrad[N-1] .= L[N-1] .* Tp[N]
+    grads[N] .= Lgrad[N-1] .* measproj(x[N],s[N])
+    gradients[N] .+= (1 / (localnorm[N] * prob)) .* grads[N]
+  end
+  for g in gradients
+    g .= -2/size(data)[1] .* g
+  end
+  return gradients,loss 
+end
 
 """
 Compute the total gradients
@@ -440,7 +456,8 @@ function fidelity(lpdo::MPO,target::MPS)
   lpdo_eval = copy(lpdo)
   lognormalize!(lpdo_eval)
   @assert norm(lpdo_eval) ≈ 1
-  A = lpdo_eval * target
+  #A = *(lpdo_eval,target,method="naive")
+  A = *(lpdo_eval,target,method="densitymatrix",cutoff=1e-10)
   fidelity = abs(inner(A,A))
   return fidelity
 end
@@ -465,51 +482,26 @@ function nll(psi::MPS,data::Array)
   return loss
 end
 
-#"""
-#Negative log likelihood for LPDO
-#"""
-#function nll(lpdo::MPO,data::Array,bases::Array)
-#  N = length(lpdo)
-#  loss = 0.0
-#  for n in 1:size(data)[1]
-#    x = data[n,:]
-#    x .+= 1
-#    basis = bases[n,:]
-#    
-#    if (basis[1] == "Z")
-#      prob = prime(lpdo[1],"Link") * setelt(firstind(lpdo[1],tags="Site")=>x[1])
-#      Tdag = dag(lpdo[1]) * setelt(firstind(lpdo[1],tags="Site")=>x[1])
-#      prob = prob * Tdag 
-#    else
-#      rotation = makegate(lpdo,"m$(basis[1])",1)
-#      prob = prime(lpdo[1],"Link") * rotation * prime(setelt(firstind(lpdo[1],tags="Site")=>x[1]))
-#      Tdag = dag(lpdo[1]) * dag(rotation) * prime(setelt(firstind(lpdo[1],tags="Site")=>x[1]))
-#      prob = prob * Tdag 
-#    end
-#    for j in 2:N-1
-#      if (basis[j] == "Z")
-#        prob = prob * prime(lpdo[j],"Link") * setelt(firstind(lpdo[j],tags="Site")=>x[j])
-#        Tdag = dag(lpdo[j]) * setelt(firstind(lpdo[j],tags="Site")=>x[j])
-#        prob = prob * Tdag
-#      else
-#        rotation = makegate(lpdo,"m$(basis[j])",j)
-#        prob = prob * prime(lpdo[j],"Link") * rotation * prime(setelt(firstind(lpdo[j],tags="Site")=>x[j]))
-#        Tdag = dag(lpdo[j]) * dag(rotation) * prime(setelt(firstind(lpdo[j],tags="Site")=>x[j]))
-#        prob = prob * Tdag
-#      end
-#    end
-#    if (basis[N] == "Z")
-#      prob = prob * prime(lpdo[N],"Link") * setelt(firstind(lpdo[N],tags="Site")=>x[N])
-#      Tdag = dag(lpdo[N]) * setelt(firstind(lpdo[N],tags="Site")=>x[N])
-#      prob = prob * Tdag
-#    else
-#      rotation = makegate(lpdo,"m$(basis[N])",N)
-#      prob = prob * prime(lpdo[N],"Link") * rotation * prime(setelt(firstind(lpdo[N],tags="Site")=>x[N]))
-#      Tdag = dag(lpdo[N]) * dag(rotation) * prime(setelt(firstind(lpdo[N],tags="Site")=>x[N]))
-#      prob = prob * Tdag
-#    end
-#    loss -= log(real(prob[]))/size(data)[1]
-#  end
-#  return loss
-#end
+"""
+Negative log likelihood for LPDO
+"""
+function nll(lpdo::MPO,data::Array)
+  N = length(lpdo)
+  loss = 0.0
+  s = Index[]
+  for j in 1:N
+    push!(s,firstind(lpdo[j],"Site"))
+  end
+  for n in 1:size(data)[1]
+    x = data[n,:]
+    prob = prime(lpdo[1],"Link") * dag(measproj(x[1],s[1]))
+    prob = prob * dag(lpdo[1]) * measproj(x[1],s[1])
+    for j in 2:N
+      prob = prob * prime(lpdo[j],"Link") * dag(measproj(x[j],s[j]))
+      prob = prob * dag(lpdo[j]) * measproj(x[j],s[j])
+    end
+    loss -= log(real(prob[]))/size(data)[1]
+  end
+  return loss
+end
 
