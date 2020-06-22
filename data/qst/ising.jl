@@ -12,7 +12,7 @@ sites = siteinds("S=1/2",N)
 # Get the Ising ground state
 ampo = AutoMPO()
 for j=1:N-1
-  ampo .+=(-1.0,"Sz",j,"Sz",j+1)
+  ampo .+=(-2.0,"Sz",j,"Sz",j+1)
   ampo .+=(-1.0,"Sx",j) 
 end
 ampo += (-1.0,"Sx",N)
@@ -20,7 +20,7 @@ H = MPO(ampo,sites)
 
 psi0 = randomMPS(sites)
 
-sweeps = Sweeps(5)
+sweeps = Sweeps(50)
 maxdim!(sweeps, 10,20,100,100,200)
 cutoff!(sweeps, 1E-10)
 
