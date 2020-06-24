@@ -136,8 +136,6 @@ end
 Gradients of NLL for MPS 
 """
 function gradnll(psi::MPS,data::Array;localnorm=nothing)
-  loss = 0.0
-
   N = length(psi)
 
   s = siteinds(psi)
@@ -146,21 +144,27 @@ function gradnll(psi::MPS,data::Array;localnorm=nothing)
 
   ElT = eltype(psi[1])
 
-  L = Vector{ITensor{1}}(undef, N)
-  Lpsi = Vector{ITensor}(undef, N)
-  for n in 1:N-1
-    L[n] = ITensor(ElT, undef, links[n])
-    Lpsi[n] = ITensor(ElT, undef, s[n], links[n])
-  end
-  Lpsi[N] = ITensor(ElT, undef, s[N])
+  nthreads = Threads.nthreads()
 
-  R = Vector{ITensor{1}}(undef, N)
-  Rpsi = Vector{ITensor}(undef, N)
-  for n in N:-1:2
-    R[n] = ITensor(ElT, undef, links[n-1])
-    Rpsi[n] = ITensor(ElT, undef, links[n-1], s[n])
+  L = [Vector{ITensor{1}}(undef, N) for _ in 1:nthreads]
+  Lpsi = [Vector{ITensor}(undef, N) for _ in 1:nthreads]
+
+  R = [Vector{ITensor{1}}(undef, N) for _ in 1:nthreads]
+  Rpsi = [Vector{ITensor}(undef, N) for _ in 1:nthreads]
+
+  for nthread in 1:nthreads
+    for n in 1:N-1
+      L[nthread][n] = ITensor(ElT, undef, links[n])
+      Lpsi[nthread][n] = ITensor(ElT, undef, s[n], links[n])
+    end
+    Lpsi[nthread][N] = ITensor(ElT, undef, s[N])
+
+    for n in N:-1:2
+      R[nthread][n] = ITensor(ElT, undef, links[n-1])
+      Rpsi[nthread][n] = ITensor(ElT, undef, links[n-1], s[n])
+    end
+    Rpsi[nthread][1] = ITensor(ElT, undef, s[1])
   end
-  Rpsi[1] = ITensor(ElT, undef, s[1])
 
   if isnothing(localnorm)
     localnorm = ones(N)
@@ -168,48 +172,64 @@ function gradnll(psi::MPS,data::Array;localnorm=nothing)
 
   psidag = dag(psi)
 
-  gradients = [ITensor(ElT, inds(psi[j])) for j in 1:N]
+  gradients = [[ITensor(ElT, inds(psi[j])) for j in 1:N] for _ in 1:nthreads]
 
-  grads = [ITensor(ElT, undef, inds(psi[j])) for j in 1:N]
+  grads = [[ITensor(ElT, undef, inds(psi[j])) for j in 1:N] for _ in 1:nthreads]
 
-  for n in 1:size(data)[1]
+  loss = zeros(nthreads)
+
+  Threads.@threads for n in 1:size(data)[1]
+
+    nthread = Threads.threadid()
+
     x = data[n,:] 
     
     """ LEFT ENVIRONMENTS """
-    L[1] .= psidag[1] .* measproj(x[1],s[1])
+    L[nthread][1] .= psidag[1] .* measproj(x[1],s[1])
     for j in 2:N-1
-      Lpsi[j] .= L[j-1] .* psidag[j]
-      L[j] .= Lpsi[j] .* measproj(x[j],s[j])
+      Lpsi[nthread][j] .= L[nthread][j-1] .* psidag[j]
+      L[nthread][j] .= Lpsi[nthread][j] .* measproj(x[j],s[j])
     end
-    Lpsi[N] .= L[N-1] .* psidag[N]
-    psix = (Lpsi[N] * measproj(x[N],s[N]))[]
+    Lpsi[nthread][N] .= L[nthread][N-1] .* psidag[N]
+    psix = (Lpsi[nthread][N] * measproj(x[N],s[N]))[]
     prob = abs2(psix)
-    loss -= log(prob)/size(data)[1]
+    loss[nthread] -= log(prob)/size(data)[1]
     
     """ RIGHT ENVIRONMENTS """
-    R[N] .= psidag[N] .* measproj(x[N],s[N])
+    R[nthread][N] .= psidag[N] .* measproj(x[N],s[N])
     for j in reverse(2:N-1)
-      Rpsi[j] .= psidag[j] .* R[j+1]
-      R[j] .= Rpsi[j] .* measproj(x[j],s[j])
+      Rpsi[nthread][j] .= psidag[j] .* R[nthread][j+1]
+      R[nthread][j] .= Rpsi[nthread][j] .* measproj(x[j],s[j])
     end
 
     """ GRADIENTS """
     # TODO: fuse into one call to mul!
-    grads[1] .= measproj(x[1],s[1]) .* R[2] 
-    gradients[1] .+= (1 / (localnorm[1] * psix)) .* grads[1]
+    grads[nthread][1] .= measproj(x[1],s[1]) .* R[nthread][2] 
+    gradients[nthread][1] .+= (1 / (localnorm[1] * psix)) .* grads[nthread][1]
     for j in 2:N-1
-      Rpsi[j] .= L[j-1] .* measproj(x[j],s[j])
+      Rpsi[nthread][j] .= L[nthread][j-1] .* measproj(x[j],s[j])
       # TODO: fuse into one call to mul!
-      grads[j] .= Rpsi[j] .* R[j+1]
-      gradients[j] .+= (1 / (localnorm[j] * psix)) .* grads[j]
+      grads[nthread][j] .= Rpsi[nthread][j] .* R[nthread][j+1]
+      gradients[nthread][j] .+= (1 / (localnorm[j] * psix)) .* grads[nthread][j]
     end
-    grads[N] .= L[N-1] .* measproj(x[N],s[N])
-    gradients[N] .+= (1 / (localnorm[N] * psix)) .* grads[N]
+    grads[nthread][N] .= L[nthread][N-1] .* measproj(x[N], s[N])
+    gradients[nthread][N] .+= (1 / (localnorm[N] * psix)) .* grads[nthread][N]
   end
-  for g in gradients
-    g .= -2/size(data)[1] .* g
+
+  for nthread in 1:nthreads
+    for g in gradients[nthread]
+      g .= (-2/size(data)[1]) .* g
+    end
   end
-  return gradients,loss 
+
+  gradients_tot = [ITensor(ElT, inds(psi[j])) for j in 1:N]
+  loss_tot = 0.0
+  for nthread in 1:nthreads
+    gradients_tot .+= gradients[nthread]
+    loss_tot += loss[nthread]
+  end
+
+  return gradients_tot, loss_tot
 end
 
 """
