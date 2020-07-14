@@ -38,7 +38,7 @@ end
 Compile the gates into tensors and return
 """
 function compilecircuit(M::Union{MPS,MPO},gates::Array)
-  gate_tensors = []
+  gate_tensors = ITensor[]
   for gate in gates
     push!(gate_tensors,makegate(M,gate))
   end
@@ -57,17 +57,30 @@ end
 
 """ Run the a quantum circuit without modifying input state
 """
-function runcircuit(M::Union{MPS,MPO},gate_tensors::Array;cutoff=1e-10)
-  return runcircuit!(copy(M),gate_tensors;cutoff=cutoff)
-end
+runcircuit(M::Union{MPS, MPO},
+           gate_tensors::Vector{ <: ITensor};
+           cutoff = 1e-15) =
+  apply(gate_tensors, M; cutoff = cutoff)
+
+runcircuit(M::ITensor,
+           gate_tensors::Vector{ <: ITensor}) =
+  apply(gate_tensors, M)
 
 """ Run a quantum circuit on the input state"""
-function runcircuit!(M::Union{MPS,MPO},gate_tensors::Array;cutoff=1e-10)
-  for gate_tensor in gate_tensors
-    applygate!(M,gate_tensor,cutoff=cutoff)
+function runcircuit!(M::Union{MPS, MPO},
+                     gate_tensors::Vector{ <: ITensor};
+                     cutoff = 1e-15)
+  Mc = apply(gate_tensors, M; cutoff = cutoff)
+  for n in 1:length(M)
+    M[n] = Mc[n]
   end
   return M
 end
+
+#for gate_tensor in gate_tensors
+#  applygate!(M,gate_tensor,cutoff=cutoff)
+#end
+#return M
 
 """----------------------------------------------
                MEASUREMENT FUNCTIONS 
