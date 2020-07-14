@@ -2,24 +2,19 @@
 initialize the wavefunction
 Create an MPS for N sites on the ``|000\\dots0\\rangle`` state.
 """
-function qubits(N::Int)
-  sites = [Index(2; tags="Site, n=$s") for s in 1:N]
-  psi = productMPS(sites, [1 for i in 1:length(sites)])
-  return psi
+qubits(sites::Vector{<:Index}) = productMPS(sites, "0")
+
+qubits(N::Int) = qubits(siteinds("qubit", N))
+
+function resetqubits!(ψ::MPS)
+  ψ_new = productMPS(siteinds(ψ), "0")
+  ψ[:] = ψ_new
+  return ψ
 end
 
-function resetqubits!(psi::MPS)
-  sites = siteinds(psi)
-  psi = productMPS(sites, [1 for i in 1:length(sites)])
-  return psi
-end
+circuit(sites::Vector{<:Index}) = MPO(sites, "Id")
 
-function circuit(N::Int)
-  sites = [Index(2; tags="Site, n=$s") for s in 1:N]
-  U = MPO(sites, "Id")
-  return U
-end
-
+circuit(N::Int) = circuit(siteinds("qubit", N))
 
 """----------------------------------------------
                   CIRCUIT FUNCTIONS 
@@ -71,9 +66,7 @@ function runcircuit!(M::Union{MPS, MPO},
                      gate_tensors::Vector{ <: ITensor};
                      cutoff = 1e-15)
   Mc = apply(gate_tensors, M; cutoff = cutoff)
-  for n in 1:length(M)
-    M[n] = Mc[n]
-  end
+  M[:] = Mc
   return M
 end
 

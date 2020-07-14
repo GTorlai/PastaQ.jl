@@ -103,10 +103,10 @@ using ITensors
       for n in 1:N
         @test hassameinds(sM[n], sM0[n])
       end
-      set_warn_itensor_order!(15)
-      prodM = apply(gates, prod(M0))
-      @test prod(M) ≈ prodM
-      reset_warn_itensor_order!()
+      @set_warn_order 15 begin
+        prodM = apply(gates, prod(M0))
+        @test prod(M) ≈ prodM
+      end
     end
 
     @testset "Mixed state noisy evolution" begin
@@ -120,10 +120,10 @@ using ITensors
       for n in 1:N
         @test hassameinds(sM[n], sM0[n])
       end
-      set_warn_itensor_order!(16)
-      prodM = apply(gates, prod(M0); apply_dag = true)
-      @test prod(M) ≈ prodM
-      reset_warn_itensor_order!()
+      @set_warn_order 16 begin
+        prodM = apply(gates, prod(M0); apply_dag = true)
+        @test prod(M) ≈ prodM
+      end
     end
 
     @testset "Mixed state noisy evolution" begin
@@ -137,10 +137,10 @@ using ITensors
       for n in 1:N
         @test hassameinds(sM[n], sM0[n])
       end
-      set_warn_itensor_order!(16)
-      prodM = apply(gates, prod(M0); apply_dag = true)
-      @test prod(M) ≈ prodM rtol = 1e-1
-      reset_warn_itensor_order!()
+      @set_warn_order 16 begin
+        prodM = apply(gates, prod(M0); apply_dag = true)
+        @test prod(M) ≈ prodM rtol = 1e-1
+      end
     end
 
   end
