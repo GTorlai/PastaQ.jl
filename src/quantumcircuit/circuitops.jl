@@ -10,7 +10,7 @@ function makegate(M::MPS, gate_id::String, site::Int; kwargs...)
 end
 
 function makegate(M::MPO, gate_id::String, site::Int; kwargs...)
-  site_ind = firstind(M[site],tags="Site")#siteind(M,site)
+  site_ind = firstind(M[site], tags="Site", plev = 0)#siteind(M,site)
   gate = quantumgate(gate_id, site_ind; kwargs...)
   return gate 
 end
@@ -22,8 +22,8 @@ function makegate(M::MPS,gate_id::String, site::Array; kwargs...)
 end
 
 function makegate(M::MPO,gate_id::String, site::Array; kwargs...)
-  site_ind1 = firstind(M[site[1]],tags="Site")
-  site_ind2 = firstind(M[site[2]],tags="Site")
+  site_ind1 = firstind(M[site[1]], tags="Site", plev = 0)
+  site_ind2 = firstind(M[site[2]], tags="Site", plev = 0)
   gate = quantumgate(gate_id,site_ind1,site_ind2; kwargs...)
   return gate
 end
@@ -65,7 +65,7 @@ end
 
 # Apply 1Q gate using a pre-generated gate tensor
 function applygate!(M::MPO,gate::ITensor{2}; kwargs...)
-  site = getsitenumber(firstind(gate,"Site")) 
+  site = getsitenumber(firstind(gate; tags="Site", plev=0)) 
   M[site] = gate * prime(M[site],tags="Site",plev=1)
   prime!(M[site],tags="Site",-1)
 end
