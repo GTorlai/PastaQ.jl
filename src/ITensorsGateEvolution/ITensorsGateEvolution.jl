@@ -8,14 +8,9 @@ export ProductOps,
        findsiteinds,
        firstsiteinds,
        movesite,
-       movesites,
-       get_warn_itensor_order,
-       set_warn_itensor_order!,
-       reset_warn_itensor_order!,
-       disable_warn_itensor_order!
+       movesites
 
 # Extensions to ITensors
-include("itensors/global_variables.jl")
 include("itensors/tupletools.jl")
 include("itensors/index.jl")
 include("itensors/indexset.jl")
