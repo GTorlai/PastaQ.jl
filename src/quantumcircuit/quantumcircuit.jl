@@ -2,24 +2,19 @@
 initialize the wavefunction
 Create an MPS for N sites on the ``|000\\dots0\\rangle`` state.
 """
-function qubits(N::Int)
-  sites = [Index(2; tags="Site, n=$s") for s in 1:N]
-  psi = productMPS(sites, [1 for i in 1:length(sites)])
-  return psi
+qubits(sites::Vector{<:Index}) = productMPS(sites, "0")
+
+qubits(N::Int) = qubits(siteinds("qubit", N))
+
+function resetqubits!(ψ::MPS)
+  ψ_new = productMPS(siteinds(ψ), "0")
+  ψ[:] = ψ_new
+  return ψ
 end
 
-function resetqubits!(psi::MPS)
-  sites = siteinds(psi)
-  psi = productMPS(sites, [1 for i in 1:length(sites)])
-  return psi
-end
+circuit(sites::Vector{<:Index}) = MPO(sites, "Id")
 
-function circuit(N::Int)
-  sites = [Index(2; tags="Site, n=$s") for s in 1:N]
-  U = MPO(sites, "Id")
-  return U
-end
-
+circuit(N::Int) = circuit(siteinds("qubit", N))
 
 """----------------------------------------------
                   CIRCUIT FUNCTIONS 
@@ -38,7 +33,7 @@ end
 Compile the gates into tensors and return
 """
 function compilecircuit(M::Union{MPS,MPO},gates::Array)
-  gate_tensors = []
+  gate_tensors = ITensor[]
   for gate in gates
     push!(gate_tensors,makegate(M,gate))
   end
@@ -57,17 +52,28 @@ end
 
 """ Run the a quantum circuit without modifying input state
 """
-function runcircuit(M::Union{MPS,MPO},gate_tensors::Array;cutoff=1e-10)
-  return runcircuit!(copy(M),gate_tensors;cutoff=cutoff)
-end
+runcircuit(M::Union{MPS, MPO},
+           gate_tensors::Vector{ <: ITensor};
+           cutoff = 1e-15) =
+  apply(gate_tensors, M; cutoff = cutoff)
+
+runcircuit(M::ITensor,
+           gate_tensors::Vector{ <: ITensor}) =
+  apply(gate_tensors, M)
 
 """ Run a quantum circuit on the input state"""
-function runcircuit!(M::Union{MPS,MPO},gate_tensors::Array;cutoff=1e-10)
-  for gate_tensor in gate_tensors
-    applygate!(M,gate_tensor,cutoff=cutoff)
-  end
+function runcircuit!(M::Union{MPS, MPO},
+                     gate_tensors::Vector{ <: ITensor};
+                     cutoff = 1e-15)
+  Mc = apply(gate_tensors, M; cutoff = cutoff)
+  M[:] = Mc
   return M
 end
+
+#for gate_tensor in gate_tensors
+#  applygate!(M,gate_tensor,cutoff=cutoff)
+#end
+#return M
 
 """----------------------------------------------
                MEASUREMENT FUNCTIONS 
