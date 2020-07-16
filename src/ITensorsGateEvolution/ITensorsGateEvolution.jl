@@ -8,12 +8,7 @@ export ProductOps,
        findsiteinds,
        firstsiteinds,
        movesite,
-       movesites,
-       # TODO: remove this once ITensors v0.1.20 is registered
-       filterinds
-
-# TODO: remove this once ITensors v0.1.20 is registered
-const filterinds = inds
+       movesites
 
 # Extensions to ITensors
 include("itensors/indexset.jl")

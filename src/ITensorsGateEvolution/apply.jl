@@ -79,12 +79,6 @@ function ITensors.product(o::ITensor,
   return ψ
 end
 
-function orthogonalize(ψ0::Union{MPS, MPO}, args...; kwargs...)
-  ψ = copy(ψ0)
-  orthogonalize!(ψ, args...; kwargs...)
-  return ψ
-end
-
 """
     product(ops::Vector{<:ITensor}, ψ::MPS;
             apply_dag::Bool = false)
