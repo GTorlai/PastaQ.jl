@@ -65,6 +65,30 @@ Base.pushfirst!(C::ProductOps, O) =
 Base.iterate(C::ProductOps, args...) = iterate(C.data, args...)
 Base.length(C::ProductOps) = length(C.data)
 
+# TODO: use bit shift operators << and >> to
+# append and prepend, respectively:
+# julia> B = BitVector([false, true, false])
+# 3-element BitArray{1}:
+#  0
+#  1
+#  0
+# 
+# julia> B <<= 1
+# 3-element BitArray{1}:
+#  1
+#  0
+#  0
+# 
+# julia> B >>= 1
+# 3-element BitArray{1}:
+#  0
+#  1
+#  0
+#
+# Define:
+# C::ProductOps << O = C * O
+# C::ProductOps >> O = O * C
+
 import Base: *
 
 C::ProductOps * O = push!(copy(C), O)

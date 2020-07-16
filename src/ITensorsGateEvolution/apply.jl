@@ -43,7 +43,7 @@ to false.
 """
 function ITensors.product(o::ITensor,
                           ψ::Union{MPS, MPO},
-                          ns;
+                          ns::Vector{Int};
                           move_sites_back::Bool = true,
                           apply_dag::Bool = false,
                           kwargs...)
@@ -76,12 +76,6 @@ function ITensors.product(o::ITensor,
     error("move_sites_back is not supported yet")
   end
 
-  return ψ
-end
-
-function orthogonalize(ψ0::Union{MPS, MPO}, args...; kwargs...)
-  ψ = copy(ψ0)
-  orthogonalize!(ψ, args...; kwargs...)
   return ψ
 end
 

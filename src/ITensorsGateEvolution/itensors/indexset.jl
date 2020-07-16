@@ -2,10 +2,6 @@
 # TODO: Make the constructor
 # IndexSet{N, IndexT, DataT}(::Index...)
 
-# TODO: export this. Maybe make this more
-# specific than an alias?
-const filterinds = inds
-
 #
 # Order singleton type
 #
