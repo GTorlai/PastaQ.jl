@@ -21,12 +21,9 @@ end
 
 Apply the ITensor `o` to the MPS `ψ`.
 """
-function ITensors.product(o::ITensor{N},
-                          ψ::Union{MPS, MPO};
-                          kwargs...) where {N}
-  ns = findcommonsiteinds(o, ψ)
-  return product(o, ψ, ns; kwargs...)
-end
+ITensors.product(o::ITensor{N}, ψ::Union{MPS, MPO};
+                 kwargs...) where {N} =
+  product(o, ψ, findsites(ψ, o); kwargs...)
 
 """
     product(o::ITensor, ψ::MPS, ns::Tuple;
@@ -67,15 +64,8 @@ function ITensors.product(o::ITensor,
     ϕ *= ψ[ns′[n]]
   end
   ϕ = product(o, ϕ; apply_dag = apply_dag)
-  ψ = replacesites(ψ, ϕ;
-                   firstsite = ns′[1],
-                   lastsite = ns′[end],
-                   kwargs...)
-
-  if move_sites_back
-    error("move_sites_back is not supported yet")
-  end
-
+  ψ[ns′[1]:ns′[end], kwargs...] = ϕ
+  move_sites_back && error("move_sites_back is not supported yet")
   return ψ
 end
 
@@ -98,7 +88,7 @@ function ITensors.product(ops::Vector{<:ITensor},
   end
   s = siteinds(ψ)
   ns = 1:length(ψ)
-  ns′ = findsiteinds(ψ0, s)
+  ns′ = findsites(ψ0, s)
   # Move the sites back to their original positions
   ψ = movesites(ψ, ns, ns′; kwargs...)
   return ψ

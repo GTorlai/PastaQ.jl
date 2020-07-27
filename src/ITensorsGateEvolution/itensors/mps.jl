@@ -1,43 +1,69 @@
 
+# TODO: rename findfirstsiteind and findfirstsiteinds
+# to findsite.
+# TODO: accept a keyword argument sitedict that
+# is a dictionary from the site indices to the site.
+"""
+    findsite(M::Union{MPS, MPO}, is)
+
+Return the site of the MPS or MPO that has the
+site index or collection of site indices `is`.
+
+# Examples
+```julia
+s = siteinds("S=1/2", 5)
+ψ = randomMPS(s)
+findsite(ψ, s[3]) == 3
+
+M = MPO(s)
+findsite(M, s[4]) == 4
+findsite(M, s[4]') == 4
+findsite(M, (s[4]', s[4])) == 4
+isnothing(findsite(M, (s[4]', s[3])))
+```
+"""
+findsite(ψ::ITensors.AbstractMPS, is) = findfirst(hasinds(is), ψ)
+
+findsite(ψ::ITensors.AbstractMPS, s::Index) = findsite(ψ, IndexSet(s))
+
+
 # TODO: make this the definition for siteind
 """
     firstsiteind(M::MPO, j::Int; plev = 0, kwargs...)
 
     siteind(M::MPO, j::Int; plev = 0, kwargs...)
 
-Return the first site Index found of the MPO.
+Return the first site Index found of the MPS or MPO.
 
-By default, it returns the first site Index with prime
-level of 0. You can choose different filters, like tags,
-with the `kwargs`.
+You can choose different filters, like prime level
+and tags, with the `kwargs`.
 """
-function firstsiteind(M::Union{MPS, MPO}, j::Int; plev::Int = 0, kwargs...)
+function firstsiteind(M::Union{MPS, MPO}, j::Int;
+                      kwargs...)
   N = length(M)
-  (N==1) && return firstind(M[1]; plev = plev, kwargs...)
-
+  (N==1) && return firstind(M[1]; kwargs...)
   if j == 1
-    si = uniqueind(M[j], M[j+1]; plev = plev, kwargs...)
+    si = uniqueind(M[j], M[j+1]; kwargs...)
   elseif j == N
-    si = uniqueind(M[j], M[j-1]; plev = plev, kwargs...)
+    si = uniqueind(M[j], M[j-1]; kwargs...)
   else
-    si = uniqueind(M[j], M[j-1], M[j+1]; plev = plev, kwargs...)
+    si = uniqueind(M[j], M[j-1], M[j+1]; kwargs...)
   end
   return si
 end
 
-# TODO: make this alias?
-#const firstsiteind = siteind
+ITensors.siteind(M::Union{MPS, MPO}, j::Int; kwargs...) =
+  firstsiteind(M, j; kwargs...)
 
-# TODO: rename to allsiteinds?
 """
     siteinds(M::MPO, j::Int; kwargs...)
 
-Return the site Indices found of the MPO.
+Return the site Indices found of the MPO or MPO
+at the site `j`.
 """
 function ITensors.siteinds(M::Union{MPS, MPO}, j::Int; kwargs...)
   N = length(M)
   (N==1) && return inds(M[1]; kwargs...)
-
   if j == 1
     si = uniqueinds(M[j], M[j+1]; kwargs...)
   elseif j == N
@@ -48,11 +74,10 @@ function ITensors.siteinds(M::Union{MPS, MPO}, j::Int; kwargs...)
   return si
 end
 
-# TODO: rename to allsiteinds?
 """
     siteinds(M::MPO; kwargs...)
 
-Get a Vector of the site indices of M.
+Get a Vector of IndexSets the all of the site indices of M.
 """
 ITensors.siteinds(M::MPO; kwargs...) =
   [siteinds(M, j; kwargs...) for j in 1:length(M)]
@@ -65,13 +90,25 @@ Get a Vector of the first site Index found on each site of M.
 firstsiteinds(M::Union{MPS, MPO}; kwargs...) =
   [firstsiteind(M, j; kwargs...) for j in 1:length(M)]
 
-function findsiteinds(ψ::Union{MPS, MPO},
-                      inds::Vector)
-  return [findfirstsiteinds(ψ, inds[n]) for n in 1:length(ψ)]
-end
+"""
+    findsites(ψ::Union{MPS, MPO},
+              is::Vector)
 
-function findcommonsiteinds(o::ITensor,
-                            ψ::Union{MPS, MPO})
+Get a vector of the sites that contain the
+indices `is`.
+
+# Example
+```julia
+s = siteinds("S=1/2", 5)
+ψ = randomMPS(s)
+findsites(ψ, [s[3], s[2]]) == [3, 2]
+```
+"""
+findsites(ψ::Union{MPS, MPO}, is::Vector) =
+  [findsite(ψ, i) for i in is]
+
+function findsites(ψ::Union{MPS, MPO},
+                   o::ITensor)
   ns = Int[]
   for (n, ψn) in enumerate(ψ)
     if hascommoninds(o, ψn)
@@ -145,23 +182,64 @@ Swap the sites `b` and `b+1`.
 """
 function ITensors.swapbondsites(ψ::MPO, b::Int; kwargs...)
   ortho = get(kwargs, :ortho, "right")
+  ψ = copy(ψ)
   if ortho == "left"
     orthocenter = b+1
   elseif ortho == "right"
     orthocenter = b
   end
   if ITensors.leftlim(ψ) < b - 1
-    ψ = orthogonalize(ψ, b)
+    orthogonalize!(ψ, b)
   elseif ITensors.rightlim(ψ) > b + 2
-    ψ = orthogonalize(ψ, b + 1)
+    orthogonalize!(ψ, b + 1)
   end
-  #kwargs = setindex(values(kwargs), [2, 1], :parm)
-  ψ = replacesites(ψ, ψ[b] * ψ[b+1];
-                   firstsite = b, lastsite = b+1,
-                   orthocenter = orthocenter,
-                   perm = [2, 1],
-                   kwargs...)
+  ψ[b:b+1, orthocenter = orthocenter, perm = [2, 1], kwargs...] = ψ[b] * ψ[b+1]
   return ψ
+end
+
+_number_inds(s::Index) = 1
+_number_inds(s::IndexSet) = length(s)
+_number_inds(sites) = sum(_num_inds(s) for s in sites)
+
+function itensor_to_mps_or_mpo(MPST::Type{<:ITensors.AbstractMPS},
+                               A::ITensor, sites;
+                               firstlinkind::Union{Nothing, Index} = nothing,
+                               lastlinkind::Union{Nothing, Index} = nothing,
+                               orthocenter::Int = length(sites),
+                               kwargs...)
+  N = length(sites)
+  @assert order(A) == _num_inds(sites) + !isnothing(firstlinkind) + !isnothing(lastlinkind)
+  @assert hasinds(A, sites)
+  if MPST <: MPO
+    @assert hasinds(A, prime.(sites))
+  end
+  @assert isnothing(firstlinkind) || hasind(A, firstlinkind)
+  @assert isnothing(lastlinkind) || hasind(A, lastlinkind)
+
+  # TODO: To minimize work, loop from
+  # 1:orthocenter and reverse(orthocenter:N)
+  @assert 1 ≤ orthocenter ≤ N
+
+  ψ = Vector{ITensor}(undef, N)
+  Ã = A
+  l = firstlinkind
+  for n in 1:N-1
+    s = sites[n]
+    if MPST <: MPS
+      Lis = isnothing(l) ? (s,) : (l, s)
+    elseif MPST <: MPO
+      Lis = isnothing(l) ? (s, s') : (l, s, s')
+    end
+    L, R = factorize(Ã, Lis; kwargs...)
+    l = commonind(L, R)
+    ψ[n] = L
+    Ã = R
+  end
+  ψ[N] = Ã
+  M = MPST(ψ)
+  ITensors.setleftlim!(M, orthocenter-1)
+  ITensors.setrightlim!(M, orthocenter+1)
+  return M
 end
 
 """
@@ -271,43 +349,44 @@ function Base.setindex!(ψ::MPST, ϕ::MPST,
   return ψ
 end
 
-# TODO: add a version of replacesites that
-# determines `firstsite` and `lastsite` from common
-# site indices of ψ and A
+# TODO: add a version that determines the sites
+# from common site indices of ψ and A
 """
-    replacesites(ψ::Union{MPS, MPO},
-                 A::ITensor;
-                 firstsite::Int,
-                 lastsite::Int,
-                 orthocenter::Int = firstsite,
-                 perm = nothing,
-                 kwargs...)
+    setindex!(ψ::Union{MPS, MPO},
+              A::ITensor,
+              r::UnitRange{Int};
+              orthocenter::Int = last(r),
+              perm = nothing,
+              kwargs...)
 
-Replace the sites between `firstsite` and `lastsite` with tensors made
-from decomposing `A` into an MPS.
+    replacesites!([...])
 
-The MPS must be orthogonalized such that
+    replacesites([...])
+
+Replace the sites in the range `r` with tensors made
+from decomposing `A` into an MPS or MPO.
+
+The MPS or MPO must be orthogonalized such that
 ```
 firstsite ≤ ITensors.orthocenter(ψ) ≤ lastsite
 ```
 
 Choose the new orthogonality center with `orthocenter`, which
-should be within `firstsite:lastsite`.
+should be within `r`.
 
 Optionally, permute the order of the sites with `perm`.
 """
-function replacesites(ψ::MPST,
-                      A::ITensor;
-                      firstsite::Int,
-                      lastsite::Int,
-                      orthocenter::Int = lastsite,
-                      perm = nothing,
-                      kwargs...) where {MPST <: Union{MPS, MPO}}
+function Base.setindex!(ψ::MPST,
+                        A::ITensor,
+                        r::UnitRange{Int};
+                        orthocenter::Int = last(r),
+                        perm = nothing,
+                        kwargs...) where {MPST <: Union{MPS, MPO}}
   # Replace the sites of ITensor ψ
   # with the tensor A, splitting up A
   # into MPS tensors
-  ψ = copy(ψ)
-
+  firstsite = first(r)
+  lastsite = last(r)
   @assert firstsite ≤ ITensors.orthocenter(ψ) ≤ lastsite
   @assert firstsite ≤ ITensors.leftlim(ψ) + 1
   @assert ITensors.rightlim(ψ) - 1 ≤ lastsite
@@ -343,6 +422,21 @@ function replacesites(ψ::MPST,
   return ψ
 end
 
+Base.setindex!(ψ::MPST,
+               A::ITensor,
+               r::UnitRange{Int},
+               args::Pair{Symbol}...;
+               kwargs...) where
+                            {MPST <: Union{MPS, MPO}} =
+  setindex!(ψ, A, r; args..., kwargs...)
+
+replacesites!(ψ::ITensors.AbstractMPS, args...; kwargs...) =
+  setindex!(ψ, args...; kwargs...)
+
+replacesites(ψ::ITensors.AbstractMPS, args...; kwargs...) =
+  setindex!(copy(ψ), args...; kwargs...)
+
+# This version adds QN support
 """
     MPO([::Type{ElT} = Float64}, ]sites, ops::Vector{String})
 

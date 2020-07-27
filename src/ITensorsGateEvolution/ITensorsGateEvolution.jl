@@ -5,7 +5,7 @@ using ITensors
 export ProductOps,
        ops,
        apply,
-       findsiteinds,
+       findsites,
        firstsiteinds,
        movesite,
        movesites

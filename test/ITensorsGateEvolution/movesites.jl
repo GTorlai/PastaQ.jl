@@ -13,7 +13,7 @@ using Combinatorics
       s = [s0[perm[n]] for n in 1:N]
       ψ = productMPS(s, rand(("0", "1"), N))
       ns = 1:N
-      ns′ = findsiteinds(ψ0, s)
+      ns′ = findsites(ψ0, s)
       @test ns′ == perm
       ψ′ = movesites(ψ, ns, ns′)
       for n in 1:N
