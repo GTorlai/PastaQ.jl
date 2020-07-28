@@ -51,13 +51,12 @@ function ITensors.product(o::ITensor,
   # distance to orthogonalization.
   # For example, if ITensors.orthocenter(ψ) > ns[end],
   # set to ns[end].
-  # TODO: make a movesites(ψ, ns, ns′) function.
   ψ = orthogonalize(ψ, ns[1])
   diff_ns = diff(ns)
   ns′ = ns
   if any(!=(1), diff_ns)
     ns′ = [ns[1] + n - 1 for n in 1:N]
-    ψ = movesites(ψ, ns, ns′; kwargs...)
+    ψ = movesites(ψ, ns .=> ns′; kwargs...)
   end
   ϕ = ψ[ns′[1]]
   for n in 2:N
@@ -88,9 +87,9 @@ function ITensors.product(ops::Vector{<:ITensor},
   end
   s = siteinds(ψ)
   ns = 1:length(ψ)
-  ns′ = findsites(ψ0, s)
+  ns′ = [findsite(ψ0, i) for i in s]
   # Move the sites back to their original positions
-  ψ = movesites(ψ, ns, ns′; kwargs...)
+  ψ = movesites(ψ, ns .=> ns′; kwargs...)
   return ψ
 end
 

@@ -179,17 +179,17 @@ end
   @test length(gate_tensors) == N
   psi = runcircuit(psi0, gate_tensors)
 
-  @disable_warn_order begin
-    @test prod(psi) ≈ noprime(prod(psi0) * prod(gate_tensors))
-  end
+  disable_warn_order!()
+  @test prod(psi) ≈ noprime(prod(psi0) * prod(gate_tensors))
+  reset_warn_order!()
 
   U0 = circuit(N)
   gate_tensors = compilecircuit(U0, gates)
   U = runcircuit(U0, gate_tensors)
 
-  @disable_warn_order begin
-    @test prod(U) ≈ prod(gate_tensors)
-  end
+  disable_warn_order!()
+  @test prod(U) ≈ prod(gate_tensors)
+  reset_warn_order!()
 end
 
 @testset "runcircuit: Cx layer N=10" begin
@@ -218,20 +218,20 @@ end
   @test length(gate_tensors) == N÷2-1
   psi = runcircuit(psi0, gate_tensors)
 
-  @disable_warn_order begin
-    @test prod(psi) ≈ noprime(prod(psi0) * prod(gate_tensors))
-  end
+  disable_warn_order!()
+  @test prod(psi) ≈ noprime(prod(psi0) * prod(gate_tensors))
+  reset_warn_order!()
 
   U0 = circuit(N)
   gate_tensors = compilecircuit(U0, gates)
   U = runcircuit(U0, gate_tensors)
 
   # TODO: replace with mapprime([...], 2 => 1, 1 => 0)
-  @disable_warn_order begin
-    @test prod(U) ≈ mapprime(prime(prod(U0)) *
-                             prod(gate_tensors),
-                             1 => 0, 2 => 1)
-  end
+  disable_warn_order!()
+  @test prod(U) ≈ mapprime(prime(prod(U0)) *
+                           prod(gate_tensors),
+                           1 => 0, 2 => 1)
+  reset_warn_order!()
 end
 
 @testset "runcircuit: random quantum circuit" begin
@@ -251,9 +251,9 @@ end
   gate_tensors = compilecircuit(U0, gates)
   U = runcircuit(U0, gate_tensors)
 
-  @disable_warn_order begin
-    @test prod(U) ≈ runcircuit(prod(U0), gate_tensors)
-  end
+  disable_warn_order!()
+  @test prod(U) ≈ runcircuit(prod(U0), gate_tensors)
+  reset_warn_order!()
 end
 
 @testset "runcircuit: inverted gate order" begin
@@ -275,9 +275,9 @@ end
   gate_tensors = compilecircuit(U0, gates)
   U = runcircuit(U0, gate_tensors)
 
-  @disable_warn_order begin
-    @test prod(U) ≈ runcircuit(prod(U0), gate_tensors)
-  end
+  disable_warn_order!()
+  @test prod(U) ≈ runcircuit(prod(U0), gate_tensors)
+  reset_warn_order!()
 end
 
 @testset "runcircuit: long range gates" begin

@@ -21,14 +21,14 @@ using ITensors
     ψ = apply(gates, ψ0)
 
     # Move site 1 to position 3
-    ψ′ = movesite(ψ, 1, 3)
+    ψ′ = movesite(ψ, 1 => 3)
     @test siteind(ψ′, 1) == s[2]
     @test siteind(ψ′, 2) == s[3]
     @test siteind(ψ′, 3) == s[1]
     @test prod(ψ) ≈ prod(ψ′)
 
     # Move the site back
-    ψ′′ = movesite(ψ′, 3, 1)
+    ψ′′ = movesite(ψ′, 3 => 1)
     @test siteind(ψ′′, 1) == s[1]
     @test siteind(ψ′′, 2) == s[2]
     @test siteind(ψ′′, 3) == s[3]
@@ -103,10 +103,10 @@ using ITensors
       for n in 1:N
         @test hassameinds(sM[n], sM0[n])
       end
-      @set_warn_order 15 begin
-        prodM = apply(gates, prod(M0))
-        @test prod(M) ≈ prodM
-      end
+      set_warn_order!(15)
+      prodM = apply(gates, prod(M0))
+      @test prod(M) ≈ prodM
+      reset_warn_order!()
     end
 
     @testset "Mixed state noisy evolution" begin
@@ -120,10 +120,10 @@ using ITensors
       for n in 1:N
         @test hassameinds(sM[n], sM0[n])
       end
-      @set_warn_order 16 begin
-        prodM = apply(gates, prod(M0); apply_dag = true)
-        @test prod(M) ≈ prodM
-      end
+      set_warn_order!(16)
+      prodM = apply(gates, prod(M0); apply_dag = true)
+      @test prod(M) ≈ prodM
+      reset_warn_order!()
     end
 
     @testset "Mixed state noisy evolution" begin
@@ -137,10 +137,10 @@ using ITensors
       for n in 1:N
         @test hassameinds(sM[n], sM0[n])
       end
-      @set_warn_order 16 begin
-        prodM = apply(gates, prod(M0); apply_dag = true)
-        @test prod(M) ≈ prodM rtol = 1e-1
-      end
+      set_warn_order!(16)
+      prodM = apply(gates, prod(M0); apply_dag = true)
+      @test prod(M) ≈ prodM rtol = 1e-1
+      reset_warn_order!()
     end
 
   end
@@ -149,7 +149,7 @@ using ITensors
     N = 6
     s = siteinds("qubit", N)
     ψ0 = randomMPS(s)
-    ψ = ITensorsGateEvolution.movesites(ψ0, 1:N, reverse(1:N))
+    ψ = movesites(ψ0, 1:N .=> reverse(1:N))
     for n in 1:N
       @test siteind(ψ, n) == s[N-n+1]
     end

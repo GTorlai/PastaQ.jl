@@ -4,14 +4,9 @@ using ITensors
 
 export ProductOps,
        ops,
-       apply,
-       findsites,
-       firstsiteinds,
-       movesite,
-       movesites
+       apply
 
 # Extensions to ITensors
-include("itensors/indexset.jl")
 include("itensors/mps.jl")
 
 # ProductOps type
