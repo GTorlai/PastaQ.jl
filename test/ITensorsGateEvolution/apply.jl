@@ -122,7 +122,7 @@ using ITensors
       end
       set_warn_order!(16)
       prodM = apply(gates, prod(M0); apply_dag = true)
-      @test prod(M) ≈ prodM
+      @test prod(M) ≈ prodM atol=1e-5
       reset_warn_order!()
     end
 
