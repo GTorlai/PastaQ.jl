@@ -2,19 +2,13 @@
 # qubit
 #
 
-function ITensors.space(::SiteType"qubit";
-                        conserve_qns::Bool = false)
-  if conserve_qns
-    return [QN() => 2]
-  end
-  return 2
-end
+ITensors.space(::SiteType"qubit") = 2
 
 ITensors.state(::SiteType"qubit",
-               ::ITensors.StateName"0") = 1
+               ::StateName"0") = 1
 
 ITensors.state(::SiteType"qubit",
-               ::ITensors.StateName"1") = 2
+               ::StateName"1") = 2
 
 ITensors.op(::OpName"Id",
             ::SiteType"qubit",

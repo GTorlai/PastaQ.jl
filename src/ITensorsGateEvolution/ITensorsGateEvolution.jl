@@ -6,9 +6,6 @@ export ProductOps,
        ops,
        apply
 
-# Extensions to ITensors
-include("itensors/mps.jl")
-
 # ProductOps type
 include("productops.jl")
 

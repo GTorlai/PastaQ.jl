@@ -1,7 +1,7 @@
 using Test
+using ITensors
 using PastaQ
 using .ITensorsGateEvolution
-using ITensors
 
 @testset "apply" begin
 
@@ -105,7 +105,7 @@ using ITensors
       end
       set_warn_order!(15)
       prodM = apply(gates, prod(M0))
-      @test prod(M) ≈ prodM
+      @test prod(M) ≈ prodM atol = 1e-11
       reset_warn_order!()
     end
 
@@ -122,7 +122,7 @@ using ITensors
       end
       set_warn_order!(16)
       prodM = apply(gates, prod(M0); apply_dag = true)
-      @test prod(M) ≈ prodM atol=1e-5
+      @test prod(M) ≈ prodM atol = 1e-5
       reset_warn_order!()
     end
 
@@ -143,16 +143,6 @@ using ITensors
       reset_warn_order!()
     end
 
-  end
-
-  @testset "movesites" begin
-    N = 6
-    s = siteinds("qubit", N)
-    ψ0 = randomMPS(s)
-    ψ = movesites(ψ0, 1:N .=> reverse(1:N))
-    for n in 1:N
-      @test siteind(ψ, n) == s[N-n+1]
-    end
   end
 
 end
