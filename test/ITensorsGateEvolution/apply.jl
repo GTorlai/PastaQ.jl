@@ -105,7 +105,7 @@ using .ITensorsGateEvolution
       end
       set_warn_order!(15)
       prodM = apply(gates, prod(M0))
-      @test prod(M) ≈ prodM atol = 1e-11
+      @test prod(M) ≈ prodM atol = 1e-10
       reset_warn_order!()
     end
 
