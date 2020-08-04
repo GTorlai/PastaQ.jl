@@ -9,126 +9,126 @@ using LinearAlgebra
   i = Index(2)
   j = Index(2)
   
-  g = quantumgate("I",i) 
+  g = gate("I",i) 
   @test plev(inds(g)[1]) == 1 
   @test plev(inds(g)[2]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)
   @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
   
-  g = quantumgate("X",i) 
+  g = gate("X",i) 
   @test plev(inds(g)[1]) == 1 
   @test plev(inds(g)[2]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)
   @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
   
-  g = quantumgate("Y",i) 
+  g = gate("Y",i) 
   @test plev(inds(g)[1]) == 1 
   @test plev(inds(g)[2]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)
   @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
  
-  g = quantumgate("Z",i) 
+  g = gate("Z",i) 
   @test plev(inds(g)[1]) == 1 
   @test plev(inds(g)[2]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)
   @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
   
-  g = quantumgate("H",i) 
+  g = gate("H",i) 
   @test plev(inds(g)[1]) == 1 
   @test plev(inds(g)[2]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)
   @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
   
-  g = quantumgate("S",i) 
+  g = gate("S",i) 
   @test plev(inds(g)[1]) == 1 
   @test plev(inds(g)[2]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)
   @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
   
-  g = quantumgate("T",i) 
+  g = gate("T",i) 
   @test plev(inds(g)[1]) == 1 
   @test plev(inds(g)[2]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)
   @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
    
-  g = quantumgate("pX+",i) 
+  g = gate("prepX+",i) 
   @test plev(inds(g)[1]) == 1 
   @test plev(inds(g)[2]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)
   @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
   θ = π * rand()
   
-  g = quantumgate("pX-",i) 
+  g = gate("prepX-",i) 
   @test plev(inds(g)[1]) == 1 
   @test plev(inds(g)[2]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)
   @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
   θ = π * rand()
   
-  g = quantumgate("pY+",i) 
+  g = gate("prepY+",i) 
   @test plev(inds(g)[1]) == 1 
   @test plev(inds(g)[2]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)
   @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
   θ = π * rand()
   
-  g = quantumgate("pY-",i) 
+  g = gate("prepY-",i) 
   @test plev(inds(g)[1]) == 1 
   @test plev(inds(g)[2]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)
   @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
   θ = π * rand()
   
-  g = quantumgate("pZ+",i) 
+  g = gate("prepZ+",i) 
   @test plev(inds(g)[1]) == 1 
   @test plev(inds(g)[2]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)
   @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
   θ = π * rand()
   
-  g = quantumgate("pZ-",i) 
+  g = gate("prepZ-",i) 
   @test plev(inds(g)[1]) == 1 
   @test plev(inds(g)[2]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)
   @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
   θ = π * rand()
   
-  g = quantumgate("mX",i) 
+  g = gate("measX",i) 
   @test plev(inds(g)[1]) == 1 
   @test plev(inds(g)[2]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)
   @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
   θ = π * rand()
   
-  g = quantumgate("mY",i) 
+  g = gate("measY",i) 
   @test plev(inds(g)[1]) == 1 
   @test plev(inds(g)[2]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)
   @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
   θ = π * rand()
   
-  g = quantumgate("mZ",i) 
+  g = gate("measZ",i) 
   @test plev(inds(g)[1]) == 1 
   @test plev(inds(g)[2]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)
   @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
   θ = π * rand()
   
-  g = quantumgate("Rx",i,θ=θ)
+  g = gate("Rx",i,θ=θ)
   @test plev(inds(g)[1]) == 1 
   @test plev(inds(g)[2]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)
   @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
 
   θ = π * rand()
-  g = quantumgate("Ry",i,θ=θ)
+  g = gate("Ry",i,θ=θ)
   @test plev(inds(g)[1]) == 1 
   @test plev(inds(g)[2]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)
   @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
   
   ϕ = 2π * rand()
-  g = quantumgate("Rz",i,ϕ=ϕ)
+  g = gate("Rz",i,ϕ=ϕ)
   @test plev(inds(g)[1]) == 1 
   @test plev(inds(g)[2]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)
@@ -138,32 +138,32 @@ using LinearAlgebra
   θ = π * angles[1]
   ϕ = 2π * angles[2]
   λ = 2π * angles[3]
-  g = quantumgate("Rn",i,θ=θ,ϕ=ϕ,λ=λ)
+  g = gate("Rn",i,θ=θ,ϕ=ϕ,λ=λ)
   @test plev(inds(g)[1]) == 1 
   @test plev(inds(g)[2]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)
   @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
   
   
-  g = quantumgate("Sw",i,j)
+  g = gate("SWAP",i,j)
   @test plev(inds(g)[1]) == 1 && plev(inds(g)[2]) == 1 
   @test plev(inds(g)[3]) == 0 && plev(inds(g)[4]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)
   @test array(ggdag) ≈ reshape(Matrix{ComplexF64}(I, 4, 4),(2,2,2,2))
 
-  g = quantumgate("Cx",i,j)
+  g = gate("CX",i,j)
   @test plev(inds(g)[1]) == 1 && plev(inds(g)[2]) == 1 
   @test plev(inds(g)[3]) == 0 && plev(inds(g)[4]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)
   @test array(ggdag) ≈ reshape(Matrix{ComplexF64}(I, 4, 4),(2,2,2,2))
   
-  g = quantumgate("Cy",i,j)
+  g = gate("CY",i,j)
   @test plev(inds(g)[1]) == 1 && plev(inds(g)[2]) == 1 
   @test plev(inds(g)[3]) == 0 && plev(inds(g)[4]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)
   @test array(ggdag) ≈ reshape(Matrix{ComplexF64}(I, 4, 4),(2,2,2,2))
   
-  g = quantumgate("Cz",i,j)
+  g = gate("CZ",i,j)
   @test plev(inds(g)[1]) == 1 && plev(inds(g)[2]) == 1 
   @test plev(inds(g)[3]) == 0 && plev(inds(g)[4]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)

@@ -1,250 +1,398 @@
-# Identity
-function gate_I(T = ComplexF64)
-  return T[1 0;
-           0 1]
+#
+# qubit site type
+#
+
+ITensors.space(::SiteType"qubit") = 2
+
+ITensors.state(::SiteType"qubit", ::StateName"0") = 1
+
+ITensors.state(::SiteType"qubit", ::StateName"1") = 2
+
+const GateName = OpName
+
+macro GateName_str(s)
+  GateName{ITensors.SmallString(s)}
 end
 
-# Pauli X
-function gate_X(T = ComplexF64)
-  return T[0 1;
-           1 0]
+const ProjName = OpName
+
+macro ProjName_str(s)
+  ProjName{ITensors.SmallString(s)}
 end
 
-# Pauli Y
-function gate_Y(T = ComplexF64)
-  return T[0+0im 0-im;
-           0+im  0+0im]
-end
+#
+# Gate definitions.
+# Gate names must not start with "proj".
+#
 
-# Pauli Z
-function gate_Z(T = ComplexF64)
-  return T[1  0;
-           0 -1]
-end
+#
+# 1-qubit gates
+#
 
-const inv_sqrt2 = 0.7071067811865475
+gate(::GateName"Id") =
+  [1 0
+   0 1]
 
-# Hadamard
-function gate_H(T = ComplexF64)
-  return T[inv_sqrt2  inv_sqrt2;
-           inv_sqrt2 -inv_sqrt2]
-end
+gate(::GateName"I") =
+  gate("Id")
 
-# S gate
-function gate_S(T = ComplexF64)
-  return T[1+0im 0+0im;
-           0+0im 0+im]
-end
+gate(::GateName"X") =
+  [0 1
+   1 0]
 
-# T gate
-function gate_T(T = ComplexF64)
-  return T[1.0+0.0im  0.0+0.0im;
-           0.0+0.0im  inv_sqrt2+inv_sqrt2*im]
-end
+gate(::GateName"σx") =
+  gate("X") 
 
-# Rotation around X axis
-function gate_Rx(T = ComplexF64; θ::Float64)
-  return T[cos(θ/2)+0.0im   0.0-im*sin(θ/2.);
-           0.0-im*sin(θ/2.) cos(θ/2.)+0.0im]
-end
+gate(::GateName"σ1") =
+  gate("X") 
 
-# Rotation around Y axis
-function gate_Ry(T = ComplexF64; θ::Float64)
-  return T[cos(θ/2) -sin(θ/2);
-           sin(θ/2)  cos(θ/2)]
-end
+gate(::GateName"√NOT") =
+  [(1+im)/2 (1-im)/2
+   (1-im)/2 (1+im)/2]
 
-# Rotation around Z axis
-function gate_Rz(T = ComplexF64; ϕ::Real)
-  return T[exp(-im*ϕ/2.) 0.0+0.0im;
-           0.0+0.0im     exp(im*ϕ/2)]
-end
+gate(::GateName"√X") =
+  gate("√NOT")
 
-# Rotation around generic axis
-function gate_Rn(T = ComplexF64;
-                 θ::Float64,
-                 ϕ::Float64,
-                 λ::Float64)
-  return T[cos(θ/2)+0.0im       -exp(im*λ) * sin(θ/2);
-           exp(im*ϕ) * sin(θ/2)  exp(im*(ϕ+λ)) * cos(θ/2)]
-end
+gate(::GateName"Y") =
+  [ 0 -im
+   im   0]
 
-# Swap gate
-function gate_Sw(T = ComplexF64)
-  return T[1 0 0 0;
-           0 0 1 0;
-           0 1 0 0;
-           0 0 0 1]
-end
+gate(::GateName"σy") =
+  gate("Y") 
 
-# Controlled-X
-function gate_Cx(T = ComplexF64)
-  return T[1 0 0 0;
-           0 1 0 0;
-           0 0 0 1;
-           0 0 1 0]
-  #return T[1 0 0 0;
-  #         0 0 0 1;
-  #         0 0 1 0;
-  #         0 1 0 0]
-end
+gate(::GateName"σ2") =
+  gate("Y") 
 
-# Controlled-Y
-function gate_Cy(T = ComplexF64)
-  #return T[1 0 0 0;
-  #         0 0 0 -im;
-  #         0 0 1 0;
-  #         0 im 0 0]
-  return T[1 0 0 0;
-           0 1 0 0;
-           0 0 0 -im;
-           0 0 im 0]
-end
+gate(::GateName"iY") =
+  [ 0 1
+   -1 0]
 
-# Controlled-Z
-function gate_Cz(T = ComplexF64)
-  return T[1 0 0 0;
-           0 1 0 0;
-           0 0 1 0;
-           0 0 0 -1]
-end
+gate(::GateName"iσy") =
+  gate("iY")
+
+gate(::GateName"iσ2") =
+  gate("iY")
+
+# Rϕ with ϕ = π
+gate(::GateName"Z") =
+  [1  0
+   0 -1]
+
+gate(::GateName"σz") =
+  gate("Z")
+
+gate(::GateName"σ3") =
+  gate("Z")
+
+gate(::GateName"H") =
+  [1/sqrt(2) 1/sqrt(2)
+   1/sqrt(2) -1/sqrt(2)]
+
+# Rϕ with ϕ = π/2
+gate(::GateName"Phase") =
+  [1  0
+   0 im]
+
+gate(::GateName"P") =
+  gate("Phase")
+
+gate(::GateName"S") =
+  gate("Phase")
+
+# Rϕ with ϕ = π/4
+gate(::GateName"π/8") =
+  [1  0
+   0  1/sqrt(2) + im/sqrt(2)]
+
+gate(::GateName"T") =
+  gate("π/8")
+
+# Rotation around X-axis
+gate(::GateName"Rx"; θ::Number) =
+  [    cos(θ/2)  -im*sin(θ/2)
+   -im*sin(θ/2)      cos(θ/2)]
+
+# Rotation around Y-axis
+gate(::GateName"Ry"; θ::Number) =
+  [cos(θ/2) -sin(θ/2)
+   sin(θ/2)  cos(θ/2)]
+
+# Rotation around Z-axis
+gate(::GateName"Rz"; ϕ::Number) =
+  [exp(-im*ϕ/2)           0
+   0            exp(im*ϕ/2)]
+
+# Rotation around generic axis n̂
+gate(::GateName"Rn";
+    θ::Real, ϕ::Real, λ::Real) =
+  [          cos(θ/2)    -exp(im*λ)*sin(θ/2)
+   exp(im*ϕ)*sin(θ/2) exp(im*(ϕ+λ))*cos(θ/2)]
+
+gate(::GateName"Rn̂"; kwargs...) =
+  gate("Rn"; kwargs...)
+
+#
+# 2-qubit gates
+#
+
+gate(::GateName"CNOT") =
+  [1 0 0 0
+   0 1 0 0
+   0 0 0 1
+   0 0 1 0]
+
+gate(::GateName"CX") =
+  gate("CNOT")
+
+gate(::GateName"CY") =
+  [1 0  0   0
+   0 1  0   0
+   0 0  0 -im
+   0 0 im   0]
+
+gate(::GateName"CZ") =
+  [1 0 0  0
+   0 1 0  0
+   0 0 1  0
+   0 0 0 -1]
+
+gate(::GateName"SWAP") =
+  [1 0 0 0
+   0 0 1 0
+   0 1 0 0
+   0 0 0 1]
+
+gate(::GateName"Sw") =
+  gate("SWAP")
+
+gate(::GateName"√SWAP") =
+  [1        0        0 0
+   0 (1+im)/2 (1-im)/2 0
+   0 (1-im)/2 (1+im)/2 0
+   0        0        0 1]
+
+# Ising (XX) coupling gate
+gate(::GateName"XX"; ϕ::Number) =
+  [    cos(ϕ)          0          0 -im*sin(ϕ)
+            0     cos(ϕ) -im*sin(ϕ)          0
+            0 -im*sin(ϕ)     cos(ϕ)          0
+   -im*sin(ϕ)          0          0     cos(ϕ)]
+
+# TODO: Ising (YY) coupling gate
+#gate(::GateName"YY"; ϕ::Number) =
+#  [...]
+
+# TODO: Ising (ZZ) coupling gate
+#gate(::GateName"ZZ"; ϕ::Number) =
+#  [...]
+
+#
+# 3-qubit gates
+#
+
+gate(::GateName"Toffoli") =
+  [1 0 0 0 0 0 0 0
+   0 1 0 0 0 0 0 0
+   0 0 1 0 0 0 0 0
+   0 0 0 1 0 0 0 0
+   0 0 0 0 1 0 0 0
+   0 0 0 0 0 1 0 0
+   0 0 0 0 0 0 0 1
+   0 0 0 0 0 0 1 0]
+
+gate(::GateName"CCNOT") =
+  gate("Toffoli")
+
+gate(::GateName"CCX") =
+  gate("Toffoli")
+
+gate(::GateName"TOFF") =
+  gate("Toffoli")
+
+gate(::GateName"Fredkin") =
+  [1 0 0 0 0 0 0 0
+   0 1 0 0 0 0 0 0
+   0 0 1 0 0 0 0 0
+   0 0 0 1 0 0 0 0
+   0 0 0 0 1 0 0 0
+   0 0 0 0 0 0 1 0
+   0 0 0 0 0 1 0 0
+   0 0 0 0 0 0 0 1]
+
+gate(::GateName"CSWAP") =
+  gate("Fredkin")
+
+gate(::GateName"CS") =
+  gate("Fredkin")
+
+#
+# 4-qubit gates
+#
+
+gate(::GateName"CCCNOT") =
+  [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+   0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+   0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0
+   0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0
+   0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0
+   0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0
+   0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0
+   0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0
+   0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0
+   0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0
+   0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0
+   0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0
+   0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0
+   0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0
+   0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1
+   0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0]
+
+#
+# State preparation gates
+#
 
 # State preparation: |0> -> |+>
-function prep_Xp(T = ComplexF64)
-  return gate_H(T)
-end
+gate(::GateName"prepX+") =
+  gate("H")
 
 # State preparation: |0> -> |->
-function prep_Xm(T = ComplexF64)
-  return T[ inv_sqrt2  inv_sqrt2;
-           -inv_sqrt2  inv_sqrt2]
-end
+gate(::GateName"prepX-") =
+  [ 1/sqrt(2) 1/sqrt(2)
+   -1/sqrt(2) 1/sqrt(2)]
 
 # State preparation: |0> -> |r>
-function prep_Yp(T = ComplexF64)
-  return T[inv_sqrt2+0.0im   inv_sqrt2+0.0im;
-           0.0+inv_sqrt2*im  0.0-inv_sqrt2*im]
-end
+gate(::GateName"prepY+") =
+  [ 1/sqrt(2)   1/sqrt(2)
+   im/sqrt(2) -im/sqrt(2)]
 
 # State preparation: |0> -> |l>
-function prep_Ym(T = ComplexF64)
-  return T[ inv_sqrt2+0.0im  inv_sqrt2+0.0im;
-           0.0-inv_sqrt2*im  0.0+inv_sqrt2*im]
-end
+gate(::GateName"prepY-") =
+  [  1/sqrt(2)  1/sqrt(2)
+   -im/sqrt(2) im/sqrt(2)]
 
 # State preparation: |0> -> |0>
-function prep_Zp(T = ComplexF64)
-  return gate_I(T)
-end
+gate(::GateName"prepZ+") =
+  gate("I")
 
 # State preparation: |0> -> |1>
-function prep_Zm(T = ComplexF64)
-  return gate_X(T)
-end
+gate(::GateName"prepZ-") =
+  gate("X")
+
+#
+# Measurement gates
+#
 
 # Measurement rotation: |sX> -> |sZ>
-function meas_X(T = ComplexF64)
-  return gate_H(T)
-end
+gate(::GateName"measX") =
+  gate("H")
 
 # Measurement rotation: |sY> -> |sZ>
-function meas_Y(T = ComplexF64)
-  return T[inv_sqrt2+0.0im 0.0-inv_sqrt2*im;
-           inv_sqrt2+0.0im 0.0+inv_sqrt2*im]
-end
+gate(::GateName"measY") =
+  [1/sqrt(2) -im/sqrt(2)
+   1/sqrt(2)  im/sqrt(2)]
 
 # Measurement rotation: |sZ> -> |sZ>
-function meas_Z(T = ComplexF64)
-  return gate_I(T)
+gate(::GateName"measZ") =
+  gate("I")
+
+#
+# Measurement projections.
+# Projector names must start with "proj".
+#
+
+proj(::ProjName"projX+") =
+  [1/sqrt(2)
+   1/sqrt(2)]
+
+proj(::ProjName"projX-") =
+  [ 1/sqrt(2)
+   -1/sqrt(2)]
+
+proj(::ProjName"projY+") =
+  [  1/sqrt(2)
+   im/sqrt(2)]
+
+proj(::ProjName"projY-") =
+  [  1/sqrt(2)
+   -im/sqrt(2)]
+
+proj(::ProjName"projZ+") =
+  [1
+   0]
+
+proj(::ProjName"projZ-") =
+  [0
+   1]
+
+#
+# Get an ITensor gate from a gate definition
+#
+
+gate(::GateName{gn}; kwargs...) where {gn} =
+  error("A gate with the name \"$gn\" has not been implemented yet. You can define it by overloading `gate(::GateName\"$gn\") = [...]`.")
+
+gate(s::String) = gate(GateName(s))
+
+function gate(gn::GateName, s::Index...; kwargs...)
+  rs = reverse(s)
+  return itensor(gate(gn; kwargs...), prime.(rs)..., dag.(rs)...)
 end
 
-# A global dictionary of gate functions
-quantumgates = Dict{String, Function}()
+gate(gn::String, s::Index...; kwargs...) =
+  gate(GateName(gn), s...; kwargs...)
 
-# Default gates
-quantumgates["I"]  = gate_I
-quantumgates["X"]  = gate_X
-quantumgates["Y"]  = gate_Y
-quantumgates["Z"]  = gate_Z
-quantumgates["H"]  = gate_H
-quantumgates["S"]  = gate_S
-quantumgates["T"]  = gate_T
-quantumgates["Rx"] = gate_Rx
-quantumgates["Ry"] = gate_Ry
-quantumgates["Rz"] = gate_Rz
-quantumgates["Rn"] = gate_Rn
-quantumgates["Sw"] = gate_Sw
-quantumgates["Cx"] = gate_Cx
-quantumgates["Cy"] = gate_Cy
-quantumgates["Cz"] = gate_Cz
+gate(gn::String, s::Vector{<:Index}, ns::Int...; kwargs...) =
+  gate(gn, s[[ns...]]...; kwargs...)
 
-quantumgates["pX+"] = prep_Xp
-quantumgates["pX-"] = prep_Xm
-quantumgates["pY+"] = prep_Yp
-quantumgates["pY-"] = prep_Ym
-quantumgates["pZ+"] = prep_Zp
-quantumgates["pZ-"] = prep_Zm
+#
+# Get an ITensor projector from a projector definition
+#
 
-quantumgates["mX"] = meas_X
-quantumgates["mY"] = meas_Y
-quantumgates["mZ"] = meas_Z
-
-"""
-    quantumgate(gate_id::String,
-                site_inds::Index...;
-                kwargs...)
-
-Make the specified gate with the specified indices.
-
-# Example
-```julia
-i = Index(2; tags = "i")
-quantumgate("X", i)
-```
-"""
-function quantumgate(T,
-                     gate_id::String,
-                     site_inds::Index...;
-                     reverse_order=true,
-                     kwargs...)
-  if reverse_order
-    is = IndexSet(reverse(site_inds)...)
-  else
-    is = IndexSet(site_inds...)
-  end
-  return itensor(quantumgates[gate_id](T; kwargs...), is'..., is...)
+function proj(PN::ProjName{pn}; kwargs...) where {pn}
+  error("A projector with the name \"$pn\" has not been implemented yet. You can define it by overloading `proj(::ProjName\"$pn\") = [...]`.")
 end
 
-function quantumgate(gate_id::String,
-                     site_inds::Index...;
-                     kwargs...)
-  return quantumgate(ComplexF64, gate_id, site_inds...;
-                     kwargs...)
+# TODO: this automatically appends "proj" to the front of
+# the projector name.
+# function proj(PN::ProjName{pn}; kwargs...) where {pn}
+#   if isproj(PN)
+#     error("A projector with the name \"$pn\" has not been implemented yet. You can define it by overloading `proj(::ProjName\"$pn\") = [...]`.")
+#   else
+#     @show pn
+#     ppn = vcat(ITensors.SmallString("proj"), pn)
+#     return proj(ProjName(ppn); kwargs...)
+#   end
+# end
+
+proj(s::String) = proj(ProjName(s))
+
+function proj(pn::ProjName, s::Index...; kwargs...)
+  rs = reverse(s)
+  return itensor(proj(pn; kwargs...), rs...)
 end
 
-measproj_Xp(T = ComplexF64) = T[inv_sqrt2; inv_sqrt2]
-measproj_Xm(T = ComplexF64) = T[inv_sqrt2; -inv_sqrt2]
-measproj_Yp(T = ComplexF64) = T[inv_sqrt2+0.0im; 0.0+im*inv_sqrt2]
-measproj_Ym(T = ComplexF64) = T[inv_sqrt2+0.0im; 0.0-im*inv_sqrt2]
-measproj_Zp(T = ComplexF64) = T[1; 0]
-measproj_Zm(T = ComplexF64) = T[0; 1]
+proj(pn::String, s::Index...; kwargs...) =
+  proj(ProjName(pn), s...; kwargs...)
 
-measprojections = Dict{String, Function}()
-measprojections["X+"] = measproj_Xp
-measprojections["X-"] = measproj_Xm
-measprojections["Y+"] = measproj_Yp
-measprojections["Y-"] = measproj_Ym
-measprojections["Z+"] = measproj_Zp
-measprojections["Z-"] = measproj_Zm
+proj(pn::String, s::Vector{<:Index}, ns::Int...; kwargs...) =
+  proj(pn, s[[ns...]]...; kwargs...)
 
-function measproj(T::Type{<:Number},
-                  proj_id::String,
-                  site_ind::Index)
-  return itensor(measprojections[proj_id](T), site_ind)
+#
+# op overload for ITensors
+#
+
+function isproj(::OpName{gn}) where {gn}
+  ElT = eltype(gn)
+  if gn[1] == ElT('p') &&
+     gn[2] == ElT('r') &&
+     gn[3] == ElT('o') &&
+     gn[4] == ElT('j')
+     return true
+  end 
+  return false
 end
 
-function measproj(proj_id::String,
-                  site_ind::Index)
-  return measproj(ComplexF64, proj_id, site_ind)
+function ITensors.op(gn::GateName, ::SiteType"qubit", s::Index...; kwargs...)
+  isproj(gn) && return proj(gn, s...; kwargs...)
+  return gate(gn, s...; kwargs...)
 end
-

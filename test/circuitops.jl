@@ -15,22 +15,22 @@ using LinearAlgebra
   psi = qubits(2)
   site = 1
   site_ind = firstind(psi[site],"Site")
-  gate = quantumgate("I",site_ind)
-  applygate!(psi,gate)
+  g = gate("I",site_ind)
+  applygate!(psi,g)
   @test fullvector(psi) ≈ [1.,0.,0.,0.]
   
   # Build gate first, then apply using an ITensor
   psi = qubits(2)
   site = 2
   site_ind = firstind(psi[site],"Site")
-  gate = quantumgate("I",site_ind)
-  applygate!(psi,gate)
+  g = gate("I",site_ind)
+  applygate!(psi,g)
   @test fullvector(psi) ≈ [1.,0.,0.,0.]
   
   psi = qubits(2)
   gate_data = (gate = "I", site = 1)
-  gate = makegate(psi,gate_data)
-  applygate!(psi,gate)
+  g = makegate(psi,gate_data)
+  applygate!(psi,g)
   @test fullvector(psi) ≈ [1.,0.,0.,0.]
 end
   
@@ -46,24 +46,24 @@ end
   psi = qubits(2)
   site = 1
   site_ind = firstind(psi[site],"Site")
-  gate = quantumgate("X",site_ind)
-  applygate!(psi,gate)
+  g = gate("X",site_ind)
+  applygate!(psi,g)
   @test fullvector(psi) ≈ [0.,0.,1.,0.]
   
   # Build gate first, then apply using an ITensor
   psi = qubits(2)
   site = 2
   site_ind = firstind(psi[site],"Site")
-  gate = quantumgate("X",site_ind)
-  applygate!(psi,gate)
+  g = gate("X",site_ind)
+  applygate!(psi,g)
   @test fullvector(psi) ≈ [0.,1.,0.,0.]
 
   # Build gate first, then apply using an ITensor
   psi = qubits(2)
   site = 1
   gate_data = (gate = "X", site = 1)
-  gate = makegate(psi,gate_data)
-  applygate!(psi,gate)
+  g = makegate(psi,gate_data)
+  applygate!(psi,g)
   @test fullvector(psi) ≈ [0.,0.,1.,0.]
   
 end
@@ -82,24 +82,24 @@ end
   psi = qubits(2)
   site = 1
   site_ind = firstind(psi[site],"Site")
-  gate = quantumgate("Y",site_ind)
-  applygate!(psi,gate)
+  g = gate("Y",site_ind)
+  applygate!(psi,g)
   @test fullvector(psi) ≈ [0.,0.,im,0.]
   
   # Build gate first, then apply using an ITensor
   psi = qubits(2)
   site = 2
   site_ind = firstind(psi[site],"Site")
-  gate = quantumgate("Y",site_ind)
-  applygate!(psi,gate)
+  g = gate("Y",site_ind)
+  applygate!(psi,g)
   @test fullvector(psi) ≈ [0.,im,0.,0.]
   
   # Build gate first, then apply using an ITensor
   psi = qubits(2)
   site = 1
   gate_data = (gate = "Y", site = 1)
-  gate = makegate(psi,gate_data)
-  applygate!(psi,gate)
+  g = makegate(psi,gate_data)
+  applygate!(psi,g)
   @test fullvector(psi) ≈ [0.,0.,im,0.]
   
 end
@@ -118,24 +118,24 @@ end
   psi = qubits(2)
   site = 1
   site_ind = firstind(psi[site],"Site")
-  gate = quantumgate("Z",site_ind)
-  applygate!(psi,gate)
+  g = gate("Z",site_ind)
+  applygate!(psi,g)
   @test fullvector(psi) ≈ [1.,0.,0.,0.]
   
   # Build gate first, then apply using an ITensor
   psi = qubits(2)
   site = 2
   site_ind = firstind(psi[site],"Site")
-  gate = quantumgate("Z",site_ind)
-  applygate!(psi,gate)
+  g = gate("Z",site_ind)
+  applygate!(psi,g)
   @test fullvector(psi) ≈ [1.,0.,0.,0.]
 
   # Build gate first, then apply using an ITensor
   psi = qubits(2)
   site = 1
   gate_data = (gate = "Z", site = 1)
-  gate = makegate(psi,gate_data)
-  applygate!(psi,gate)
+  g = makegate(psi,gate_data)
+  applygate!(psi,g)
   @test fullvector(psi) ≈ [1.,0.,0.,0.]
   
 end
@@ -154,24 +154,24 @@ end
   psi = qubits(2)
   site = 1
   site_ind = firstind(psi[site],"Site")
-  gate = quantumgate("H",site_ind)
-  applygate!(psi,gate)
+  g = gate("H",site_ind)
+  applygate!(psi,g)
   @test fullvector(psi) ≈ 1/sqrt(2.)*[1.,0.,1.,0.]
   
   # Build gate first, then apply using an ITensor
   psi = qubits(2)
   site = 2
   site_ind = firstind(psi[site],"Site")
-  gate = quantumgate("H",site_ind)
-  applygate!(psi,gate)
+  g = gate("H",site_ind)
+  applygate!(psi,g)
   @test fullvector(psi) ≈ 1/sqrt(2.)*[1.,1.,0.,0.]
   
   # Build gate first, then apply using an ITensor
   psi = qubits(2)
   site = 1
   gate_data = (gate = "H", site = 1)
-  gate = makegate(psi,gate_data)
-  applygate!(psi,gate)
+  g = makegate(psi,gate_data)
+  applygate!(psi,g)
   @test fullvector(psi) ≈ 1/sqrt(2.)*[1.,0.,1.,0.] 
 end
 
@@ -186,16 +186,16 @@ end
 
   psi = qubits(1)
   gate_data = (gate = "S", site = 1)
-  gate = makegate(psi,gate_data)
-  applygate!(psi,gate)
+  g = makegate(psi,gate_data)
+  applygate!(psi,g)
   @test array(psi[1]) ≈ [1.,0.]
   psi = qubits(1)
   gate_data = (gate = "X", site = 1)
-  gate = makegate(psi,gate_data)
-  applygate!(psi,gate)
+  g = makegate(psi,gate_data)
+  applygate!(psi,g)
   gate_data = (gate = "S", site = 1)
-  gate = makegate(psi,gate_data)
-  applygate!(psi,gate)
+  g = makegate(psi,gate_data)
+  applygate!(psi,g)
   @test array(psi[1]) ≈ [0.,im]
 end
 
@@ -210,16 +210,16 @@ end
   
   psi = qubits(1)
   gate_data = (gate = "T", site = 1)
-  gate = makegate(psi,gate_data)
-  applygate!(psi,gate)
+  g = makegate(psi,gate_data)
+  applygate!(psi,g)
   @test array(psi[1]) ≈ [1.,0.]
   psi = qubits(1)
   gate_data = (gate = "X", site = 1)
-  gate = makegate(psi,gate_data)
-  applygate!(psi,gate)
+  g = makegate(psi,gate_data)
+  applygate!(psi,g)
   gate_data = (gate = "T", site = 1)
-  gate = makegate(psi,gate_data)
-  applygate!(psi,gate)
+  g = makegate(psi,gate_data)
+  applygate!(psi,g)
   @test array(psi[1]) ≈ [0.,exp(im*π/4)]
 end
 
@@ -236,14 +236,14 @@ end
   θ = π * rand()
   psi = qubits(1)
   gate_data = (gate = "Rx",site=1,params=(θ=θ,))
-  gate = makegate(psi,gate_data)
-  applygate!(psi,gate)
+  g = makegate(psi,gate_data)
+  applygate!(psi,g)
   @test array(psi[1]) ≈ [cos(θ/2.),-im*sin(θ/2.)]
   psi = qubits(1)
   applygate!(psi,"X",1)
   gate_data = (gate = "Rx",site=1,params=(θ=θ,))
-  gate = makegate(psi,gate_data)
-  applygate!(psi,gate)
+  g = makegate(psi,gate_data)
+  applygate!(psi,g)
   @test array(psi[1]) ≈ [-im*sin(θ/2.),cos(θ/2.)]
 end
 
@@ -260,14 +260,14 @@ end
   θ = π * rand()
   psi = qubits(1)
   gate_data = (gate = "Ry",site=1,params=(θ=θ,))
-  gate = makegate(psi,gate_data)
-  applygate!(psi,gate)
+  g = makegate(psi,gate_data)
+  applygate!(psi,g)
   @test array(psi[1]) ≈ [cos(θ/2.),sin(θ/2.)]
   psi = qubits(1)
   applygate!(psi,"X",1)
   gate_data = (gate = "Ry",site=1,params=(θ=θ,))
-  gate = makegate(psi,gate_data)
-  applygate!(psi,gate)
+  g = makegate(psi,gate_data)
+  applygate!(psi,g)
   @test array(psi[1]) ≈ [-sin(θ/2.),cos(θ/2.)]
 
 end
@@ -285,14 +285,14 @@ end
   ϕ = 2π * rand()
   psi = qubits(1)
   gate_data = (gate = "Rz",site=1,params=(ϕ=ϕ,))
-  gate=makegate(psi,gate_data)
-  applygate!(psi,gate)
+  g = makegate(psi,gate_data)
+  applygate!(psi,g)
   @test array(psi[1]) ≈ [exp(-im*ϕ/2.), 0.]
   psi = qubits(1)
   applygate!(psi,"X",1)
   gate_data = (gate = "Rz",site=1,params=(ϕ=ϕ,))
-  gate=makegate(psi,gate_data)
-  applygate!(psi,gate)
+  g = makegate(psi,gate_data)
+  applygate!(psi,g)
   @test array(psi[1]) ≈ [0.,exp(im*ϕ/2.)]
 end
 
@@ -311,14 +311,14 @@ end
 
   psi = qubits(1)
   gate_data = (gate = "Rn",site=1,params=(θ=θ,ϕ=ϕ,λ=λ))
-  gate=makegate(psi,gate_data)
-  applygate!(psi,gate)
+  g = makegate(psi,gate_data)
+  applygate!(psi,g)
   @test array(psi[1]) ≈ [cos(θ/2.),exp(im*ϕ) * sin(θ/2.)]
   psi = qubits(1)
   applygate!(psi,"X",1)
   gate_data = (gate = "Rn",site=1,params=(θ=θ,ϕ=ϕ,λ=λ))
-  gate=makegate(psi,gate_data)
-  applygate!(psi,gate)
+  g = makegate(psi,gate_data)
+  applygate!(psi,g)
   @test array(psi[1]) ≈ [-exp(im*λ) * sin(θ/2.),exp(im*(ϕ+λ)) * cos(θ/2.)]
 
 end
@@ -326,179 +326,179 @@ end
 
 @testset "apply gate: prep X+" begin
   psi = qubits(1)
-  applygate!(psi,"pX+",1)
+  applygate!(psi,"prepX+",1)
   @test fullvector(psi) ≈ 1/sqrt(2.)*[1.,1.]
   
   psi = qubits(1)
-  gate_data = (gate = "pX+", site = 1)
-  gate = makegate(psi,gate_data)
-  applygate!(psi,gate)
+  gate_data = (gate = "prepX+", site = 1)
+  g = makegate(psi,gate_data)
+  applygate!(psi,g)
   @test fullvector(psi) ≈ 1/sqrt(2.)*[1.,1.]
 end
 
 
 @testset "apply gate: prep X-" begin
   psi = qubits(1)
-  applygate!(psi,"pX-",1)
+  applygate!(psi,"prepX-",1)
   @test fullvector(psi) ≈ 1/sqrt(2.)*[1.,-1.]
   
   psi = qubits(1)
-  gate_data = (gate = "pX-", site = 1)
-  gate = makegate(psi,gate_data)
-  applygate!(psi,gate)
+  gate_data = (gate = "prepX-", site = 1)
+  g = makegate(psi,gate_data)
+  applygate!(psi,g)
   @test fullvector(psi) ≈ 1/sqrt(2.)*[1.,-1.]
 end
 
 @testset "apply gate: prep Y+" begin
   psi = qubits(1)
-  applygate!(psi,"pY+",1)
+  applygate!(psi,"prepY+",1)
   @test fullvector(psi) ≈ 1/sqrt(2.)*[1.,im]
   
   psi = qubits(1)
-  gate_data = (gate = "pY+", site = 1)
-  gate = makegate(psi,gate_data)
-  applygate!(psi,gate)
+  gate_data = (gate = "prepY+", site = 1)
+  g = makegate(psi,gate_data)
+  applygate!(psi,g)
   @test fullvector(psi) ≈ 1/sqrt(2.)*[1.,im]
 end
 
 
 @testset "apply gate: prep Y-" begin
   psi = qubits(1)
-  applygate!(psi,"pY-",1)
+  applygate!(psi,"prepY-",1)
   @test fullvector(psi) ≈ 1/sqrt(2.)*[1.,-im]
   
   psi = qubits(1)
-  gate_data = (gate = "pY-", site = 1)
-  gate = makegate(psi,gate_data)
-  applygate!(psi,gate)
+  gate_data = (gate = "prepY-", site = 1)
+  g = makegate(psi,gate_data)
+  applygate!(psi,g)
   @test fullvector(psi) ≈ 1/sqrt(2.)*[1.,-im]
 end
 
 @testset "apply gate: prep Z+" begin
   psi = qubits(1)
-  applygate!(psi,"pZ+",1)
+  applygate!(psi,"prepZ+",1)
   @test fullvector(psi) ≈ [1.,0.]
   
   psi = qubits(1)
-  gate_data = (gate = "pZ+", site = 1)
-  gate = makegate(psi,gate_data)
-  applygate!(psi,gate)
+  gate_data = (gate = "prepZ+", site = 1)
+  g = makegate(psi,gate_data)
+  applygate!(psi,g)
   @test fullvector(psi) ≈ [1.,0.]
 end
 
 @testset "apply gate: prep Z-" begin
   psi = qubits(1)
-  applygate!(psi,"pZ-",1)
+  applygate!(psi,"prepZ-",1)
   @test fullvector(psi) ≈ [0.,1.]
   
   psi = qubits(1)
-  gate_data = (gate = "pZ-", site = 1)
-  gate = makegate(psi,gate_data)
-  applygate!(psi,gate)
+  gate_data = (gate = "prepZ-", site = 1)
+  g = makegate(psi,gate_data)
+  applygate!(psi,g)
   @test fullvector(psi) ≈ [0.,1.]
 end
 
 @testset "apply gate: meas X" begin
   psi = qubits(1)
-  applygate!(psi,"pX+",1)
-  applygate!(psi,"mX",1)
+  applygate!(psi,"prepX+",1)
+  applygate!(psi,"measX",1)
   @test fullvector(psi) ≈ [1.,0.]
   psi = qubits(1)
-  applygate!(psi,"pX-",1)
-  applygate!(psi,"mX",1)
+  applygate!(psi,"prepX-",1)
+  applygate!(psi,"measX",1)
   @test fullvector(psi) ≈ [0.,1.]
 
   psi = qubits(1)
-  gate_data = (gate = "pX+", site = 1)
-  gate = makegate(psi,gate_data)
-  applygate!(psi,gate)
-  gate_data = (gate = "mX", site = 1)
-  gate = makegate(psi,gate_data)
-  applygate!(psi,gate)
+  gate_data = (gate = "prepX+", site = 1)
+  g = makegate(psi,gate_data)
+  applygate!(psi,g)
+  gate_data = (gate = "measX", site = 1)
+  g = makegate(psi,gate_data)
+  applygate!(psi,g)
   @test fullvector(psi) ≈ [1.,0.]
   psi = qubits(1)
-  gate_data = (gate = "pX-", site = 1)
-  gate = makegate(psi,gate_data)
-  applygate!(psi,gate)
-  gate_data = (gate = "mX", site = 1)
-  gate = makegate(psi,gate_data)
-  applygate!(psi,gate)
+  gate_data = (gate = "prepX-", site = 1)
+  g = makegate(psi,gate_data)
+  applygate!(psi,g)
+  gate_data = (gate = "measX", site = 1)
+  g = makegate(psi,gate_data)
+  applygate!(psi,g)
   @test fullvector(psi) ≈ [0.,1.]
 end
 
 @testset "apply gate: meas Y" begin
   psi = qubits(1)
-  applygate!(psi,"pY+",1)
-  applygate!(psi,"mY",1)
+  applygate!(psi,"prepY+",1)
+  applygate!(psi,"measY",1)
   @test fullvector(psi) ≈ [1.,0.]
   psi = qubits(1)
-  applygate!(psi,"pY-",1)
-  applygate!(psi,"mY",1)
+  applygate!(psi,"prepY-",1)
+  applygate!(psi,"measY",1)
   @test fullvector(psi) ≈ [0.,1.]
 
   psi = qubits(1)
-  gate_data = (gate = "pY+", site = 1)
-  gate = makegate(psi,gate_data)
-  applygate!(psi,gate)
-  gate_data = (gate = "mY", site = 1)
-  gate = makegate(psi,gate_data)
-  applygate!(psi,gate)
+  gate_data = (gate = "prepY+", site = 1)
+  g = makegate(psi,gate_data)
+  applygate!(psi,g)
+  gate_data = (gate = "measY", site = 1)
+  g = makegate(psi,gate_data)
+  applygate!(psi,g)
   @test fullvector(psi) ≈ [1.,0.]
   psi = qubits(1)
-  gate_data = (gate = "pY-", site = 1)
-  gate = makegate(psi,gate_data)
-  applygate!(psi,gate)
-  gate_data = (gate = "mY", site = 1)
-  gate = makegate(psi,gate_data)
-  applygate!(psi,gate)
+  gate_data = (gate = "prepY-", site = 1)
+  g = makegate(psi,gate_data)
+  applygate!(psi,g)
+  gate_data = (gate = "measY", site = 1)
+  g = makegate(psi,gate_data)
+  applygate!(psi,g)
   @test fullvector(psi) ≈ [0.,1.]
 end
 
 @testset "apply gate: meas Z" begin
   psi = qubits(1)
-  applygate!(psi,"mZ",1)
+  applygate!(psi,"measZ",1)
   @test fullvector(psi) ≈ [1.,0.]
   psi = qubits(1)
-  applygate!(psi,"pZ-",1)
-  applygate!(psi,"mZ",1)
+  applygate!(psi,"prepZ-",1)
+  applygate!(psi,"measZ",1)
   @test fullvector(psi) ≈ [0.,1.]
 
   psi = qubits(1)
-  gate_data = (gate = "mZ", site = 1)
-  gate = makegate(psi,gate_data)
-  applygate!(psi,gate)
+  gate_data = (gate = "measZ", site = 1)
+  g = makegate(psi,gate_data)
+  applygate!(psi,g)
   @test fullvector(psi) ≈ [1.,0.]
   psi = qubits(1)
-  gate_data = (gate = "pZ-", site = 1)
-  gate = makegate(psi,gate_data)
-  applygate!(psi,gate)
-  gate_data = (gate = "mZ", site = 1)
-  gate = makegate(psi,gate_data)
-  applygate!(psi,gate)
+  gate_data = (gate = "prepZ-", site = 1)
+  g = makegate(psi,gate_data)
+  applygate!(psi,g)
+  gate_data = (gate = "measZ", site = 1)
+  g = makegate(psi,gate_data)
+  applygate!(psi,g)
   @test fullvector(psi) ≈ [0.,1.]
 end
 
 
 
-@testset "apply gate: Cx" begin
+@testset "apply gate: CX" begin
   # CONTROL - TARGET
   psi = qubits(2)
   # |00> -> |00> = (1 0 0 0) (natural order)
-  applygate!(psi,"Cx",[1,2])
+  applygate!(psi,"CX",[1,2])
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [1.,0.,0.,0.]
   
   psi = qubits(2)
   # |10> -> |11> = (0 0 0 1) (natural order)
   applygate!(psi,"X",1)
-  applygate!(psi,"Cx",[1,2])
+  applygate!(psi,"CX",[1,2])
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,0.,0.,1.]
   
   psi = qubits(2)
   # |01> -> |01> = (0 1 0 0) (natural order)
   applygate!(psi,"X",2)
-  applygate!(psi,"Cx",[1,2])
+  applygate!(psi,"CX",[1,2])
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,1.,0.,0.]
   
@@ -506,28 +506,28 @@ end
   # |11> -> |10> = (0 0 1 0) (natural order)
   applygate!(psi,"X",1)
   applygate!(psi,"X",2)
-  applygate!(psi,"Cx",[1,2])
+  applygate!(psi,"CX",[1,2])
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,0.,1.,0.]
   
   # TARGET - CONTROL
   psi = qubits(2)
   # |00> -> |00> = (1 0 0 0) (natural order)
-  applygate!(psi,"Cx",[2,1])
+  applygate!(psi,"CX",[2,1])
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [1.,0.,0.,0.]
   
   psi = qubits(2)
   # |10> -> |10> = (0 0 1 0) (natural order)
   applygate!(psi,"X",1)
-  applygate!(psi,"Cx",[2,1])
+  applygate!(psi,"CX",[2,1])
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,0.,1.,0.]
   
   psi = qubits(2)
   # |01> -> |11> = (0 0 0 1) (natural order)
   applygate!(psi,"X",2)
-  applygate!(psi,"Cx",[2,1])
+  applygate!(psi,"CX",[2,1])
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,0.,0.,1.]
   
@@ -535,7 +535,7 @@ end
   # |11> -> |01> = (0 1 0 0) (natural order)
   applygate!(psi,"X",1)
   applygate!(psi,"X",2)
-  applygate!(psi,"Cx",[2,1])
+  applygate!(psi,"CX",[2,1])
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,1.,0.,0.]
 
@@ -545,8 +545,8 @@ end
   # |00> -> |00> = (1 0 0 0) (natural order)
   site_ind1 = firstind(psi[1],"Site")
   site_ind2 = firstind(psi[2],"Site")
-  gate = quantumgate("Cx",site_ind1,site_ind2)
-  applygate!(psi,gate)
+  g = gate("CX",site_ind1,site_ind2)
+  applygate!(psi,g)
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [1.,0.,0.,0.]
   
@@ -554,10 +554,10 @@ end
   # |10> -> |11> = (0 0 0 1) (natural order)
   site_ind1 = firstind(psi[1],"Site")
   site_ind2 = firstind(psi[2],"Site")
-  gate = quantumgate("X",site_ind1)
-  applygate!(psi,gate)
-  gate = quantumgate("Cx",site_ind1,site_ind2)
-  applygate!(psi,gate)
+  g = gate("X",site_ind1)
+  applygate!(psi,g)
+  g = gate("CX",site_ind1,site_ind2)
+  applygate!(psi,g)
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,0.,0.,1.]
   
@@ -565,10 +565,10 @@ end
   # |01> -> |01> = (0 1 0 0) (natural order)
   site_ind1 = firstind(psi[1],"Site")
   site_ind2 = firstind(psi[2],"Site")
-  gate = quantumgate("X",site_ind2) 
-  applygate!(psi,gate)
-  gate = quantumgate("Cx",site_ind1,site_ind2)
-  applygate!(psi,gate)
+  g = gate("X",site_ind2) 
+  applygate!(psi,g)
+  g = gate("CX",site_ind1,site_ind2)
+  applygate!(psi,g)
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,1.,0.,0.]
   
@@ -576,12 +576,12 @@ end
   # |11> -> |10> = (0 0 1 0) (natural order)
   site_ind1 = firstind(psi[1],"Site")
   site_ind2 = firstind(psi[2],"Site")
-  gate = quantumgate("X",site_ind1) 
-  applygate!(psi,gate)
-  gate = quantumgate("X",site_ind2) 
-  applygate!(psi,gate)
-  gate = quantumgate("Cx",site_ind1,site_ind2)
-  applygate!(psi,gate)
+  g = gate("X",site_ind1) 
+  applygate!(psi,g)
+  g = gate("X",site_ind2) 
+  applygate!(psi,g)
+  g = gate("CX",site_ind1,site_ind2)
+  applygate!(psi,g)
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,0.,1.,0.]
  
@@ -590,8 +590,8 @@ end
   # |00> -> |00> = (1 0 0 0) (natural order)
   site_ind1 = firstind(psi[2],"Site")
   site_ind2 = firstind(psi[1],"Site")
-  gate = quantumgate("Cx",site_ind1,site_ind2)
-  applygate!(psi,gate)
+  g = gate("CX",site_ind1,site_ind2)
+  applygate!(psi,g)
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [1.,0.,0.,0.]
   
@@ -599,10 +599,10 @@ end
   # |10> -> |10> = (0 0 1 0) (natural order)
   site_ind1 = firstind(psi[2],"Site")
   site_ind2 = firstind(psi[1],"Site")
-  gate = quantumgate("X",site_ind2) 
-  applygate!(psi,gate)
-  gate = quantumgate("Cx",site_ind1,site_ind2)
-  applygate!(psi,gate)
+  g = gate("X",site_ind2) 
+  applygate!(psi,g)
+  g = gate("CX",site_ind1,site_ind2)
+  applygate!(psi,g)
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,0.,1.,0.]
   
@@ -610,10 +610,10 @@ end
   # |01> -> |11> = (0 0 0 1) (natural order)
   site_ind1 = firstind(psi[2],"Site")
   site_ind2 = firstind(psi[1],"Site")
-  gate = quantumgate("X",site_ind1) 
-  applygate!(psi,gate)
-  gate = quantumgate("Cx",site_ind1,site_ind2)
-  applygate!(psi,gate)
+  g = gate("X",site_ind1) 
+  applygate!(psi,g)
+  g = gate("CX",site_ind1,site_ind2)
+  applygate!(psi,g)
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,0.,0.,1.]
   
@@ -621,12 +621,12 @@ end
   # |11> -> |01> = (0 1 0 0) (natural order)
   site_ind1 = firstind(psi[2],"Site")
   site_ind2 = firstind(psi[1],"Site")
-  gate = quantumgate("X",site_ind2) 
-  applygate!(psi,gate)
-  gate = quantumgate("X",site_ind1) 
-  applygate!(psi,gate)
-  gate = quantumgate("Cx",site_ind1,site_ind2)
-  applygate!(psi,gate)
+  g = gate("X",site_ind2) 
+  applygate!(psi,g)
+  g = gate("X",site_ind1) 
+  applygate!(psi,g)
+  g = gate("CX",site_ind1,site_ind2)
+  applygate!(psi,g)
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,1.,0.,0.]
 
@@ -634,69 +634,69 @@ end
   # CONTROL - TARGET
   psi = qubits(2)
   # |00> -> |00> = (1 0 0 0) (natural order)
-  gate_id = (gate = "Cx",site = [1,2])
-  gate = makegate(psi,gate_id)
-  applygate!(psi,gate)
+  gate_id = (gate = "CX",site = [1,2])
+  g = makegate(psi,gate_id)
+  applygate!(psi,g)
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [1.,0.,0.,0.]
   
   psi = qubits(2)
   # |10> -> |11> = (0 0 0 1) (natural order)
   gate_id = (gate = "X",site=1)
-  gate = makegate(psi,gate_id)
-  applygate!(psi,gate)
-  gate_id = (gate = "Cx",site = [1,2])
-  gate = makegate(psi,gate_id)
-  applygate!(psi,gate)
+  g = makegate(psi,gate_id)
+  applygate!(psi,g)
+  gate_id = (gate = "CX",site = [1,2])
+  g = makegate(psi,gate_id)
+  applygate!(psi,g)
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,0.,0.,1.]
   
   psi = qubits(2)
   # |01> -> |01> = (0 1 0 0) (natural order)
   gate_id = (gate = "X",site=2)
-  gate = makegate(psi,gate_id)
-  applygate!(psi,gate)
-  gate_id = (gate = "Cx",site = [1,2])
-  gate = makegate(psi,gate_id)
-  applygate!(psi,gate)
+  g = makegate(psi,gate_id)
+  applygate!(psi,g)
+  gate_id = (gate = "CX",site = [1,2])
+  g = makegate(psi,gate_id)
+  applygate!(psi,g)
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,1.,0.,0.]
   
   psi = qubits(2)
   # |11> -> |10> = (0 0 1 0) (natural order)
   gate_id = (gate = "X",site=1)
-  gate = makegate(psi,gate_id)
-  applygate!(psi,gate)
+  g = makegate(psi,gate_id)
+  applygate!(psi,g)
   gate_id = (gate = "X",site=2)
-  gate = makegate(psi,gate_id)
-  applygate!(psi,gate)
-  gate_id = (gate = "Cx",site = [1,2])
-  gate = makegate(psi,gate_id)
-  applygate!(psi,gate)
+  g = makegate(psi,gate_id)
+  applygate!(psi,g)
+  gate_id = (gate = "CX",site = [1,2])
+  g = makegate(psi,gate_id)
+  applygate!(psi,g)
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,0.,1.,0.]
 
 end
 
-@testset "apply gate: Cy" begin
+@testset "apply gate: CY" begin
   # CONTROL - TARGET
   psi = qubits(2)
   # |00> -> |00> = (1 0 0 0) (natural order)
-  applygate!(psi,"Cy",[1,2])
+  applygate!(psi,"CY",[1,2])
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [1.,0.,0.,0.]
   
   psi = qubits(2)
   # |10> -> i|11> = (0 0 0 i) (natural order)
   applygate!(psi,"X",1)
-  applygate!(psi,"Cy",[1,2])
+  applygate!(psi,"CY",[1,2])
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,0.,0.,im]
   
   psi = qubits(2)
   # |01> -> |01> = (0 1 0 0) (natural order)
   applygate!(psi,"X",2)
-  applygate!(psi,"Cy",[1,2])
+  applygate!(psi,"CY",[1,2])
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,1.,0.,0.]
   
@@ -704,28 +704,28 @@ end
   # |11> -> -i|10> = (0 0 -i 0) (natural order)
   applygate!(psi,"X",1)
   applygate!(psi,"X",2)
-  applygate!(psi,"Cy",[1,2])
+  applygate!(psi,"CY",[1,2])
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,0.,-im,0.]
   
   # TARGET - CONTROL
   psi = qubits(2)
   # |00> -> |00> = (1 0 0 0) (natural order)
-  applygate!(psi,"Cy",[2,1])
+  applygate!(psi,"CY",[2,1])
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [1.,0.,0.,0.]
   
   psi = qubits(2)
   # |10> -> |10> = (0 0 1 0) (natural order)
   applygate!(psi,"X",1)
-  applygate!(psi,"Cy",[2,1])
+  applygate!(psi,"CY",[2,1])
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,0.,1.,0.]
   
   psi = qubits(2)
   # |01> -> i|11> = (0 0 0 i) (natural order)
   applygate!(psi,"X",2)
-  applygate!(psi,"Cy",[2,1])
+  applygate!(psi,"CY",[2,1])
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,0.,0.,im]
   
@@ -733,31 +733,31 @@ end
   # |11> -> -i|01> = (0 -i 0 0) (natural order)
   applygate!(psi,"X",1)
   applygate!(psi,"X",2)
-  applygate!(psi,"Cy",[2,1])
+  applygate!(psi,"CY",[2,1])
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,-im,0.,0.]
 
 end
 
-@testset "apply gate: Cz" begin
+@testset "apply gate: CZ" begin
   # CONTROL - TARGET
   psi = qubits(2)
   # |00> -> |00> = (1 0 0 0) (natural order)
-  applygate!(psi,"Cz",[1,2])
+  applygate!(psi,"CZ",[1,2])
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [1.,0.,0.,0.]
   
   psi = qubits(2)
   # |10> -> |10> = (0 0 1 0) (natural order)
   applygate!(psi,"X",1)
-  applygate!(psi,"Cz",[1,2])
+  applygate!(psi,"CZ",[1,2])
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,0.,1.,0.]
   
   psi = qubits(2)
   # |01> -> |01> = (0 1 0 0) (natural order)
   applygate!(psi,"X",2)
-  applygate!(psi,"Cz",[1,2])
+  applygate!(psi,"CZ",[1,2])
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,1.,0.,0.]
   
@@ -765,7 +765,7 @@ end
   # |11> -> -|11> = (0 0 0 -1) (natural order)
   applygate!(psi,"X",1)
   applygate!(psi,"X",2)
-  applygate!(psi,"Cz",[1,2])
+  applygate!(psi,"CZ",[1,2])
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,0.,0.,-1.]
   
@@ -773,21 +773,21 @@ end
   # CONTROL - TARGET
   psi = qubits(2)
   # |00> -> |00> = (1 0 0 0) (natural order)
-  applygate!(psi,"Cz",[2,1])
+  applygate!(psi,"CZ",[2,1])
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [1.,0.,0.,0.]
   
   psi = qubits(2)
   # |10> -> |10> = (0 0 1 0) (natural order)
   applygate!(psi,"X",1)
-  applygate!(psi,"Cz",[2,1])
+  applygate!(psi,"CZ",[2,1])
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,0.,1.,0.]
   
   psi = qubits(2)
   # |01> -> |01> = (0 1 0 0) (natural order)
   applygate!(psi,"X",2)
-  applygate!(psi,"Cz",[2,1])
+  applygate!(psi,"CZ",[2,1])
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,1.,0.,0.]
   
@@ -795,7 +795,7 @@ end
   # |11> -> -|11> = (0 0 0 -1) (natural order)
   applygate!(psi,"X",1)
   applygate!(psi,"X",2)
-  applygate!(psi,"Cz",[2,1])
+  applygate!(psi,"CZ",[2,1])
   psi_vec = fullvector(psi)
   @test psi_vec ≈ [0.,0.,0.,-1.]
 

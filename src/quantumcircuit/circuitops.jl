@@ -1,57 +1,51 @@
-function makegate(gate_id::String, site_ind::Index; kwargs...)
-  gate = quantumgate(gate_id, site_ind; kwargs...)
-  return gate 
+function makegate(gatename::String, site_ind::Index; kwargs...)
+  return gate(gatename, site_ind; kwargs...)
 end
 
-function makegate(M::MPS, gate_id::String, site::Int; kwargs...)
+function makegate(M::MPS, gatename::String, site::Int; kwargs...)
   site_ind = siteind(M,site)
-  gate = quantumgate(gate_id, site_ind; kwargs...)
-  return gate 
+  return gate(gatename, site_ind; kwargs...)
 end
 
-function makegate(M::MPO, gate_id::String, site::Int; kwargs...)
+function makegate(M::MPO, gatename::String, site::Int; kwargs...)
   site_ind = firstind(M[site], tags="Site", plev = 0)#siteind(M,site)
-  gate = quantumgate(gate_id, site_ind; kwargs...)
-  return gate 
+  return gate(gatename, site_ind; kwargs...)
 end
-function makegate(M::MPS,gate_id::String, site::Array; kwargs...)
+function makegate(M::MPS,gatename::String, site::Array; kwargs...)
   site_ind1 = siteind(M,site[1])
   site_ind2 = siteind(M,site[2])
-  gate = quantumgate(gate_id,site_ind1,site_ind2; kwargs...)
-  return gate
+  return gate(gatename,site_ind1,site_ind2; kwargs...)
 end
 
-function makegate(M::MPO,gate_id::String, site::Array; kwargs...)
+function makegate(M::MPO,gatename::String, site::Array; kwargs...)
   site_ind1 = firstind(M[site[1]], tags="Site", plev = 0)
   site_ind2 = firstind(M[site[2]], tags="Site", plev = 0)
-  gate = quantumgate(gate_id,site_ind1,site_ind2; kwargs...)
-  return gate
+  return gate(gatename,site_ind1,site_ind2; kwargs...)
 end
 
 function makegate(M::Union{MPS,MPO}, gatedata::NamedTuple)
   id = gatedata.gate
   site = gatedata.site
   params = get(gatedata, :params, NamedTuple())
-  gate = makegate(M,id,site;params...)
-  return gate
+  return makegate(M,id,site;params...)
 end
 
 function applygate!(M::MPS,
-                   gate_id::String,
+                   gatename::String,
                    site::Int;
                    cutoff = 1e-10,
                    kwargs...)
-  gate = makegate(M,gate_id,site; kwargs...)
+  gate = makegate(M,gatename,site; kwargs...)
   M[site] = gate * M[site]
   noprime!(M[site])
 end
 
 function applygate!(M::MPO,
-                   gate_id::String,
+                   gatename::String,
                    site::Int;
                    cutoff = 1e-10,
                    kwargs...)
-  gate = makegate(M,gate_id,site; kwargs...)
+  gate = makegate(M,gatename,site; kwargs...)
   M[site] = gate * prime(M[site],tags="Site",plev=1)
   prime!(M[site],tags="Site",-1)
 end
@@ -140,15 +134,15 @@ function applygate!(M::MPO, gate::ITensor{4}; cutoff = 1e-10)
   M[s2] = S*V
 end
 
-# Apply 2Q gate in the form ("Cx", [1,2])
+# Apply 2Q gate in the form ("CX", [1,2])
 function applygate!(M::Union{MPS,MPO},
-                   gate_id::String,
+                   gatename::String,
                    site::Array;
                    cutoff = 1e-10,
                    kwargs...)
   
   # Construct the gate tensor
-  gate = makegate(M,gate_id,site; kwargs...)
+  gate = makegate(M,gatename,site; kwargs...)
   applygate!(M,gate,cutoff=cutoff) 
 end
 

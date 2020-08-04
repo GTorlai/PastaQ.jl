@@ -192,10 +192,10 @@ end
   reset_warn_order!()
 end
 
-@testset "runcircuit: Cx layer N=10" begin
+@testset "runcircuit: CX layer N=10" begin
   N = 10
   gates = []
-  Cxlayer!(gates,N,sequence = "odd") 
+  CXlayer!(gates,N,sequence = "odd") 
   @test length(gates) == N÷2
   psi = qubits(N)
   gate_tensors = compilecircuit(psi,gates)
@@ -211,7 +211,7 @@ end
   @test exact_U ≈ fullmatrix(U)
 
   gates = []
-  Cxlayer!(gates,N,sequence = "even") 
+  CXlayer!(gates,N,sequence = "even") 
   @test length(gates) == N÷2-1
   psi0 = qubits(N)
   gate_tensors = compilecircuit(psi0, gates)
@@ -263,7 +263,7 @@ end
   for n in 1:10
     s1 = rand(2:N)
     s2 = s1-1
-    push!(gates,(gate = "Cx", site = [s1,s2]))
+    push!(gates,(gate = "CX", site = [s1,s2]))
   end
   psi0 = qubits(N)
   gate_tensors = compilecircuit(psi0, gates) 
@@ -291,7 +291,7 @@ end
       s2 = rand(1:N)
     end
     @assert s1 != s2
-    push!(gates,(gate = "Cx", site = [s1,s2]))
+    push!(gates,(gate = "CX", site = [s1,s2]))
   end
   psi = qubits(N)
   gate_tensors = compilecircuit(psi,gates) 
@@ -396,7 +396,7 @@ end
     if (basis[1] == "Z")
       psi1 = psi_out[1] * setelt(s[1]=>x1[1])
     else
-      rotation = makegate(psi_out,"m$(basis[1])",1)
+      rotation = makegate(psi_out,"meas$(basis[1])",1)
       psi_r = psi_out[1] * rotation
       psi1 = noprime!(psi_r) * setelt(s[1]=>x1[1])
     end
@@ -404,7 +404,7 @@ end
       if (basis[j] == "Z")
         psi1 = psi1 * psi_out[j] * setelt(s[j]=>x1[j])
       else
-        rotation = makegate(psi_out,"m$(basis[j])",j)
+        rotation = makegate(psi_out,"meas$(basis[j])",j)
         psi_r = psi_out[j] * rotation
         psi1 = psi1 * noprime!(psi_r) * setelt(s[j]=>x1[j])
       end
@@ -412,7 +412,7 @@ end
     if (basis[N] == "Z")
       psi1 = (psi1 * psi_out[N] * setelt(s[N]=>x1[N]))[]
     else
-      rotation = makegate(psi_out,"m$(basis[N])",N)
+      rotation = makegate(psi_out,"meas$(basis[N])",N)
       psi_r = psi_out[N] * rotation
       psi1 = (psi1 * noprime!(psi_r) * setelt(s[N]=>x1[N]))[]
     end
@@ -422,28 +422,28 @@ end
     for j in 1:N
       if basis[j] == "X"
         if x1[j] == 1
-          push!(x2,"X+")
+          push!(x2,"projX+")
         else
-          push!(x2,"X-")
+          push!(x2,"projX-")
         end
       elseif basis[j] == "Y"
         if x1[j] == 1
-          push!(x2,"Y+")
+          push!(x2,"projY+")
         else
-          push!(x2,"Y-")
+          push!(x2,"projY-")
         end
       elseif basis[j] == "Z"
         if x1[j] == 1
-          push!(x2,"Z+")
+          push!(x2,"projZ+")
         else
-          push!(x2,"Z-")
+          push!(x2,"projZ-")
         end
       end
     end
   
-    psi2 = psi_out[1] * dag(measproj(x2[1],s[1]))
+    psi2 = psi_out[1] * dag(proj(x2[1],s[1]))
     for j in 2:N
-      psi_r = psi_out[j] * dag(measproj(x2[j],s[j]))
+      psi_r = psi_out[j] * dag(proj(x2[j],s[j]))
       psi2 = psi2 * psi_r
     end
     psi2 = psi2[]
@@ -453,7 +453,7 @@ end
     if (basis[1] == "Z")
       psi1 = dag(psi_out[1]) * setelt(s[1]=>x1[1])
     else
-      rotation = makegate(psi_out,"m$(basis[1])",1)
+      rotation = makegate(psi_out,"meas$(basis[1])",1)
       psi_r = dag(psi_out[1]) * dag(rotation)
       psi1 = noprime!(psi_r) * setelt(s[1]=>x1[1])
     end
@@ -461,7 +461,7 @@ end
       if (basis[j] == "Z")
         psi1 = psi1 * dag(psi_out[j]) * setelt(s[j]=>x1[j])
       else
-        rotation = makegate(psi_out,"m$(basis[j])",j)
+        rotation = makegate(psi_out,"meas$(basis[j])",j)
         psi_r = dag(psi_out[j]) * dag(rotation)
         psi1 = psi1 * noprime!(psi_r) * setelt(s[j]=>x1[j])
       end
@@ -469,14 +469,14 @@ end
     if (basis[N] == "Z")
       psi1 = (psi1 * dag(psi_out[N]) * setelt(s[N]=>x1[N]))[]
     else
-      rotation = makegate(psi_out,"m$(basis[N])",N)
+      rotation = makegate(psi_out,"meas$(basis[N])",N)
       psi_r = dag(psi_out[N]) * dag(rotation)
       psi1 = (psi1 * noprime!(psi_r) * setelt(s[N]=>x1[N]))[]
     end
   
-    psi2 = dag(psi_out[1]) * measproj(x2[1],s[1])
+    psi2 = dag(psi_out[1]) * proj(x2[1],s[1])
     for j in 2:N
-      psi_r = dag(psi_out[j]) * measproj(x2[j],s[j])
+      psi_r = dag(psi_out[j]) * proj(x2[j],s[j])
       psi2 = psi2 * psi_r
     end
     psi2 = psi2[]

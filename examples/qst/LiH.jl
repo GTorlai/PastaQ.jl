@@ -9,7 +9,7 @@ data,target = loadtrainingdataQST(input_path)
 
 χ = maxlinkdim(target)
 psi0 = initializeQST(N,χ,σ=0.1)
-opt = Sgd(η = 0.1)
+opt = SGD(η = 0.1)
 println("Training...")
 psi = statetomography(psi0,opt,
                       data=data,

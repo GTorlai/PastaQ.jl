@@ -54,18 +54,18 @@ end
 """
 runcircuit(M::Union{MPS, MPO},
            gate_tensors::Vector{ <: ITensor};
-           cutoff = 1e-15) =
-  apply(gate_tensors, M; cutoff = cutoff)
+           kwargs...) =
+  apply(reverse(gate_tensors)..., M; kwargs...)
 
 runcircuit(M::ITensor,
            gate_tensors::Vector{ <: ITensor}) =
-  apply(gate_tensors, M)
+  apply(reverse(gate_tensors)..., M)
 
 """ Run a quantum circuit on the input state"""
 function runcircuit!(M::Union{MPS, MPO},
                      gate_tensors::Vector{ <: ITensor};
-                     cutoff = 1e-15)
-  Mc = apply(gate_tensors, M; cutoff = cutoff)
+                     kwargs...)
+  Mc = apply(reverse(gate_tensors)..., M; kwargs...)
   M[:] = Mc
   return M
 end
@@ -84,14 +84,14 @@ Given as input a measurement basis, returns the corresponding
 gate data structure.
 Example:
 basis = ["X","Z","Z","Y"]
--> gate_list = [(gate = "mX", site = 1),
-                (gate = "mY", site = 4)]
+-> gate_list = [(gate = "measX", site = 1),
+                (gate = "measY", site = 4)]
 """
 function makemeasurementgates(basis::Array)
   gate_list = []
   for j in 1:length(basis)
     if (basis[j]!= "Z")
-      push!(gate_list,(gate = "m$(basis[j])", site = j))
+      push!(gate_list,(gate = "meas$(basis[j])", site = j))
     end
   end
   return gate_list
@@ -102,14 +102,14 @@ Given as input a preparation state, returns the corresponding
 gate data structure.
 Example:
 prep = ["X+","Z+","Z+","Y+"]
--> gate_list = [(gate = "pX+", site = 1),
-                (gate = "pY+", site = 4)]
+-> gate_list = [(gate = "prepX+", site = 1),
+                (gate = "prepY+", site = 4)]
 """
 function makepreparationgates(prep::Array)
   gate_list = []
   for j in 1:length(prep)
     if (prep[j]!= "Zp")
-      push!(gate_list,(gate = "p$(prep[j])", site = j))
+      push!(gate_list,(gate = "prep$(prep[j])", site = j))
     end
   end
   return gate_list
@@ -206,26 +206,26 @@ function convertdata(datapoint::Array,basis::Array)
   for j in 1:length(datapoint)
     if basis[j] == "X"
       if datapoint[j] == 0
-        push!(newdata,"X+")
+        push!(newdata,"projX+")
       else
-        push!(newdata,"X-")
+        push!(newdata,"projX-")
       end
     elseif basis[j] == "Y"
       if datapoint[j] == 0
-        push!(newdata,"Y+")
+        push!(newdata,"projY+")
       else
-        push!(newdata,"Y-")
+        push!(newdata,"projY-")
       end
     elseif basis[j] == "Z"
       if datapoint[j] == 0
-        push!(newdata,"Z+")
+        push!(newdata,"projZ+")
       else
-        push!(newdata,"Z-")
+        push!(newdata,"projZ-")
       end
     end
   end
   return newdata
-end 
+end
 
 """
 Append a layer of Hadamard gates
@@ -255,18 +255,18 @@ end
 """
 Append a layer of CX gates
 """
-function Cxlayer!(gates::Array,N::Int;sequence::String)
+function CXlayer!(gates::Array,N::Int;sequence::String)
   if (N ≤ 2)
-    throw(ArgumentError("Cxlayer is defined for N ≥ 3"))
+    throw(ArgumentError("CXlayer is defined for N ≥ 3"))
   end
   
   if sequence == "odd"
     for j in 1:2:(N-N%2)
-      push!(gates,(gate = "Cx", site = [j,j+1]))
+      push!(gates,(gate = "CX", site = [j,j+1]))
     end
   elseif sequence == "even"
     for j in 2:2:(N+N%2-1)
-      push!(gates,(gate = "Cx", site = [j,j+1]))
+      push!(gates,(gate = "CX", site = [j,j+1]))
     end
   else
     throw(ArgumentError("Sequence not recognized"))
@@ -281,9 +281,9 @@ function randomquantumcircuit(N::Int,depth::Int;rng=nothing)
   for d in 1:depth
     rand1Qrotationlayer!(gates,N,rng=rng)
     if d%2==1
-      Cxlayer!(gates,N,sequence="odd")
+      CXlayer!(gates,N,sequence="odd")
     else
-      Cxlayer!(gates,N,sequence="even")
+      CXlayer!(gates,N,sequence="even")
     end
   end
   return gates
