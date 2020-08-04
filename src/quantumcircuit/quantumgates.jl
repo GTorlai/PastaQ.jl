@@ -304,25 +304,43 @@ proj(::ProjName"projX+") =
   [1/sqrt(2)
    1/sqrt(2)]
 
+proj(::ProjName"X+") =
+  proj("projX+")
+
 proj(::ProjName"projX-") =
   [ 1/sqrt(2)
    -1/sqrt(2)]
+
+proj(::ProjName"X-") =
+  proj("projX-")
 
 proj(::ProjName"projY+") =
   [  1/sqrt(2)
    im/sqrt(2)]
 
+proj(::ProjName"Y+") =
+  proj("projY+")
+
 proj(::ProjName"projY-") =
   [  1/sqrt(2)
    -im/sqrt(2)]
+
+proj(::ProjName"Y-") =
+  proj("projY-")
 
 proj(::ProjName"projZ+") =
   [1
    0]
 
+proj(::ProjName"Z+") =
+  proj("projZ+")
+
 proj(::ProjName"projZ-") =
   [0
    1]
+
+proj(::ProjName"Z-") =
+  proj("projZ-")
 
 #
 # Get an ITensor gate from a gate definition

@@ -4,6 +4,7 @@ using Test
   @testset "$filename" for filename in (
     "utils.jl",
     "quantumgates.jl",
+    "circuits.jl",
     "circuitops.jl",
     "quantumcircuit.jl",
     "statetomography.jl"

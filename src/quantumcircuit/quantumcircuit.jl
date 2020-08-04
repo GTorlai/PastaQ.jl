@@ -84,14 +84,14 @@ Given as input a measurement basis, returns the corresponding
 gate data structure.
 Example:
 basis = ["X","Z","Z","Y"]
--> gate_list = [(gate = "measX", site = 1),
-                (gate = "measY", site = 4)]
+-> gate_list = [("measX", 1),
+                ("measY", 4)]
 """
 function makemeasurementgates(basis::Array)
   gate_list = []
   for j in 1:length(basis)
     if (basis[j]!= "Z")
-      push!(gate_list,(gate = "meas$(basis[j])", site = j))
+      push!(gate_list,("meas$(basis[j])", j))
     end
   end
   return gate_list
@@ -102,14 +102,15 @@ Given as input a preparation state, returns the corresponding
 gate data structure.
 Example:
 prep = ["X+","Z+","Z+","Y+"]
--> gate_list = [(gate = "prepX+", site = 1),
-                (gate = "prepY+", site = 4)]
+-> gate_list = [("prepX+", 1),
+                ("prepY+", 4)]
 """
 function makepreparationgates(prep::Array)
   gate_list = []
   for j in 1:length(prep)
     if (prep[j]!= "Zp")
-      push!(gate_list,(gate = "prep$(prep[j])", site = j))
+      gatename = "prep$(prep[j])"
+      push!(gate_list, (gatename, j))
     end
   end
   return gate_list
@@ -232,7 +233,7 @@ Append a layer of Hadamard gates
 """
 function hadamardlayer!(gates::Array,N::Int)
   for j in 1:N
-    push!(gates,(gate = "H",site = j))
+    push!(gates,("H", j))
   end
 end
 
@@ -247,8 +248,7 @@ function rand1Qrotationlayer!(gates::Array,N::Int;
     else
       θ,ϕ,λ = rand!(rng,zeros(3))
     end
-    push!(gates,(gate = "Rn",site = j, 
-                 params = (θ = π*θ, ϕ = 2*π*ϕ, λ = 2*π*λ)))
+    push!(gates,("Rn", j, (θ = π*θ, ϕ = 2*π*ϕ, λ = 2*π*λ)))
   end
 end
 
@@ -262,11 +262,11 @@ function CXlayer!(gates::Array,N::Int;sequence::String)
   
   if sequence == "odd"
     for j in 1:2:(N-N%2)
-      push!(gates,(gate = "CX", site = [j,j+1]))
+      push!(gates,("CX", (j,j+1)))
     end
   elseif sequence == "even"
     for j in 2:2:(N+N%2-1)
-      push!(gates,(gate = "CX", site = [j,j+1]))
+      push!(gates,("CX", (j,j+1)))
     end
   else
     throw(ArgumentError("Sequence not recognized"))

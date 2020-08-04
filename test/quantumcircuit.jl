@@ -149,8 +149,8 @@ end
   @test U_mat ≈ exact_mat
 end
 
-@testset "runcircuit: hadamardlayer N=10" begin
-  N = 10 
+@testset "runcircuit: hadamardlayer N=8" begin
+  N = 8
   gates = []
   hadamardlayer!(gates,N)
   @test length(gates) == N
@@ -168,8 +168,8 @@ end
   @test exact_U ≈ fullmatrix(U)
 end
 
-@testset "runcircuit: rand1Qrotationlayer N=10" begin
-  N = 10
+@testset "runcircuit: rand1Qrotationlayer N=8" begin
+  N = 8
   gates = []
   rand1Qrotationlayer!(gates,N)
   @test length(gates) == N
@@ -193,7 +193,7 @@ end
 end
 
 @testset "runcircuit: CX layer N=10" begin
-  N = 10
+  N = 8
   gates = []
   CXlayer!(gates,N,sequence = "odd") 
   @test length(gates) == N÷2
@@ -235,7 +235,7 @@ end
 end
 
 @testset "runcircuit: random quantum circuit" begin
-  N = 10
+  N = 8
   depth = 8
   gates = randomquantumcircuit(N,depth)
   ngates = N*depth + depth÷2 * (N-1)
@@ -257,13 +257,13 @@ end
 end
 
 @testset "runcircuit: inverted gate order" begin
-  N = 10
+  N = 8
   gates = randomquantumcircuit(N,2)
   
   for n in 1:10
     s1 = rand(2:N)
     s2 = s1-1
-    push!(gates,(gate = "CX", site = [s1,s2]))
+    push!(gates,("CX", (s1,s2)))
   end
   psi0 = qubits(N)
   gate_tensors = compilecircuit(psi0, gates) 
@@ -281,7 +281,7 @@ end
 end
 
 @testset "runcircuit: long range gates" begin
-  N = 10
+  N = 8
   gates = randomquantumcircuit(N,2)
   
   for n in 1:10
@@ -291,7 +291,7 @@ end
       s2 = rand(1:N)
     end
     @assert s1 != s2
-    push!(gates,(gate = "CX", site = [s1,s2]))
+    push!(gates,("CX", (s1,s2)))
   end
   psi = qubits(N)
   gate_tensors = compilecircuit(psi,gates) 
@@ -373,7 +373,7 @@ end
 
 
 @testset "measurement projections" begin
-  N = 10
+  N = 8
   nshots = 20
   psi = qubits(N)
   bases = generatemeasurementsettings(N,nshots)

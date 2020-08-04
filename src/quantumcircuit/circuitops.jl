@@ -11,24 +11,24 @@ function makegate(M::MPO, gatename::String, site::Int; kwargs...)
   site_ind = firstind(M[site], tags="Site", plev = 0)#siteind(M,site)
   return gate(gatename, site_ind; kwargs...)
 end
-function makegate(M::MPS,gatename::String, site::Array; kwargs...)
+function makegate(M::MPS,gatename::String, site::Tuple; kwargs...)
   site_ind1 = siteind(M,site[1])
   site_ind2 = siteind(M,site[2])
   return gate(gatename,site_ind1,site_ind2; kwargs...)
 end
 
-function makegate(M::MPO,gatename::String, site::Array; kwargs...)
+function makegate(M::MPO,gatename::String, site::Tuple; kwargs...)
   site_ind1 = firstind(M[site[1]], tags="Site", plev = 0)
   site_ind2 = firstind(M[site[2]], tags="Site", plev = 0)
   return gate(gatename,site_ind1,site_ind2; kwargs...)
 end
 
-function makegate(M::Union{MPS,MPO}, gatedata::NamedTuple)
-  id = gatedata.gate
-  site = gatedata.site
-  params = get(gatedata, :params, NamedTuple())
-  return makegate(M,id,site;params...)
+function makegate(M::Union{MPS,MPO}, gatedata::Tuple)
+  return makegate(M,gatedata...)
 end
+
+makegate(M::Union{MPS,MPO}, gatename::String, sites::Union{Int, Tuple}, params::NamedTuple) =
+  makegate(M, gatename, sites; params...)
 
 function applygate!(M::MPS,
                    gatename::String,
@@ -134,13 +134,12 @@ function applygate!(M::MPO, gate::ITensor{4}; cutoff = 1e-10)
   M[s2] = S*V
 end
 
-# Apply 2Q gate in the form ("CX", [1,2])
+# Apply 2Q gate in the form ("CX", (1,2))
 function applygate!(M::Union{MPS,MPO},
                    gatename::String,
-                   site::Array;
+                   site::Tuple;
                    cutoff = 1e-10,
                    kwargs...)
-  
   # Construct the gate tensor
   gate = makegate(M,gatename,site; kwargs...)
   applygate!(M,gate,cutoff=cutoff) 
