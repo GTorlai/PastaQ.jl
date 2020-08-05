@@ -1,34 +1,8 @@
 export 
 # quantumgates.jl
   # Methods
-  gate_I,
-  gate_X,
-  gate_Y,
-  gate_Z,
-  gate_H,
-  gate_S,
-  gate_T,
-  gate_Rx,
-  gate_Ry,
-  gate_Rz,
-  gate_Rn,
-  gate_Sw,
-  gate_Cx,
-  gate_Cy,
-  gate_Cz,
-  prep_Xp,
-  prep_Xm,
-  prep_Yp,
-  prep_Ym,
-  prep_Zp,
-  prep_Zm,
-  meas_X,
-  meas_Y,
-  meas_Z,
-  quantumgates,
-  quantumgate,
-  measprojections,
-  measproj,
+  gate,
+  proj,
 
 # circuitops.jl
   # Methods
@@ -57,7 +31,7 @@ export
   convertdata,
   hadamardlayer!,
   rand1Qrotationlayer!,
-  Cxlayer!,
+  CXlayer!,
   randomquantumcircuit,
 
 # statetomography,jl
@@ -74,7 +48,7 @@ export
 
 # optimizers/
   Optimizer,
-  Sgd,
+  SGD,
   Momentum,
   # Methods
   update!,

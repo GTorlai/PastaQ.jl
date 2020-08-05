@@ -149,8 +149,8 @@ end
   @test U_mat ≈ exact_mat
 end
 
-@testset "runcircuit: hadamardlayer N=10" begin
-  N = 10 
+@testset "runcircuit: hadamardlayer N=8" begin
+  N = 8
   gates = []
   hadamardlayer!(gates,N)
   @test length(gates) == N
@@ -168,8 +168,8 @@ end
   @test exact_U ≈ fullmatrix(U)
 end
 
-@testset "runcircuit: rand1Qrotationlayer N=10" begin
-  N = 10
+@testset "runcircuit: rand1Qrotationlayer N=8" begin
+  N = 8
   gates = []
   rand1Qrotationlayer!(gates,N)
   @test length(gates) == N
@@ -179,23 +179,23 @@ end
   @test length(gate_tensors) == N
   psi = runcircuit(psi0, gate_tensors)
 
-  @disable_warn_order begin
-    @test prod(psi) ≈ noprime(prod(psi0) * prod(gate_tensors))
-  end
+  disable_warn_order!()
+  @test prod(psi) ≈ noprime(prod(psi0) * prod(gate_tensors))
+  reset_warn_order!()
 
   U0 = circuit(N)
   gate_tensors = compilecircuit(U0, gates)
   U = runcircuit(U0, gate_tensors)
 
-  @disable_warn_order begin
-    @test prod(U) ≈ prod(gate_tensors)
-  end
+  disable_warn_order!()
+  @test prod(U) ≈ prod(gate_tensors)
+  reset_warn_order!()
 end
 
-@testset "runcircuit: Cx layer N=10" begin
-  N = 10
+@testset "runcircuit: CX layer N=10" begin
+  N = 8
   gates = []
-  Cxlayer!(gates,N,sequence = "odd") 
+  CXlayer!(gates,N,sequence = "odd") 
   @test length(gates) == N÷2
   psi = qubits(N)
   gate_tensors = compilecircuit(psi,gates)
@@ -211,31 +211,31 @@ end
   @test exact_U ≈ fullmatrix(U)
 
   gates = []
-  Cxlayer!(gates,N,sequence = "even") 
+  CXlayer!(gates,N,sequence = "even") 
   @test length(gates) == N÷2-1
   psi0 = qubits(N)
   gate_tensors = compilecircuit(psi0, gates)
   @test length(gate_tensors) == N÷2-1
   psi = runcircuit(psi0, gate_tensors)
 
-  @disable_warn_order begin
-    @test prod(psi) ≈ noprime(prod(psi0) * prod(gate_tensors))
-  end
+  disable_warn_order!()
+  @test prod(psi) ≈ noprime(prod(psi0) * prod(gate_tensors))
+  reset_warn_order!()
 
   U0 = circuit(N)
   gate_tensors = compilecircuit(U0, gates)
   U = runcircuit(U0, gate_tensors)
 
   # TODO: replace with mapprime([...], 2 => 1, 1 => 0)
-  @disable_warn_order begin
-    @test prod(U) ≈ mapprime(prime(prod(U0)) *
-                             prod(gate_tensors),
-                             1 => 0, 2 => 1)
-  end
+  disable_warn_order!()
+  @test prod(U) ≈ mapprime(prime(prod(U0)) *
+                           prod(gate_tensors),
+                           1 => 0, 2 => 1)
+  reset_warn_order!()
 end
 
 @testset "runcircuit: random quantum circuit" begin
-  N = 10
+  N = 8
   depth = 8
   gates = randomquantumcircuit(N,depth)
   ngates = N*depth + depth÷2 * (N-1)
@@ -251,19 +251,19 @@ end
   gate_tensors = compilecircuit(U0, gates)
   U = runcircuit(U0, gate_tensors)
 
-  @disable_warn_order begin
-    @test prod(U) ≈ runcircuit(prod(U0), gate_tensors)
-  end
+  disable_warn_order!()
+  @test prod(U) ≈ runcircuit(prod(U0), gate_tensors)
+  reset_warn_order!()
 end
 
 @testset "runcircuit: inverted gate order" begin
-  N = 10
+  N = 8
   gates = randomquantumcircuit(N,2)
   
   for n in 1:10
     s1 = rand(2:N)
     s2 = s1-1
-    push!(gates,(gate = "Cx", site = [s1,s2]))
+    push!(gates,("CX", (s1,s2)))
   end
   psi0 = qubits(N)
   gate_tensors = compilecircuit(psi0, gates) 
@@ -275,13 +275,13 @@ end
   gate_tensors = compilecircuit(U0, gates)
   U = runcircuit(U0, gate_tensors)
 
-  @disable_warn_order begin
-    @test prod(U) ≈ runcircuit(prod(U0), gate_tensors)
-  end
+  disable_warn_order!()
+  @test prod(U) ≈ runcircuit(prod(U0), gate_tensors)
+  reset_warn_order!()
 end
 
 @testset "runcircuit: long range gates" begin
-  N = 10
+  N = 8
   gates = randomquantumcircuit(N,2)
   
   for n in 1:10
@@ -291,7 +291,7 @@ end
       s2 = rand(1:N)
     end
     @assert s1 != s2
-    push!(gates,(gate = "Cx", site = [s1,s2]))
+    push!(gates,("CX", (s1,s2)))
   end
   psi = qubits(N)
   gate_tensors = compilecircuit(psi,gates) 
@@ -373,7 +373,7 @@ end
 
 
 @testset "measurement projections" begin
-  N = 10
+  N = 8
   nshots = 20
   psi = qubits(N)
   bases = generatemeasurementsettings(N,nshots)
@@ -396,7 +396,7 @@ end
     if (basis[1] == "Z")
       psi1 = psi_out[1] * setelt(s[1]=>x1[1])
     else
-      rotation = makegate(psi_out,"m$(basis[1])",1)
+      rotation = makegate(psi_out,"meas$(basis[1])",1)
       psi_r = psi_out[1] * rotation
       psi1 = noprime!(psi_r) * setelt(s[1]=>x1[1])
     end
@@ -404,7 +404,7 @@ end
       if (basis[j] == "Z")
         psi1 = psi1 * psi_out[j] * setelt(s[j]=>x1[j])
       else
-        rotation = makegate(psi_out,"m$(basis[j])",j)
+        rotation = makegate(psi_out,"meas$(basis[j])",j)
         psi_r = psi_out[j] * rotation
         psi1 = psi1 * noprime!(psi_r) * setelt(s[j]=>x1[j])
       end
@@ -412,7 +412,7 @@ end
     if (basis[N] == "Z")
       psi1 = (psi1 * psi_out[N] * setelt(s[N]=>x1[N]))[]
     else
-      rotation = makegate(psi_out,"m$(basis[N])",N)
+      rotation = makegate(psi_out,"meas$(basis[N])",N)
       psi_r = psi_out[N] * rotation
       psi1 = (psi1 * noprime!(psi_r) * setelt(s[N]=>x1[N]))[]
     end
@@ -422,28 +422,28 @@ end
     for j in 1:N
       if basis[j] == "X"
         if x1[j] == 1
-          push!(x2,"X+")
+          push!(x2,"projX+")
         else
-          push!(x2,"X-")
+          push!(x2,"projX-")
         end
       elseif basis[j] == "Y"
         if x1[j] == 1
-          push!(x2,"Y+")
+          push!(x2,"projY+")
         else
-          push!(x2,"Y-")
+          push!(x2,"projY-")
         end
       elseif basis[j] == "Z"
         if x1[j] == 1
-          push!(x2,"Z+")
+          push!(x2,"projZ+")
         else
-          push!(x2,"Z-")
+          push!(x2,"projZ-")
         end
       end
     end
   
-    psi2 = psi_out[1] * dag(measproj(x2[1],s[1]))
+    psi2 = psi_out[1] * dag(proj(x2[1],s[1]))
     for j in 2:N
-      psi_r = psi_out[j] * dag(measproj(x2[j],s[j]))
+      psi_r = psi_out[j] * dag(proj(x2[j],s[j]))
       psi2 = psi2 * psi_r
     end
     psi2 = psi2[]
@@ -453,7 +453,7 @@ end
     if (basis[1] == "Z")
       psi1 = dag(psi_out[1]) * setelt(s[1]=>x1[1])
     else
-      rotation = makegate(psi_out,"m$(basis[1])",1)
+      rotation = makegate(psi_out,"meas$(basis[1])",1)
       psi_r = dag(psi_out[1]) * dag(rotation)
       psi1 = noprime!(psi_r) * setelt(s[1]=>x1[1])
     end
@@ -461,7 +461,7 @@ end
       if (basis[j] == "Z")
         psi1 = psi1 * dag(psi_out[j]) * setelt(s[j]=>x1[j])
       else
-        rotation = makegate(psi_out,"m$(basis[j])",j)
+        rotation = makegate(psi_out,"meas$(basis[j])",j)
         psi_r = dag(psi_out[j]) * dag(rotation)
         psi1 = psi1 * noprime!(psi_r) * setelt(s[j]=>x1[j])
       end
@@ -469,14 +469,14 @@ end
     if (basis[N] == "Z")
       psi1 = (psi1 * dag(psi_out[N]) * setelt(s[N]=>x1[N]))[]
     else
-      rotation = makegate(psi_out,"m$(basis[N])",N)
+      rotation = makegate(psi_out,"meas$(basis[N])",N)
       psi_r = dag(psi_out[N]) * dag(rotation)
       psi1 = (psi1 * noprime!(psi_r) * setelt(s[N]=>x1[N]))[]
     end
   
-    psi2 = dag(psi_out[1]) * measproj(x2[1],s[1])
+    psi2 = dag(psi_out[1]) * proj(x2[1],s[1])
     for j in 2:N
-      psi_r = dag(psi_out[j]) * measproj(x2[j],s[j])
+      psi_r = dag(psi_out[j]) * proj(x2[j],s[j])
       psi2 = psi2 * psi_r
     end
     psi2 = psi2[]

@@ -8,7 +8,7 @@ data,target = loadtrainingdataQST(input_path)
 
 χ = 2
 psi0 = initializeQST(N,χ)
-opt = Sgd(η = 0.1)
+opt = SGD(η = 0.1)
 psi = statetomography(psi0, opt,
                       data = data,
                       batchsize=500,
