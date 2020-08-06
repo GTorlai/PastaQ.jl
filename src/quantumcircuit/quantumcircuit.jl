@@ -16,6 +16,23 @@ circuit(sites::Vector{<:Index}) = MPO(sites, "Id")
 
 circuit(N::Int) = circuit(siteinds("qubit", N))
 
+function densitymatrix(ψ::MPS)
+  ρ = MPO([ψ[n]' * dag(ψ[n]) for n in 1:length(ψ)])
+  for n in 1:length(ρ)-1 
+    C = combiner(commoninds(ρ[n], ρ[n+1]))
+    ρ[n] *= C
+    ρ[n+1] *= dag(C)
+  end
+  return ρ
+end
+
+densitymatrix(sites::Vector{<:Index}) = 
+  densitymatrix(productMPS(sites, "0"))
+
+densitymatrix(N::Int) = 
+  densitymatrix(siteinds("qubit",N))
+
+
 """----------------------------------------------
                   CIRCUIT FUNCTIONS 
 ------------------------------------------------- """
@@ -34,8 +51,17 @@ Compile the gates into tensors and return
 """
 function compilecircuit(M::Union{MPS,MPO},gates::Array)
   gate_tensors = ITensor[]
-  for gate in gates
-    push!(gate_tensors,makegate(M,gate))
+  for g in gates
+    push!(gate_tensors,makegate(M,g))
+  end
+  return gate_tensors
+end
+
+function compilecircuit(M::MPO,gates::Array,noise::String;kwargs...)
+  gate_tensors = ITensor[]
+  for n in 1:length(gates)
+    push!(gate_tensors,makegate(M,gates[n]))
+    push!(gate_tensors,makekraus(M,noise,gates[n][2];kwargs...))
   end
   return gate_tensors
 end
@@ -58,8 +84,10 @@ runcircuit(M::Union{MPS, MPO},
   apply(reverse(gate_tensors)..., M; kwargs...)
 
 runcircuit(M::ITensor,
-           gate_tensors::Vector{ <: ITensor}) =
-  apply(reverse(gate_tensors)..., M)
+           gate_tensors::Vector{ <: ITensor};
+           kwargs...) =
+  apply(reverse(gate_tensors)..., M; kwargs...)
+
 
 """ Run a quantum circuit on the input state"""
 function runcircuit!(M::Union{MPS, MPO},

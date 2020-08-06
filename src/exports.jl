@@ -3,6 +3,7 @@ export
   # Methods
   gate,
   proj,
+  noise,
 
 # circuitops.jl
   # Methods
@@ -11,10 +12,12 @@ export
   unswap!,
   applygate!,
   makegate,
+  makekraus,
 
 # quantumcircuit.jl
   # Methods
   qubits,
+  densitymatrix,
   circuit,
   resetqubits!,
   addgates!,

@@ -484,3 +484,46 @@ end
 
   end
 end
+
+@testset "Density matrix initialization" begin
+  N = 5
+  ρ1 = densitymatrix(N)
+  @test length(ρ1) == N
+  ψ = qubits(N)
+  ρ2 = densitymatrix(ψ)
+  @test fullmatrix(ρ1) ≈ fullmatrix(ρ2)
+  exact_mat = zeros(1<<N,1<<N)
+  exact_mat[1,1] = 1.0
+  @test fullmatrix(ρ2) ≈ exact_mat
+end
+
+@testset "noisy circuit" begin
+  N = 3
+  depth = 3
+  gates = randomquantumcircuit(N,depth)
+  ρ0 = densitymatrix(N)
+  gate_tensors = compilecircuit(ρ0,gates,"noiseAD",γ = 0.1)
+  @test length(gate_tensors) == 2*length(gates)
+  ρ = runcircuit(ρ0, gate_tensors;apply_dag = true, cutoff = 1e-15)
+  set_warn_order!(50)
+  prod_ρ = runcircuit(prod(ρ0),gate_tensors;apply_dag = true)
+  disable_warn_order!()
+  @test prod(ρ) ≈ prod_ρ
+  reset_warn_order!()
+
+  U0 = circuit(N)
+  s0 = siteinds(U0)
+  gate_tensors = compilecircuit(U0, gates,"noiseAD",γ = 0.1)
+  U  = runcircuit(U0, gate_tensors;apply_dag = true, cutoff = 1e-15)
+  s = siteinds(U)
+  for n in 1:N
+    @test hassameinds(s[n], s0[n])
+  end
+  
+  set_warn_order!(50)
+  prod_U = runcircuit(prod(U0), gate_tensors;apply_dag = true)
+  disable_warn_order!()
+  @test prod(U) ≈ prod_U
+  reset_warn_order!()
+
+end
