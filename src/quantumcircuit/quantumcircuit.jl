@@ -55,17 +55,17 @@ end
 runcircuit(M::Union{MPS, MPO},
            gate_tensors::Vector{ <: ITensor};
            kwargs...) =
-  apply(reverse(gate_tensors)..., M; kwargs...)
+  apply(reverse(gate_tensors), M; kwargs...)
 
 runcircuit(M::ITensor,
            gate_tensors::Vector{ <: ITensor}) =
-  apply(reverse(gate_tensors)..., M)
+  apply(reverse(gate_tensors), M)
 
 """ Run a quantum circuit on the input state"""
 function runcircuit!(M::Union{MPS, MPO},
                      gate_tensors::Vector{ <: ITensor};
                      kwargs...)
-  Mc = apply(reverse(gate_tensors)..., M; kwargs...)
+  Mc = apply(reverse(gate_tensors), M; kwargs...)
   M[:] = Mc
   return M
 end
