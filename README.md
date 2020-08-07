@@ -1,14 +1,14 @@
-<img  align="left"  width="200"  height="200"  src="https://github.com/GTorlai/PastaQ.jl/blob/master/docs/pastaQ_logo.jpg?raw=true">
-<br/><br/><br/><br/><br/><br/>
+![alt text](https://github.com/GTorlai/PastaQ.jl/blob/master/docs/pastaQ_logo.jpg?raw=true)
 
-## A Package for Simulation, Tomography and Analysis of Quantum Computers
+PLEASE NOTE THIS IS PRE-RELEASE SOFTWARE FOR PREVIEW PURPOSES ONLY
 
-#### ToDo List: quantum circuit
-+ Swaps for long-rate two-qubit gates
-+ Build circuit MPO 
+EXPECT ROUGH EDGES, BUGS AND BACKWARD INCOMPATIBLE UPDATES
+
+# A Package for Simulation, Tomography and Analysis of Quantum Computers
+
+PastaQ is a software library based on tensor networks and machine learning, aimed to simulate quantum circuits, 
+and reconstruct quantum states and processes from measurement data. 
+
+## Overview
 
 
-#### ToDo List: state tomography
-+ Custom preparation states/measurements
-+ Build GHZ with local depolarization
-+ Advanced optimizers

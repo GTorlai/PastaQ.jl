@@ -428,12 +428,6 @@ function isproj(::OpName{gn}) where {gn}
   return false
 end
 
-function ITensors.op(gn::GateName, ::SiteType"qubit", s::Index...; kwargs...)
-  isproj(gn) && return proj(gn, s...; kwargs...)
-  return gate(gn, s...; kwargs...)
-end
-
-
 #
 # Noise models 
 #
@@ -462,6 +456,40 @@ function noise(::NoiseName"AD"; γ::Number)
   return kraus 
 end
 
-#noise(::NoiseName"AD"; γ::Number) =
-#  noise("noiseAD";γ=γ)
+function noise(::NoiseName"PD"; γ::Number)
+  kraus = zeros(2,2,2)
+  kraus[:,:,1] = [1 0
+                  0 sqrt(1-γ)]
+  kraus[:,:,2] = [0 0
+                  0 sqrt(γ)]
+  return kraus 
+end
+
+function noise(::NoiseName"DEP"; p::Number)
+  kraus = zeros(Complex{Float64},2,2,4)
+  kraus[:,:,1] = sqrt(1-p)   * [1 0 
+                                0 1]
+  kraus[:,:,2] = sqrt(p/3.0) * [0 1 
+                                1 0]
+  kraus[:,:,3] = sqrt(p/3.0) * [0 -im 
+                                im 0]
+  kraus[:,:,4] = sqrt(p/3.0) * [1  0 
+                                0 -1]
+  return kraus 
+end
+
+noise(::NoiseName"noiseDEP"; kwargs...) =
+  noise("DEP";kwargs...)
+
+noise(::NoiseName"noiseAD"; kwargs...) =
+  noise("AD";kwargs...)
+
+noise(::NoiseName"noisePD"; kwargs...) =
+  noise("PD";kwargs...)
+
+
+function ITensors.op(gn::GateName, ::SiteType"qubit", s::Index...; kwargs...)
+  isproj(gn) && return proj(gn, s...; kwargs...)
+  return gate(gn, s...; kwargs...)
+end
 

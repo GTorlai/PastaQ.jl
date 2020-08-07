@@ -43,12 +43,6 @@ function runcircuitFULL(N::Int,tensors::Array)
       # NN 2q gate
       if abs(site1-site2) == 1
         u = 1.0
-        #if (site1<site2)
-        #  gate = reshape(array(tensor),(4,4))
-        #else
-        #  gate = swap * reshape(array(tensor),(4,4)) * swap
-        #  #gate = swap * gate
-        #end
         for j in 1:N-1
           if (j == site)
             u = kron(u,gate)
@@ -161,6 +155,32 @@ end
   @test fullmatrix(ρ2) ≈ exact_mat
 end
 
+@testset "reset qubits" begin
+  N = 5
+  depth = 5
+  gates = randomquantumcircuit(N,depth)
+  psi = qubits(N)
+  gate_tensors = compilecircuit(psi,gates)
+  runcircuit!(psi,gate_tensors)
+  
+  resetqubits!(psi)
+  psi_vec = fullvector(psi)
+
+  exact_vec = zeros(1<<N)
+  exact_vec[1] = 1.0
+  @test psi_vec ≈ exact_vec
+
+  ρ = densitymatrix(N)
+  gate_tensors = compilecircuit(ρ,gates)
+  runcircuit!(ρ,gate_tensors)
+  
+  resetqubits!(ρ)
+  ρ_mat = fullmatrix(ρ)
+
+  exact_mat = zeros(1<<N,1<<N)
+  exact_mat[1,1] = 1.0
+  @test exact_mat ≈ ρ_mat
+end
 
 @testset "runcircuit: hadamardlayer N=8" begin
   N = 8
@@ -314,33 +334,6 @@ end
   @test exact_psi ≈ fullvector(psi)
 end
 
-@testset "reset qubits" begin
-  N = 5
-  depth = 5
-  gates = randomquantumcircuit(N,depth)
-  psi = qubits(N)
-  gate_tensors = compilecircuit(psi,gates)
-  runcircuit!(psi,gate_tensors)
-  
-  resetqubits!(psi)
-  psi_vec = fullvector(psi)
-
-  exact_vec = zeros(1<<N)
-  exact_vec[1] = 1.0
-  @test psi_vec ≈ exact_vec
-
-  ρ = densitymatrix(N)
-  gate_tensors = compilecircuit(ρ,gates)
-  runcircuit!(ρ,gate_tensors)
-  
-  resetqubits!(ρ)
-  ρ_mat = fullmatrix(ρ)
-
-  exact_mat = zeros(1<<N,1<<N)
-  exact_mat[1,1] = 1.0
-  @test exact_mat ≈ ρ_mat
-end
-
 @testset "generation of preparation states" begin
   N = 4
   nshots = 100
@@ -394,7 +387,6 @@ end
   data_prob = empiricalprobability(samples)
   @test prob ≈ data_prob atol=1e-2
 end
-
 
 @testset "measurement projections" begin
   N = 8
@@ -510,8 +502,9 @@ end
 end
 
 @testset "noisy circuit" begin
-  N = 3
-  depth = 3
+  # Amplitude damping channel
+  N = 5
+  depth = 5
   gates = randomquantumcircuit(N,depth)
   ρ0 = densitymatrix(N)
   gate_tensors = compilecircuit(ρ0,gates,noise="AD",γ = 0.1)
@@ -526,6 +519,65 @@ end
   U0 = circuit(N)
   s0 = siteinds(U0)
   gate_tensors = compilecircuit(U0, gates,noise="AD",γ = 0.1)
+  U  = runcircuit(U0, gate_tensors;apply_dag = true, cutoff = 1e-15)
+  s = siteinds(U)
+  for n in 1:N
+    @test hassameinds(s[n], s0[n])
+  end
+  
+  set_warn_order!(50)
+  prod_U = runcircuit(prod(U0), gate_tensors;apply_dag = true)
+  disable_warn_order!()
+  @test prod(U) ≈ prod_U
+  reset_warn_order!()
+
+
+  # Phase dampingchannel 
+  N = 5
+  depth = 5
+  gates = randomquantumcircuit(N,depth)
+  ρ0 = densitymatrix(N)
+  gate_tensors = compilecircuit(ρ0,gates,noise="PD",γ = 0.1)
+  @test length(gate_tensors) == 2*length(gates)
+  ρ = runcircuit(ρ0, gate_tensors;apply_dag = true, cutoff = 1e-15)
+  set_warn_order!(50)
+  prod_ρ = runcircuit(prod(ρ0),gate_tensors;apply_dag = true)
+  disable_warn_order!()
+  @test prod(ρ) ≈ prod_ρ
+  reset_warn_order!()
+
+  U0 = circuit(N)
+  s0 = siteinds(U0)
+  gate_tensors = compilecircuit(U0, gates,noise="PD",γ = 0.1)
+  U  = runcircuit(U0, gate_tensors;apply_dag = true, cutoff = 1e-15)
+  s = siteinds(U)
+  for n in 1:N
+    @test hassameinds(s[n], s0[n])
+  end
+  
+  set_warn_order!(50)
+  prod_U = runcircuit(prod(U0), gate_tensors;apply_dag = true)
+  disable_warn_order!()
+  @test prod(U) ≈ prod_U
+  reset_warn_order!()
+
+  # Depolarizing channel 
+  N = 5
+  depth = 5
+  gates = randomquantumcircuit(N,depth)
+  ρ0 = densitymatrix(N)
+  gate_tensors = compilecircuit(ρ0,gates,noise="DEP",p = 0.1)
+  @test length(gate_tensors) == 2*length(gates)
+  ρ = runcircuit(ρ0, gate_tensors;apply_dag = true, cutoff = 1e-15)
+  set_warn_order!(50)
+  prod_ρ = runcircuit(prod(ρ0),gate_tensors;apply_dag = true)
+  disable_warn_order!()
+  @test prod(ρ) ≈ prod_ρ
+  reset_warn_order!()
+
+  U0 = circuit(N)
+  s0 = siteinds(U0)
+  gate_tensors = compilecircuit(U0, gates,noise="DEP",p = 0.1)
   U  = runcircuit(U0, gate_tensors;apply_dag = true, cutoff = 1e-15)
   s = siteinds(U)
   for n in 1:N
