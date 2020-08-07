@@ -41,8 +41,7 @@ function makekraus(M::MPO,noisename::String,site::Tuple; kwargs...)
   site_ind2 = siteind(M,site[2])
   noise1    = noise(noisename,site_ind1; kwargs...)
   noise2    = noise(noisename,site_ind2; kwargs...)
-  #site_ind = firstind(M[site], tags="Site", plev = 0)
-  return noise1*noise2#noise(noisename,site_ind; kwargs...)
+  return noise1*noise2
 end
 
 

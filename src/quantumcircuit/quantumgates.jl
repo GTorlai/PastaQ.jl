@@ -434,7 +434,6 @@ function ITensors.op(gn::GateName, ::SiteType"qubit", s::Index...; kwargs...)
 end
 
 
-
 #
 # Noise models 
 #
@@ -454,7 +453,7 @@ noise(nn::String, s::Index...; kwargs...) =
 noise(nn::String, s::Vector{<:Index}, ns::Int...; kwargs...) =
   noise(nn, s[[ns...]]...; kwargs...)
 
-function noise(::NoiseName"noiseAD"; γ::Number)
+function noise(::NoiseName"AD"; γ::Number)
   kraus = zeros(2,2,2)
   kraus[:,:,1] = [1 0
                   0 sqrt(1-γ)]
@@ -462,4 +461,7 @@ function noise(::NoiseName"noiseAD"; γ::Number)
                   0 0]
   return kraus 
 end
+
+noise(::NoiseName"AD") =
+  noise("noiseAD")
 

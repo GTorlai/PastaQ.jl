@@ -12,10 +12,6 @@ function resetqubits!(ψ::MPS)
   return ψ
 end
 
-circuit(sites::Vector{<:Index}) = MPO(sites, "Id")
-
-circuit(N::Int) = circuit(siteinds("qubit", N))
-
 function densitymatrix(ψ::MPS)
   ρ = MPO([ψ[n]' * dag(ψ[n]) for n in 1:length(ψ)])
   for n in 1:length(ρ)-1 
@@ -32,6 +28,16 @@ densitymatrix(sites::Vector{<:Index}) =
 densitymatrix(N::Int) = 
   densitymatrix(siteinds("qubit",N))
 
+function resetqubits!(ρ::MPO)
+  indices = [firstind(ρ[j],tags="Site",plev=0) for j in 1:length(ρ)]
+  ρ_new = densitymatrix(indices)
+  ρ[:] = ρ_new
+  return ρ
+end
+
+circuit(sites::Vector{<:Index}) = MPO(sites, "Id")
+
+circuit(N::Int) = circuit(siteinds("qubit", N))
 
 """----------------------------------------------
                   CIRCUIT FUNCTIONS 
@@ -40,41 +46,36 @@ densitymatrix(N::Int) =
 """
 Add a list of gates to gates (data structure) 
 """
+
 function addgates!(gates::Array,newgates::Array)
   for newgate in newgates
     push!(gates,newgate)
   end
 end
 
-"""
-Compile the gates into tensors and return
-"""
-function compilecircuit(M::Union{MPS,MPO},gates::Array)
+function compilecircuit(M::Union{MPS,MPO},gates::Array; 
+                        noise=nothing, kwargs...)
   gate_tensors = ITensor[]
   for g in gates
     push!(gate_tensors,makegate(M,g))
+    if !isnothing(noise)
+      push!(gate_tensors,makekraus(M,noise,g[2];kwargs...))
+    end
   end
   return gate_tensors
 end
 
-function compilecircuit(M::MPO,gates::Array,noise::String;kwargs...)
-  gate_tensors = ITensor[]
+function compilecircuit!(gate_tensors::Array,M::Union{MPS,MPO},gates::Array; 
+                         noise=nothing,kwargs...)
   for n in 1:length(gates)
     push!(gate_tensors,makegate(M,gates[n]))
-    push!(gate_tensors,makekraus(M,noise,gates[n][2];kwargs...))
+    if !isnothing(noise)
+      push!(gate_tensors,makekraus(M,noise,gates[n][2];kwargs...))
+    end
   end
   return gate_tensors
 end
 
-"""
-Compile news gates into existing tensors list 
-"""
-function compilecircuit!(gate_tensors::Array,M::Union{MPS,MPO},gates::Array)
-  for gate in gates
-    push!(gate_tensors,makegate(M,gate))
-  end
-  return gate_tensors
-end
 
 """ Run the a quantum circuit without modifying input state
 """
@@ -97,11 +98,6 @@ function runcircuit!(M::Union{MPS, MPO},
   M[:] = Mc
   return M
 end
-
-#for gate_tensor in gate_tensors
-#  applygate!(M,gate_tensor,cutoff=cutoff)
-#end
-#return M
 
 """----------------------------------------------
                MEASUREMENT FUNCTIONS 
@@ -149,7 +145,8 @@ Generate a set of measurement bases:
 - nshots = total number of bases
 if numbases=nothing: nshots different bases
 """
-function generatemeasurementsettings(N::Int,numshots::Int;numbases=nothing,bases_id=nothing)
+function generatemeasurementsettings(N::Int,numshots::Int;
+                                     numbases=nothing,bases_id=nothing)
   if isnothing(bases_id)
     bases_id = ["X","Y","Z"]
   end

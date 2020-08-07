@@ -149,6 +149,19 @@ end
   @test U_mat ≈ exact_mat
 end
 
+@testset "Density matrix initialization" begin
+  N = 5
+  ρ1 = densitymatrix(N)
+  @test length(ρ1) == N
+  ψ = qubits(N)
+  ρ2 = densitymatrix(ψ)
+  @test fullmatrix(ρ1) ≈ fullmatrix(ρ2)
+  exact_mat = zeros(1<<N,1<<N)
+  exact_mat[1,1] = 1.0
+  @test fullmatrix(ρ2) ≈ exact_mat
+end
+
+
 @testset "runcircuit: hadamardlayer N=8" begin
   N = 8
   gates = []
@@ -315,6 +328,17 @@ end
   exact_vec = zeros(1<<N)
   exact_vec[1] = 1.0
   @test psi_vec ≈ exact_vec
+
+  ρ = densitymatrix(N)
+  gate_tensors = compilecircuit(ρ,gates)
+  runcircuit!(ρ,gate_tensors)
+  
+  resetqubits!(ρ)
+  ρ_mat = fullmatrix(ρ)
+
+  exact_mat = zeros(1<<N,1<<N)
+  exact_mat[1,1] = 1.0
+  @test exact_mat ≈ ρ_mat
 end
 
 @testset "generation of preparation states" begin
@@ -485,24 +509,12 @@ end
   end
 end
 
-@testset "Density matrix initialization" begin
-  N = 5
-  ρ1 = densitymatrix(N)
-  @test length(ρ1) == N
-  ψ = qubits(N)
-  ρ2 = densitymatrix(ψ)
-  @test fullmatrix(ρ1) ≈ fullmatrix(ρ2)
-  exact_mat = zeros(1<<N,1<<N)
-  exact_mat[1,1] = 1.0
-  @test fullmatrix(ρ2) ≈ exact_mat
-end
-
 @testset "noisy circuit" begin
   N = 3
   depth = 3
   gates = randomquantumcircuit(N,depth)
   ρ0 = densitymatrix(N)
-  gate_tensors = compilecircuit(ρ0,gates,"noiseAD",γ = 0.1)
+  gate_tensors = compilecircuit(ρ0,gates,noise="AD",γ = 0.1)
   @test length(gate_tensors) == 2*length(gates)
   ρ = runcircuit(ρ0, gate_tensors;apply_dag = true, cutoff = 1e-15)
   set_warn_order!(50)
@@ -513,7 +525,7 @@ end
 
   U0 = circuit(N)
   s0 = siteinds(U0)
-  gate_tensors = compilecircuit(U0, gates,"noiseAD",γ = 0.1)
+  gate_tensors = compilecircuit(U0, gates,noise="AD",γ = 0.1)
   U  = runcircuit(U0, gate_tensors;apply_dag = true, cutoff = 1e-15)
   s = siteinds(U)
   for n in 1:N
