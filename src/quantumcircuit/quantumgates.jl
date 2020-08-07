@@ -462,6 +462,6 @@ function noise(::NoiseName"AD"; γ::Number)
   return kraus 
 end
 
-noise(::NoiseName"AD") =
-  noise("noiseAD")
+#noise(::NoiseName"AD"; γ::Number) =
+#  noise("noiseAD";γ=γ)
 
