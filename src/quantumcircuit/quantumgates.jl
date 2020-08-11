@@ -343,7 +343,7 @@ proj(::ProjName"projZ+") =
 proj(::ProjName"Z+") =
   proj("projZ+")
 
-proj(::ProjName"0") =
+proj(::ProjName"proj0") =
   proj("projZ+")
 
 proj(::ProjName"projZ-") =
@@ -353,7 +353,7 @@ proj(::ProjName"projZ-") =
 proj(::ProjName"Z-") =
   proj("projZ-")
 
-proj(::ProjName"1") =
+proj(::ProjName"proj1") =
   proj("projZ-")
 
 

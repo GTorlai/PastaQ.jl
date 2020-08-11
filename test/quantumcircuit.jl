@@ -119,10 +119,12 @@ function empiricalprobability(samples::Matrix)
   return prob
 end
 
+
 @testset "qubits initialization" begin
   N = 1
   ψ = qubits(N)
   @test length(ψ) == 1
+  @test typeof(ψ) == MPS
   @test length(inds(ψ[1],"Link")) == 0
   @test fullvector(ψ) ≈ [1, 0]
   N = 5
@@ -147,12 +149,24 @@ end
   N = 5
   ρ1 = qubits(N,mixed=true)
   @test length(ρ1) == N
+  @test typeof(ρ1) == MPO
   ψ = qubits(N)
   ρ2 = qubits(N,mixed=true)
   @test fullmatrix(ρ1) ≈ fullmatrix(ρ2)
   exact_mat = zeros(1<<N,1<<N)
   exact_mat[1,1] = 1.0
   @test fullmatrix(ρ2) ≈ exact_mat
+end
+
+@testset "Choi matrix initialization" begin
+  N = 5
+  Λ = choi(N)
+  @test length(Λ) == 2*N
+  @test typeof(Λ) == MPS
+  
+  Λ = choi(N,mixed=true)
+  @test length(Λ) == 2*N
+  @test typeof(Λ) == MPO
 end
 
 @testset "reset qubits" begin

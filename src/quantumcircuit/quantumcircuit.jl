@@ -1,23 +1,34 @@
-"""
-initialize the wavefunction
-Create an MPS for N sites on the ``|000\\dots0\\rangle`` state.
-"""
+"""----------------------------------------------
+                  INITIALIZATION 
+------------------------------------------------- """
 
+"""
+Initialize MPS wavefunction |ψ⟩
+"""
 wavefunction(sites::Vector{<:Index}) = productMPS(sites, "0")
 
 wavefunction(N::Int) = wavefunction(siteinds("qubit", N))
 
+""" 
+Initialize MPO density matrix ρ
+"""
 densitymatrix(sites::Vector{<:Index}) = 
   densitymatrix(productMPS(sites, "0"))
 
 densitymatrix(N::Int) = 
   densitymatrix(siteinds("qubit",N))
 
+""" 
+Initialize qubits
+"""
 qubits(sites::Vector{<:Index}; mixed::Bool=false) = 
   mixed ? densitymatrix(sites) : wavefunction(sites) 
 
 qubits(N::Int; mixed::Bool=false) = qubits(siteinds("qubit", N); mixed=mixed)
 
+""" 
+Reset qubits to the initial state
+"""
 function resetqubits!(M::Union{MPS,MPO})
   indices = [firstind(M[j],tags="Site",plev=0) for j in 1:length(M)]
   M_new = (typeof(M) == MPS ? wavefunction(indices) : densitymatrix(indices))
@@ -25,6 +36,9 @@ function resetqubits!(M::Union{MPS,MPO})
   return M
 end
 
+"""
+Build a density matrix ρ = |ψ⟩⟨ψ|
+"""
 function densitymatrix(ψ::MPS)
   ρ = MPO([ψ[n]' * dag(ψ[n]) for n in 1:length(ψ)])
   for n in 1:length(ρ)-1 
@@ -35,15 +49,21 @@ function densitymatrix(ψ::MPS)
   return ρ
 end
 
+"""
+Initialize a circuit MPO
+"""
 circuit(sites::Vector{<:Index}) = MPO(sites, "Id")
 
 circuit(N::Int) = circuit(siteinds("qubit", N))
 
-choi(sites::Vector{<:Index}) = 
-  densitymatrix(productMPS(sites, "0"))
+"""
+Initialize the Choi matrix Λ
+"""
+choi(sites::Vector{<:Index}; mixed::Bool=false) = 
+  qubits(sites; mixed = mixed) 
 
-choi(N::Int) = 
-  densitymatrix(siteinds("qubit",2*N))
+choi(N::Int; mixed::Bool=false) = 
+  choi(siteinds("qubit",2*N); mixed = mixed) 
 
 
 """----------------------------------------------
@@ -53,7 +73,6 @@ choi(N::Int) =
 """
 Add a list of gates to gates (data structure) 
 """
-
 function addgates!(gates::Vector{<:Tuple},newgates::Vector{<:Tuple})
   for newgate in newgates
     push!(gates,newgate)
@@ -80,7 +99,7 @@ function compilecircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple};
 end
 
 """
-Apply the circuit on a state M for a set of gate tensors
+Apply the circuit to a state M using a set of gate tensors
 """
 function runcircuit(M::Union{MPS,MPO},gate_tensors::Vector{<:ITensor}; kwargs...) 
   # Check if gate_tensors contains Kraus operators
@@ -104,8 +123,7 @@ function runcircuit(M::Union{MPS,MPO},gate_tensors::Vector{<:ITensor}; kwargs...
 end
 
 """
-Apply the circuit on state M for a set of gates (Tuple)
-If noise != nothing, add the Kraus operators at each gate
+Apply the circuit on state M using a set of gates (Tuple)
 """
 function runcircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple}; noise=nothing, 
                     cutoff=1e-15,maxdim=10000,kwargs...)
@@ -113,6 +131,9 @@ function runcircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple}; noise=nothing,
   runcircuit(M,gate_tensors; kwargs...)
 end
 
+"""
+Apply the circuit to a ITensor 
+"""
 function runcircuit(M::ITensor,gates::Vector{<:Tuple}; cutoff=1e-15,maxdim=10000,kwargs...)
   gate_tensors = compilecircuit(M,gates)
   return runcircuit(M,gate_tensors;cutoff=1e-15,maxdim=10000,kwargs...)
