@@ -159,18 +159,18 @@ end
   N = 5
   depth = 5
   gates = randomquantumcircuit(N,depth)
-  psi = qubits(N)
-  runcircuit!(psi,gates)
+  ψ0 = qubits(N)
+  ψ = runcircuit(ψ0,gates)
   
-  resetqubits!(psi)
-  psi_vec = fullvector(psi)
+  resetqubits!(ψ)
+  psi_vec = fullvector(ψ)
 
   exact_vec = zeros(1<<N)
   exact_vec[1] = 1.0
   @test psi_vec ≈ exact_vec
 
-  ρ = densitymatrix(N)
-  runcircuit!(ρ,gates)
+  ρ0 = densitymatrix(N)
+  ρ = runcircuit(ρ0,gates)
   
   resetqubits!(ρ)
   ρ_mat = fullmatrix(ρ)
@@ -182,7 +182,7 @@ end
 
 
 @testset "runcircuit: unitary quantum circuit" begin
-  N = 5
+  N = 3
   depth = 4
   gates = randomquantumcircuit(N,depth)
   ngates = N*depth + depth÷2 * (N-1)
@@ -199,7 +199,7 @@ end
   @test prod(ρ) ≈ runcircuit(prod(ρ0),compilecircuit(ρ0,gates); apply_dag=true)
   
   U0 = circuit(N)
-  U = circuitMPO(U0,gates)
+  U = runcircuit(U0,gates;get_unitary=true)
   disable_warn_order!()
   @test prod(U) ≈ runcircuit(prod(U0),compilecircuit(U0,gates))
 end
@@ -227,7 +227,6 @@ end
 
 end
 
-
 @testset "runcircuit: inverted gate order" begin
   N = 8
   gates = randomquantumcircuit(N,2)
@@ -242,7 +241,7 @@ end
   @test prod(ψ) ≈ runcircuit(prod(ψ0),compilecircuit(ψ0,gates))
 
   U0 = circuit(N)
-  U = circuitMPO(U0,gates)
+  U = runcircuit(U0,gates,get_unitary=true)
   disable_warn_order!()
   @test prod(U) ≈ runcircuit(prod(U0),compilecircuit(U0,gates))
 end
@@ -264,7 +263,7 @@ end
   @test prod(ψ) ≈ runcircuit(prod(ψ0),compilecircuit(ψ0,gates)) 
   
   U0 = circuit(N)
-  U = circuitMPO(U0,gates)
+  U = runcircuit(U0,gates,get_unitary=true)
   disable_warn_order!()
   @test prod(U) ≈ runcircuit(prod(U0),compilecircuit(U0,gates))
 end

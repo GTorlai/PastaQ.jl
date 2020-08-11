@@ -73,7 +73,6 @@ function compilecircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple};
       if (typeof(g[2]) == Int)
         push!(gate_tensors,makekraus(M,noise,g[2];kwargs...))
       else
-        noisy_gates = makekraus(M,noise,g[2];kwargs...)
         gate_tensors = cat(gate_tensors,makekraus(M,noise,g[2];kwargs...),dims=1)
       end
     end
@@ -84,12 +83,18 @@ end
 """
 Apply the circuit on a state M for a set of gate tensors
 """
-function runcircuit!(M::Union{MPS,MPO},gate_tensors::Vector{<:ITensor}; kwargs...) 
+function runcircuit(M::Union{MPS,MPO},gate_tensors::Vector{<:ITensor}; kwargs...) 
   # Check if gate_tensors contains Kraus operators
   inds_sizes = [length(inds(g)) for g in gate_tensors]
-  noise_flag = any(x -> x%2==1 , inds_sizes)
+  noiseflag = any(x -> x%2==1 , inds_sizes)
   
-  if noise_flag 
+  buildMPO::Bool = get(kwargs,:get_unitary,false)
+  
+  if buildMPO & !noiseflag
+    Mc = apply(reverse(gate_tensors),M; kwargs...) 
+  elseif buildMPO & noiseflag
+    error("Cannot construct a unitary MPO for a noisy circuit")
+  elseif noiseflag
     ρ = (typeof(M) == MPS ? densitymatrix(M) : M)
     Mc = apply(reverse(gate_tensors),ρ; apply_dag=true, kwargs...)
   else
@@ -97,27 +102,17 @@ function runcircuit!(M::Union{MPS,MPO},gate_tensors::Vector{<:ITensor}; kwargs..
                              apply(reverse(gate_tensors), M; apply_dag=true, kwargs...))
   end
   return Mc
-  #M[:] = Mc
-  #return M
 end
-
-runcircuit(M::Union{MPS,MPO},gate_tensors::Vector{<:ITensor}; kwargs...) = 
- runcircuit!(copy(M),gate_tensors; kwargs...)
 
 """
 Apply the circuit on state M for a set of gates (Tuple)
 If noise != nothing, add the Kraus operators at each gate
 """
-function runcircuit!(M::Union{MPS,MPO},gates::Vector{<:Tuple}; noise=nothing, 
+function runcircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple}; noise=nothing, 
                     cutoff=1e-15,maxdim=10000,kwargs...)
   gate_tensors = compilecircuit(M,gates; noise=noise, kwargs...) 
-  runcircuit!(M,gate_tensors; kwargs...)
+  runcircuit(M,gate_tensors; kwargs...)
 end
-
-runcircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple}; noise=nothing,
-            cutoff=1e-15,maxdim=10000,kwargs...) = 
-  runcircuit!(copy(M),gates;noise=noise,cutoff=cutoff,maxdim=maxdim,kwargs...)
-
 
 function runcircuit(M::ITensor,gates::Vector{<:Tuple}; cutoff=1e-15,maxdim=10000,kwargs...)
   gate_tensors = compilecircuit(M,gates)
@@ -128,24 +123,6 @@ runcircuit(M::ITensor,
            gate_tensors::Vector{ <: ITensor};
            kwargs...) =
   apply(reverse(gate_tensors), M; kwargs...)
-
-
-function circuitMPO!(U::MPO,gates::Vector{<:Tuple}; kwargs...)
-  gate_tensors = compilecircuit(U,gates)
-  Uc = apply(reverse(gate_tensors),U; kwargs...)
-  U[:] = Uc
-  return U
-end
-
-circuitMPO(U::MPO,gates::Vector{<:Tuple}; kwargs...) = 
-  circuitMPO!(copy(U),gates; kwargs...)
-
-function circuitMPO(N::Int,gates::Vector{<:Tuple}; kwargs...)
-  U = circuit(N)
-  gate_tensors = compilecircuit(U,gates)
-  Uc = apply(reverse(gate_tensors),U; kwargs...)
-  return Uc
-end
 
 
 """----------------------------------------------

@@ -25,8 +25,6 @@ export
   compilecircuit,
   compilecircuit!,
   runcircuit,
-  runcircuit!,
-  circuitMPO,
   makepreparationgates,
   makemeasurementgates,
   generatemeasurementsettings,
