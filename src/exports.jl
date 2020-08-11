@@ -2,17 +2,10 @@ export
 # quantumgates.jl
   # Methods
   gate,
-  proj,
-  noise,
 
 # circuitops.jl
   # Methods
-  getsitenumber,
-  swap!,
-  unswap!,
   applygate!,
-  makegate,
-  makekraus,
 
 # quantumcircuit.jl
   # Methods

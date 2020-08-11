@@ -1,6 +1,7 @@
 function loadtrainingdataQST(input_path::String)
   data_file = h5open(input_path,"r")
   data = read(data_file,"data")
+  data .= "state" .* data
   target = read(data_file,"psi",MPS)
   return data,target
 end
