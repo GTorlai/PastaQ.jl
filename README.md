@@ -23,20 +23,20 @@ A quantum gate is described by a data structure `g = ("gateid",sites,params)` co
 ```julia
 using PastaQ
 # Quantum gates
-gates = [("X" , 1), # Pauli X on qubit 1
-		 ("CX", (1, 2)), # Controlled-X on qubits [1,2]
-		 ("Rx", 2, (θ=0.5,)), # Rotation of θ around X
+gates = [("X" , 1),                    # Pauli X on qubit 1
+		 ("CX", (1, 2)),                   # Controlled-X on qubits [1,2]
+		 ("Rx", 2, (θ=0.5,)),              # Rotation of θ around X
 		 ("Rn", 3, (θ=0.5, ϕ=0.2, λ=1.2)), # Arbitrady rotation
-		 ("√SWAP", (3, 4)] # Sqrt Swap on qubits [2,3]
-		 ("T" , 4), # T gate on qubit 4
+		 ("√SWAP", (3, 4)],                # Sqrt Swap on qubits [2,3]
+		 ("T" , 4),                        # T gate on qubit 4
 ```
 
 For the case of a noiseless quantum circuit, the output quantum state is obtained by contraing each quantum gate in `gates` with an initial state, which can be chosen to be either a wavefunction or a density matrix (using the `mixed=true` flag), parametrized respectively with a matrix product state (MPS) and a matrix product operators (MPO). By default, the initial state is set to the |000...> state. The output state is obtained with the `runcircuit` function. This contains an intermediate compilation step, where each gate in `gates` is transformed into an ITensor.
 
 ```julia
-N = 20 							# Number of qubits
-ψ0 = qubits(N)					# Initialize qubits
-ψ = runcircuit(ψ0, gates)		# Run
+N = 20                     # Number of qubits
+ψ0 = qubits(N)             # Initialize qubits
+ψ = runcircuit(ψ0, gates)  # Run
 
 # Run circuit on an initial MPO
 ρ0 = qubits(N; mixed=true)
@@ -44,19 +44,19 @@ N = 20 							# Number of qubits
 ```
 The tensor can be obtained using the `compilecircuit` function:
 ```julia
-N = 20 										# Number of qubits
-ψ0 = qubits(N)								# Initialize qubits
+N = 20                                    # Number of qubits
+ψ0 = qubits(N)                            # Initialize qubits
 gate_tensors = compilecircuit(ψ0, gates)	# Compilation
-ψ = runcircuit(ψ0, gate_tensors)			# Run
+ψ = runcircuit(ψ0, gate_tensors)			    # Run
 ```
 
 It is also possible to add a noise model, defined in terms of its kraus operators (e.g. depolarizing channel, amplitude damping channel, etc). Similar to regular gates, each noise model is characterized by a string identified `noiseid` and a set of parameters. In the following example, we first generate a list of quantum gates for a 1D random quantum circuit, and then add a depolarizing channel with some probability. When running the circuit, the channel is applied after each gate (to the qubits involved in the gate). In this case, if the initial state is an MPS, it is automatically converted to an MPO.
 
 ```julia
-N = 20 											# Number of qubits
-depth = 10 										# Circuit's depth
-gates = randomquantumcircuit(N, depth)			# Generate gates
-ψ0 = qubits(N)									# Initialize qubits
-ρ = runcircuit(ψ0, gates;noise="DEP",p=0.1)		# Run
+N = 20                                       # Number of qubits
+depth = 10                                   # Circuit's depth
+gates = randomquantumcircuit(N, depth)       # Generate gates
+ψ0 = qubits(N)                               # Initialize qubits
+ρ = runcircuit(ψ0, gates;noise="DEP",p=0.1)  # Run
 ```
 
