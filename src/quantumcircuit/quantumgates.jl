@@ -343,11 +343,17 @@ proj(::ProjName"projZ+") =
 proj(::ProjName"Z+") =
   proj("projZ+")
 
+proj(::ProjName"0") =
+  proj("projZ+")
+
 proj(::ProjName"projZ-") =
   [0
    1]
 
 proj(::ProjName"Z-") =
+  proj("projZ-")
+
+proj(::ProjName"1") =
   proj("projZ-")
 
 
@@ -371,7 +377,6 @@ gate(gn::String, s::Index...; kwargs...) =
 
 gate(gn::String, s::Vector{<:Index}, ns::Int...; kwargs...) =
   gate(gn, s[[ns...]]...; kwargs...)
-
 
 #
 #
@@ -431,6 +436,9 @@ end
 #
 # Noise models 
 #
+noise(::NoiseName{nn}; kwargs...) where {nn} =
+  error("A noise model with the name \"$nn\" has not been implemented yet. You can define it by overloading `noise(::NoiseName\"$nn\") = [...]`.")
+
 
 noise(s::String) = noise(NoiseName(s))
 
@@ -486,6 +494,8 @@ noise(::NoiseName"noiseAD"; kwargs...) =
 
 noise(::NoiseName"noisePD"; kwargs...) =
   noise("PD";kwargs...)
+
+
 
 
 function ITensors.op(gn::GateName, ::SiteType"qubit", s::Index...; kwargs...)

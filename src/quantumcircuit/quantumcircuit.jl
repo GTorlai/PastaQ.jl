@@ -39,6 +39,7 @@ circuit(sites::Vector{<:Index}) = MPO(sites, "Id")
 
 circuit(N::Int) = circuit(siteinds("qubit", N))
 
+
 """----------------------------------------------
                   CIRCUIT FUNCTIONS 
 ------------------------------------------------- """
@@ -47,13 +48,16 @@ circuit(N::Int) = circuit(siteinds("qubit", N))
 Add a list of gates to gates (data structure) 
 """
 
-function addgates!(gates::Array,newgates::Array)
+function addgates!(gates::Vector{<:Tuple},newgates::Vector{<:Tuple})
   for newgate in newgates
     push!(gates,newgate)
   end
 end
 
-function compilecircuit(M::Union{MPS,MPO},gates::Array; 
+"""
+Generates a vector of ITensors from a tuple of gates
+"""
+function compilecircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple}; 
                         noise=nothing, kwargs...)
   gate_tensors = ITensor[]
   for g in gates
@@ -65,39 +69,67 @@ function compilecircuit(M::Union{MPS,MPO},gates::Array;
   return gate_tensors
 end
 
-function compilecircuit!(gate_tensors::Array,M::Union{MPS,MPO},gates::Array; 
-                         noise=nothing,kwargs...)
-  for n in 1:length(gates)
-    push!(gate_tensors,makegate(M,gates[n]))
-    if !isnothing(noise)
-      push!(gate_tensors,makekraus(M,noise,gates[n][2];kwargs...))
-    end
-  end
-  return gate_tensors
+"""
+Apply the circuit on state M for a set of gates (Tuple)
+If noise != nothing, add the Kraus operators at each gate
+"""
+function runcircuit!(M::Union{MPS,MPO},gates::Vector{<:Tuple}; noise=nothing, 
+                    cutoff=1e-15,maxdim=10000,kwargs...)
+  gate_tensors = compilecircuit(M,gates; noise=noise, kwargs...) 
+  if !isnothing(noise)
+    ρ = (typeof(M) == MPS ? densitymatrix(M) : M) 
+    runcircuit!(ρ,gate_tensors; apply_dag=true, cutoff=cutoff,maxdim=maxdim)
+  else
+    runcircuit!(M,gate_tensors;cutoff=cutoff,maxdim=maxdim)
+  end 
 end
 
+runcircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple}; noise=nothing,
+            cutoff=1e-15,maxdim=10000,kwargs...) = 
+  runcircuit!(copy(M),gates;noise=noise,cutoff=cutoff,maxdim=maxdim,kwargs...)
 
-""" Run the a quantum circuit without modifying input state
+
+function circuitMPO!(U::MPO,gates::Vector{<:Tuple}; kwargs...)
+  gate_tensors = compilecircuit(U,gates)
+  Uc = apply(reverse(gate_tensors),U; kwargs...)
+  U[:] = Uc
+  return U
+end
+
+circuitMPO(U::MPO,gates::Vector{<:Tuple}; kwargs...) = 
+  circuitMPO!(copy(U),gates; kwargs...)
+
+function circuitMPO(N::Int,gates::Vector{<:Tuple}; kwargs...)
+  U = circuit(N)
+  gate_tensors = compilecircuit(U,gates)
+  Uc = apply(reverse(gate_tensors),U; kwargs...)
+  return Uc
+end
+
 """
-runcircuit(M::Union{MPS, MPO},
-           gate_tensors::Vector{ <: ITensor};
-           kwargs...) =
-  apply(reverse(gate_tensors), M; kwargs...)
-
-runcircuit(M::ITensor,
-           gate_tensors::Vector{ <: ITensor};
-           kwargs...) =
-  apply(reverse(gate_tensors), M)
-
-""" Run a quantum circuit on the input state"""
-function runcircuit!(M::Union{MPS, MPO},
-                     gate_tensors::Vector{ <: ITensor};
-                     kwargs...)
-  Mc = apply(reverse(gate_tensors), M; kwargs...)
+Apply the circuit on a state M for a set of gate tensors
+"""
+function runcircuit!(M::Union{MPS,MPO},gate_tensors::Vector{<:ITensor}; kwargs...) 
+  
+  Mc = (typeof(M) == MPS ? apply(reverse(gate_tensors),M; kwargs...) : 
+                           apply(reverse(gate_tensors), M; apply_dag=true, kwargs...))
   M[:] = Mc
   return M
 end
 
+runcircuit(M::Union{MPS,MPO},gate_tensors::Vector{<:ITensor}; kwargs...) = 
+ runcircuit!(copy(M),gate_tensors; kwargs...)
+
+
+function runcircuit(M::ITensor,gates::Vector{<:Tuple}; cutoff=1e-15,maxdim=10000,kwargs...)
+  gate_tensors = compilecircuit(M,gates)
+  return runcircuit(M,gate_tensors;cutoff=1e-15,maxdim=10000,kwargs...)
+end
+
+runcircuit(M::ITensor,
+           gate_tensors::Vector{ <: ITensor};
+           kwargs...) =
+  apply(reverse(gate_tensors), M; kwargs...)
 """----------------------------------------------
                MEASUREMENT FUNCTIONS 
 ------------------------------------------------- """
@@ -111,7 +143,7 @@ basis = ["X","Z","Z","Y"]
                 ("measY", 4)]
 """
 function makemeasurementgates(basis::Array)
-  gate_list = []
+  gate_list = Tuple[]
   for j in 1:length(basis)
     if (basis[j]!= "Z")
       push!(gate_list,("meas$(basis[j])", j))
@@ -129,9 +161,9 @@ prep = ["X+","Z+","Z+","Y+"]
                 ("prepY+", 4)]
 """
 function makepreparationgates(prep::Array)
-  gate_list = []
+  gate_list = Tuple[]
   for j in 1:length(prep)
-    if (prep[j]!= "Zp")
+    if (prep[j]!= "Z+")
       gatename = "prep$(prep[j])"
       push!(gate_list, (gatename, j))
     end
@@ -301,7 +333,7 @@ end
 Generate a random quantum circuit
 """
 function randomquantumcircuit(N::Int,depth::Int;rng=nothing)
-  gates = []
+  gates = Tuple[]
   for d in 1:depth
     rand1Qrotationlayer!(gates,N,rng=rng)
     if d%2==1

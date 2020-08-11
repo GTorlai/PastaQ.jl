@@ -31,12 +31,12 @@ makegate(M::Union{MPS,MPO}, gatename::String, sites::Union{Int, Tuple}, params::
   makegate(M, gatename, sites; params...)
 
 
-function makekraus(M::MPO,noisename::String,site::Int; kwargs...)
+function makekraus(M::Union{MPS,MPO},noisename::String,site::Int; kwargs...)
   site_ind = firstind(M[site], tags="Site", plev = 0)
   return noise(noisename,site_ind; kwargs...)
 end
 
-function makekraus(M::MPO,noisename::String,site::Tuple; kwargs...)
+function makekraus(M::Union{MPS,MPO},noisename::String,site::Tuple; kwargs...)
   site_ind1 = siteind(M,site[1])
   site_ind2 = siteind(M,site[2])
   noise1    = noise(noisename,site_ind1; kwargs...)
