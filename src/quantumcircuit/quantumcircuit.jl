@@ -73,7 +73,7 @@ choi(N::Int; mixed::Bool=false) =
 """
 Add a list of gates to gates (data structure) 
 """
-function addgates!(gates::Vector{<:Tuple},newgates::Vector{<:Tuple})
+function appendgates!(gates::Vector{<:Tuple},newgates::Vector{<:Tuple})
   for newgate in newgates
     push!(gates,newgate)
   end

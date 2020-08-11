@@ -18,7 +18,7 @@ PastaQ is developed at the Center for Computational Quantum Physics of the Flati
 ## Code overview
 
 ### Quantum circuit simulator
-A quantum gate is described by a data structure `g = ("gateid",sites,params)` consisting of a `gateid` string identifying a particular gate, a set of `sites` identifying which qubits the gate acts on, and a set of gate parameters `params`. A comprehensive set of gates is provided, including Pauli matrices, phase and T gates, single-qubit rotations, controlled gates, and others. Additional user-specific gates can be added, if needed.
+A quantum gate is described by a data structure `g = ("gatename",sites,params)` consisting of a `gatename` string identifying a particular gate, a set of `sites` identifying which qubits the gate acts on, and a set of gate parameters `params`. A comprehensive set of gates is provided, including Pauli matrices, phase and T gates, single-qubit rotations, controlled gates, and others. Additional user-specific gates can be added, if needed.
 
 ```julia
 using PastaQ
@@ -41,15 +41,8 @@ N = 20                     # Number of qubits
 ρ0 = qubits(N; mixed=true)
 ρ = runcircuit(ρ0, gates)
 ```
-The tensor can be obtained using the `compilecircuit` function:
-```julia
-N = 20                                    # Number of qubits
-ψ0 = qubits(N)                            # Initialize qubits
-gate_tensors = compilecircuit(ψ0, gates)  # Compilation
-ψ = runcircuit(ψ0, gate_tensors)          # Run
-```
 
-It is also possible to add a noise model, defined in terms of its kraus operators (e.g. depolarizing channel, amplitude damping channel, etc). Similar to regular gates, each noise model is characterized by a string identified `noiseid` and a set of parameters. In the following example, we first generate a list of quantum gates for a 1D random quantum circuit, and then add a depolarizing channel with some probability. When running the circuit, the channel is applied after each gate (to the qubits involved in the gate). In this case, if the initial state is an MPS, it is automatically converted to an MPO.
+It is also possible to add a noise model, defined in terms of its kraus operators (e.g. depolarizing channel, amplitude damping channel, etc). Similar to regular gates, each noise model is characterized by a string identified `noisename` and a set of parameters. In the following example, we first generate a list of quantum gates for a 1D random quantum circuit, and then add a depolarizing channel with some probability. When running the circuit, the channel is applied after each gate (to the qubits involved in the gate). In this case, if the initial state is an MPS, it is automatically converted to an MPO.
 
 ```julia
 N = 20                                       # Number of qubits
