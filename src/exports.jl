@@ -21,7 +21,7 @@ export
   circuit,
   choi,
   resetqubits!,
-  addgates!,
+  appendgates!,
   compilecircuit,
   compilecircuit!,
   runcircuit,
