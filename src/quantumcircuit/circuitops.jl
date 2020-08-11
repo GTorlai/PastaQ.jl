@@ -36,15 +36,14 @@ function makekraus(M::Union{MPS,MPO},noisename::String,site::Int; kwargs...)
   return noise(noisename,site_ind; kwargs...)
 end
 
-function makekraus(M::Union{MPS,MPO},noisename::String,site::Tuple; kwargs...)
-  site_ind1 = siteind(M,site[1])
-  site_ind2 = siteind(M,site[2])
-  noise1    = noise(noisename,site_ind1; kwargs...)
-  noise2    = noise(noisename,site_ind2; kwargs...)
-  return noise1*noise2
+function makekraus(M::Union{MPS,MPO},noisename::String,sites::Tuple; kwargs...)
+  kraus_list = ITensor[]
+  for k in 1:length(sites)
+    site_ind = siteind(M,sites[k])
+    push!(kraus_list,noise(noisename,site_ind; kwargs...))
+  end
+  return kraus_list
 end
-
-
 
 function applygate!(M::Union{MPS,MPO},gatename::String,sites::Union{Int,Tuple};kwargs...)
   g = makegate(M,gatename,sites;kwargs...)

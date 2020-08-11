@@ -19,6 +19,7 @@ export
   qubits,
   densitymatrix,
   circuit,
+  choi,
   resetqubits!,
   addgates!,
   compilecircuit,
@@ -38,7 +39,7 @@ export
   CXlayer!,
   randomquantumcircuit,
 
-# statetomography,jl
+# quantumtomography,jl
   # Methods
   initializeQST,
   lognormalize!,

@@ -160,8 +160,7 @@ end
   depth = 5
   gates = randomquantumcircuit(N,depth)
   psi = qubits(N)
-  gate_tensors = compilecircuit(psi,gates)
-  runcircuit!(psi,gate_tensors)
+  runcircuit!(psi,gates)
   
   resetqubits!(psi)
   psi_vec = fullvector(psi)
@@ -171,8 +170,7 @@ end
   @test psi_vec ≈ exact_vec
 
   ρ = densitymatrix(N)
-  gate_tensors = compilecircuit(ρ,gates)
-  runcircuit!(ρ,gate_tensors)
+  runcircuit!(ρ,gates)
   
   resetqubits!(ρ)
   ρ_mat = fullmatrix(ρ)
