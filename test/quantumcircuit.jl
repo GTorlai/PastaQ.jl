@@ -145,10 +145,10 @@ end
 
 @testset "Density matrix initialization" begin
   N = 5
-  ρ1 = densitymatrix(N)
+  ρ1 = qubits(N,mixed=true)
   @test length(ρ1) == N
   ψ = qubits(N)
-  ρ2 = densitymatrix(ψ)
+  ρ2 = qubits(N,mixed=true)
   @test fullmatrix(ρ1) ≈ fullmatrix(ρ2)
   exact_mat = zeros(1<<N,1<<N)
   exact_mat[1,1] = 1.0
@@ -169,7 +169,8 @@ end
   exact_vec[1] = 1.0
   @test psi_vec ≈ exact_vec
 
-  ρ0 = densitymatrix(N)
+  
+  ρ0 = qubits(N,mixed=true)
   ρ = runcircuit(ρ0,gates)
   
   resetqubits!(ρ)
@@ -194,7 +195,7 @@ end
   @test prod(ψ) ≈ runcircuit(prod(ψ0),compilecircuit(ψ0,gates))
 
   # Mixed state, noiseless circuit
-  ρ0 = densitymatrix(N)
+  ρ0 = qubits(N,mixed=true) 
   ρ = runcircuit(ρ0,gates)
   @test prod(ρ) ≈ runcircuit(prod(ρ0),compilecircuit(ρ0,gates); apply_dag=true)
   
@@ -220,7 +221,7 @@ end
   reset_warn_order!()
   
   ## Mixed state, noisy circuit
-  ρ0 = densitymatrix(N)
+  ρ0 = qubits(N,mixed=true)
   ρ = runcircuit(ρ0,gates;noise="DEP",p=0.1)
   @test prod(ρ) ≈ runcircuit(prod(ρ0),compilecircuit(ρ0,gates,noise="DEP",p=0.1); apply_dag=true)
   reset_warn_order!()

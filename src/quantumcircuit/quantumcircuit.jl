@@ -2,14 +2,27 @@
 initialize the wavefunction
 Create an MPS for N sites on the ``|000\\dots0\\rangle`` state.
 """
-qubits(sites::Vector{<:Index}) = productMPS(sites, "0")
 
-qubits(N::Int) = qubits(siteinds("qubit", N))
+wavefunction(sites::Vector{<:Index}) = productMPS(sites, "0")
 
-function resetqubits!(ψ::MPS)
-  ψ_new = productMPS(siteinds(ψ), "0")
-  ψ[:] = ψ_new
-  return ψ
+wavefunction(N::Int) = wavefunction(siteinds("qubit", N))
+
+densitymatrix(sites::Vector{<:Index}) = 
+  densitymatrix(productMPS(sites, "0"))
+
+densitymatrix(N::Int) = 
+  densitymatrix(siteinds("qubit",N))
+
+qubits(sites::Vector{<:Index}; mixed::Bool=false) = 
+  mixed ? densitymatrix(sites) : wavefunction(sites) 
+
+qubits(N::Int; mixed::Bool=false) = qubits(siteinds("qubit", N); mixed=mixed)
+
+function resetqubits!(M::Union{MPS,MPO})
+  indices = [firstind(M[j],tags="Site",plev=0) for j in 1:length(M)]
+  M_new = (typeof(M) == MPS ? wavefunction(indices) : densitymatrix(indices))
+  M[:] = M_new
+  return M
 end
 
 function densitymatrix(ψ::MPS)
@@ -22,19 +35,6 @@ function densitymatrix(ψ::MPS)
   return ρ
 end
 
-densitymatrix(sites::Vector{<:Index}) = 
-  densitymatrix(productMPS(sites, "0"))
-
-densitymatrix(N::Int) = 
-  densitymatrix(siteinds("qubit",N))
-
-function resetqubits!(ρ::MPO)
-  indices = [firstind(ρ[j],tags="Site",plev=0) for j in 1:length(ρ)]
-  ρ_new = densitymatrix(indices)
-  ρ[:] = ρ_new
-  return ρ
-end
-
 circuit(sites::Vector{<:Index}) = MPO(sites, "Id")
 
 circuit(N::Int) = circuit(siteinds("qubit", N))
@@ -44,7 +44,6 @@ choi(sites::Vector{<:Index}) =
 
 choi(N::Int) = 
   densitymatrix(siteinds("qubit",2*N))
-
 
 
 """----------------------------------------------
