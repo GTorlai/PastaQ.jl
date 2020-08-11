@@ -185,34 +185,34 @@ function gradnll(psi::MPS,data::Array;localnorm=nothing)
     x = data[n,:] 
     
     """ LEFT ENVIRONMENTS """
-    L[nthread][1] .= psidag[1] .* proj(x[1],s[1])
+    L[nthread][1] .= psidag[1] .* gate(x[1],s[1])
     for j in 2:N-1
       Lpsi[nthread][j] .= L[nthread][j-1] .* psidag[j]
-      L[nthread][j] .= Lpsi[nthread][j] .* proj(x[j],s[j])
+      L[nthread][j] .= Lpsi[nthread][j] .* gate(x[j],s[j])
     end
     Lpsi[nthread][N] .= L[nthread][N-1] .* psidag[N]
-    psix = (Lpsi[nthread][N] * proj(x[N],s[N]))[]
+    psix = (Lpsi[nthread][N] * gate(x[N],s[N]))[]
     prob = abs2(psix)
     loss[nthread] -= log(prob)/size(data)[1]
     
     """ RIGHT ENVIRONMENTS """
-    R[nthread][N] .= psidag[N] .* proj(x[N],s[N])
+    R[nthread][N] .= psidag[N] .* gate(x[N],s[N])
     for j in reverse(2:N-1)
       Rpsi[nthread][j] .= psidag[j] .* R[nthread][j+1]
-      R[nthread][j] .= Rpsi[nthread][j] .* proj(x[j],s[j])
+      R[nthread][j] .= Rpsi[nthread][j] .* gate(x[j],s[j])
     end
 
     """ GRADIENTS """
     # TODO: fuse into one call to mul!
-    grads[nthread][1] .= proj(x[1],s[1]) .* R[nthread][2] 
+    grads[nthread][1] .= gate(x[1],s[1]) .* R[nthread][2] 
     gradients[nthread][1] .+= (1 / (localnorm[1] * psix)) .* grads[nthread][1]
     for j in 2:N-1
-      Rpsi[nthread][j] .= L[nthread][j-1] .* proj(x[j],s[j])
+      Rpsi[nthread][j] .= L[nthread][j-1] .* gate(x[j],s[j])
       # TODO: fuse into one call to mul!
       grads[nthread][j] .= Rpsi[nthread][j] .* R[nthread][j+1]
       gradients[nthread][j] .+= (1 / (localnorm[j] * psix)) .* grads[nthread][j]
     end
-    grads[nthread][N] .= L[nthread][N-1] .* proj(x[N], s[N])
+    grads[nthread][N] .= L[nthread][N-1] .* gate(x[N], s[N])
     gradients[nthread][N] .+= (1 / (localnorm[N] * psix)) .* grads[nthread][N]
   end
 
@@ -312,14 +312,14 @@ function gradnll(lpdo::MPO,data::Array;localnorm=nothing)
   for n in 1:size(data)[1]
     x = data[n,:]
     """ LEFT ENVIRONMENTS """
-    T[1] .= lpdo[1] .* dag(proj(x[1],s[1]))
+    T[1] .= lpdo[1] .* dag(gate(x[1],s[1]))
     L[1] .= prime(T[1],"Link") .* dag(T[1])
     for j in 2:N-1
-      T[j] .= lpdo[j] .* dag(proj(x[j],s[j]))
+      T[j] .= lpdo[j] .* dag(gate(x[j],s[j]))
       Llpdo[j] .= prime(T[j],"Link") .* L[j-1]
       L[j] .= Llpdo[j] .* dag(T[j])
     end
-    T[N] .= lpdo[N] .* dag(proj(x[N],s[N]))
+    T[N] .= lpdo[N] .* dag(gate(x[N],s[N]))
     prob = L[N-1] * prime(T[N],"Link")
     prob = prob * dag(T[N])
     prob = real(prob[])
@@ -333,20 +333,20 @@ function gradnll(lpdo::MPO,data::Array;localnorm=nothing)
     end
     
     """ GRADIENTS """
-    Tp[1] .= prime(lpdo[1],"Link") .* dag(proj(x[1],s[1]))
-    Agrad[1] .=  Tp[1] .* proj(x[1],s[1])
+    Tp[1] .= prime(lpdo[1],"Link") .* dag(gate(x[1],s[1]))
+    Agrad[1] .=  Tp[1] .* gate(x[1],s[1])
     grads[1] .= R[2] .* Agrad[1]
     gradients[1] .+= (1 / (localnorm[1] * prob)) .* grads[1]
      for j in 2:N-1
-      Tp[j] .= prime(lpdo[j],"Link") .* dag(proj(x[j],s[j]))
+      Tp[j] .= prime(lpdo[j],"Link") .* dag(gate(x[j],s[j]))
       Lgrad[j-1] .= L[j-1] .* Tp[j]
-      Agrad[j] .= Lgrad[j-1] .* proj(x[j],s[j])
+      Agrad[j] .= Lgrad[j-1] .* gate(x[j],s[j])
       grads[j] .= R[j+1] .* Agrad[j] 
       gradients[j] .+= (1 / (localnorm[j] * prob)) .* grads[j]
     end
-    Tp[N] .= prime(lpdo[N],"Link") .* dag(proj(x[N],s[N]))
+    Tp[N] .= prime(lpdo[N],"Link") .* dag(gate(x[N],s[N]))
     Lgrad[N-1] .= L[N-1] .* Tp[N]
-    grads[N] .= Lgrad[N-1] .* proj(x[N],s[N])
+    grads[N] .= Lgrad[N-1] .* gate(x[N],s[N])
     gradients[N] .+= (1 / (localnorm[N] * prob)) .* grads[N]
   end
   for g in gradients
@@ -491,9 +491,9 @@ function nll(psi::MPS,data::Array)
   s = siteinds(psi)
   for n in 1:size(data)[1]
     x = data[n,:]
-    psix = dag(psi[1]) * proj(x[1],s[1])
+    psix = dag(psi[1]) * gate(x[1],s[1])
     for j in 2:N
-      psi_r = dag(psi[j]) * proj(x[j],s[j])
+      psi_r = dag(psi[j]) * gate(x[j],s[j])
       psix = psix * psi_r
     end
     prob = abs2(psix[])
@@ -514,11 +514,11 @@ function nll(lpdo::MPO,data::Array)
   end
   for n in 1:size(data)[1]
     x = data[n,:]
-    prob = prime(lpdo[1],"Link") * dag(proj(x[1],s[1]))
-    prob = prob * dag(lpdo[1]) * proj(x[1],s[1])
+    prob = prime(lpdo[1],"Link") * dag(gate(x[1],s[1]))
+    prob = prob * dag(lpdo[1]) * gate(x[1],s[1])
     for j in 2:N
-      prob = prob * prime(lpdo[j],"Link") * dag(proj(x[j],s[j]))
-      prob = prob * dag(lpdo[j]) * proj(x[j],s[j])
+      prob = prob * prime(lpdo[j],"Link") * dag(gate(x[j],s[j]))
+      prob = prob * dag(lpdo[j]) * gate(x[j],s[j])
     end
     loss -= log(real(prob[]))/size(data)[1]
   end

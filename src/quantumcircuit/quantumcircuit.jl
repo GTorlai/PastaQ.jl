@@ -86,12 +86,15 @@ function compilecircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple};
                         noise=nothing, kwargs...)
   gate_tensors = ITensor[]
   for g in gates
-    push!(gate_tensors,makegate(M,g))
+    push!(gate_tensors, gate(M, g))
+    ns = g[2]
     if !isnothing(noise)
-      if (typeof(g[2]) == Int)
-        push!(gate_tensors,makekraus(M,noise,g[2];kwargs...))
+      if ns isa Int
+        push!(gate_tensors, gate(M, noise, g[2]; kwargs...))
       else
-        gate_tensors = cat(gate_tensors,makekraus(M,noise,g[2];kwargs...),dims=1)
+        for n in ns
+          push!(gate_tensors, gate(M, noise, n; kwargs...))
+        end
       end
     end
   end
@@ -278,21 +281,21 @@ function convertdata(datapoint::Array,basis::Array)
   for j in 1:length(datapoint)
     if basis[j] == "X"
       if datapoint[j] == 0
-        push!(newdata,"projX+")
+        push!(newdata,"stateX+")
       else
-        push!(newdata,"projX-")
+        push!(newdata,"stateX-")
       end
     elseif basis[j] == "Y"
       if datapoint[j] == 0
-        push!(newdata,"projY+")
+        push!(newdata,"stateY+")
       else
-        push!(newdata,"projY-")
+        push!(newdata,"stateY-")
       end
     elseif basis[j] == "Z"
       if datapoint[j] == 0
-        push!(newdata,"projZ+")
+        push!(newdata,"stateZ+")
       else
-        push!(newdata,"projZ-")
+        push!(newdata,"stateZ-")
       end
     end
   end

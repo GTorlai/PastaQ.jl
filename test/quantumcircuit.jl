@@ -230,14 +230,16 @@ end
   ψ0 = qubits(N)
   ρ = runcircuit(ψ0,gates,noise="DEP",p=0.1)
   ρ0 = densitymatrix(ψ0)
+  U = compilecircuit(ρ0, gates, noise="DEP", p=0.1)
   disable_warn_order!()
-  @test prod(ρ) ≈ runcircuit(prod(ρ0),compilecircuit(ρ0,gates,noise="DEP",p=0.1); apply_dag=true)
+  @test prod(ρ) ≈ runcircuit(prod(ρ0), U; apply_dag=true)
   reset_warn_order!()
   
   ## Mixed state, noisy circuit
-  ρ0 = qubits(N,mixed=true)
-  ρ = runcircuit(ρ0,gates;noise="DEP",p=0.1)
-  @test prod(ρ) ≈ runcircuit(prod(ρ0),compilecircuit(ρ0,gates,noise="DEP",p=0.1); apply_dag=true)
+  ρ0 = qubits(N, mixed = true)
+  ρ = runcircuit(ρ0, gates; noise = "DEP", p = 0.1)
+  U = compilecircuit(ρ0, gates, noise= "DEP",p = 0.1)
+  @test prod(ρ) ≈ runcircuit(prod(ρ0), U; apply_dag=true)
   reset_warn_order!()
 
 end
@@ -358,7 +360,7 @@ end
     if (basis[1] == "Z")
       ψ1 = ψ_out[1] * setelt(s[1]=>x1[1])
     else
-      rotation = makegate(ψ_out,"meas$(basis[1])",1)
+      rotation = gate(ψ_out,"meas$(basis[1])",1)
       ψ_r = ψ_out[1] * rotation
       ψ1 = noprime!(ψ_r) * setelt(s[1]=>x1[1])
     end
@@ -366,7 +368,7 @@ end
       if (basis[j] == "Z")
         ψ1 = ψ1 * ψ_out[j] * setelt(s[j]=>x1[j])
       else
-        rotation = makegate(ψ_out,"meas$(basis[j])",j)
+        rotation = gate(ψ_out,"meas$(basis[j])",j)
         ψ_r = ψ_out[j] * rotation
         ψ1 = ψ1 * noprime!(ψ_r) * setelt(s[j]=>x1[j])
       end
@@ -374,7 +376,7 @@ end
     if (basis[N] == "Z")
       ψ1 = (ψ1 * ψ_out[N] * setelt(s[N]=>x1[N]))[]
     else
-      rotation = makegate(ψ_out,"meas$(basis[N])",N)
+      rotation = gate(ψ_out,"meas$(basis[N])",N)
       ψ_r = ψ_out[N] * rotation
       ψ1 = (ψ1 * noprime!(ψ_r) * setelt(s[N]=>x1[N]))[]
     end
@@ -384,28 +386,28 @@ end
     for j in 1:N
       if basis[j] == "X"
         if x1[j] == 1
-          push!(x2,"projX+")
+          push!(x2,"stateX+")
         else
-          push!(x2,"projX-")
+          push!(x2,"stateX-")
         end
       elseif basis[j] == "Y"
         if x1[j] == 1
-          push!(x2,"projY+")
+          push!(x2,"stateY+")
         else
-          push!(x2,"projY-")
+          push!(x2,"stateY-")
         end
       elseif basis[j] == "Z"
         if x1[j] == 1
-          push!(x2,"projZ+")
+          push!(x2,"stateZ+")
         else
-          push!(x2,"projZ-")
+          push!(x2,"stateZ-")
         end
       end
     end
   
-    ψ2 = ψ_out[1] * dag(proj(x2[1],s[1]))
+    ψ2 = ψ_out[1] * dag(gate(x2[1],s[1]))
     for j in 2:N
-      ψ_r = ψ_out[j] * dag(proj(x2[j],s[j]))
+      ψ_r = ψ_out[j] * dag(gate(x2[j],s[j]))
       ψ2 = ψ2 * ψ_r
     end
     ψ2 = ψ2[]
@@ -415,7 +417,7 @@ end
     if (basis[1] == "Z")
       ψ1 = dag(ψ_out[1]) * setelt(s[1]=>x1[1])
     else
-      rotation = makegate(ψ_out,"meas$(basis[1])",1)
+      rotation = gate(ψ_out,"meas$(basis[1])",1)
       ψ_r = dag(ψ_out[1]) * dag(rotation)
       ψ1 = noprime!(ψ_r) * setelt(s[1]=>x1[1])
     end
@@ -423,7 +425,7 @@ end
       if (basis[j] == "Z")
         ψ1 = ψ1 * dag(ψ_out[j]) * setelt(s[j]=>x1[j])
       else
-        rotation = makegate(ψ_out,"meas$(basis[j])",j)
+        rotation = gate(ψ_out,"meas$(basis[j])",j)
         ψ_r = dag(ψ_out[j]) * dag(rotation)
         ψ1 = ψ1 * noprime!(ψ_r) * setelt(s[j]=>x1[j])
       end
@@ -431,14 +433,14 @@ end
     if (basis[N] == "Z")
       ψ1 = (ψ1 * dag(ψ_out[N]) * setelt(s[N]=>x1[N]))[]
     else
-      rotation = makegate(ψ_out,"meas$(basis[N])",N)
+      rotation = gate(ψ_out,"meas$(basis[N])",N)
       ψ_r = dag(ψ_out[N]) * dag(rotation)
       ψ1 = (ψ1 * noprime!(ψ_r) * setelt(s[N]=>x1[N]))[]
     end
   
-    ψ2 = dag(ψ_out[1]) * proj(x2[1],s[1])
+    ψ2 = dag(ψ_out[1]) * gate(x2[1],s[1])
     for j in 2:N
-      ψ_r = dag(ψ_out[j]) * proj(x2[j],s[j])
+      ψ_r = dag(ψ_out[j]) * gate(x2[j],s[j])
       ψ2 = ψ2 * ψ_r
     end
     ψ2 = ψ2[]

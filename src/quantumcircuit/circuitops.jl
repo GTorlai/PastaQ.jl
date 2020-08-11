@@ -1,52 +1,34 @@
-function makegate(gatename::String, site_ind::Index; kwargs...)
-  return gate(gatename, site_ind; kwargs...)
-end
 
-function makegate(M::MPS, gatename::String, site::Int; kwargs...)
+function gate(M::MPS, gatename::String, site::Int; kwargs...)
   site_ind = siteind(M,site)
   return gate(gatename, site_ind; kwargs...)
 end
 
-function makegate(M::MPO, gatename::String, site::Int; kwargs...)
+function gate(M::MPO, gatename::String, site::Int; kwargs...)
   site_ind = firstind(M[site], tags="Site", plev = 0)#siteind(M,site)
   return gate(gatename, site_ind; kwargs...)
 end
-function makegate(M::MPS,gatename::String, site::Tuple; kwargs...)
+function gate(M::MPS,gatename::String, site::Tuple; kwargs...)
   site_ind1 = siteind(M,site[1])
   site_ind2 = siteind(M,site[2])
   return gate(gatename,site_ind1,site_ind2; kwargs...)
 end
 
-function makegate(M::MPO,gatename::String, site::Tuple; kwargs...)
+function gate(M::MPO,gatename::String, site::Tuple; kwargs...)
   site_ind1 = firstind(M[site[1]], tags="Site", plev = 0)
   site_ind2 = firstind(M[site[2]], tags="Site", plev = 0)
   return gate(gatename,site_ind1,site_ind2; kwargs...)
 end
 
-function makegate(M::Union{MPS,MPO}, gatedata::Tuple)
-  return makegate(M,gatedata...)
+function gate(M::Union{MPS,MPO}, gatedata::Tuple)
+  return gate(M,gatedata...)
 end
 
-makegate(M::Union{MPS,MPO}, gatename::String, sites::Union{Int, Tuple}, params::NamedTuple) =
-  makegate(M, gatename, sites; params...)
-
-
-function makekraus(M::Union{MPS,MPO},noisename::String,site::Int; kwargs...)
-  site_ind = firstind(M[site], tags="Site", plev = 0)
-  return noise(noisename,site_ind; kwargs...)
-end
-
-function makekraus(M::Union{MPS,MPO},noisename::String,sites::Tuple; kwargs...)
-  kraus_list = ITensor[]
-  for k in 1:length(sites)
-    site_ind = siteind(M,sites[k])
-    push!(kraus_list,noise(noisename,site_ind; kwargs...))
-  end
-  return kraus_list
-end
+gate(M::Union{MPS,MPO}, gatename::String, sites::Union{Int, Tuple}, params::NamedTuple) =
+  gate(M, gatename, sites; params...)
 
 function applygate!(M::Union{MPS,MPO},gatename::String,sites::Union{Int,Tuple};kwargs...)
-  g = makegate(M,gatename,sites;kwargs...)
+  g = gate(M,gatename,sites;kwargs...)
   Mc = apply(g,M;kwargs...)
   M[:] = Mc
   return M
