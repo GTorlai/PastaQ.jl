@@ -43,12 +43,6 @@ function runcircuitFULL(N::Int,tensors::Array)
       # NN 2q gate
       if abs(site1-site2) == 1
         u = 1.0
-        #if (site1<site2)
-        #  gate = reshape(array(tensor),(4,4))
-        #else
-        #  gate = swap * reshape(array(tensor),(4,4)) * swap
-        #  #gate = swap * gate
-        #end
         for j in 1:N-1
           if (j == site)
             u = kron(u,gate)
@@ -125,19 +119,21 @@ function empiricalprobability(samples::Matrix)
   return prob
 end
 
+
 @testset "qubits initialization" begin
   N = 1
-  psi = qubits(N)
-  @test length(psi) == 1
-  @test length(inds(psi[1],"Link")) == 0
-  @test fullvector(psi) ≈ [1, 0]
+  ψ = qubits(N)
+  @test length(ψ) == 1
+  @test typeof(ψ) == MPS
+  @test length(inds(ψ[1],"Link")) == 0
+  @test fullvector(ψ) ≈ [1, 0]
   N = 5
-  psi = qubits(N)
-  @test length(psi) == 5
-  psi_vec = fullvector(psi)
+  ψ = qubits(N)
+  @test length(ψ) == 5
+  ψ_vec = fullvector(ψ)
   exact_vec = zeros(1<<N)
   exact_vec[1] = 1.0
-  @test psi_vec ≈ exact_vec
+  @test ψ_vec ≈ exact_vec
 end
 
 @testset "circuit MPO initialization" begin
@@ -149,111 +145,101 @@ end
   @test U_mat ≈ exact_mat
 end
 
-@testset "runcircuit: hadamardlayer N=8" begin
-  N = 8
-  gates = []
-  hadamardlayer!(gates,N)
-  @test length(gates) == N
-  psi = qubits(N)
-  gate_tensors = compilecircuit(psi,gates)
-  @test length(gate_tensors) == N
-  runcircuit!(psi,gate_tensors)
-  
-  U = circuit(N)
-  gate_tensors = compilecircuit(U,gates)
-  runcircuit!(U,gate_tensors)
-  
-  exact_psi,exact_U = runcircuitFULL(N,gate_tensors)
-  @test exact_psi ≈ fullvector(psi)
-  @test exact_U ≈ fullmatrix(U)
+@testset "Density matrix initialization" begin
+  N = 5
+  ρ1 = qubits(N,mixed=true)
+  @test length(ρ1) == N
+  @test typeof(ρ1) == MPO
+  ψ = qubits(N)
+  ρ2 = qubits(N,mixed=true)
+  @test fullmatrix(ρ1) ≈ fullmatrix(ρ2)
+  exact_mat = zeros(1<<N,1<<N)
+  exact_mat[1,1] = 1.0
+  @test fullmatrix(ρ2) ≈ exact_mat
 end
 
-@testset "runcircuit: rand1Qrotationlayer N=8" begin
-  N = 8
-  gates = []
-  rand1Qrotationlayer!(gates,N)
-  @test length(gates) == N
-
-  psi0 = qubits(N)
-  gate_tensors = compilecircuit(psi0, gates)
-  @test length(gate_tensors) == N
-  psi = runcircuit(psi0, gate_tensors)
-
-  disable_warn_order!()
-  @test prod(psi) ≈ noprime(prod(psi0) * prod(gate_tensors))
-  reset_warn_order!()
-
-  U0 = circuit(N)
-  gate_tensors = compilecircuit(U0, gates)
-  U = runcircuit(U0, gate_tensors)
-
-  disable_warn_order!()
-  @test prod(U) ≈ prod(gate_tensors)
-  reset_warn_order!()
-end
-
-@testset "runcircuit: CX layer N=10" begin
-  N = 8
-  gates = []
-  CXlayer!(gates,N,sequence = "odd") 
-  @test length(gates) == N÷2
-  psi = qubits(N)
-  gate_tensors = compilecircuit(psi,gates)
-  @test length(gate_tensors) == N÷2
-  runcircuit!(psi,gate_tensors)
-
-  U = circuit(N)
-  gate_tensors = compilecircuit(U,gates)
-  runcircuit!(U,gate_tensors)
+@testset "Choi matrix initialization" begin
+  N = 5
+  Λ = choi(N)
+  @test length(Λ) == 2*N
+  @test typeof(Λ) == MPS
   
-  exact_psi,exact_U = runcircuitFULL(N,gate_tensors)
-  @test exact_psi ≈ fullvector(psi)
-  @test exact_U ≈ fullmatrix(U)
-
-  gates = []
-  CXlayer!(gates,N,sequence = "even") 
-  @test length(gates) == N÷2-1
-  psi0 = qubits(N)
-  gate_tensors = compilecircuit(psi0, gates)
-  @test length(gate_tensors) == N÷2-1
-  psi = runcircuit(psi0, gate_tensors)
-
-  disable_warn_order!()
-  @test prod(psi) ≈ noprime(prod(psi0) * prod(gate_tensors))
-  reset_warn_order!()
-
-  U0 = circuit(N)
-  gate_tensors = compilecircuit(U0, gates)
-  U = runcircuit(U0, gate_tensors)
-
-  # TODO: replace with mapprime([...], 2 => 1, 1 => 0)
-  disable_warn_order!()
-  @test prod(U) ≈ mapprime(prime(prod(U0)) *
-                           prod(gate_tensors),
-                           1 => 0, 2 => 1)
-  reset_warn_order!()
+  Λ = choi(N,mixed=true)
+  @test length(Λ) == 2*N
+  @test typeof(Λ) == MPO
 end
 
-@testset "runcircuit: random quantum circuit" begin
-  N = 8
-  depth = 8
+@testset "reset qubits" begin
+  N = 5
+  depth = 5
+  gates = randomquantumcircuit(N,depth)
+  ψ0 = qubits(N)
+  ψ = runcircuit(ψ0,gates)
+  
+  resetqubits!(ψ)
+  psi_vec = fullvector(ψ)
+
+  exact_vec = zeros(1<<N)
+  exact_vec[1] = 1.0
+  @test psi_vec ≈ exact_vec
+
+  
+  ρ0 = qubits(N,mixed=true)
+  ρ = runcircuit(ρ0,gates)
+  
+  resetqubits!(ρ)
+  ρ_mat = fullmatrix(ρ)
+
+  exact_mat = zeros(1<<N,1<<N)
+  exact_mat[1,1] = 1.0
+  @test exact_mat ≈ ρ_mat
+end
+
+
+@testset "runcircuit: unitary quantum circuit" begin
+  N = 3
+  depth = 4
   gates = randomquantumcircuit(N,depth)
   ngates = N*depth + depth÷2 * (N-1)
   @test length(gates) == ngates
-  psi0 = qubits(N)
-  gate_tensors = compilecircuit(psi0, gates)
-  @test length(gate_tensors) == ngates
-  psi = runcircuit(psi0, gate_tensors)
   
-  @test prod(psi) ≈ runcircuit(prod(psi0), gate_tensors)
+  #Pure state, noiseless circuit
+  ψ0 = qubits(N)
+  ψ = runcircuit(ψ0,gates)
+  @test prod(ψ) ≈ runcircuit(prod(ψ0),compilecircuit(ψ0,gates))
 
+  # Mixed state, noiseless circuit
+  ρ0 = qubits(N,mixed=true) 
+  ρ = runcircuit(ρ0,gates)
+  @test prod(ρ) ≈ runcircuit(prod(ρ0),compilecircuit(ρ0,gates); apply_dag=true)
+  
   U0 = circuit(N)
-  gate_tensors = compilecircuit(U0, gates)
-  U = runcircuit(U0, gate_tensors)
-
+  U = runcircuit(U0,gates;get_unitary=true)
   disable_warn_order!()
-  @test prod(U) ≈ runcircuit(prod(U0), gate_tensors)
+  @test prod(U) ≈ runcircuit(prod(U0),compilecircuit(U0,gates))
+end
+
+@testset "runcircuit: noisy quantum circuit" begin
+  N = 5
+  depth = 4
+  gates = randomquantumcircuit(N,depth)
+  ngates = N*depth + depth÷2 * (N-1)
+  @test length(gates) == ngates
+
+  # Pure state, noisy circuit
+  ψ0 = qubits(N)
+  ρ = runcircuit(ψ0,gates,noise="DEP",p=0.1)
+  ρ0 = densitymatrix(ψ0)
+  disable_warn_order!()
+  @test prod(ρ) ≈ runcircuit(prod(ρ0),compilecircuit(ρ0,gates,noise="DEP",p=0.1); apply_dag=true)
   reset_warn_order!()
+  
+  ## Mixed state, noisy circuit
+  ρ0 = qubits(N,mixed=true)
+  ρ = runcircuit(ρ0,gates;noise="DEP",p=0.1)
+  @test prod(ρ) ≈ runcircuit(prod(ρ0),compilecircuit(ρ0,gates,noise="DEP",p=0.1); apply_dag=true)
+  reset_warn_order!()
+
 end
 
 @testset "runcircuit: inverted gate order" begin
@@ -265,19 +251,14 @@ end
     s2 = s1-1
     push!(gates,("CX", (s1,s2)))
   end
-  psi0 = qubits(N)
-  gate_tensors = compilecircuit(psi0, gates) 
-  psi = runcircuit(psi0, gate_tensors)
-  
-  @test prod(psi) ≈ runcircuit(prod(psi0), gate_tensors)
+  ψ0 = qubits(N)
+  ψ = runcircuit(ψ0, gates)
+  @test prod(ψ) ≈ runcircuit(prod(ψ0),compilecircuit(ψ0,gates))
 
   U0 = circuit(N)
-  gate_tensors = compilecircuit(U0, gates)
-  U = runcircuit(U0, gate_tensors)
-
+  U = runcircuit(U0,gates,get_unitary=true)
   disable_warn_order!()
-  @test prod(U) ≈ runcircuit(prod(U0), gate_tensors)
-  reset_warn_order!()
+  @test prod(U) ≈ runcircuit(prod(U0),compilecircuit(U0,gates))
 end
 
 @testset "runcircuit: long range gates" begin
@@ -290,31 +271,16 @@ end
     while s2 == s1
       s2 = rand(1:N)
     end
-    @assert s1 != s2
     push!(gates,("CX", (s1,s2)))
   end
-  psi = qubits(N)
-  gate_tensors = compilecircuit(psi,gates) 
-  runcircuit!(psi,gate_tensors)
+  ψ0 = qubits(N)
+  ψ = runcircuit(ψ0,gates)
+  @test prod(ψ) ≈ runcircuit(prod(ψ0),compilecircuit(ψ0,gates)) 
   
-  exact_psi,exact_U = runcircuitFULL(N,gate_tensors)
-  @test exact_psi ≈ fullvector(psi)
-end
-
-@testset "reset qubits" begin
-  N = 5
-  depth = 5
-  gates = randomquantumcircuit(N,depth)
-  psi = qubits(N)
-  gate_tensors = compilecircuit(psi,gates)
-  runcircuit!(psi,gate_tensors)
-  
-  resetqubits!(psi)
-  psi_vec = fullvector(psi)
-
-  exact_vec = zeros(1<<N)
-  exact_vec[1] = 1.0
-  @test psi_vec ≈ exact_vec
+  U0 = circuit(N)
+  U = runcircuit(U0,gates,get_unitary=true)
+  disable_warn_order!()
+  @test prod(U) ≈ runcircuit(prod(U0),compilecircuit(U0,gates))
 end
 
 @testset "generation of preparation states" begin
@@ -356,65 +322,61 @@ end
 @testset "measurements" begin
   N = 4
   depth = 10
-  psi = qubits(N)
+  ψ0 = qubits(N)
   gates = randomquantumcircuit(N,depth)
-  gate_tensors = compilecircuit(psi,gates)
-  runcircuit!(psi,gate_tensors)
-  psi_vec = fullvector(psi)
-  prob = abs2.(psi_vec)
+  ψ = runcircuit(ψ0,gates)
+  ψ_vec = fullvector(ψ)
+  prob = abs2.(ψ_vec)
   
   nshots = 100000
-  samples = measure(psi,nshots)
+  samples = measure(ψ,nshots)
   @test size(samples)[1] == nshots
   @test size(samples)[2] == N
   data_prob = empiricalprobability(samples)
   @test prob ≈ data_prob atol=1e-2
 end
 
-
 @testset "measurement projections" begin
   N = 8
   nshots = 20
-  psi = qubits(N)
+  ψ0 = qubits(N)
   bases = generatemeasurementsettings(N,nshots)
   
   depth = 8
   gates = randomquantumcircuit(N,depth)
-  gates = randomquantumcircuit(N,depth)
-  gate_tensors = compilecircuit(psi,gates)
-  runcircuit!(psi,gate_tensors)
-  s = siteinds(psi)
+  ψ = runcircuit(ψ0,gates)
+  s = siteinds(ψ)
 
   for n in 1:nshots
     basis = bases[n,:]
     meas_gates = makemeasurementgates(basis)
-    meas_tensors = compilecircuit(psi,meas_gates)
-    psi_out = runcircuit(psi,meas_tensors)
-    x1 = measure(psi_out,1)
+    #meas_tensors = compilecircuit(ψ,meas_gates)
+    ψ_out = runcircuit(ψ,meas_gates)
+    x1 = measure(ψ_out,1)
     x1 .+= 1 
     
     if (basis[1] == "Z")
-      psi1 = psi_out[1] * setelt(s[1]=>x1[1])
+      ψ1 = ψ_out[1] * setelt(s[1]=>x1[1])
     else
-      rotation = makegate(psi_out,"meas$(basis[1])",1)
-      psi_r = psi_out[1] * rotation
-      psi1 = noprime!(psi_r) * setelt(s[1]=>x1[1])
+      rotation = makegate(ψ_out,"meas$(basis[1])",1)
+      ψ_r = ψ_out[1] * rotation
+      ψ1 = noprime!(ψ_r) * setelt(s[1]=>x1[1])
     end
     for j in 2:N-1
       if (basis[j] == "Z")
-        psi1 = psi1 * psi_out[j] * setelt(s[j]=>x1[j])
+        ψ1 = ψ1 * ψ_out[j] * setelt(s[j]=>x1[j])
       else
-        rotation = makegate(psi_out,"meas$(basis[j])",j)
-        psi_r = psi_out[j] * rotation
-        psi1 = psi1 * noprime!(psi_r) * setelt(s[j]=>x1[j])
+        rotation = makegate(ψ_out,"meas$(basis[j])",j)
+        ψ_r = ψ_out[j] * rotation
+        ψ1 = ψ1 * noprime!(ψ_r) * setelt(s[j]=>x1[j])
       end
     end
     if (basis[N] == "Z")
-      psi1 = (psi1 * psi_out[N] * setelt(s[N]=>x1[N]))[]
+      ψ1 = (ψ1 * ψ_out[N] * setelt(s[N]=>x1[N]))[]
     else
-      rotation = makegate(psi_out,"meas$(basis[N])",N)
-      psi_r = psi_out[N] * rotation
-      psi1 = (psi1 * noprime!(psi_r) * setelt(s[N]=>x1[N]))[]
+      rotation = makegate(ψ_out,"meas$(basis[N])",N)
+      ψ_r = ψ_out[N] * rotation
+      ψ1 = (ψ1 * noprime!(ψ_r) * setelt(s[N]=>x1[N]))[]
     end
     
     # Change format of data
@@ -441,46 +403,47 @@ end
       end
     end
   
-    psi2 = psi_out[1] * dag(proj(x2[1],s[1]))
+    ψ2 = ψ_out[1] * dag(proj(x2[1],s[1]))
     for j in 2:N
-      psi_r = psi_out[j] * dag(proj(x2[j],s[j]))
-      psi2 = psi2 * psi_r
+      ψ_r = ψ_out[j] * dag(proj(x2[j],s[j]))
+      ψ2 = ψ2 * ψ_r
     end
-    psi2 = psi2[]
-    @test psi1 ≈ psi2
+    ψ2 = ψ2[]
+    @test ψ1 ≈ ψ2
 
     
     if (basis[1] == "Z")
-      psi1 = dag(psi_out[1]) * setelt(s[1]=>x1[1])
+      ψ1 = dag(ψ_out[1]) * setelt(s[1]=>x1[1])
     else
-      rotation = makegate(psi_out,"meas$(basis[1])",1)
-      psi_r = dag(psi_out[1]) * dag(rotation)
-      psi1 = noprime!(psi_r) * setelt(s[1]=>x1[1])
+      rotation = makegate(ψ_out,"meas$(basis[1])",1)
+      ψ_r = dag(ψ_out[1]) * dag(rotation)
+      ψ1 = noprime!(ψ_r) * setelt(s[1]=>x1[1])
     end
     for j in 2:N-1
       if (basis[j] == "Z")
-        psi1 = psi1 * dag(psi_out[j]) * setelt(s[j]=>x1[j])
+        ψ1 = ψ1 * dag(ψ_out[j]) * setelt(s[j]=>x1[j])
       else
-        rotation = makegate(psi_out,"meas$(basis[j])",j)
-        psi_r = dag(psi_out[j]) * dag(rotation)
-        psi1 = psi1 * noprime!(psi_r) * setelt(s[j]=>x1[j])
+        rotation = makegate(ψ_out,"meas$(basis[j])",j)
+        ψ_r = dag(ψ_out[j]) * dag(rotation)
+        ψ1 = ψ1 * noprime!(ψ_r) * setelt(s[j]=>x1[j])
       end
     end
     if (basis[N] == "Z")
-      psi1 = (psi1 * dag(psi_out[N]) * setelt(s[N]=>x1[N]))[]
+      ψ1 = (ψ1 * dag(ψ_out[N]) * setelt(s[N]=>x1[N]))[]
     else
-      rotation = makegate(psi_out,"meas$(basis[N])",N)
-      psi_r = dag(psi_out[N]) * dag(rotation)
-      psi1 = (psi1 * noprime!(psi_r) * setelt(s[N]=>x1[N]))[]
+      rotation = makegate(ψ_out,"meas$(basis[N])",N)
+      ψ_r = dag(ψ_out[N]) * dag(rotation)
+      ψ1 = (ψ1 * noprime!(ψ_r) * setelt(s[N]=>x1[N]))[]
     end
   
-    psi2 = dag(psi_out[1]) * proj(x2[1],s[1])
+    ψ2 = dag(ψ_out[1]) * proj(x2[1],s[1])
     for j in 2:N
-      psi_r = dag(psi_out[j]) * proj(x2[j],s[j])
-      psi2 = psi2 * psi_r
+      ψ_r = dag(ψ_out[j]) * proj(x2[j],s[j])
+      ψ2 = ψ2 * ψ_r
     end
-    psi2 = psi2[]
-    @test psi1 ≈ psi2
+    ψ2 = ψ2[]
+    @test ψ1 ≈ ψ2
 
   end
 end
+

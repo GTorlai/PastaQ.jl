@@ -3,6 +3,7 @@ export
   # Methods
   gate,
   proj,
+  noise,
 
 # circuitops.jl
   # Methods
@@ -11,17 +12,19 @@ export
   unswap!,
   applygate!,
   makegate,
+  makekraus,
 
 # quantumcircuit.jl
   # Methods
   qubits,
+  densitymatrix,
   circuit,
+  choi,
   resetqubits!,
   addgates!,
   compilecircuit,
   compilecircuit!,
   runcircuit,
-  runcircuit!,
   makepreparationgates,
   makemeasurementgates,
   generatemeasurementsettings,
@@ -34,7 +37,7 @@ export
   CXlayer!,
   randomquantumcircuit,
 
-# statetomography,jl
+# quantumtomography,jl
   # Methods
   initializeQST,
   lognormalize!,

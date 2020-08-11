@@ -56,64 +56,56 @@ using LinearAlgebra
   @test plev(inds(g)[2]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)
   @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
-  θ = π * rand()
   
   g = gate("prepX-",i) 
   @test plev(inds(g)[1]) == 1 
   @test plev(inds(g)[2]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)
   @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
-  θ = π * rand()
   
   g = gate("prepY+",i) 
   @test plev(inds(g)[1]) == 1 
   @test plev(inds(g)[2]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)
   @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
-  θ = π * rand()
   
   g = gate("prepY-",i) 
   @test plev(inds(g)[1]) == 1 
   @test plev(inds(g)[2]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)
   @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
-  θ = π * rand()
   
   g = gate("prepZ+",i) 
   @test plev(inds(g)[1]) == 1 
   @test plev(inds(g)[2]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)
   @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
-  θ = π * rand()
   
   g = gate("prepZ-",i) 
   @test plev(inds(g)[1]) == 1 
   @test plev(inds(g)[2]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)
   @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
-  θ = π * rand()
   
   g = gate("measX",i) 
   @test plev(inds(g)[1]) == 1 
   @test plev(inds(g)[2]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)
   @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
-  θ = π * rand()
   
   g = gate("measY",i) 
   @test plev(inds(g)[1]) == 1 
   @test plev(inds(g)[2]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)
   @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
-  θ = π * rand()
   
   g = gate("measZ",i) 
   @test plev(inds(g)[1]) == 1 
   @test plev(inds(g)[2]) == 0 
   ggdag = g * prime(dag(g),plev=1,1)
   @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
-  θ = π * rand()
   
+  θ = π * rand()
   g = gate("Rx",i,θ=θ)
   @test plev(inds(g)[1]) == 1 
   @test plev(inds(g)[2]) == 0 
@@ -144,7 +136,6 @@ using LinearAlgebra
   ggdag = g * prime(dag(g),plev=1,1)
   @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
   
-  
   g = gate("SWAP",i,j)
   @test plev(inds(g)[1]) == 1 && plev(inds(g)[2]) == 1 
   @test plev(inds(g)[3]) == 0 && plev(inds(g)[4]) == 0 
@@ -170,4 +161,6 @@ using LinearAlgebra
   @test array(ggdag) ≈ reshape(Matrix{ComplexF64}(I, 4, 4),(2,2,2,2))
  
 end
+
+
 

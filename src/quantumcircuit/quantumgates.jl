@@ -20,6 +20,13 @@ macro ProjName_str(s)
   ProjName{ITensors.SmallString(s)}
 end
 
+const NoiseName = OpName
+
+macro NoiseName_str(s)
+  NoiseName{ITensors.SmallString(s)}
+end
+
+
 #
 # Gate definitions.
 # Gate names must not start with "proj".
@@ -295,6 +302,7 @@ gate(::GateName"measY") =
 gate(::GateName"measZ") =
   gate("I")
 
+
 #
 # Measurement projections.
 # Projector names must start with "proj".
@@ -335,6 +343,9 @@ proj(::ProjName"projZ+") =
 proj(::ProjName"Z+") =
   proj("projZ+")
 
+proj(::ProjName"proj0") =
+  proj("projZ+")
+
 proj(::ProjName"projZ-") =
   [0
    1]
@@ -342,9 +353,14 @@ proj(::ProjName"projZ-") =
 proj(::ProjName"Z-") =
   proj("projZ-")
 
+proj(::ProjName"proj1") =
+  proj("projZ-")
+
+
 #
 # Get an ITensor gate from a gate definition
 #
+
 
 gate(::GateName{gn}; kwargs...) where {gn} =
   error("A gate with the name \"$gn\" has not been implemented yet. You can define it by overloading `gate(::GateName\"$gn\") = [...]`.")
@@ -362,6 +378,13 @@ gate(gn::String, s::Index...; kwargs...) =
 gate(gn::String, s::Vector{<:Index}, ns::Int...; kwargs...) =
   gate(gn, s[[ns...]]...; kwargs...)
 
+#
+#
+#noise(s::String) = noise(NoiseName(s))
+#function noise(nn::NoiseName, s::Index...; kwargs...)
+#  rs = reverse(s)
+#  return itensor(noise(nn; kwargs...), rs...)
+#end
 #
 # Get an ITensor projector from a projector definition
 #
@@ -410,7 +433,73 @@ function isproj(::OpName{gn}) where {gn}
   return false
 end
 
+#
+# Noise models 
+#
+noise(::NoiseName{nn}; kwargs...) where {nn} =
+  error("A noise model with the name \"$nn\" has not been implemented yet. You can define it by overloading `noise(::NoiseName\"$nn\") = [...]`.")
+
+
+noise(s::String) = noise(NoiseName(s))
+
+function noise(nn::NoiseName, s::Index...;kwargs...)
+  rs = reverse(s)
+  arr = noise(nn; kwargs...)
+  kraus = Index(size(arr, 3),tags="kraus")  
+  return itensor(noise(nn; kwargs...),prime.(rs)..., dag.(rs)..., kraus)
+end
+
+noise(nn::String, s::Index...; kwargs...) =
+  noise(NoiseName(nn), s...; kwargs...)
+
+noise(nn::String, s::Vector{<:Index}, ns::Int...; kwargs...) =
+  noise(nn, s[[ns...]]...; kwargs...)
+
+function noise(::NoiseName"AD"; γ::Number)
+  kraus = zeros(2,2,2)
+  kraus[:,:,1] = [1 0
+                  0 sqrt(1-γ)]
+  kraus[:,:,2] = [0 sqrt(γ)
+                  0 0]
+  return kraus 
+end
+
+function noise(::NoiseName"PD"; γ::Number)
+  kraus = zeros(2,2,2)
+  kraus[:,:,1] = [1 0
+                  0 sqrt(1-γ)]
+  kraus[:,:,2] = [0 0
+                  0 sqrt(γ)]
+  return kraus 
+end
+
+function noise(::NoiseName"DEP"; p::Number)
+  kraus = zeros(Complex{Float64},2,2,4)
+  kraus[:,:,1] = sqrt(1-p)   * [1 0 
+                                0 1]
+  kraus[:,:,2] = sqrt(p/3.0) * [0 1 
+                                1 0]
+  kraus[:,:,3] = sqrt(p/3.0) * [0 -im 
+                                im 0]
+  kraus[:,:,4] = sqrt(p/3.0) * [1  0 
+                                0 -1]
+  return kraus 
+end
+
+noise(::NoiseName"noiseDEP"; kwargs...) =
+  noise("DEP";kwargs...)
+
+noise(::NoiseName"noiseAD"; kwargs...) =
+  noise("AD";kwargs...)
+
+noise(::NoiseName"noisePD"; kwargs...) =
+  noise("PD";kwargs...)
+
+
+
+
 function ITensors.op(gn::GateName, ::SiteType"qubit", s::Index...; kwargs...)
   isproj(gn) && return proj(gn, s...; kwargs...)
   return gate(gn, s...; kwargs...)
 end
+
