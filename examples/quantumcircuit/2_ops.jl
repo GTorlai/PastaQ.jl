@@ -8,21 +8,21 @@ psi = qubits(3)
 #[3] IndexSet{2} (dim=1|id=243|"Link,l=2") (dim=2|id=678|"Site,n=3") 
 
 """ BUILD QUANTUM GATES """
-g = makegate(psi,"X",1)
+g = gate(psi,"X",1)
 #ITensor ord=2 (dim=2|id=89|"Site,n=1")' (dim=2|id=89|"Site,n=1")
 #NDTensors.Dense{Float64,Array{Float64,1}}
 
-g = makegate(psi,"CX",(1,2))
+g = gate(psi,"CX",(1,2))
 #ITensor ord=4 (dim=2|id=89|"Site,n=1")' (dim=2|id=314|"Site,n=2")' (dim=2|id=89|"Site,n=1") (dim=2|id=314|"Site,n=2")
 #NDTensors.Dense{Float64,Array{Float64,1}}
 
 gateid = ("X", 1)
-g = makegate(psi,gateid)
+g = gate(psi,gateid)
 #ITensor ord=2 (dim=2|id=89|"Site,n=1")' (dim=2|id=89|"Site,n=1")
 #NDTensors.Dense{Float64,Array{Float64,1}}
 
 gateid = ("Rn", 1,(θ=0.1,ϕ=0.2,λ=0.3))
-g = makegate(psi,gateid)
+g = gate(psi,gateid)
 #ITensor ord=2 (dim=2|id=89|"Site,n=1")' (dim=2|id=89|"Site,n=1")
 #NDTensors.Dense{Complex{Float64},Array{Complex{Float64},1}}
 
@@ -40,7 +40,7 @@ fullvector(psi)
 # 0.0
 
 gateid = ("X", 1)
-g = makegate(psi,gateid)
+g = gate(psi,gateid)
 #ITensor ord=2 (dim=2|id=88|"Site,n=1")' (dim=2|id=88|"Site,n=1")
 #NDTensors.Dense{Float64,Array{Float64,1}}
 

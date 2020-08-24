@@ -16,7 +16,7 @@ gates = [
 tensors = compilecircuit(psi,gates)
 
 # Run the circuit (in-place)
-runcircuit!(psi,tensors)
+psi = runcircuit(psi,tensors)
 
 # Set the state to |0000...> (but keep the indices)
 psi = resetqubits!(psi)
@@ -26,7 +26,7 @@ runcircuit(psi,tensors)
 
 """ Build a circuit using layers and run """
 
-gates = []
+gates = Tuple[]
 
 hadamardlayer!(gates,N)
 rand1Qrotationlayer!(gates,N)
@@ -35,13 +35,13 @@ CXlayer!(gates,N,sequence = "even")
 
 tensors = compilecircuit(psi,gates)
 
-runcircuit!(psi,tensors)
+psi = runcircuit(psi,tensors)
 
 """ Use pre-made circuit """
 depth = 4
 gates = randomquantumcircuit(N,depth)
 tensors = compilecircuit(psi,gates)
-runcircuit!(psi,tensors)
+psi = runcircuit(psi,tensors)
 
 """ Run circuit with different measurement bases """
 
