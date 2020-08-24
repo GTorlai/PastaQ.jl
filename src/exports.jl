@@ -14,6 +14,17 @@ export
   makegate,
   makekraus,
 
+# circuits.jl
+  appendgates!,
+  hadamardlayer,
+  hadamardlayer!,
+  randomrotation,
+  randomrotationlayer,
+  randomrotationlayer!,
+  #CXlayer!,
+  #randomquantumcircuit,
+  #squarearray,
+
 # quantumcircuit.jl
   # Methods
   qubits,
@@ -21,7 +32,6 @@ export
   circuit,
   choi,
   resetqubits!,
-  appendgates!,
   compilecircuit,
   compilecircuit!,
   runcircuit,
@@ -32,10 +42,6 @@ export
   measure,
   generatedata,
   convertdata,
-  hadamardlayer!,
-  rand1Qrotationlayer!,
-  CXlayer!,
-  randomquantumcircuit,
 
 # quantumtomography,jl
   # Methods

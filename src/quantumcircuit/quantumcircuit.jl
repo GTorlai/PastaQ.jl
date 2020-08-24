@@ -71,15 +71,6 @@ choi(N::Int; mixed::Bool=false) =
 ------------------------------------------------- """
 
 """
-Add a list of gates to gates (data structure) 
-"""
-function appendgates!(gates::Vector{<:Tuple},newgates::Vector{<:Tuple})
-  for newgate in newgates
-    push!(gates,newgate)
-  end
-end
-
-"""
 Generates a vector of ITensors from a tuple of gates
 """
 function compilecircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple}; 
@@ -297,66 +288,5 @@ function convertdata(datapoint::Array,basis::Array)
     end
   end
   return newdata
-end
-
-"""
-Append a layer of Hadamard gates
-"""
-function hadamardlayer!(gates::Array,N::Int)
-  for j in 1:N
-    push!(gates,("H", j))
-  end
-end
-
-"""
-Append a layer of random single-qubit rotations
-"""
-function rand1Qrotationlayer!(gates::Array,N::Int;
-                              rng=nothing)
-  for j in 1:N
-    if isnothing(rng)
-      θ,ϕ,λ = rand!(zeros(3))
-    else
-      θ,ϕ,λ = rand!(rng,zeros(3))
-    end
-    push!(gates,("Rn", j, (θ = π*θ, ϕ = 2*π*ϕ, λ = 2*π*λ)))
-  end
-end
-
-"""
-Append a layer of CX gates
-"""
-function CXlayer!(gates::Array,N::Int;sequence::String)
-  if (N ≤ 2)
-    throw(ArgumentError("CXlayer is defined for N ≥ 3"))
-  end
-  
-  if sequence == "odd"
-    for j in 1:2:(N-N%2)
-      push!(gates,("CX", (j,j+1)))
-    end
-  elseif sequence == "even"
-    for j in 2:2:(N+N%2-1)
-      push!(gates,("CX", (j,j+1)))
-    end
-  else
-    throw(ArgumentError("Sequence not recognized"))
-  end
-end
-
-"""
-Generate a random quantum circuit
-"""
-function randomquantumcircuit(N::Int,depth::Int;rng=nothing)
-  gates = Tuple[]
-  for d in 1:depth
-    rand1Qrotationlayer!(gates,N,rng=rng)
-    if d%2==1
-      CXlayer!(gates,N,sequence="odd")
-    else
-      CXlayer!(gates,N,sequence="even")
-    end
-  end
-  return gates
 end
 
