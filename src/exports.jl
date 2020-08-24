@@ -14,9 +14,11 @@ export
   randomrotation,
   randomrotationlayer,
   randomrotationlayer!,
-  #CXlayer!,
-  #randomquantumcircuit,
-  #squarearray,
+  twoqubitlayer,
+  twoqubitlayer!,
+  lineararray,
+  squarearray,
+  randomquantumcircuit,
 
 # quantumcircuit.jl
   # Methods
