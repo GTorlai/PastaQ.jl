@@ -100,15 +100,29 @@ function runcircuit(M::Union{MPS,MPO},gate_tensors::Vector{<:ITensor}; kwargs...
   inds_sizes = [length(inds(g)) for g in gate_tensors]
   noiseflag = any(x -> x%2==1 , inds_sizes)
   
-  buildMPO::Bool = get(kwargs,:get_unitary,false)
-  
+  buildMPO::Bool  = get(kwargs,:get_unitary,false)
+  buildChoi::Bool = get(kwargs,:get_choi,false)
+
+  # Construct the MPO for the unitary noiseless circuit
   if buildMPO & !noiseflag
     Mc = apply(reverse(gate_tensors),M; kwargs...) 
   elseif buildMPO & noiseflag
     error("Cannot construct a unitary MPO for a noisy circuit")
+  # Construct the Choi matrix for unitary noiseless circuit
+  elseif buildChoi & !noiseflag
+    U = apply(reverse(gate_tensors),M; kwargs...)
+    Mc = splitchoi(U)
+  # Construct the Choi matrix for unitary noisy circuit
+  elseif buildChoi & noiseflag
+    nothing
+    #@show M 
+    #@show prime(M,tags="qubit")
+    #Mc = M
+  # Run a noisy circuit, generating an output density operator (MPO)
   elseif noiseflag
     ρ = (typeof(M) == MPS ? densitymatrix(M) : M)
     Mc = apply(reverse(gate_tensors),ρ; apply_dag=true, kwargs...)
+  # Run a noiseless circuit, genereating either a wavefunction (MPS) of density operator (MPO)
   else
     Mc = (typeof(M) == MPS ? apply(reverse(gate_tensors),M; kwargs...) :
                              apply(reverse(gate_tensors), M; apply_dag=true, kwargs...))
@@ -120,10 +134,16 @@ end
 Apply the circuit on state M using a set of gates (Tuple)
 """
 function runcircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple}; noise=nothing, 
-                    cutoff=1e-15,maxdim=10000,kwargs...)
+                    cutoff=1e-15,maxdim=10000,get_unitary=false,get_choi=false,kwargs...)
   gate_tensors = compilecircuit(M,gates; noise=noise, kwargs...) 
-  runcircuit(M,gate_tensors; kwargs...)
+  runcircuit(M,gate_tensors; cutoff=cutoff,maxdim=maxdim,get_unitary=get_unitary,get_choi=get_choi,kwargs...)
 end
+
+
+#function runcircuit(N::Int,gates::::Vector{<:Tuple}; noise=nothing,
+#                    cutoff=1e-15,maxdim=10000,
+
+
 
 """
 Apply the circuit to a ITensor 
@@ -137,6 +157,26 @@ runcircuit(M::ITensor,
            gate_tensors::Vector{ <: ITensor};
            kwargs...) =
   apply(reverse(gate_tensors), M; kwargs...)
+
+
+function splitchoi(Λ::MPO)
+  addtags!(Λ,"Input", plev=1,tags="qubit")
+  addtags!(Λ,"Output",plev=0,tags="qubit")
+  noprime!(Λ)
+  Λ_split = ITensor[]
+  U,S,V = svd(Λ[1],firstind(Λ[1],tags="Input"))
+  push!(Λ_split,U*S)
+  push!(Λ_split,V)
+  for j in 2:length(Λ)
+    U,S,V = svd(Λ[j],firstind(Λ[j],tags="Input"),commonind(Λ[j-1],Λ[j]))
+    push!(Λ_split,U*S)
+    push!(Λ_split,V)
+  end
+  return MPS(Λ_split) 
+end
+
+
+
 
 
 """----------------------------------------------
