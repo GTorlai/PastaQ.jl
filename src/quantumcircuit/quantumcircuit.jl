@@ -56,16 +56,6 @@ circuit(sites::Vector{<:Index}) = MPO(sites, "Id")
 
 circuit(N::Int) = circuit(siteinds("qubit", N))
 
-"""
-Initialize the Choi matrix Λ
-"""
-choi(sites::Vector{<:Index}; mixed::Bool=false) = 
-  qubits(sites; mixed = mixed) 
-
-choi(N::Int; mixed::Bool=false) = 
-  choi(siteinds("qubit",2*N); mixed = mixed) 
-
-
 """----------------------------------------------
                   CIRCUIT FUNCTIONS 
 ------------------------------------------------- """
@@ -100,26 +90,8 @@ function runcircuit(M::Union{MPS,MPO},gate_tensors::Vector{<:ITensor}; kwargs...
   inds_sizes = [length(inds(g)) for g in gate_tensors]
   noiseflag = any(x -> x%2==1 , inds_sizes)
   
-  buildMPO::Bool  = get(kwargs,:get_unitary,false)
-  buildChoi::Bool = get(kwargs,:get_choi,false)
-
-  # Construct the MPO for the unitary noiseless circuit
-  if buildMPO & !noiseflag
-    Mc = apply(reverse(gate_tensors),M; kwargs...) 
-  elseif buildMPO & noiseflag
-    error("Cannot construct a unitary MPO for a noisy circuit")
-  # Construct the Choi matrix for unitary noiseless circuit
-  elseif buildChoi & !noiseflag
-    U = apply(reverse(gate_tensors),M; kwargs...)
-    Mc = splitchoi(U)
-  # Construct the Choi matrix for unitary noisy circuit
-  elseif buildChoi & noiseflag
-    nothing
-    #@show M 
-    #@show prime(M,tags="qubit")
-    #Mc = M
   # Run a noisy circuit, generating an output density operator (MPO)
-  elseif noiseflag
+  if noiseflag
     ρ = (typeof(M) == MPS ? densitymatrix(M) : M)
     Mc = apply(reverse(gate_tensors),ρ; apply_dag=true, kwargs...)
   # Run a noiseless circuit, genereating either a wavefunction (MPS) of density operator (MPO)
@@ -134,15 +106,95 @@ end
 Apply the circuit on state M using a set of gates (Tuple)
 """
 function runcircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple}; noise=nothing, 
-                    cutoff=1e-15,maxdim=10000,get_unitary=false,get_choi=false,kwargs...)
+                    cutoff=1e-15,maxdim=10000,kwargs...)
   gate_tensors = compilecircuit(M,gates; noise=noise, kwargs...) 
-  runcircuit(M,gate_tensors; cutoff=cutoff,maxdim=maxdim,get_unitary=get_unitary,get_choi=get_choi,kwargs...)
+  runcircuit(M,gate_tensors; cutoff=cutoff,maxdim=maxdim,kwargs...)
+end
+
+function splitchoi(Λ::MPO;noise=nothing,cutoff=1e-15,maxdim=1000)
+  T = ITensor[]
+  U,S,V = (isnothing(noise) ? svd(Λ[1],firstind(Λ[1],tags="Input"), cutoff=cutoff, maxdim=maxdim) :
+                              svd(Λ[1],    inds(Λ[1],tags="Input"), cutoff=cutoff, maxdim=maxdim)  )
+
+  push!(T,U*S)
+  push!(T,V)
+  for j in 2:length(Λ)
+    U,S,V = (isnothing(noise) ? svd(Λ[j],firstind(Λ[j],tags="Input"),commonind(Λ[j-1],Λ[j]),cutoff=cutoff,maxdim=maxdim) :
+                                svd(Λ[j],    inds(Λ[j],tags="Input")[1],inds(Λ[j],tags="Input")[2],
+                                    commonind(Λ[j-1],Λ[j]),cutoff=cutoff,maxdim=maxdim)  )
+    push!(T,U*S)
+    push!(T,V)
+  end
+  Λ_split = (isnothing(noise) ? MPS(T) : MPO(T))
+  return Λ_split
 end
 
 
-#function runcircuit(N::Int,gates::::Vector{<:Tuple}; noise=nothing,
-#                    cutoff=1e-15,maxdim=10000,
+function choimatrix(N::Int,gates::Vector{<:Tuple};noise=nothing,
+                    cutoff=1e-15,maxdim=10000,kwargs...)
+  if isnothing(noise)
+    # Initialize circuit MPO 
+    U0 = circuit(N)
+    # Compile gate tensors
+    gate_tensors = compilecircuit(U0, gates; noise=nothing, kwargs...)
+    # Build MPO for unitary circuit
+    U = apply(reverse(gate_tensors), U0; cutoff=cutoff, maxdim=maxdim)
+    # Introduce new Choi index notation
+    addtags!(U,"Input", plev=1,tags="qubit")
+    addtags!(U,"Output",plev=0,tags="qubit")
+    noprime!(U)
+    # SVD to bring into 2N-sites MPS
+    Λ = splitchoi(U,noise=nothing,cutoff=cutoff,maxdim=maxdim)
+  else
+    # Initialize circuit MPO
+    U = circuit(N)
+    # Initialize input state
+    ρ = qubits(firstsiteinds(U,plev=0),mixed=true)
+    
+    addtags!(U,"Input",plev=1,tags="qubit")
+    addtags!(U,"Output",plev=0,tags="qubit")
+    noprime!(U,tags="Input")
+    
+    compiler = circuit(firstsiteinds(U,tags="Output"))
+    gate_tensors = compilecircuit(compiler, gates; noise=nothing, kwargs...)
 
+
+    ρ[1] = U[1] * prime(U[1])
+    Cdn = combiner(inds(ρ[1],tags="Link")[1],inds(ρ[1],tags="Link")[2],
+                  tags="Link,n=1")
+    ρ[1] = ρ[1] * Cdn
+    for j in 2:N-1
+      ρ[j] = U[j] * prime(U[j])
+      Cup = Cdn
+      Cdn = combiner(inds(ρ[j],tags="Link,n=$j")[1],inds(ρ[j],tags="Link,n=$j")[2],tags="Link,n=$j")
+      ρ[j] = ρ[j] * Cup * Cdn
+    end
+    ρ[N] = U[N] * prime(U[N])
+    ρ[N] = ρ[N] * Cdn
+    
+    Λ0 = apply(reverse(gate_tensors), ρ; apply_dag=true,cutoff=cutoff, maxdim=maxdim)
+    Λ = splitchoi(Λ0,noise=noise,cutoff=cutoff,maxdim=maxdim)
+  end
+  return Λ
+end
+
+function runcircuit(N::Int,gates::Vector{<:Tuple}; noise=nothing,
+                    unitary=false,process=false,
+                    cutoff=1e-15,maxdim=10000,kwargs...)
+  # Compute the unitary matrix of the circuit
+  if unitary
+    U0 = circuit(N)
+    gate_tensors = compilecircuit(U0,gates; noise=nothing, kwargs...)
+    return apply(reverse(gate_tensors),U0; kwargs...)
+  # Compute the Choi maitrx
+  elseif process
+    return choimatrix(N,gates;noise=noise,cutoff=1e-15,maxdim=10000,kwargs...)
+  # Compute the output quantum state from |000>
+  else
+    ψ0 = qubits(N)
+    return runcircuit(ψ0,gates;noise=noise,cutoff=cutoff,maxdim=maxdim,kwargs...)
+  end
+end
 
 
 """
@@ -157,23 +209,6 @@ runcircuit(M::ITensor,
            gate_tensors::Vector{ <: ITensor};
            kwargs...) =
   apply(reverse(gate_tensors), M; kwargs...)
-
-
-function splitchoi(Λ::MPO)
-  addtags!(Λ,"Input", plev=1,tags="qubit")
-  addtags!(Λ,"Output",plev=0,tags="qubit")
-  noprime!(Λ)
-  Λ_split = ITensor[]
-  U,S,V = svd(Λ[1],firstind(Λ[1],tags="Input"))
-  push!(Λ_split,U*S)
-  push!(Λ_split,V)
-  for j in 2:length(Λ)
-    U,S,V = svd(Λ[j],firstind(Λ[j],tags="Input"),commonind(Λ[j-1],Λ[j]))
-    push!(Λ_split,U*S)
-    push!(Λ_split,V)
-  end
-  return MPS(Λ_split) 
-end
 
 
 
