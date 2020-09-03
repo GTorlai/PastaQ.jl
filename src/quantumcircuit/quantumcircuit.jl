@@ -70,20 +70,23 @@ function compilecircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple};
 end
 
 """
-Apply the circuit to a ITensor 
+Apply the circuit to a ITensor from a list of tensors 
 """
-function runcircuit(M::ITensor,gates::Vector{<:Tuple}; cutoff=1e-15,maxdim=10000,kwargs...)
-  gate_tensors = compilecircuit(M,gates)
-  return runcircuit(M,gate_tensors;cutoff=1e-15,maxdim=10000,kwargs...)
-end
-
 runcircuit(M::ITensor,
            gate_tensors::Vector{ <: ITensor};
            kwargs...) =
   apply(reverse(gate_tensors), M; kwargs...)
 
 """
-Apply the circuit to a state M using a set of gate tensors
+Apply the circuit to a ITensor from a list of gates 
+"""
+function runcircuit(M::ITensor,gates::Vector{<:Tuple}; cutoff=1e-15,maxdim=10000,kwargs...)
+  gate_tensors = compilecircuit(M,gates)
+  return runcircuit(M,gate_tensors;cutoff=1e-15,maxdim=10000,kwargs...)
+end
+
+"""
+Apply the circuit to a state (wavefunction/densitymatrix) from a list of tensors
 """
 function runcircuit(M::Union{MPS,MPO},gate_tensors::Vector{<:ITensor}; kwargs...) 
   # Check if gate_tensors contains Kraus operators
@@ -103,7 +106,7 @@ function runcircuit(M::Union{MPS,MPO},gate_tensors::Vector{<:ITensor}; kwargs...
 end
 
 """
-Apply the circuit on state M using a set of gates (Tuple)
+Apply the circuit to a state (wavefunction/densitymatrix) from a list of gates
 """
 function runcircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple}; noise=nothing, 
                     cutoff=1e-15,maxdim=10000,kwargs...)
@@ -111,6 +114,9 @@ function runcircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple}; noise=nothing,
   runcircuit(M,gate_tensors; cutoff=cutoff,maxdim=maxdim,kwargs...)
 end
 
+"""
+Characterize the quantum circuit
+"""
 function runcircuit(N::Int,gates::Vector{<:Tuple}; noise=nothing,
                     unitary=false,process=false,
                     cutoff=1e-15,maxdim=10000,kwargs...)
@@ -129,6 +135,9 @@ function runcircuit(N::Int,gates::Vector{<:Tuple}; noise=nothing,
   end
 end
 
+"""
+Compute the Choi matrix
+"""
 function choimatrix(N::Int,gates::Vector{<:Tuple};noise=nothing,
                     cutoff=1e-15,maxdim=10000,kwargs...)
   if isnothing(noise)
@@ -149,29 +158,32 @@ function choimatrix(N::Int,gates::Vector{<:Tuple};noise=nothing,
     # Initialize circuit MPO
     U = circuit(N)
     # Initialize input state
-    ρ = qubits(firstsiteinds(U,plev=0),mixed=true)
-    
+    #ρ = qubits(firstsiteinds(U,plev=0),mixed=true)
+
     addtags!(U,"Input",plev=0,tags="qubit")
     addtags!(U,"Output",plev=1,tags="qubit")
-    noprime!(U,tags="Input")
+    prime!(U,tags="Input")
+    prime!(U,tags="Link")
     
-    compiler = circuit(firstsiteinds(U,tags="Output"))
-    gate_tensors = compilecircuit(compiler, gates; noise=nothing, kwargs...)
+    s = [siteinds(U,tags="Output")[j][1] for j in 1:length(U)]
+    compiler = circuit(s)
+    prime!(compiler,-1,tags="qubit") 
+    gate_tensors = compilecircuit(compiler, gates; noise=noise, kwargs...)
 
-
-    ρ[1] = U[1] * prime(U[1])
-    Cdn = combiner(inds(ρ[1],tags="Link")[1],inds(ρ[1],tags="Link")[2],
+    M = ITensor[]
+    push!(M,U[1] * noprime(U[1]))
+    Cdn = combiner(inds(M[1],tags="Link")[1],inds(M[1],tags="Link")[2],
                   tags="Link,n=1")
-    ρ[1] = ρ[1] * Cdn
+    M[1] = M[1] * Cdn
     for j in 2:N-1
-      ρ[j] = U[j] * prime(U[j])
+      push!(M,U[j] * noprime(U[j]))
       Cup = Cdn
-      Cdn = combiner(inds(ρ[j],tags="Link,n=$j")[1],inds(ρ[j],tags="Link,n=$j")[2],tags="Link,n=$j")
-      ρ[j] = ρ[j] * Cup * Cdn
+      Cdn = combiner(inds(M[j],tags="Link,n=$j")[1],inds(M[j],tags="Link,n=$j")[2],tags="Link,n=$j")
+      M[j] = M[j] * Cup * Cdn
     end
-    ρ[N] = U[N] * prime(U[N])
-    ρ[N] = ρ[N] * Cdn
-    
+    push!(M, U[N] * noprime(U[N]))
+    M[N] = M[N] * Cdn
+    ρ = MPO(M)
     Λ0 = apply(reverse(gate_tensors), ρ; apply_dag=true,cutoff=cutoff, maxdim=maxdim)
     Λ = splitchoi(Λ0,noise=noise,cutoff=cutoff,maxdim=maxdim)
   end
@@ -180,17 +192,26 @@ end
 
 function splitchoi(Λ::MPO;noise=nothing,cutoff=1e-15,maxdim=1000)
   T = ITensor[]
-  U,S,V = (isnothing(noise) ? svd(Λ[1],firstind(Λ[1],tags="Input"), cutoff=cutoff, maxdim=maxdim) :
-                              svd(Λ[1],    inds(Λ[1],tags="Input"), cutoff=cutoff, maxdim=maxdim)  )
-
-  push!(T,U*S)
-  push!(T,V)
+  if isnothing(noise)
+    u,S,v = svd(Λ[1],firstind(Λ[1],tags="Input"), 
+                cutoff=cutoff, maxdim=maxdim)
+  else
+    u,S,v = svd(Λ[1],inds(Λ[1],tags="Input"), 
+                cutoff=cutoff, maxdim=maxdim)
+  end
+  push!(T,u*S)
+  push!(T,v)
+  
   for j in 2:length(Λ)
-    U,S,V = (isnothing(noise) ? svd(Λ[j],firstind(Λ[j],tags="Input"),commonind(Λ[j-1],Λ[j]),cutoff=cutoff,maxdim=maxdim) :
-                                svd(Λ[j],    inds(Λ[j],tags="Input")[1],inds(Λ[j],tags="Input")[2],
-                                    commonind(Λ[j-1],Λ[j]),cutoff=cutoff,maxdim=maxdim)  )
-    push!(T,U*S)
-    push!(T,V)
+    if isnothing(noise)
+      u,S,v = svd(Λ[j],firstind(Λ[j],tags="Input"),commonind(Λ[j-1],Λ[j]),
+                  cutoff=cutoff,maxdim=maxdim)
+    else
+      u,S,v = svd(Λ[j],inds(Λ[j],tags="Input")[1],inds(Λ[j],tags="Input")[2],
+                  commonind(Λ[j-1],Λ[j]),cutoff=cutoff,maxdim=maxdim) 
+    end
+    push!(T,u*S)
+    push!(T,v)
   end
   Λ_split = (isnothing(noise) ? MPS(T) : MPO(T))
   return Λ_split

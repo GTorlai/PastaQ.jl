@@ -19,12 +19,6 @@ function convert_gates(g)
   return gates
 end
 
-function run_circuit(N::Int,gates::Vector{<:Tuple})
-  U0 = circuit(N)
-  gate_tensors = compilecircuit(U0,gates; noise=nothing)
-  return apply(reverse(gate_tensors),U0)
-end
-
 @testset " Unitary circuit matrix " begin
   N = 5
   path = string("test_data_unitary.pickle")
@@ -51,6 +45,23 @@ end
   Λ = fullmatrix(MPO(Λ0))
   reset_warn_order!()
 
+  @test Λ ≈ exact_choi
+end
+
+@testset " Noiseless Choi matrix " begin
+  N = 5
+  path = string("test_data_noisy.pickle")
+  f_in = open(path)
+  testdata = pickle.load(f_in);
+  exact_choi = testdata["choi"]
+  g = testdata["gates"]
+  gates = convert_gates(g)
+  
+  Λ0 = runcircuit(N,gates,process=true,noise="AD",γ=0.1)
+  disable_warn_order!()
+  Λ = fullmatrix(Λ0)
+  reset_warn_order!()
+  
   @test Λ ≈ exact_choi
 end
 
