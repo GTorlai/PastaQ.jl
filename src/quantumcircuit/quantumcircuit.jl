@@ -103,15 +103,15 @@ function runcircuit(M::Union{MPS,MPO},gate_tensors::Vector{<:ITensor}; kwargs...
   buildMPO::Bool = get(kwargs,:get_unitary,false)
   
   if buildMPO & !noiseflag
-    Mc = apply(reverse(gate_tensors),M; kwargs...) 
+    Mc = apply(gate_tensors, M; kwargs...) 
   elseif buildMPO & noiseflag
     error("Cannot construct a unitary MPO for a noisy circuit")
   elseif noiseflag
     ρ = (typeof(M) == MPS ? densitymatrix(M) : M)
-    Mc = apply(reverse(gate_tensors),ρ; apply_dag=true, kwargs...)
+    Mc = apply(gate_tensors, ρ; apply_dag=true, kwargs...)
   else
-    Mc = (typeof(M) == MPS ? apply(reverse(gate_tensors),M; kwargs...) :
-                             apply(reverse(gate_tensors), M; apply_dag=true, kwargs...))
+    Mc = (typeof(M) == MPS ? apply(gate_tensors, M; kwargs...) :
+                             apply(gate_tensors, M; apply_dag=true, kwargs...))
   end
   return Mc
 end
@@ -120,23 +120,23 @@ end
 Apply the circuit on state M using a set of gates (Tuple)
 """
 function runcircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple}; noise=nothing, 
-                    cutoff=1e-15,maxdim=10000,kwargs...)
-  gate_tensors = compilecircuit(M,gates; noise=noise, kwargs...) 
+                    cutoff = 1e-15, maxdim = 10000, kwargs...)
+  gate_tensors = compilecircuit(M,gates; noise = noise, kwargs...) 
   runcircuit(M,gate_tensors; kwargs...)
 end
 
 """
 Apply the circuit to a ITensor 
 """
-function runcircuit(M::ITensor,gates::Vector{<:Tuple}; cutoff=1e-15,maxdim=10000,kwargs...)
+function runcircuit(M::ITensor,gates::Vector{<:Tuple}; cutoff = 1e-15, maxdim = 10000, kwargs...)
   gate_tensors = compilecircuit(M,gates)
-  return runcircuit(M,gate_tensors;cutoff=1e-15,maxdim=10000,kwargs...)
+  return runcircuit(M, gate_tensors; cutoff = 1e-15, maxdim = 10000, kwargs...)
 end
 
 runcircuit(M::ITensor,
            gate_tensors::Vector{ <: ITensor};
            kwargs...) =
-  apply(reverse(gate_tensors), M; kwargs...)
+  apply(gate_tensors, M; kwargs...)
 
 
 """----------------------------------------------
