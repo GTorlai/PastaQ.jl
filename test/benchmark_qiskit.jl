@@ -50,18 +50,41 @@ end
 
 @testset " Noiseless Choi matrix " begin
   N = 5
-  path = string("test_data_noisy.pickle")
+  path = string("test_data_AD_0.1.pickle")
   f_in = open(path)
   testdata = pickle.load(f_in);
   exact_choi = testdata["choi"]
   g = testdata["gates"]
   gates = convert_gates(g)
-  
   Λ0 = runcircuit(N,gates,process=true,noise="AD",γ=0.1)
   disable_warn_order!()
   Λ = fullmatrix(Λ0)
   reset_warn_order!()
-  
   @test Λ ≈ exact_choi
+
+  path = string("test_data_PD_0.1.pickle")
+  f_in = open(path)
+  testdata = pickle.load(f_in);
+  exact_choi = testdata["choi"]
+  g = testdata["gates"]
+  gates = convert_gates(g)
+  Λ0 = runcircuit(N,gates,process=true,noise="PD",γ=0.1)
+  disable_warn_order!()
+  Λ = fullmatrix(Λ0)
+  reset_warn_order!()
+  @test Λ ≈ exact_choi
+  
+  #path = string("test_data_DEP_0.1.pickle")
+  #f_in = open(path)
+  #testdata = pickle.load(f_in);
+  #exact_choi = testdata["choi"]
+  #g = testdata["gates"]
+  #gates = convert_gates(g)
+  #Λ0 = runcircuit(N,gates,process=true,noise="DEP",p=0.1)
+  #disable_warn_order!()
+  #Λ = fullmatrix(Λ0)
+  #reset_warn_order!()
+  #@test Λ ≈ exact_choi
+
 end
 
