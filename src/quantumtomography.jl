@@ -1,11 +1,11 @@
 """
-Initializer for MPS state tomography
+Initializer for MPS tomography
 """
-function initializeQST(N::Int,
-                       χ::Int;
-                       d::Int=2,
-                       seed::Int=1234,
-                       σ::Float64=0.1)
+function initializetomography(N::Int,
+                              χ::Int;
+                              d::Int=2,
+                              seed::Int=1234,
+                              σ::Float64=0.1)
   rng = MersenneTwister(seed)
   
   sites = [Index(d; tags="Site, n=$s") for s in 1:N]
@@ -32,14 +32,14 @@ function initializeQST(N::Int,
 end
 
 """
-Initializer for LPDO state tomography
+Initializer for LPDO tomography
 """
-function initializeQST(N::Int,
-                       χ::Int,
-                       ξ::Int;
-                       d::Int=2,
-                       seed::Int=1234,
-                       σ::Float64=0.1)
+function initializetomography(N::Int,
+                              χ::Int,
+                              ξ::Int;
+                              d::Int=2,
+                              seed::Int=1234,
+                              σ::Float64=0.1)
   rng = MersenneTwister(seed)
   
   sites = [Index(d; tags="Site,n=$s") for s in 1:N]
@@ -369,21 +369,63 @@ end
 """
 Run QST
 """
-function statetomography(model::Union{MPS,MPO},
-                         opt::Optimizer;
-                         data::Array,
-                         batchsize::Int64=500,
-                         epochs::Int64=10000,
-                         target::MPS,
-                         localnorm::Bool=false,
-                         globalnorm::Bool=false)
+function statetomography(data::Array,opt::Optimizer; kwargs...)
+  N = size(data)[2]
+  mixed::Bool = get(kwargs,:mixed,false)
+  χ::Int64    = get(kwargs,:χ,10)
+  d::Int64    = get(kwargs,:d,2)
+  seed::Int64 = get(kwargs,:seed,1234)
+  σ::Float64  = get(kwargs,:σ,0.1)
+
+  if !mixed
+    M0 = initializetomography(N,χ;d=d,seed=seed,σ=σ)
+  else
+    ξ::Int64 = get(kwargs,:ξ,2)
+    M0 = initializetomography(N,χ,ξ;d=d,seed=seed,σ=σ)
+  end 
+
+  M = statetomography(M0,data,opt; kwargs...)
+  return M
+end
+
+function processtomography(data_in::Array,data_out::Array,opt::Optimizer; kwargs...)
+  N = size(data_in)[2]
+  @assert size(data_in) == size(data_out)
+  
+  data = zeros(size(data_in)[1],2*N)
+  for n in 1:size(data_in)[1]
+    for j in 1:N
+      data[n,2*j-1] = data_in[n,j]
+      data[n,2*j]   = data_out[n,j]
+    end
+  end
+  
+  M = statetomography(data,opt; kwargs...)
+
+end
+
+"""
+Run QST
+"""
+function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwargs...)
+                         
+  localnorm::Bool = get(kwargs,:localnorm,true)
+  globalnorm::Bool = get(kwargs,:globalnorm,false)
+  batchsize::Int64 = get(kwargs,:batchsize,500)
+  epochs::Int64 = get(kwargs,:epochs,1000)
+  target::MPS = get(kwargs,:target,nothing)
+  
+                         
   if (localnorm && globalnorm)
     error("Both input norms are set to true")
   end
+  
   model = copy(model)
-  target = copy(target)
-  for j in 1:length(model)
-    replaceind!(target[j],firstind(target[j],"Site"),firstind(model[j],"Site"))
+  if !isnothing(target)
+    target = copy(target)
+    for j in 1:length(model)
+      replaceind!(target[j],firstind(target[j],"Site"),firstind(model[j],"Site"))
+    end
   end
   num_batches = Int(floor(size(data)[1]/batchsize))
   
@@ -414,10 +456,12 @@ function statetomography(model::Union{MPS,MPO},
 
     end # end @elapsed
 
-    F = fidelity(model,target)
     print("Ep = $ep  ")
     @printf("Loss = %.5E  ",avg_loss)
-    @printf("Fidelity = %.3E  ",F)
+    if !isnothing(target)
+      F = fidelity(model,target)
+      @printf("Fidelity = %.3E  ",F)
+    end
     @printf("Time = %.3f sec",ep_time)
     print("\n")
 
@@ -426,6 +470,9 @@ function statetomography(model::Union{MPS,MPO},
   @printf("Total Time = %.3f sec",tot_time)
   return model
 end
+
+
+
 
 
 """ UTILITY FUNCTIONS """
@@ -439,21 +486,21 @@ function getdensityoperator(lpdo::MPO)
   M = ITensor[]
   prime!(lpdo[1],tags="Site")
   prime!(lpdo[1],tags="Link")
-  tmp = noprime(dag(lpdo[1])) * lpdo[1]
+  tmp = dag(lpdo[1]) * noprime(lpdo[1])
   Cdn = combiner(inds(tmp,tags="Link"),tags="Link,l=1")
   push!(M,tmp * Cdn)
   
   for j in 2:N-1
     prime!(lpdo[j],tags="Site")
     prime!(lpdo[j],tags="Link")
-    tmp = noprime(dag(lpdo[j])) * lpdo[j] 
+    tmp = dag(lpdo[j]) * noprime(lpdo[j]) 
     Cup = Cdn
     Cdn = combiner(inds(tmp,tags="Link,l=$j"),tags="Link,l=$j")
     push!(M,tmp * Cup * Cdn)
   end
   prime!(lpdo[N],tags="Site")
   prime!(lpdo[N],tags="Link")
-  tmp = noprime(dag(lpdo[N])) * lpdo[N]
+  tmp = dag(lpdo[N]) * noprime(lpdo[N])
   Cup = Cdn
   push!(M,tmp * Cdn)
   rho = MPO(M)
@@ -470,13 +517,9 @@ function fidelity(psi::MPS,target::MPS)
 end
 
 function fidelity(lpdo::MPO,target::MPS)
-  #for j in 1:length(lpdo)
-  #  replaceind!(target[j],firstind(target[j],"Site"),firstind(lpdo[j],"Site"))
-  #end
   lpdo_eval = copy(lpdo)
   lognormalize!(lpdo_eval)
   @assert norm(lpdo_eval) ≈ 1
-  #A = *(lpdo_eval,target,method="naive")
   A = *(lpdo_eval,target,method="densitymatrix",cutoff=1e-10)
   fidelity = abs(inner(A,A))
   return fidelity
@@ -525,3 +568,27 @@ function nll(lpdo::MPO,data::Array)
   return loss
 end
 
+
+#function measureonesiteop(psi::MPS,local_op::ITensor)
+#  site = getsitenumber(firstind(local_op,tags="Site"))
+#  orthogonalize!(psi,site)
+#  if abs(1.0-norm(psi[site])) > 1E-8
+#    error("MPS is not normalized, norm=$(norm(psi[site]))")
+#  end
+#  psi_m = copy(psi)
+#  psi_m[site] = psi_m[site] * local_op
+#  measurement = inner(psi,psi_m)
+#  return measurement
+#end
+#
+#function measureonesiteop(psi::MPS,opID::String)
+#  N = length(psi)
+#  sites = siteinds(psi)
+#  measurement = Vector{Float64}(undef,N)
+#  for j in 1:N
+#    local_op = op(sites[j],opID)
+#    measurement[j] = measureonesiteop(psi,local_op)
+#  end
+#  return measurement
+#end
+#

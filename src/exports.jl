@@ -39,7 +39,7 @@ export
 
 # quantumtomography,jl
   # Methods
-  initializeQST,
+  initializetomography,
   lognormalize!,
   nll,
   gradlogZ,
@@ -48,6 +48,7 @@ export
   fidelity,
   getdensityoperator,
   statetomography,
+  processtomography,
 
 # optimizers/
   Optimizer,
