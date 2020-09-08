@@ -75,7 +75,7 @@ Apply the circuit to a ITensor from a list of tensors
 runcircuit(M::ITensor,
            gate_tensors::Vector{ <: ITensor};
            kwargs...) =
-  apply(reverse(gate_tensors), M; kwargs...)
+  apply(gate_tensors, M; kwargs...)
 
 """
 Apply the circuit to a ITensor from a list of gates 
@@ -96,15 +96,15 @@ function runcircuit(M::Union{MPS,MPO},gate_tensors::Vector{<:ITensor}; kwargs...
   state_evolution::Bool = get(kwargs,:state_evolution,true)
   
   if !state_evolution & !noiseflag
-    Mc = apply(reverse(gate_tensors),M; kwargs...)
+    Mc = apply(gate_tensors,M; kwargs...)
   # Run a noisy circuit, generating an output density operator (MPO)
   elseif noiseflag
     ρ = (typeof(M) == MPS ? MPO(M) : M)
-    Mc = apply(reverse(gate_tensors),ρ; apply_dag=true, kwargs...)
+    Mc = apply(gate_tensors,ρ; apply_dag=true, kwargs...)
   # Run a noiseless circuit, genereating either a wavefunction (MPS) of density operator (MPO)
   else
-    Mc = (typeof(M) == MPS ? apply(reverse(gate_tensors),M; kwargs...) :
-                             apply(reverse(gate_tensors), M; apply_dag=true, kwargs...))
+    Mc = (typeof(M) == MPS ? apply(gate_tensors, M; kwargs...) :
+                             apply(gate_tensors, M; apply_dag=true, kwargs...))
   end
   return Mc
 end
@@ -128,7 +128,7 @@ function runcircuit(N::Int,gates::Vector{<:Tuple}; noise=nothing,
   if unitary
     U0 = circuit(N)
     gate_tensors = compilecircuit(U0,gates; noise=nothing, kwargs...)
-    return apply(reverse(gate_tensors),U0; kwargs...)
+    return apply(gate_tensors,U0; kwargs...)
   # Compute the Choi maitrx
   elseif process
     return choimatrix(N,gates;noise=noise,cutoff=1e-15,maxdim=10000,kwargs...)
@@ -150,7 +150,7 @@ function choimatrix(N::Int,gates::Vector{<:Tuple};noise=nothing,
     # Compile gate tensors
     gate_tensors = compilecircuit(U0, gates; noise=nothing, kwargs...)
     # Build MPO for unitary circuit
-    U = apply(reverse(gate_tensors), U0; cutoff=cutoff, maxdim=maxdim)
+    U = apply(gate_tensors, U0; cutoff=cutoff, maxdim=maxdim)
     # Introduce new Choi index notation
     
     addtags!(U,"Input", plev=0,tags="qubit")
@@ -161,9 +161,6 @@ function choimatrix(N::Int,gates::Vector{<:Tuple};noise=nothing,
   else
     # Initialize circuit MPO
     U = circuit(N)
-    # Initialize input state
-    #ρ = qubits(firstsiteinds(U,plev=0),mixed=true)
-
     addtags!(U,"Input",plev=0,tags="qubit")
     addtags!(U,"Output",plev=1,tags="qubit")
     prime!(U,tags="Input")
@@ -188,7 +185,7 @@ function choimatrix(N::Int,gates::Vector{<:Tuple};noise=nothing,
     push!(M, U[N] * noprime(U[N]))
     M[N] = M[N] * Cdn
     ρ = MPO(M)
-    Λ0 = apply(reverse(gate_tensors), ρ; apply_dag=true,cutoff=cutoff, maxdim=maxdim)
+    Λ0 = apply(gate_tensors, ρ; apply_dag=true,cutoff=cutoff, maxdim=maxdim)
     Λ = splitchoi(Λ0,noise=noise,cutoff=cutoff,maxdim=maxdim)
   end
   return Λ

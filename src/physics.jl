@@ -11,11 +11,12 @@ function trace_mpo(M::MPO)
   return L[]
 end
 
-function groundstate(H::MPO;
-                     iter::Int64=20,
-                     cutoff::Float64=1E-10,
-                     energy_tol::Float64=1e-5,
-                     energy::Bool=false)
+function groundstate(H::MPO; kwargs...)
+
+  iter::Int64 = get(kwargs,:iter,20)
+  cutoff::Float64 = get(kwargs,:cutoff,1E-10)
+  energy::Bool = get(kwargs,:energy,false)
+  energy_tol::Float64 = get(kwargs,:energy_tol,1E-5)
 
   sites = firstsiteinds(H)
   ψ0 = randomMPS(sites)
@@ -34,43 +35,32 @@ end
 Transverse field Ising model
 """
 
-function transversefieldising(N::Int64,
-                              h::Float64;
-                              β::Float64=-1.0,
-                              τ::Float64=0.1,
-                              iter::Int64=20,
-                              cutoff::Float64=1E-10,
-                              hamiltonian::Bool=false)
-
+function transversefieldising(N::Int64,h::Float64; kwargs...)
+  
   bonds = [[j,j+1] for j in 1:N-1]
-  return transversefieldising(N,bonds,h,β=β,τ=τ,iter=iter,cutoff=cutoff,hamiltonian=hamiltonian) 
+  return transversefieldising(N,bonds,h;kwargs...)
 end
 
-function transversefieldising(Lx::Int64,
-                              Ly::Int64,
-                              h::Float64;
-                              β::Float64=-1.0,
-                              τ::Float64=0.1,
-                              iter::Int64=20,
-                              cutoff::Float64=1E-10,
-                              hamiltonian::Bool=false)
+function transversefieldising(Lx::Int64,Ly::Int64,h::Float64;kwargs...)
 
   N = Lx * Ly
   lattice = square_lattice(Lx,Ly,yperiodic=false)
   bonds = [[b.s1,b.s2] for b in lattice]
-  return transversefieldising(N,bonds,h,β=β,τ=τ,iter=iter,cutoff=cutoff,hamiltonian=hamiltonian) 
+  return transversefieldising(N,bonds,h;kwargs...)
 end
 
 function transversefieldising(N::Int64,
                               bonds::Array,
                               h::Float64;
-                              β::Float64=-1.0,
-                              τ::Float64=0.1,
-                              iter::Int64=20,
-                              cutoff::Float64=1E-10,
-                              hamiltonian::Bool=false)
+                              kwargs...)
+  
+  β::Float64 = get(kwargs,:β,-1.0)
+  hamiltonian::Bool = get(kwargs,:hamiltonian,false)
+
   # Ground state
   if β<0
+    iter::Int64 = get(kwargs,:iter,20)
+    cutoff::Float64 = get(kwargs,:cutoff,1E-10)
     sites = siteinds("S=1/2",N)
     ampo = AutoMPO()
     for b in bonds
@@ -85,6 +75,7 @@ function transversefieldising(N::Int64,
   
   # Finite temperature
   else
+    τ::Float64 = get(kwargs,:τ,0.1)
     depth = β ÷ τ
     ρ0 = circuit(N)
     orthogonalize!(ρ0,1)
@@ -111,7 +102,7 @@ function transversefieldising(N::Int64,
     for j in 1:N
       ρ[j] = ρ[j] / Z^(1.0/N)
     end
-    return ρ
+    return (hamiltonian ? (H,ρ) : ρ) 
   end
 end
 

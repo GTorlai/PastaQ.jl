@@ -48,7 +48,7 @@ end
   @test Λ ≈ exact_choi
 end
 
-@testset " Noiseless Choi matrix " begin
+@testset " Noisy Choi matrix " begin
   N = 5
   path = string("test_data_AD_0.1.pickle")
   f_in = open(path)
