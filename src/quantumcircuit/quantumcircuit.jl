@@ -311,15 +311,15 @@ end
 """
 Perform a projective measurements on a wavefunction
 """
-function measure(mps::MPS,nshots::Int)
-  orthogonalize!(mps,1)
+function measure(M::Union{MPS,MPO},nshots::Int)
+  orthogonalize!(M,1)
   if (nshots==1)
-    measurements = sample(mps)
+    measurements = sample(M)
     measurements .-= 1
   else
-    measurements = Matrix{Int64}(undef, nshots, length(mps))
+    measurements = Matrix{Int64}(undef, nshots, length(M))
     for n in 1:nshots
-      measurement = sample(mps)
+      measurement = sample(M)
       measurement .-= 1
       measurements[n,:] = measurement
     end
@@ -330,16 +330,15 @@ end
 """
 Generate a dataset of measurements in different bases
 """
-function generatedata(psi::MPS,nshots::Int,bases::Array)
-  data = Matrix{String}(undef, nshots,length(psi))
+function generatedata(M0::Union{MPS,MPO},nshots::Int,bases::Array)
+  data = Matrix{String}(undef, nshots,length(M0))
   for n in 1:nshots
     meas_gates = makemeasurementgates(bases[n,:])
-    meas_tensors = compilecircuit(psi,meas_gates)
-    psi_out = runcircuit(psi,meas_tensors)
-    measurement = measure(psi_out,1)
+    meas_tensors = compilecircuit(M0,meas_gates)
+    M = runcircuit(M0,meas_tensors)
+    measurement = measure(M,1)
     data[n,:] = convertdata(measurement,bases[n,:])
   end
   return data 
 end
-
 

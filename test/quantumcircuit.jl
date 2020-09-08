@@ -262,15 +262,6 @@ end
   
 end
 
-#@testset "Choi matrix" begin
-#  N = 8
-#  gates = randomquantumcircuit(N,2)
-#
-#
-#
-#
-#end
-
 """ MEASUREMENTS """
 
 
@@ -317,14 +308,24 @@ end
   gates = randomquantumcircuit(N,depth)
   ψ = runcircuit(ψ0,gates)
   ψ_vec = fullvector(ψ)
-  prob = abs2.(ψ_vec)
+  probs = abs2.(ψ_vec)
   
   nshots = 100000
   samples = measure(ψ,nshots)
   @test size(samples)[1] == nshots
   @test size(samples)[2] == N
   data_prob = empiricalprobability(samples)
-  @test prob ≈ data_prob atol=1e-2
+  @test probs ≈ data_prob atol=1e-2
+
+  ρ = runcircuit(N,gates,noise="AD",γ=0.01)
+  ρ_mat = fullmatrix(ρ)
+  probs = real(diag(ρ_mat))
+
+  samples = measure(ρ,nshots)
+  @test size(samples)[1] == nshots
+  @test size(samples)[2] == N
+  data_prob = empiricalprobability(samples)
+  @test probs ≈ data_prob atol=1e-2
 end
 
 @testset "measurement projections" begin
