@@ -36,7 +36,6 @@ export
   generatepreparationsettings,
   measure,
   generatedata,
-  convertdata,
 
 # quantumtomography,jl
   # Methods
@@ -57,8 +56,14 @@ export
   # Methods
   update!,
 
+# physics.jl
+  # Methods
+  transversefieldising,
+  groundstate,
+
 # utils.jl
   # Methods
   loadtrainingdataQST,
+  convertdata,
   fullvector,
   fullmatrix
