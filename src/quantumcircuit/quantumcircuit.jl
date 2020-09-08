@@ -93,7 +93,7 @@ function runcircuit(M::Union{MPS,MPO},gate_tensors::Vector{<:ITensor}; kwargs...
   inds_sizes = [length(inds(g)) for g in gate_tensors]
   noiseflag = any(x -> x%2==1 , inds_sizes)
   
-  tate_evolution::Bool = get(kwargs,:state_evolution,true)
+  state_evolution::Bool = get(kwargs,:state_evolution,true)
   
   if !state_evolution & !noiseflag
     Mc = apply(reverse(gate_tensors),M; kwargs...)
