@@ -27,7 +27,8 @@ end
   exact_U = testdata["U"]
   g = testdata["gates"]
   gates = convert_gates(g)
-  U = fullmatrix(runcircuit(N,gates,unitary=true))
+  U0 = circuit(N)
+  U = fullmatrix(runcircuit(N,gates,apply_dag=false))
   @test U ≈ exact_U
 end
 
@@ -40,7 +41,7 @@ end
   g = testdata["gates"]
   gates = convert_gates(g)
 
-  Λ0 = runcircuit(N,gates,process=true)
+  Λ0 = choimatrix(N,gates)
   disable_warn_order!()
   Λ = fullmatrix(MPO(Λ0))
   reset_warn_order!()
@@ -56,7 +57,8 @@ end
   exact_choi = testdata["choi"]
   g = testdata["gates"]
   gates = convert_gates(g)
-  Λ0 = runcircuit(N,gates,process=true,noise="AD",γ=0.1)
+  #Λ0 = runcircuit(N,gates,process=true,noise="AD",γ=0.1)
+  Λ0 = choimatrix(N,gates;noise="AD",γ=0.1)
   disable_warn_order!()
   Λ = fullmatrix(Λ0)
   reset_warn_order!()
@@ -68,7 +70,8 @@ end
   exact_choi = testdata["choi"]
   g = testdata["gates"]
   gates = convert_gates(g)
-  Λ0 = runcircuit(N,gates,process=true,noise="PD",γ=0.1)
+  #Λ0 = runcircuit(N,gates,process=true,noise="PD",γ=0.1)
+  Λ0 = choimatrix(N,gates;noise="PD",γ=0.1)
   disable_warn_order!()
   Λ = fullmatrix(Λ0)
   reset_warn_order!()

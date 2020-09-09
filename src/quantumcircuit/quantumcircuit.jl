@@ -93,18 +93,43 @@ function runcircuit(M::Union{MPS,MPO},gate_tensors::Vector{<:ITensor}; kwargs...
   inds_sizes = [length(inds(g)) for g in gate_tensors]
   noiseflag = any(x -> x%2==1 , inds_sizes)
   
-  state_evolution::Bool = get(kwargs,:state_evolution,true)
-  
-  if !state_evolution & !noiseflag
-    Mc = apply(gate_tensors,M; kwargs...)
-  # Run a noisy circuit, generating an output density operator (MPO)
-  elseif noiseflag
-    ρ = (typeof(M) == MPS ? MPO(M) : M)
-    Mc = apply(gate_tensors,ρ; apply_dag=true, kwargs...)
-  # Run a noiseless circuit, genereating either a wavefunction (MPS) of density operator (MPO)
+  apply_dag = get(kwargs,:apply_dag,nothing)
+  cutoff    = get(kwargs,:cutoff,1E-15)
+  maxdim    = get(kwargs,:maxdim,10000)
+
+  if apply_dag==false & noiseflag==true
+    error("noise simulation requires apply_dag=true")
+  end
+ 
+  # Default mode (apply_dag = nothing)
+  if isnothing(apply_dag)
+    # Noisy evolution: MPS/MPO -> MPO
+    if noiseflag
+      # If M is an MPS, |ψ⟩ -> ρ = |ψ⟩⟨ψ| (MPS -> MPO)
+      ρ = (typeof(M) == MPS ? MPO(M) : M)
+      # ρ -> ε(ρ) (MPO -> MPO, conjugate evolution)
+      Mc = apply(gate_tensors,ρ; apply_dag=true, cutoff=cutoff,maxdim=maxdim)
+    # Pure state evolution
+    else
+      # |ψ⟩ -> U |ψ⟩ (MPS -> MPS)
+      #  ρ  -> U ρ U† (MPO -> MPO, conjugate evolution)
+      Mc = (typeof(M) == MPS ? apply(gate_tensors, M; apply_dag=false,cutoff=cutoff,maxdim=maxdim) :
+                               apply(gate_tensors, M; apply_dag=true,cutoff=cutoff,maxdim=maxdim))
+    end
+  # Custom mode (apply_dag = true / false)
   else
-    Mc = (typeof(M) == MPS ? apply(gate_tensors, M; kwargs...) :
-                             apply(gate_tensors, M; apply_dag=true, kwargs...))
+    if typeof(M) == MPO
+      # apply_dag = true:  ρ -> U ρ U† (MPO -> MPO, conjugate evolution)
+      # apply_dag = false: ρ -> U ρ (MPO -> MPO)
+      Mc = apply(gate_tensors, M; apply_dag=apply_dag,kwargs...)
+    elseif typeof(M) == MPS
+      # apply_dag = true:  ψ -> U ψ -> ρ = (U ψ) (ψ† U†) (MPS -> MPO, conjugate)
+      # apply_dag = false: ψ -> U ψ (MPS -> MPS)
+      Mc = (apply_dag ? MPO(apply(gate_tensors, M; apply_dag=false,cutoff=cutoff,maxdim=maxdim)) :
+                        apply(gate_tensors, M; apply_dag=apply_dag=false,cutoff=cutoff,maxdim=maxdim))
+    else
+      error("Input state must be an MPS or an MPO")
+    end
   end
   return Mc
 end
@@ -112,52 +137,57 @@ end
 """
 Apply the circuit to a state (wavefunction/densitymatrix) from a list of gates
 """
-function runcircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple}; noise=nothing, 
+function runcircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple}; noise=nothing,apply_dag=nothing, 
                     cutoff=1e-15,maxdim=10000,kwargs...)
   gate_tensors = compilecircuit(M,gates; noise=noise, kwargs...) 
-  runcircuit(M,gate_tensors; cutoff=cutoff,maxdim=maxdim,kwargs...)
+  runcircuit(M,gate_tensors; cutoff=cutoff,maxdim=maxdim,apply_dag=apply_dag,kwargs...)
 end
 
 """
 Empty run of the quantum circuit
 """
-function runcircuit(N::Int,gates::Vector{<:Tuple}; noise=nothing,
-                    unitary=false,process=false,
+function runcircuit(N::Int,gates::Vector{<:Tuple}; apply_dag=nothing,noise=nothing,
                     cutoff=1e-15,maxdim=10000,kwargs...)
-  # Compute the unitary matrix of the circuit
-  if unitary
-    U0 = circuit(N)
-    gate_tensors = compilecircuit(U0,gates; noise=nothing, kwargs...)
-    return apply(gate_tensors,U0; kwargs...)
-  # Compute the Choi maitrx
-  elseif process
-    return choimatrix(N,gates;noise=noise,cutoff=1e-15,maxdim=10000,kwargs...)
-  # Compute the output quantum state from |000>
-  else
-    ψ0 = qubits(N)
-    return runcircuit(ψ0,gates;noise=noise,cutoff=cutoff,maxdim=maxdim,kwargs...)
+  if apply_dag==false & !isnothing(noise)==true
+    error("noise simulation requires apply_dag=true")
+  end
+  # apply_dag = nothing (DEFAULT)
+  if isnothing(apply_dag)
+    ψ = qubits(N) # = |0,0,0,…,0⟩ 
+    # noiseless: ψ -> U ψ
+    # noisy:     ψ -> ρ = ε(|ψ⟩⟨ψ|)
+    return runcircuit(ψ,gates;noise=noise,cutoff=cutoff,maxdim=maxdim,kwargs...)
+  # apply_dag = false (conract all the gates)
+  elseif apply_dag == false
+    U = circuit(N) # = 1⊗1⊗1⊗…⊗1
+    gate_tensors = compilecircuit(U,gates; noise=nothing, kwargs...)
+    return runcircuit(U,gate_tensors;cutoff=cutoff,maxdim=maxdim,apply_dag=false,noise=nothing,kwargs...)
+  elseif apply_dag == true
+    # noiseless: ψ -> U |ψ⟩⟨ψ| U† (MPS -> MPO)
+    # noisy:     ψ -> ρ = ε(|ψ⟩⟨ψ|)   (MPO -> MPO
+    ψ = qubits(N)
+    return runcircuit(ψ,gates;noise=noise,cutoff=cutoff,maxdim=maxdim,apply_dag=true,kwargs...)
   end
 end
 
 """
 Compute the Choi matrix
 """
-function choimatrix(N::Int,gates::Vector{<:Tuple};noise=nothing,
+function choimatrix(N::Int,gates::Vector{<:Tuple};noise=nothing,apply_dag=false,
                     cutoff=1e-15,maxdim=10000,kwargs...)
   if isnothing(noise)
-    # Initialize circuit MPO 
-    U0 = circuit(N)
-    # Compile gate tensors
-    gate_tensors = compilecircuit(U0, gates; noise=nothing, kwargs...)
-    # Build MPO for unitary circuit
-    U = apply(gate_tensors, U0; cutoff=cutoff, maxdim=maxdim)
-    # Introduce new Choi index notation
+    # Get circuit MPO
+    U = runcircuit(N,gates;apply_dag=false,cutoff=1e-15,maxdim=10000,kwargs...)
     
+    # Choi indices 
     addtags!(U,"Input", plev=0,tags="qubit")
     addtags!(U,"Output",plev=1,tags="qubit")
     noprime!(U)
     # SVD to bring into 2N-sites MPS
-    Λ = splitchoi(U,noise=nothing,cutoff=cutoff,maxdim=maxdim)
+    Λ0 = splitchoi(U,noise=nothing,cutoff=cutoff,maxdim=maxdim)
+    # if apply_dag = true:  Λ = |U⟩⟩ ⟨⟨U†|
+    # if apply_dag = false: Λ = |U⟩⟩
+    Λ = (apply_dag ? MPO(Λ0) : Λ0)
   else
     # Initialize circuit MPO
     U = circuit(N)
@@ -185,7 +215,7 @@ function choimatrix(N::Int,gates::Vector{<:Tuple};noise=nothing,
     push!(M, U[N] * noprime(U[N]))
     M[N] = M[N] * Cdn
     ρ = MPO(M)
-    Λ0 = apply(gate_tensors, ρ; apply_dag=true,cutoff=cutoff, maxdim=maxdim)
+    Λ0 = runcircuit(ρ,gate_tensors;apply_dag=true,cutoff=cutoff, maxdim=maxdim)
     Λ = splitchoi(Λ0,noise=noise,cutoff=cutoff,maxdim=maxdim)
   end
   return Λ

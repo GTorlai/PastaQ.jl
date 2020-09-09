@@ -30,6 +30,7 @@ export
   compilecircuit,
   compilecircuit!,
   runcircuit,
+  choimatrix,
   makepreparationgates,
   makemeasurementgates,
   generatemeasurementsettings,
