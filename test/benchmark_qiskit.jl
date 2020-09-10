@@ -28,7 +28,7 @@ end
   g = testdata["gates"]
   gates = convert_gates(g)
   U0 = circuit(N)
-  U = fullmatrix(runcircuit(N,gates,apply_dag=false))
+  U = fullmatrix(runcircuit(N,gates,process=true))
   @test U ≈ exact_U
 end
 

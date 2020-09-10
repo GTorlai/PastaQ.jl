@@ -140,34 +140,29 @@ Apply the circuit to a state (wavefunction/densitymatrix) from a list of gates
 function runcircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple}; noise=nothing,apply_dag=nothing, 
                     cutoff=1e-15,maxdim=10000,kwargs...)
   gate_tensors = compilecircuit(M,gates; noise=noise, kwargs...) 
-  runcircuit(M,gate_tensors; cutoff=cutoff,maxdim=maxdim,apply_dag=apply_dag,kwargs...)
+  runcircuit(M,gate_tensors; cutoff=cutoff,maxdim=maxdim,apply_dag=apply_dag, kwargs...)
 end
 
 """
 Empty run of the quantum circuit
 """
-function runcircuit(N::Int,gates::Vector{<:Tuple}; apply_dag=nothing,noise=nothing,
+function runcircuit(N::Int,gates::Vector{<:Tuple}; process=false,noise=nothing,
                     cutoff=1e-15,maxdim=10000,kwargs...)
-  if apply_dag==false & !isnothing(noise)==true
-    error("noise simulation requires apply_dag=true")
-  end
-  # apply_dag = nothing (DEFAULT)
-  if isnothing(apply_dag)
-    ψ = qubits(N) # = |0,0,0,…,0⟩ 
+  if process==false
+    ψ = qubits(N) # = |0,0,0,…,0⟩
     # noiseless: ψ -> U ψ
     # noisy:     ψ -> ρ = ε(|ψ⟩⟨ψ|)
     return runcircuit(ψ,gates;noise=noise,cutoff=cutoff,maxdim=maxdim,kwargs...)
-  # apply_dag = false (conract all the gates)
-  elseif apply_dag == false
-    U = circuit(N) # = 1⊗1⊗1⊗…⊗1
-    gate_tensors = compilecircuit(U,gates; noise=nothing, kwargs...)
-    return runcircuit(U,gate_tensors;cutoff=cutoff,maxdim=maxdim,apply_dag=false,noise=nothing,kwargs...)
-  elseif apply_dag == true
-    # noiseless: ψ -> U |ψ⟩⟨ψ| U† (MPS -> MPO)
-    # noisy:     ψ -> ρ = ε(|ψ⟩⟨ψ|)   (MPO -> MPO
-    ψ = qubits(N)
-    return runcircuit(ψ,gates;noise=noise,cutoff=cutoff,maxdim=maxdim,apply_dag=true,kwargs...)
+  
+  elseif process==true & isnothing(noise)==true
+    if isnothing(noise)
+      U = circuit(N) # = 1⊗1⊗1⊗…⊗1
+      return runcircuit(U,gates;noise=nothing,apply_dag=false,cutoff=cutoff,maxdim=maxdim,kwargs...) 
+    else
+      error("Cannot build the circuit MPO if noise!=nothing")
+    end
   end
+    
 end
 
 """
@@ -177,7 +172,7 @@ function choimatrix(N::Int,gates::Vector{<:Tuple};noise=nothing,apply_dag=false,
                     cutoff=1e-15,maxdim=10000,kwargs...)
   if isnothing(noise)
     # Get circuit MPO
-    U = runcircuit(N,gates;apply_dag=false,cutoff=1e-15,maxdim=10000,kwargs...)
+    U = runcircuit(N,gates;process=true,cutoff=1e-15,maxdim=10000,kwargs...)
     
     # Choi indices 
     addtags!(U,"Input", plev=0,tags="qubit")
