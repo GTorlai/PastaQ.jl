@@ -206,7 +206,7 @@ end
   psi = initializetomography(N,χ)
   data = Matrix{String}(undef, nsamples,N)
   for n in 1:nsamples
-    data[n,:] = convertdata(rawdata[n,:],bases[n,:],state=true)
+    data[n,:] = convertdatapoint(rawdata[n,:],bases[n,:],state=true)
   end
   
   num_grad = numgradsnll(psi,data)
@@ -234,7 +234,7 @@ end
   psi = initializetomography(N,χ)
   data = Matrix{String}(undef, nsamples,N)
   for n in 1:nsamples
-    data[n,:] = convertdata(rawdata[n,:],bases[n,:],state=true)
+    data[n,:] = convertdatapoint(rawdata[n,:],bases[n,:],state=true)
   end
 
   psi = initializetomography(N,χ)
@@ -380,7 +380,7 @@ end
   bases = measurementsettings(N,nsamples,bases_id=["X","Y","Z"])
   data = Matrix{String}(undef, nsamples,N)
   for n in 1:nsamples
-    data[n,:] = convertdata(rawdata[n,:],bases[n,:],state=true)
+    data[n,:] = convertdatapoint(rawdata[n,:],bases[n,:],state=true)
   end
   
   lpdo = initializetomography(N,χ,ξ)

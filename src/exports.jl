@@ -40,7 +40,7 @@ export
   preparationsettings,
   measure,
   generatedata,
-  convertdata,
+  convertdatapoint,
 
 # quantumtomography,jl
   # Methods
@@ -70,5 +70,6 @@ export
 # utils.jl
   # Methods
   loadtrainingdataQST,
+  loadtrainingdataQPT,
   fullvector,
   fullmatrix

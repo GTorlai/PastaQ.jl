@@ -158,7 +158,7 @@ function generatedata(M0::Union{MPS,MPO},
                      cutoff=cutoff,maxdim=maxdim) 
   M_meas = runcircuit(M_out,meas_gates)
   measurement = measure(M_meas,1)
-  return convertdata(measurement,basis)
+  return convertdatapoint(measurement,basis)
 end
 
 # Generate nshots data points for process tomography
@@ -186,7 +186,7 @@ function generatedata(M0::Union{MPS,MPO},basis::Array)
   meas_gates = measurementgates(basis)
   M = runcircuit(M0,meas_gates)
   measurement = measure(M,1)
-  return convertdata(measurement,basis)
+  return convertdatapoint(measurement,basis)
 end
 
 # Generate nshots datapoints in bases for MPS/MPO
@@ -205,7 +205,7 @@ end
 Convert a data point from (sample,basis) -> data
 Ex: (0,1,0,0) (X,Z,Y,X) -> (X+,Z-,Y+,X+)
 """
-function convertdata(datapoint::Array,basis::Array;state::Bool=false)
+function convertdatapoint(datapoint::Array,basis::Array;state::Bool=false)
   newdata = []
   for j in 1:length(datapoint)
     if basis[j] == "X"
@@ -237,4 +237,13 @@ function convertdata(datapoint::Array,basis::Array;state::Bool=false)
   return newdata
 end
 
+#function convertdatapoints(datapoints::Array,bases::Array;state::Bool=false)
+#  newdata = Matrix{String}(undef, size(datapoints)[1],size(datapoints)[2]) 
+#  
+#  for n in 1:size(datapoints)[1]
+#    newdata[n,:] = convertdatapoint(datapoints[n,:],bases[n,:],state=state)
+#  end
+#  return newdata
+#end
+#
 

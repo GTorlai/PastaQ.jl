@@ -1,9 +1,16 @@
-function loadtrainingdataQST(input_path::String)
+function loadtrainingdataQST(input_path::String;ismpo::Bool=false)
   data_file = h5open(input_path,"r")
   data = read(data_file,"data")
-  #data .= "state" .* data
-  target = read(data_file,"psi",MPS)
+  target = (ismpo ? read(data_file,"psi",MPO) : read(data_file,"psi",MPS))
   return data,target
+end
+
+function loadtrainingdataQPT(input_path::String;ismpo::Bool=false)
+  data_file = h5open(input_path,"r")
+  data_in = read(data_file,"data_in")
+  data_out = read(data_file,"data_out")
+  target = (ismpo ? read(data_file,"choi",MPO) : read(data_file,"choi",MPS))
+  return data_in,data_out,target
 end
 
 function fullvector(M::MPS; reverse::Bool = true)

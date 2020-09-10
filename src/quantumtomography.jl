@@ -366,6 +366,8 @@ function gradients(M::Union{MPS,MPO},data::Array;localnorm=nothing)
   return grads,loss
 end
 
+
+
 """
 Run QST
 """
@@ -376,7 +378,7 @@ function statetomography(data::Array,opt::Optimizer; kwargs...)
   d::Int64    = get(kwargs,:d,2)
   seed::Int64 = get(kwargs,:seed,1234)
   σ::Float64  = get(kwargs,:σ,0.1)
-
+  
   if !mixed
     M0 = initializetomography(N,χ;d=d,seed=seed,σ=σ)
   else
@@ -392,15 +394,16 @@ function processtomography(data_in::Array,data_out::Array,opt::Optimizer; kwargs
   N = size(data_in)[2]
   @assert size(data_in) == size(data_out)
   
-  data = zeros(size(data_in)[1],2*N)
+  #data = zeros(size(data_in)[1],2*N)
+  data = Matrix{String}(undef, size(data_in)[1],2*N)
   for n in 1:size(data_in)[1]
     for j in 1:N
       data[n,2*j-1] = data_in[n,j]
       data[n,2*j]   = data_out[n,j]
     end
   end
-  
-  M = statetomography(data,opt; kwargs...)
+
+  M = statetomography(data,opt; choi=false,kwargs...)
 
 end
 
@@ -413,8 +416,10 @@ function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwarg
   globalnorm::Bool = get(kwargs,:globalnorm,false)
   batchsize::Int64 = get(kwargs,:batchsize,500)
   epochs::Int64 = get(kwargs,:epochs,1000)
-  target::MPS = get(kwargs,:target,nothing)
-  
+  target = get(kwargs,:target,nothing)
+  choi::Bool = get(kwargs,:choi,false)
+
+  data = "state" .* data
                          
   if (localnorm && globalnorm)
     error("Both input norms are set to true")
@@ -459,7 +464,7 @@ function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwarg
     print("Ep = $ep  ")
     @printf("Loss = %.5E  ",avg_loss)
     if !isnothing(target)
-      F = fidelity(model,target)
+      F = fidelity(model,target,choi=choi)
       @printf("Fidelity = %.3E  ",F)
     end
     @printf("Time = %.3f sec",ep_time)
@@ -470,6 +475,9 @@ function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwarg
   @printf("Total Time = %.3f sec",tot_time)
   return model
 end
+
+
+
 
 
 
@@ -508,20 +516,26 @@ function getdensityoperator(lpdo::MPO)
   return rho
 end
 
-function fidelity(psi::MPS,target::MPS)
+function fidelity(psi::MPS,target::MPS;choi::Bool=false)
   psi_eval = copy(psi)
   lognormalize!(psi_eval)
   @assert norm(psi_eval) ≈ 1
   fidelity = abs2(inner(psi_eval,target))
+  if choi
+    fidelity = fidelity /(2^(2*length(psi)))
+  end
   return fidelity
 end
 
-function fidelity(lpdo::MPO,target::MPS)
+function fidelity(lpdo::MPO,target::MPS;choi::Bool=false)
   lpdo_eval = copy(lpdo)
   lognormalize!(lpdo_eval)
   @assert norm(lpdo_eval) ≈ 1
   A = *(lpdo_eval,target,method="densitymatrix",cutoff=1e-10)
   fidelity = abs(inner(A,A))
+  if choi
+    fidelity = fidelity /(2^(2*length(psi)))
+  end
   return fidelity
 end
 
@@ -567,6 +581,16 @@ function nll(lpdo::MPO,data::Array)
   end
   return loss
 end
+#
+#function set_tomography_format(data::Array)
+#  nshots = size(data)[1]
+#  N = size(data)[2]
+#
+#  for n in 1:nshots
+#
+#end
+#
+
 
 
 #function measureonesiteop(psi::MPS,local_op::ITensor)
