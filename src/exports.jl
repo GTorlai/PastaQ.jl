@@ -31,12 +31,16 @@ export
   compilecircuit!,
   runcircuit,
   choimatrix,
-  makepreparationgates,
-  makemeasurementgates,
-  generatemeasurementsettings,
-  generatepreparationsettings,
+
+# datagen.jl
+  # Methhods
+  preparationgates,
+  measurementgates,
+  measurementsettings,
+  preparationsettings,
   measure,
   generatedata,
+  convertdata,
 
 # quantumtomography,jl
   # Methods
@@ -66,6 +70,5 @@ export
 # utils.jl
   # Methods
   loadtrainingdataQST,
-  convertdata,
   fullvector,
   fullmatrix

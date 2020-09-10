@@ -202,11 +202,11 @@ end
   nsamples = 1000
   Random.seed!(1234)
   rawdata = rand(0:1,nsamples,N)
-  bases = generatemeasurementsettings(N,nsamples,bases_id=["X","Y","Z"]) 
+  bases = measurementsettings(N,nsamples,bases_id=["X","Y","Z"]) 
   psi = initializetomography(N,χ)
   data = Matrix{String}(undef, nsamples,N)
   for n in 1:nsamples
-    data[n,:] = convertdata(rawdata[n,:],bases[n,:])
+    data[n,:] = convertdata(rawdata[n,:],bases[n,:],state=true)
   end
   
   num_grad = numgradsnll(psi,data)
@@ -230,11 +230,11 @@ end
   nsamples = 1000
   Random.seed!(1234)
   rawdata = rand(0:1,nsamples,N)
-  bases = generatemeasurementsettings(N,nsamples,bases_id=["X","Y","Z"]) 
+  bases = measurementsettings(N,nsamples,bases_id=["X","Y","Z"]) 
   psi = initializetomography(N,χ)
   data = Matrix{String}(undef, nsamples,N)
   for n in 1:nsamples
-    data[n,:] = convertdata(rawdata[n,:],bases[n,:])
+    data[n,:] = convertdata(rawdata[n,:],bases[n,:],state=true)
   end
 
   psi = initializetomography(N,χ)
@@ -377,10 +377,10 @@ end
   nsamples = 100
   Random.seed!(1234)
   rawdata = rand(0:1,nsamples,N)
-  bases = generatemeasurementsettings(N,nsamples,bases_id=["X","Y","Z"])
+  bases = measurementsettings(N,nsamples,bases_id=["X","Y","Z"])
   data = Matrix{String}(undef, nsamples,N)
   for n in 1:nsamples
-    data[n,:] = convertdata(rawdata[n,:],bases[n,:])
+    data[n,:] = convertdata(rawdata[n,:],bases[n,:],state=true)
   end
   
   lpdo = initializetomography(N,χ,ξ)
@@ -410,9 +410,6 @@ end
   end
   alg_gradient = permutedims(array(alg_grad[N]),[3,1,2])
   @test alg_gradient ≈ num_grad[N] rtol=1e-3
-  #for j in 1:N
-  #  @test array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
-  #end
 end
 
 

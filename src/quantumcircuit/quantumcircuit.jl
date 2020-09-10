@@ -243,127 +243,147 @@ function splitchoi(Λ::MPO;noise=nothing,cutoff=1e-15,maxdim=1000)
   return Λ_split
 end
 
-"""----------------------------------------------
-               MEASUREMENT FUNCTIONS 
-------------------------------------------------- """
-
-"""
-Given as input a measurement basis, returns the corresponding
-gate data structure.
-Example:
-basis = ["X","Z","Z","Y"]
--> gate_list = [("measX", 1),
-                ("measY", 4)]
-"""
-function makemeasurementgates(basis::Array)
-  gate_list = Tuple[]
-  for j in 1:length(basis)
-    if (basis[j]!= "Z")
-      push!(gate_list,("meas$(basis[j])", j))
-    end
-  end
-  return gate_list
-end
-
-"""
-Given as input a preparation state, returns the corresponding
-gate data structure.
-Example:
-prep = ["X+","Z+","Z+","Y+"]
--> gate_list = [("prepX+", 1),
-                ("prepY+", 4)]
-"""
-function makepreparationgates(prep::Array)
-  gate_list = Tuple[]
-  for j in 1:length(prep)
-    if (prep[j]!= "Z+")
-      gatename = "prep$(prep[j])"
-      push!(gate_list, (gatename, j))
-    end
-  end
-  return gate_list
-end
-
-"""
-Generate a set of measurement bases:
-- nshots = total number of bases
-if numbases=nothing: nshots different bases
-"""
-function generatemeasurementsettings(N::Int,numshots::Int;
-                                     numbases=nothing,bases_id=nothing)
-  if isnothing(bases_id)
-    bases_id = ["X","Y","Z"]
-  end
-  # One shot per basis
-  if isnothing(numbases)
-    measurementbases = rand(bases_id,numshots,N)
-  else
-    @assert(numshots%numbases ==0)
-    shotsperbasis = numshots÷numbases
-    measurementbases = repeat(rand(bases_id,1,N),shotsperbasis)
-    for n in 1:numbases-1
-      newbases = repeat(rand(bases_id,1,N),shotsperbasis)
-      measurementbases = vcat(measurementbases,newbases)
-    end
-  end
-  return measurementbases
-end
-
-"""
-Generate a set of preparation states:
-- nshots = total number of states
-if numprep=nothing: nshots different states
-"""
-function generatepreparationsettings(N::Int,numshots::Int;numprep=nothing,prep_id=nothing)
-  if isnothing(prep_id)
-    prep_id = ["X+","X-","Y+","Y-","Z+","Z-"]
-  end
-  # One shot per basis
-  if isnothing(numprep)
-    preparationstates = rand(prep_id,numshots,N)
-  else
-    @assert(numshots%numprep ==0)
-    shotsperstate = numshots÷numprep
-    preparationstates = repeat(rand(prep_id,1,N),shotsperstate)
-    for n in 1:numprep-1
-      newstates = repeat(rand(prep_id,1,N),shotsperstate)
-      preparationstates = vcat(preparationstates,newstates)
-    end
-  end
-  return preparationstates
-end
-
-"""
-Perform a projective measurements on a wavefunction
-"""
-function measure(M::Union{MPS,MPO},nshots::Int)
-  orthogonalize!(M,1)
-  if (nshots==1)
-    measurements = sample(M)
-    measurements .-= 1
-  else
-    measurements = Matrix{Int64}(undef, nshots, length(M))
-    for n in 1:nshots
-      measurement = sample(M)
-      measurement .-= 1
-      measurements[n,:] = measurement
-    end
-  end
-  return measurements
-end
-
-"""
-Generate a dataset of measurements in different bases
-"""
-function generatedata(M0::Union{MPS,MPO},nshots::Int,bases::Array)
-  data = Matrix{String}(undef, nshots,length(M0))
-  for n in 1:nshots
-    meas_gates = makemeasurementgates(bases[n,:])
-    meas_tensors = compilecircuit(M0,meas_gates)
-    M = runcircuit(M0,meas_tensors)
-    measurement = measure(M,1)
-    data[n,:] = convertdata(measurement,bases[n,:])
-  end
-  return data 
-end
-
+#"""----------------------------------------------
+#               MEASUREMENT FUNCTIONS 
+#------------------------------------------------- """
+#
+#"""
+#Given as input a measurement basis, returns the corresponding
+#gate data structure.
+#Example:
+#basis = ["X","Z","Z","Y"]
+#-> gate_list = [("measX", 1),
+#                ("measY", 4)]
+#"""
+#function makemeasurementgates(basis::Array)
+#  gate_list = Tuple[]
+#  for j in 1:length(basis)
+#    if (basis[j]!= "Z")
+#      push!(gate_list,("meas$(basis[j])", j))
+#    end
+#  end
+#  return gate_list
+#end
+#
+#"""
+#Given as input a preparation state, returns the corresponding
+#gate data structure.
+#Example:
+#prep = ["X+","Z+","Z+","Y+"]
+#-> gate_list = [("prepX+", 1),
+#                ("prepY+", 4)]
+#"""
+#function makepreparationgates(prep::Array)
+#  gate_list = Tuple[]
+#  for j in 1:length(prep)
+#    if (prep[j]!= "Z+")
+#      gatename = "prep$(prep[j])"
+#      push!(gate_list, (gatename, j))
+#    end
+#  end
+#  return gate_list
+#end
+#
+#"""
+#Generate a set of measurement bases:
+#- nshots = total number of bases
+#if numbases=nothing: nshots different bases
+#"""
+#function generatemeasurementsettings(N::Int,numshots::Int;
+#                                     numbases=nothing,bases_id=nothing)
+#  if isnothing(bases_id)
+#    bases_id = ["X","Y","Z"]
+#  end
+#  # One shot per basis
+#  if isnothing(numbases)
+#    measurementbases = rand(bases_id,numshots,N)
+#  else
+#    @assert(numshots%numbases ==0)
+#    shotsperbasis = numshots÷numbases
+#    measurementbases = repeat(rand(bases_id,1,N),shotsperbasis)
+#    for n in 1:numbases-1
+#      newbases = repeat(rand(bases_id,1,N),shotsperbasis)
+#      measurementbases = vcat(measurementbases,newbases)
+#    end
+#  end
+#  return measurementbases
+#end
+#
+#"""
+#Generate a set of preparation states:
+#- nshots = total number of states
+#if numprep=nothing: nshots different states
+#"""
+#function generatepreparationsettings(N::Int,numshots::Int;
+#                                     numprep=nothing,prep_id=nothing)
+#  if isnothing(prep_id)
+#    prep_id = ["X+","X-","Y+","Y-","Z+","Z-"]
+#  end
+#  # One shot per basis
+#  if isnothing(numprep)
+#    preparationstates = rand(prep_id,numshots,N)
+#  else
+#    @assert(numshots%numprep ==0)
+#    shotsperstate = numshots÷numprep
+#    preparationstates = repeat(rand(prep_id,1,N),shotsperstate)
+#    for n in 1:numprep-1
+#      newstates = repeat(rand(prep_id,1,N),shotsperstate)
+#      preparationstates = vcat(preparationstates,newstates)
+#    end
+#  end
+#  return preparationstates
+#end
+#
+#"""
+#Perform a projective measurements on a wavefunction
+#"""
+#function measure(M::Union{MPS,MPO},nshots::Int)
+#  orthogonalize!(M,1)
+#  if (nshots==1)
+#    measurements = sample(M)
+#    measurements .-= 1
+#  else
+#    measurements = Matrix{Int64}(undef, nshots, length(M))
+#    for n in 1:nshots
+#      measurement = sample(M)
+#      measurement .-= 1
+#      measurements[n,:] = measurement
+#    end
+#  end
+#  return measurements
+#end
+#
+#"""
+#Generate a dataset of measurements in different bases
+#"""
+#function generatedata(M0::Union{MPS,MPO},nshots::Int,bases::Array)
+#  data = Matrix{String}(undef, nshots,length(M0))
+#  for n in 1:nshots
+#    meas_gates = makemeasurementgates(bases[n,:])
+#    meas_tensors = compilecircuit(M0,meas_gates)
+#    M = runcircuit(M0,meas_tensors)
+#    measurement = measure(M,1)
+#    data[n,:] = convertdata(measurement,bases[n,:])
+#  end
+#  return data 
+#end
+#
+#function generatedata(M::Union{MPS,MPO},nshots::Int64)
+#  bases = generatemeasurementsettings(length(M),nshots,bases_id=["X","Y","Z"])
+#  generatedata(M,nshots,bases)
+#end
+#
+##function generatedata(N::Int,gates::Array,nshots::Int,prep::Array,bases::Array)
+##
+##  data_in  = Matrix{String}(undef, nshots,length(M0))
+##  data_out = Matrix{String}(undef, nshots,length(M0))
+##  
+##  for n in 1:nshots
+##    prep_gates = makepreparationgates(prep[n,:])
+##    ψ_in = runcircuit(N,prep_gates)
+##    
+##    M = runcircuit(ψ_in,gates
+##    #meas_gates = makemeasurementgates(bases[n,:])
+##  end
+##end
+#

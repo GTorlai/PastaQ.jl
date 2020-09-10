@@ -7,6 +7,7 @@ using Test
     "circuits.jl",
     "circuitops.jl",
     "quantumcircuit.jl",
+    "datagen.jl",
     "quantumtomography.jl",
     "benchmark_qiskit.jl"
   )
