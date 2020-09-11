@@ -66,32 +66,69 @@ function initializetomography(N::Int,
   return lpdo
 end
 
+
+
+
 """
 Normalize the MPS/LPDO locally and store the local norms
 """
-function lognormalize!(M::Union{MPS,MPO})
-  localnorms = []
-  blob = dag(M[1]) * prime(M[1],"Link")
-  localZ = norm(blob)
-  logZ = 0.5*log(localZ)
-  blob /= sqrt(localZ)
-  M[1] /= (localZ^0.25)
-  push!(localnorms,localZ^0.25)
-  for j in 2:length(M)-1
-    blob = blob * dag(M[j]);
-    blob = blob * prime(M[j],"Link")
+function lognormalize!(M::Union{MPS,MPO}; choi::Bool=false)
+  
+  # PROCESS TOMOGRAPHY
+  if choi
+    choinorm = 2^length(M)
+    choi_local = 1/2^0.25 
+
+    localnorms = []
+    blob = dag(M[1]) * prime(M[1],"Link")
     localZ = norm(blob)
-    logZ += 0.5*log(localZ)
+    logZ = 0.5*log(localZ)
     blob /= sqrt(localZ)
-    M[j] /= (localZ^0.25)
-    push!(localnorms,localZ^0.25)  
+    M[1] /= (choi_local * localZ^0.25)
+    push!(localnorms,localZ^0.25)
+    for j in 2:length(M)-1
+      blob = blob * dag(M[j]);
+      blob = blob * prime(M[j],"Link")
+      localZ = norm(blob)
+      logZ += 0.5*log(localZ)
+      blob /= sqrt(localZ)
+      M[j] /= (choi_local * localZ^0.25)
+      push!(localnorms,localZ^0.25)  
+    end
+    blob = blob * dag(M[length(M)]);
+    blob = blob * prime(M[length(M)],"Link")
+    localZ = norm(blob)
+    M[length(M)] /= (choi_local * sqrt(localZ))
+    push!(localnorms,sqrt(localZ))
+    logZ += log(real(blob[]))
+    logZ += log(choinorm)
+    localnorms .= localnorms .* choi_local
+  
+  # STATE TOMOGRAPHY
+  else
+    localnorms = []
+    blob = dag(M[1]) * prime(M[1],"Link")
+    localZ = norm(blob)
+    logZ = 0.5*log(localZ)
+    blob /= sqrt(localZ)
+    M[1] /= (localZ^0.25)
+    push!(localnorms,localZ^0.25)
+    for j in 2:length(M)-1
+      blob = blob * dag(M[j]);
+      blob = blob * prime(M[j],"Link")
+      localZ = norm(blob)
+      logZ += 0.5*log(localZ)
+      blob /= sqrt(localZ)
+      M[j] /= (localZ^0.25)
+      push!(localnorms,localZ^0.25)  
+    end
+    blob = blob * dag(M[length(M)]);
+    blob = blob * prime(M[length(M)],"Link")
+    localZ = norm(blob)
+    M[length(M)] /= sqrt(localZ)
+    push!(localnorms,sqrt(localZ))
+    logZ += log(real(blob[]))
   end
-  blob = blob * dag(M[length(M)]);
-  blob = blob * prime(M[length(M)],"Link")
-  localZ = norm(blob)
-  M[length(M)] /= sqrt(localZ)
-  push!(localnorms,sqrt(localZ))
-  logZ += log(real(blob[]))
   return logZ,localnorms
 end
 
@@ -106,7 +143,6 @@ function gradlogZ(M::Union{MPS,MPO};localnorm=nothing)
   if isnothing(localnorm)
     localnorm = ones(N)
   end
-  
   # Sweep right to get L
   L[1] = dag(M[1]) * prime(M[1],"Link")
   for j in 2:N-1
@@ -135,7 +171,7 @@ end
 """
 Gradients of NLL for MPS 
 """
-function gradnll(psi::MPS,data::Array;localnorm=nothing)
+function gradnll(psi::MPS,data::Array;localnorm=nothing,choi::Bool=false)
   N = length(psi)
 
   s = siteinds(psi)
@@ -177,56 +213,120 @@ function gradnll(psi::MPS,data::Array;localnorm=nothing)
   grads = [[ITensor(ElT, undef, inds(psi[j])) for j in 1:N] for _ in 1:nthreads]
 
   loss = zeros(nthreads)
+  
+  if choi
+    Threads.@threads for n in 1:size(data)[1]
+      nthread = Threads.threadid()
+      
+      x = data[n,:] 
+      """ LEFT ENVIRONMENTS """
+      L[nthread][1] .= psidag[1] .* dag(gate(x[1],s[1]))
+      for j in 2:N-1
+        Lpsi[nthread][j] .= L[nthread][j-1] .* psidag[j]
+        if iseven(j)
+          L[nthread][j] .= Lpsi[nthread][j] .* gate(x[j],s[j])
+        else
+          L[nthread][j] .= Lpsi[nthread][j] .* dag(gate(x[j],s[j]))
+        end
+      end
+      Lpsi[nthread][N] .= L[nthread][N-1] .* psidag[N]
+      psix = (Lpsi[nthread][N] * gate(x[N],s[N]))[]
+      prob = abs2(psix)
+      loss[nthread] -= log(prob)/size(data)[1]
+      
+      """ RIGHT ENVIRONMENTS """
+      R[nthread][N] .= psidag[N] .* gate(x[N],s[N])
+      for j in reverse(2:N-1)
+        Rpsi[nthread][j] .= psidag[j] .* R[nthread][j+1]
+        if iseven(j)
+          R[nthread][j] .= Rpsi[nthread][j] .* gate(x[j],s[j])
+        else
+          R[nthread][j] .= Rpsi[nthread][j] .* dag(gate(x[j],s[j]))
+        end
+      end
 
-  Threads.@threads for n in 1:size(data)[1]
-
-    nthread = Threads.threadid()
-
-    x = data[n,:] 
-    
-    """ LEFT ENVIRONMENTS """
-    L[nthread][1] .= psidag[1] .* gate(x[1],s[1])
-    for j in 2:N-1
-      Lpsi[nthread][j] .= L[nthread][j-1] .* psidag[j]
-      L[nthread][j] .= Lpsi[nthread][j] .* gate(x[j],s[j])
-    end
-    Lpsi[nthread][N] .= L[nthread][N-1] .* psidag[N]
-    psix = (Lpsi[nthread][N] * gate(x[N],s[N]))[]
-    prob = abs2(psix)
-    loss[nthread] -= log(prob)/size(data)[1]
-    
-    """ RIGHT ENVIRONMENTS """
-    R[nthread][N] .= psidag[N] .* gate(x[N],s[N])
-    for j in reverse(2:N-1)
-      Rpsi[nthread][j] .= psidag[j] .* R[nthread][j+1]
-      R[nthread][j] .= Rpsi[nthread][j] .* gate(x[j],s[j])
-    end
-
-    """ GRADIENTS """
-    # TODO: fuse into one call to mul!
-    grads[nthread][1] .= gate(x[1],s[1]) .* R[nthread][2] 
-    gradients[nthread][1] .+= (1 / (localnorm[1] * psix)) .* grads[nthread][1]
-    for j in 2:N-1
-      Rpsi[nthread][j] .= L[nthread][j-1] .* gate(x[j],s[j])
+      """ GRADIENTS """
       # TODO: fuse into one call to mul!
-      grads[nthread][j] .= Rpsi[nthread][j] .* R[nthread][j+1]
-      gradients[nthread][j] .+= (1 / (localnorm[j] * psix)) .* grads[nthread][j]
+      grads[nthread][1] .= dag(gate(x[1],s[1])) .* R[nthread][2] 
+      gradients[nthread][1] .+= (1 / (localnorm[1] * psix)) .* grads[nthread][1]
+      for j in 2:N-1
+        if iseven(j)
+          Rpsi[nthread][j] .= L[nthread][j-1] .* gate(x[j],s[j])
+        else
+          Rpsi[nthread][j] .= L[nthread][j-1] .* dag(gate(x[j],s[j]))
+        end
+        # TODO: fuse into one call to mul!
+        grads[nthread][j] .= Rpsi[nthread][j] .* R[nthread][j+1]
+        gradients[nthread][j] .+= (1 / (localnorm[j] * psix)) .* grads[nthread][j]
+      end
+      grads[nthread][N] .= L[nthread][N-1] .* gate(x[N], s[N])
+      gradients[nthread][N] .+= (1 / (localnorm[N] * psix)) .* grads[nthread][N]
     end
-    grads[nthread][N] .= L[nthread][N-1] .* gate(x[N], s[N])
-    gradients[nthread][N] .+= (1 / (localnorm[N] * psix)) .* grads[nthread][N]
-  end
 
-  for nthread in 1:nthreads
-    for g in gradients[nthread]
-      g .= (-2/size(data)[1]) .* g
+    for nthread in 1:nthreads
+      for g in gradients[nthread]
+        g .= (-2/size(data)[1]) .* g
+      end
     end
-  end
 
-  gradients_tot = [ITensor(ElT, inds(psi[j])) for j in 1:N]
-  loss_tot = 0.0
-  for nthread in 1:nthreads
-    gradients_tot .+= gradients[nthread]
-    loss_tot += loss[nthread]
+    gradients_tot = [ITensor(ElT, inds(psi[j])) for j in 1:N]
+    loss_tot = 0.0
+    for nthread in 1:nthreads
+      gradients_tot .+= gradients[nthread]
+      loss_tot += loss[nthread]
+    end
+
+  else
+    Threads.@threads for n in 1:size(data)[1]
+
+      nthread = Threads.threadid()
+
+      x = data[n,:] 
+      
+      """ LEFT ENVIRONMENTS """
+      L[nthread][1] .= psidag[1] .* gate(x[1],s[1])
+      for j in 2:N-1
+        Lpsi[nthread][j] .= L[nthread][j-1] .* psidag[j]
+        L[nthread][j] .= Lpsi[nthread][j] .* gate(x[j],s[j])
+      end
+      Lpsi[nthread][N] .= L[nthread][N-1] .* psidag[N]
+      psix = (Lpsi[nthread][N] * gate(x[N],s[N]))[]
+      prob = abs2(psix)
+      loss[nthread] -= log(prob)/size(data)[1]
+      
+      """ RIGHT ENVIRONMENTS """
+      R[nthread][N] .= psidag[N] .* gate(x[N],s[N])
+      for j in reverse(2:N-1)
+        Rpsi[nthread][j] .= psidag[j] .* R[nthread][j+1]
+        R[nthread][j] .= Rpsi[nthread][j] .* gate(x[j],s[j])
+      end
+
+      """ GRADIENTS """
+      # TODO: fuse into one call to mul!
+      grads[nthread][1] .= gate(x[1],s[1]) .* R[nthread][2] 
+      gradients[nthread][1] .+= (1 / (localnorm[1] * psix)) .* grads[nthread][1]
+      for j in 2:N-1
+        Rpsi[nthread][j] .= L[nthread][j-1] .* gate(x[j],s[j])
+        # TODO: fuse into one call to mul!
+        grads[nthread][j] .= Rpsi[nthread][j] .* R[nthread][j+1]
+        gradients[nthread][j] .+= (1 / (localnorm[j] * psix)) .* grads[nthread][j]
+      end
+      grads[nthread][N] .= L[nthread][N-1] .* gate(x[N], s[N])
+      gradients[nthread][N] .+= (1 / (localnorm[N] * psix)) .* grads[nthread][N]
+    end
+  
+    for nthread in 1:nthreads
+      for g in gradients[nthread]
+        g .= (-2/size(data)[1]) .* g
+      end
+    end
+
+    gradients_tot = [ITensor(ElT, inds(psi[j])) for j in 1:N]
+    loss_tot = 0.0
+    for nthread in 1:nthreads
+      gradients_tot .+= gradients[nthread]
+      loss_tot += loss[nthread]
+    end
   end
 
   return gradients_tot, loss_tot
@@ -235,7 +335,7 @@ end
 """
 Gradients of NLL for LPDO 
 """
-function gradnll(lpdo::MPO,data::Array;localnorm=nothing)
+function gradnll(lpdo::MPO,data::Array;localnorm=nothing,choi::Bool=false)
   loss = 0.0
 
   N = length(lpdo)
@@ -309,45 +409,98 @@ function gradnll(lpdo::MPO,data::Array;localnorm=nothing)
   grads[N] = ITensor(ElT, undef,links[N-1],kraus[N],s[N])
   gradients[N] = ITensor(ElT, links[N-1],kraus[N],s[N])
   
-  for n in 1:size(data)[1]
-    x = data[n,:]
-    """ LEFT ENVIRONMENTS """
-    T[1] .= lpdo[1] .* dag(gate(x[1],s[1]))
-    L[1] .= prime(T[1],"Link") .* dag(T[1])
-    for j in 2:N-1
-      T[j] .= lpdo[j] .* dag(gate(x[j],s[j]))
-      Llpdo[j] .= prime(T[j],"Link") .* L[j-1]
-      L[j] .= Llpdo[j] .* dag(T[j])
+  if choi 
+    for n in 1:size(data)[1]
+      x = data[n,:]
+      """ LEFT ENVIRONMENTS """
+      T[1] .= lpdo[1] .* gate(x[1],s[1])
+      L[1] .= prime(T[1],"Link") .* dag(T[1])
+      for j in 2:N-1
+        if iseven(j)
+          T[j] .= lpdo[j] .* dag(gate(x[j],s[j]))
+        else
+          T[j] .= lpdo[j] .* gate(x[j],s[j])
+        end
+        Llpdo[j] .= prime(T[j],"Link") .* L[j-1]
+        L[j] .= Llpdo[j] .* dag(T[j])
+      end
+      T[N] .= lpdo[N] .* dag(gate(x[N],s[N]))
+      prob = L[N-1] * prime(T[N],"Link")
+      prob = prob * dag(T[N])
+      prob = real(prob[])
+      loss -= log(prob)/size(data)[1]
+      
+      """ RIGHT ENVIRONMENTS """
+      R[N] .= prime(T[N],"Link") .* dag(T[N])
+      for j in reverse(2:N-1)
+        Rlpdo[j] .= prime(T[j],"Link") .* R[j+1] 
+        R[j] .= Rlpdo[j] .* dag(T[j])
+      end
+      
+      """ GRADIENTS """
+      Tp[1] .= prime(lpdo[1],"Link") .* gate(x[1],s[1])
+      Agrad[1] .=  Tp[1] .* dag(gate(x[1],s[1]))
+      grads[1] .= R[2] .* Agrad[1]
+      gradients[1] .+= (1 / (localnorm[1] * prob)) .* grads[1]
+      for j in 2:N-1
+        if iseven(j)
+          Tp[j] .= prime(lpdo[j],"Link") .* dag(gate(x[j],s[j]))
+          Lgrad[j-1] .= L[j-1] .* Tp[j]
+          Agrad[j] .= Lgrad[j-1] .* gate(x[j],s[j])
+        else
+          Tp[j] .= prime(lpdo[j],"Link") .* gate(x[j],s[j])
+          Lgrad[j-1] .= L[j-1] .* Tp[j]
+          Agrad[j] .= Lgrad[j-1] .* dag(gate(x[j],s[j]))
+        end
+        grads[j] .= R[j+1] .* Agrad[j] 
+        gradients[j] .+= (1 / (localnorm[j] * prob)) .* grads[j]
+      end
+      Tp[N] .= prime(lpdo[N],"Link") .* dag(gate(x[N],s[N]))
+      Lgrad[N-1] .= L[N-1] .* Tp[N]
+      grads[N] .= Lgrad[N-1] .* gate(x[N],s[N])
+      gradients[N] .+= (1 / (localnorm[N] * prob)) .* grads[N]
     end
-    T[N] .= lpdo[N] .* dag(gate(x[N],s[N]))
-    prob = L[N-1] * prime(T[N],"Link")
-    prob = prob * dag(T[N])
-    prob = real(prob[])
-    loss -= log(prob)/size(data)[1]
-    
-    """ RIGHT ENVIRONMENTS """
-    R[N] .= prime(T[N],"Link") .* dag(T[N])
-    for j in reverse(2:N-1)
-      Rlpdo[j] .= prime(T[j],"Link") .* R[j+1] 
-      R[j] .= Rlpdo[j] .* dag(T[j])
+  else
+    for n in 1:size(data)[1]
+      x = data[n,:]
+      """ LEFT ENVIRONMENTS """
+      T[1] .= lpdo[1] .* dag(gate(x[1],s[1]))
+      L[1] .= prime(T[1],"Link") .* dag(T[1])
+      for j in 2:N-1
+        T[j] .= lpdo[j] .* dag(gate(x[j],s[j]))
+        Llpdo[j] .= prime(T[j],"Link") .* L[j-1]
+        L[j] .= Llpdo[j] .* dag(T[j])
+      end
+      T[N] .= lpdo[N] .* dag(gate(x[N],s[N]))
+      prob = L[N-1] * prime(T[N],"Link")
+      prob = prob * dag(T[N])
+      prob = real(prob[])
+      loss -= log(prob)/size(data)[1]
+      
+      """ RIGHT ENVIRONMENTS """
+      R[N] .= prime(T[N],"Link") .* dag(T[N])
+      for j in reverse(2:N-1)
+        Rlpdo[j] .= prime(T[j],"Link") .* R[j+1] 
+        R[j] .= Rlpdo[j] .* dag(T[j])
+      end
+      
+      """ GRADIENTS """
+      Tp[1] .= prime(lpdo[1],"Link") .* dag(gate(x[1],s[1]))
+      Agrad[1] .=  Tp[1] .* gate(x[1],s[1])
+      grads[1] .= R[2] .* Agrad[1]
+      gradients[1] .+= (1 / (localnorm[1] * prob)) .* grads[1]
+       for j in 2:N-1
+        Tp[j] .= prime(lpdo[j],"Link") .* dag(gate(x[j],s[j]))
+        Lgrad[j-1] .= L[j-1] .* Tp[j]
+        Agrad[j] .= Lgrad[j-1] .* gate(x[j],s[j])
+        grads[j] .= R[j+1] .* Agrad[j] 
+        gradients[j] .+= (1 / (localnorm[j] * prob)) .* grads[j]
+      end
+      Tp[N] .= prime(lpdo[N],"Link") .* dag(gate(x[N],s[N]))
+      Lgrad[N-1] .= L[N-1] .* Tp[N]
+      grads[N] .= Lgrad[N-1] .* gate(x[N],s[N])
+      gradients[N] .+= (1 / (localnorm[N] * prob)) .* grads[N]
     end
-    
-    """ GRADIENTS """
-    Tp[1] .= prime(lpdo[1],"Link") .* dag(gate(x[1],s[1]))
-    Agrad[1] .=  Tp[1] .* gate(x[1],s[1])
-    grads[1] .= R[2] .* Agrad[1]
-    gradients[1] .+= (1 / (localnorm[1] * prob)) .* grads[1]
-     for j in 2:N-1
-      Tp[j] .= prime(lpdo[j],"Link") .* dag(gate(x[j],s[j]))
-      Lgrad[j-1] .= L[j-1] .* Tp[j]
-      Agrad[j] .= Lgrad[j-1] .* gate(x[j],s[j])
-      grads[j] .= R[j+1] .* Agrad[j] 
-      gradients[j] .+= (1 / (localnorm[j] * prob)) .* grads[j]
-    end
-    Tp[N] .= prime(lpdo[N],"Link") .* dag(gate(x[N],s[N]))
-    Lgrad[N-1] .= L[N-1] .* Tp[N]
-    grads[N] .= Lgrad[N-1] .* gate(x[N],s[N])
-    gradients[N] .+= (1 / (localnorm[N] * prob)) .* grads[N]
   end
   for g in gradients
     g .= -2/size(data)[1] .* g
@@ -358,9 +511,9 @@ end
 """
 Compute the total gradients
 """
-function gradients(M::Union{MPS,MPO},data::Array;localnorm=nothing)
+function gradients(M::Union{MPS,MPO},data::Array;localnorm=nothing,choi::Bool=false)
   g_logZ,logZ = gradlogZ(M,localnorm=localnorm)
-  g_nll, nll  = gradnll(M,data,localnorm=localnorm)
+  g_nll, nll  = gradnll(M,data,localnorm=localnorm,choi=choi)
   grads = g_logZ + g_nll
   loss = logZ + nll
   return grads,loss
@@ -394,17 +547,15 @@ function processtomography(data_in::Array,data_out::Array,opt::Optimizer; kwargs
   N = size(data_in)[2]
   @assert size(data_in) == size(data_out)
   
-  #data = zeros(size(data_in)[1],2*N)
   data = Matrix{String}(undef, size(data_in)[1],2*N)
+  
   for n in 1:size(data_in)[1]
     for j in 1:N
       data[n,2*j-1] = data_in[n,j]
       data[n,2*j]   = data_out[n,j]
     end
   end
-
-  M = statetomography(data,opt; choi=false,kwargs...)
-
+  return statetomography(data,opt; choi=true,kwargs...)
 end
 
 """
@@ -418,7 +569,7 @@ function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwarg
   epochs::Int64 = get(kwargs,:epochs,1000)
   target = get(kwargs,:target,nothing)
   choi::Bool = get(kwargs,:choi,false)
-
+  
   data = "state" .* data
                          
   if (localnorm && globalnorm)
@@ -447,13 +598,13 @@ function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwarg
       
       if localnorm
         model_norm = copy(model)
-        logZ,localnorms = lognormalize!(model_norm) 
-        grads,loss = gradients(model_norm,batch,localnorm=localnorms)
+        logZ,localnorms = lognormalize!(model_norm; choi=choi) 
+        grads,loss = gradients(model_norm,batch,localnorm=localnorms,choi=choi)
       elseif globalnorm
-        logZ,localnorms = lognormalize!(model)
-        grads,loss = gradients(model,batch)
+        lognormalize!(model; choi=choi)
+        grads,loss = gradients(model,batch,choi=choi)
       else
-        grads,loss = gradients(model,batch)
+        grads,loss = gradients(model,batch,choi=choi)
       end
       avg_loss += loss/Float64(num_batches)
       update!(model,grads,opt)
@@ -473,7 +624,8 @@ function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwarg
     tot_time += ep_time
   end
   @printf("Total Time = %.3f sec",tot_time)
-  return model
+  lognormalize!(model,choi=choi)
+  return model 
 end
 
 
@@ -518,11 +670,13 @@ end
 
 function fidelity(psi::MPS,target::MPS;choi::Bool=false)
   psi_eval = copy(psi)
-  lognormalize!(psi_eval)
-  @assert norm(psi_eval) ≈ 1
+  lognormalize!(psi_eval,choi=choi)
   fidelity = abs2(inner(psi_eval,target))
   if choi
-    fidelity = fidelity /(2^(2*length(psi)))
+    #@show norm(target)^2
+    #@show 2^(0.5*length(psi_eval))
+    #@assert norm(target)^2 ≈ 2^(0.5*length(psi_eval)) 
+    fidelity = fidelity / (2^(length(psi_eval)))
   end
   return fidelity
 end
@@ -542,19 +696,38 @@ end
 """
 Negative log likelihood for MPS
 """
-function nll(psi::MPS,data::Array)
+function nll(psi::MPS,data::Array;choi::Bool=false)
   N = length(psi)
+  @assert N==size(data)[2]
   loss = 0.0
   s = siteinds(psi)
-  for n in 1:size(data)[1]
-    x = data[n,:]
-    psix = dag(psi[1]) * gate(x[1],s[1])
-    for j in 2:N
-      psi_r = dag(psi[j]) * gate(x[j],s[j])
-      psix = psix * psi_r
+  if choi
+    for n in 1:size(data)[1]
+      x = data[n,:]
+      psix = dag(psi[1]) * dag(gate(x[1],s[1]))
+      for j in 2:N
+        if iseven(j)
+          psi_r = dag(psi[j]) * gate(x[j],s[j])
+        else
+          psi_r = dag(psi[j]) * dag(gate(x[j],s[j]))
+        end
+        psix = psix * psi_r
+      end
+      prob = abs2(psix[])
+      loss -= log(prob)/size(data)[1]
     end
-    prob = abs2(psix[])
-    loss -= log(prob)/size(data)[1]
+
+  else
+    for n in 1:size(data)[1]
+      x = data[n,:]
+      psix = dag(psi[1]) * gate(x[1],s[1])
+      for j in 2:N
+        psi_r = dag(psi[j]) * gate(x[j],s[j])
+        psix = psix * psi_r
+      end
+      prob = abs2(psix[])
+      loss -= log(prob)/size(data)[1]
+    end
   end
   return loss
 end
@@ -562,57 +735,72 @@ end
 """
 Negative log likelihood for LPDO
 """
-function nll(lpdo::MPO,data::Array)
+function nll(lpdo::MPO,data::Array;choi::Bool=false)
   N = length(lpdo)
   loss = 0.0
   s = Index[]
   for j in 1:N
     push!(s,firstind(lpdo[j],"Site"))
   end
-  for n in 1:size(data)[1]
-    x = data[n,:]
-    prob = prime(lpdo[1],"Link") * dag(gate(x[1],s[1]))
-    prob = prob * dag(lpdo[1]) * gate(x[1],s[1])
-    for j in 2:N
-      prob = prob * prime(lpdo[j],"Link") * dag(gate(x[j],s[j]))
-      prob = prob * dag(lpdo[j]) * gate(x[j],s[j])
+  
+  if choi
+    for n in 1:size(data)[1]
+      x = data[n,:]
+      prob = prime(lpdo[1],"Link") * gate(x[1],s[1])
+      prob = prob * dag(lpdo[1]) * dag(gate(x[1],s[1]))
+      for j in 2:N
+        if iseven(j)
+          prob = prob * prime(lpdo[j],"Link") * dag(gate(x[j],s[j]))
+          prob = prob * dag(lpdo[j]) * gate(x[j],s[j])
+        else
+          prob = prob * prime(lpdo[j],"Link") * gate(x[j],s[j])
+          prob = prob * dag(lpdo[j]) * dag(gate(x[j],s[j]))
+        end
+      end
+      loss -= log(real(prob[]))/size(data)[1]
     end
-    loss -= log(real(prob[]))/size(data)[1]
+  else
+    for n in 1:size(data)[1]
+      x = data[n,:]
+      prob = prime(lpdo[1],"Link") * dag(gate(x[1],s[1]))
+      prob = prob * dag(lpdo[1]) * gate(x[1],s[1])
+      for j in 2:N
+        prob = prob * prime(lpdo[j],"Link") * dag(gate(x[j],s[j]))
+        prob = prob * dag(lpdo[j]) * gate(x[j],s[j])
+      end
+      loss -= log(real(prob[]))/size(data)[1]
+    end
   end
   return loss
 end
-#
-#function set_tomography_format(data::Array)
-#  nshots = size(data)[1]
-#  N = size(data)[2]
-#
-#  for n in 1:nshots
-#
-#end
-#
 
 
 
-#function measureonesiteop(psi::MPS,local_op::ITensor)
-#  site = getsitenumber(firstind(local_op,tags="Site"))
-#  orthogonalize!(psi,site)
-#  if abs(1.0-norm(psi[site])) > 1E-8
-#    error("MPS is not normalized, norm=$(norm(psi[site]))")
-#  end
-#  psi_m = copy(psi)
-#  psi_m[site] = psi_m[site] * local_op
-#  measurement = inner(psi,psi_m)
-#  return measurement
-#end
+
+
+
+
 #
-#function measureonesiteop(psi::MPS,opID::String)
-#  N = length(psi)
-#  sites = siteinds(psi)
-#  measurement = Vector{Float64}(undef,N)
-#  for j in 1:N
-#    local_op = op(sites[j],opID)
-#    measurement[j] = measureonesiteop(psi,local_op)
-#  end
-#  return measurement
-#end
-#
+##function measureonesiteop(psi::MPS,local_op::ITensor)
+##  site = getsitenumber(firstind(local_op,tags="Site"))
+##  orthogonalize!(psi,site)
+##  if abs(1.0-norm(psi[site])) > 1E-8
+##    error("MPS is not normalized, norm=$(norm(psi[site]))")
+##  end
+##  psi_m = copy(psi)
+##  psi_m[site] = psi_m[site] * local_op
+##  measurement = inner(psi,psi_m)
+##  return measurement
+##end
+##
+##function measureonesiteop(psi::MPS,opID::String)
+##  N = length(psi)
+##  sites = siteinds(psi)
+##  measurement = Vector{Float64}(undef,N)
+##  for j in 1:N
+##    local_op = op(sites[j],opID)
+##    measurement[j] = measureonesiteop(psi,local_op)
+##  end
+##  return measurement
+##end
+##

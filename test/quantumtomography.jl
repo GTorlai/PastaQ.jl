@@ -83,7 +83,7 @@ function numgradslogZ(M::Union{MPS,MPO};accuracy=1e-8)
   return grad_r-grad_i
 end
 
-function numgradsnll(M::Union{MPS,MPO},data::Array;accuracy=1e-8)
+function numgradsnll(M::Union{MPS,MPO},data::Array;accuracy=1e-8,choi::Bool=false)
   N = length(M)
   grad_r = []
   grad_i = []
@@ -98,17 +98,17 @@ function numgradsnll(M::Union{MPS,MPO},data::Array;accuracy=1e-8)
     epsilon[i] = accuracy
     eps = ITensor(epsilon,inds(M[1]))
     M[1] += eps
-    loss_p = nll(M,data) 
+    loss_p = nll(M,data,choi=choi) 
     M[1] -= eps
-    loss_m = nll(M,data) 
+    loss_m = nll(M,data,choi=choi) 
     grad_r[1][i] = (loss_p-loss_m)/(accuracy)
     
     epsilon[i] = im*accuracy
     eps = ITensor(epsilon,inds(M[1]))
     M[1] += eps
-    loss_p = nll(M,data) 
+    loss_p = nll(M,data,choi=choi) 
     M[1] -= eps
-    loss_m = nll(M,data) 
+    loss_m = nll(M,data,choi=choi) 
     grad_i[1][i] = (loss_p-loss_m)/(im*accuracy)
     
     epsilon[i] = 0.0
@@ -120,17 +120,17 @@ function numgradsnll(M::Union{MPS,MPO},data::Array;accuracy=1e-8)
       epsilon[i] = accuracy
       eps = ITensor(epsilon,inds(M[j]))
       M[j] += eps
-      loss_p = nll(M,data) 
+      loss_p = nll(M,data,choi=choi) 
       M[j] -= eps
-      loss_m = nll(M,data) 
+      loss_m = nll(M,data,choi=choi) 
       grad_r[j][i] = (loss_p-loss_m)/(accuracy)
       
       epsilon[i] = im*accuracy
       eps = ITensor(epsilon,inds(M[j]))
       M[j] += eps
-      loss_p = nll(M,data) 
+      loss_p = nll(M,data,choi=choi) 
       M[j] -= eps
-      loss_m = nll(M,data) 
+      loss_m = nll(M,data,choi=choi) 
       grad_i[j][i] = (loss_p-loss_m)/(im*accuracy)
 
       epsilon[i] = 0.0
@@ -143,17 +143,17 @@ function numgradsnll(M::Union{MPS,MPO},data::Array;accuracy=1e-8)
     epsilon[i] = accuracy
     eps = ITensor(epsilon,inds(M[N]))
     M[N] += eps
-    loss_p = nll(M,data) 
+    loss_p = nll(M,data,choi=choi) 
     M[N] -= eps
-    loss_m = nll(M,data) 
+    loss_m = nll(M,data,choi=choi) 
     grad_r[N][i] = (loss_p-loss_m)/(accuracy)
 
     epsilon[i] = im*accuracy
     eps = ITensor(epsilon,inds(M[N]))
     M[N] += eps
-    loss_p = nll(M,data) 
+    loss_p = nll(M,data,choi=choi) 
     M[N] -= eps
-    loss_m = nll(M,data) 
+    loss_m = nll(M,data,choi=choi) 
     grad_i[N][i] = (loss_p-loss_m)/(im*accuracy)
     
     epsilon[i] = 0.0
@@ -163,7 +163,7 @@ function numgradsnll(M::Union{MPS,MPO},data::Array;accuracy=1e-8)
 end
 
 
-""" MPS TOMOGRAPHY TESTS """
+""" MPS STATE TOMOGRAPHY TESTS """
 
 @testset "mps-qst: lognormalization" begin
   N = 10
@@ -308,7 +308,116 @@ end
 
 end
 
-""" LPDO TOMOGRAPHY TESTS """
+
+
+
+
+
+""" MPS PROCESS TOMOGRAPHY TESTS """
+
+@testset "mps-qpt: lognormalization" begin
+  N = 10
+  χ = 4
+  psi = initializetomography(N,χ)
+  @test length(psi) == N
+  logZ1 = 2.0*lognorm(psi) + N*log(2)
+  logZ2,_ = lognormalize!(psi,choi=true)
+  @test logZ1 ≈ logZ2
+  psi = initializetomography(N,χ)
+  lognormalize!(psi,choi=true)
+  @test norm(psi)^2 ≈ 2^(N/2)
+end
+
+@testset "mps-qpt: grad logZ" begin
+  N = 5
+  χ = 4
+  psi = initializetomography(N,χ)
+  alg_grad,_ = gradlogZ(psi)
+  num_grad = numgradslogZ(psi)
+  for j in 1:N
+    @test array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
+  end
+  psi = initializetomography(N,χ)
+  logZ,localnorms = lognormalize!(psi)
+  @test norm(psi)^2 ≈ 1
+  alg_grad_localnorm,_ = gradlogZ(psi,localnorm=localnorms)
+  for j in 1:N
+    @test array(alg_grad[j]) ≈ array(alg_grad_localnorm[j]) rtol=1e-3
+  end
+end
+
+@testset "mps-qpt: grad nll" begin
+  N = 1
+  χ = 2
+  nsamples = 100
+  Random.seed!(1234)
+  rawdata = rand(0:1,nsamples,2*N)
+  bases = measurementsettings(2*N,nsamples,bases_id=["X","Y","Z"]) 
+  psi = initializetomography(2*N,χ)
+  data = Matrix{String}(undef, nsamples,2*N)
+  for n in 1:nsamples
+    data[n,:] = convertdatapoint(rawdata[n,:],bases[n,:],state=true)
+  end
+  num_grad = numgradsnll(psi,data,choi=true)
+  alg_grad,loss = gradnll(psi,data,choi=true)
+  for j in 1:2*N
+    @test array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
+  end
+  
+  psi = initializetomography(2*N,χ)
+  logZ,localnorms = lognormalize!(psi,choi=true)
+  @test norm(psi)^2 ≈ 2^(2*N/2)
+  alg_grad_localnorm,loss = gradnll(psi,data,localnorm=localnorms,choi=true)
+  for j in 1:2*N
+    @test array(alg_grad[j]) ≈ array(alg_grad_localnorm[j]) rtol=1e-3
+  end
+end
+
+
+@testset "mps-qpt: full gradients" begin
+  N = 2
+  χ = 4
+  nsamples = 1000
+  Random.seed!(1234)
+  rawdata = rand(0:1,nsamples,2*N)
+  bases = measurementsettings(2*N,nsamples,bases_id=["X","Y","Z"]) 
+  data = Matrix{String}(undef, nsamples,2*N)
+  for n in 1:nsamples
+    data[n,:] = convertdatapoint(rawdata[n,:],bases[n,:],state=true)
+  end
+
+  psi = initializetomography(2*N,χ)
+  logZ = 2.0*log(norm(psi))
+  NLL  = nll(psi,data,choi=true)
+  ex_loss = logZ + NLL
+  num_gradZ = numgradslogZ(psi)
+  num_gradNLL = numgradsnll(psi,data,choi=true)
+  num_grads = num_gradZ + num_gradNLL
+
+  alg_grads,loss = gradients(psi,data,choi=true)
+  @test ex_loss ≈ loss
+  for j in 1:2*N
+    @test array(alg_grads[j]) ≈ num_grads[j] rtol=1e-3
+  end
+
+  psi = initializetomography(2*N,χ)
+  logZ,localnorms = lognormalize!(psi,choi=true)
+  NLL  = nll(psi,data,choi=true)
+  ex_loss = NLL + N*log(2)
+  #@test norm(psi)^2 ≈ 1
+  
+  alg_grads,loss = gradients(psi,data,localnorm=localnorms,choi=true)
+  @test ex_loss ≈ loss
+  for j in 1:2*N
+    @test array(alg_grads[j]) ≈ num_grads[j] rtol=1e-3
+  end
+end
+
+
+
+
+
+""" LPDO STATE TOMOGRAPHY TESTS """
 
 @testset "lpdo-qst: lognormalization" begin
   N = 10
@@ -410,6 +519,66 @@ end
   end
   alg_gradient = permutedims(array(alg_grad[N]),[3,1,2])
   @test alg_gradient ≈ num_grad[N] rtol=1e-3
+end
+
+
+"""
+PROCESS TOMOGRAPHY WITH LPDO
+"""
+
+@testset "lpdo-qpt: lognormalization" begin
+  N = 4
+  χ = 4
+  ξ = 2
+  lpdo = initializetomography(N,χ,ξ)
+  @test length(lpdo) == N
+  logZ1 = 2.0*lognorm(lpdo) + N*log(2)
+  logZ2,_ = lognormalize!(lpdo,choi=true)
+  @test logZ1 ≈ logZ2
+  lpdo = initializetomography(N,χ,ξ)
+  lognormalize!(lpdo,choi=true)
+  @test norm(lpdo)^2 ≈ 2^(N/2)
+end
+
+@testset "lpdo-qpt: grad nll" begin
+  N = 2
+  χ = 4
+  ξ = 3
+  nsamples = 100
+  Random.seed!(1234)
+  rawdata = rand(0:1,nsamples,2*N)
+  bases = measurementsettings(2*N,nsamples,bases_id=["X","Y","Z"])
+  data = Matrix{String}(undef, nsamples,2*N)
+  for n in 1:nsamples
+    data[n,:] = convertdatapoint(rawdata[n,:],bases[n,:],state=true)
+  end
+  
+  lpdo = initializetomography(2*N,χ,ξ)
+
+  num_grad = numgradsnll(lpdo,data,choi=true)
+  alg_grad,loss = gradnll(lpdo,data,choi=true)
+  ex_loss = nll(lpdo,data,choi=true)
+  @test ex_loss ≈ loss
+  alg_gradient = permutedims(array(alg_grad[1]),[3,1,2])
+  @test alg_gradient ≈ num_grad[1] rtol=1e-3
+  for j in 2:2*N-1
+    alg_gradient = permutedims(array(alg_grad[j]),[4,2,3,1])
+    @test alg_gradient ≈ num_grad[j] rtol=1e-3
+  end
+  alg_gradient = permutedims(array(alg_grad[2*N]),[3,1,2])
+  @test alg_gradient ≈ num_grad[2*N] rtol=1e-3
+  
+  lpdo = initializetomography(2*N,χ,ξ)
+  logZ,localnorms = lognormalize!(lpdo,choi=true)
+  alg_grad,loss = gradnll(lpdo,data,localnorm=localnorms,choi=true)
+  alg_gradient = permutedims(array(alg_grad[1]),[3,1,2])
+  @test alg_gradient ≈ num_grad[1] rtol=1e-3
+  for j in 2:2*N-1
+    alg_gradient = permutedims(array(alg_grad[j]),[4,2,3,1])
+    @test alg_gradient ≈ num_grad[j] rtol=1e-3
+  end
+  alg_gradient = permutedims(array(alg_grad[2*N]),[3,1,2])
+  @test alg_gradient ≈ num_grad[2*N] rtol=1e-3
 end
 
 
