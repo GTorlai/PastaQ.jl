@@ -51,10 +51,11 @@ export
   gradnll,
   gradients,
   fidelity,
+  fullfidelity,
   getdensityoperator,
   statetomography,
   processtomography,
-
+  
 # optimizers/
   Optimizer,
   SGD,

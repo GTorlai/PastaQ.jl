@@ -570,8 +570,10 @@ function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwarg
   target = get(kwargs,:target,nothing)
   choi::Bool = get(kwargs,:choi,false)
   
+
+
   data = "state" .* data
-                         
+  
   if (localnorm && globalnorm)
     error("Both input norms are set to true")
   end
@@ -579,17 +581,24 @@ function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwarg
   model = copy(model)
   if !isnothing(target)
     target = copy(target)
-    for j in 1:length(model)
-      replaceind!(target[j],firstind(target[j],"Site"),firstind(model[j],"Site"))
+    if typeof(target)==MPS
+      for j in 1:length(model)
+        replaceind!(target[j],firstind(target[j],"Site"),firstind(model[j],"Site"))
+      end
+    else
+      for j in 1:length(model)
+        replaceind!(target[j],inds(target[j],"Site")[1],firstind(model[j],"Site"))
+        replaceind!(target[j],inds(target[j],"Site")[2],prime(firstind(model[j],"Site")))
+      end
     end
   end
+  
   num_batches = Int(floor(size(data)[1]/batchsize))
   
   tot_time = 0.0
-
   for ep in 1:epochs
     ep_time = @elapsed begin
-
+  
     data = data[shuffle(1:end),:]
     
     avg_loss = 0.0
@@ -615,7 +624,11 @@ function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwarg
     print("Ep = $ep  ")
     @printf("Loss = %.5E  ",avg_loss)
     if !isnothing(target)
-      F = fidelity(model,target,choi=choi)
+      if choi==true && typeof(target)==MPO
+        F = fullfidelity(model,target)
+      else
+        F = fidelity(model,target,choi=choi)
+      end
       @printf("Fidelity = %.3E  ",F)
     end
     @printf("Time = %.3f sec",ep_time)
@@ -691,6 +704,19 @@ function fidelity(lpdo::MPO,target::MPS;choi::Bool=false)
     fidelity = fidelity /(2^(2*length(psi)))
   end
   return fidelity
+end
+
+function fullfidelity(ρ::MPO,σ::MPO;choi::Bool=false)
+  @assert length(ρ) < 12
+  ρ_mat = fullmatrix(getdensityoperator(ρ))
+  σ_mat = fullmatrix(σ)
+  
+  ρ_mat ./= tr(ρ_mat)
+  σ_mat ./= tr(σ_mat)
+  
+  F = sqrt(ρ_mat) * (σ_mat * sqrt(ρ_mat))
+  F = real(tr(sqrt(F)))
+  return F
 end
 
 """
