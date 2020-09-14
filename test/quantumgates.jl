@@ -160,7 +160,27 @@ using LinearAlgebra
   ggdag = g * prime(dag(g),plev=1,1)
   @test array(ggdag) ≈ reshape(Matrix{ComplexF64}(I, 4, 4),(2,2,2,2))
  
+  g = gate("randU", i)
+  @test hasinds(g, i', i)
+  Id = g * swapprime(dag(g)', 2 => 1)
+  for n in 1:dim(i), n′ in 1:dim(i)
+    if n == n′
+      @test Id[n, n′] ≈ 1
+    else
+      @test Id[n, n′] ≈ 0 atol = 1e-15
+    end
+  end
+
+  g = gate("randU", i, j)
+  @test hasinds(g, i', j', i, j)
+  Id = g * swapprime(dag(g)', 2 => 1)
+  for n in 1:dim(i), m in 1:dim(j), n′ in 1:dim(i), m′ in 1:dim(j)
+    if (n, m) == (n′, m′)
+      @test Id[n, m, n′, m′] ≈ 1
+    else
+      @test Id[n, m, n′, m′] ≈ 0 atol = 1e-15
+    end
+  end
+
 end
-
-
 
