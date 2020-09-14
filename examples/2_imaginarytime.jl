@@ -17,7 +17,7 @@ end
 N = 50
 h = 1.0
 H,ψ = transversefieldising(N,h,hamiltonian=true)
-E = inner(ψ,*(H,ψ,method="densitymatrix",cutoff=1e-10))
+E = inner(ψ,H,ψ)
 println("GS : <H> = $E  (χ = $(maxlinkdim(ψ)))")
 
 τ = 0.02 
