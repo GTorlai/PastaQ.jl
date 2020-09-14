@@ -158,17 +158,6 @@ end
   @test fullmatrix(ρ2) ≈ exact_mat
 end
 
-@testset "Choi matrix initialization" begin
-  N = 5
-  Λ = choi(N)
-  @test length(Λ) == 2*N
-  @test typeof(Λ) == MPS
-  
-  Λ = choi(N,mixed=true)
-  @test length(Λ) == 2*N
-  @test typeof(Λ) == MPO
-end
-
 @testset "reset qubits" begin
   N = 5
   depth = 5
@@ -213,10 +202,6 @@ end
   ρ = runcircuit(ρ0,gates)
   @test prod(ρ) ≈ runcircuit(prod(ρ0),compilecircuit(ρ0,gates); apply_dag=true)
   
-  U0 = circuit(N)
-  U = runcircuit(U0,gates;get_unitary=true)
-  disable_warn_order!()
-  @test prod(U) ≈ runcircuit(prod(U0),compilecircuit(U0,gates))
 end
 
 @testset "runcircuit: noisy quantum circuit" begin
@@ -229,7 +214,7 @@ end
   # Pure state, noisy circuit
   ψ0 = qubits(N)
   ρ = runcircuit(ψ0,gates,noise="DEP",p=0.1)
-  ρ0 = densitymatrix(ψ0)
+  ρ0 = MPO(ψ0)
   U = compilecircuit(ρ0, gates, noise="DEP", p=0.1)
   disable_warn_order!()
   @test prod(ρ) ≈ runcircuit(prod(ρ0), U; apply_dag=true)
@@ -257,10 +242,6 @@ end
   ψ = runcircuit(ψ0, gates)
   @test prod(ψ) ≈ runcircuit(prod(ψ0),compilecircuit(ψ0,gates))
 
-  U0 = circuit(N)
-  U = runcircuit(U0,gates,get_unitary=true)
-  disable_warn_order!()
-  @test prod(U) ≈ runcircuit(prod(U0),compilecircuit(U0,gates))
 end
 
 @testset "runcircuit: long range gates" begin
@@ -279,11 +260,10 @@ end
   ψ = runcircuit(ψ0,gates)
   @test prod(ψ) ≈ runcircuit(prod(ψ0),compilecircuit(ψ0,gates)) 
   
-  U0 = circuit(N)
-  U = runcircuit(U0,gates,get_unitary=true)
-  disable_warn_order!()
-  @test prod(U) ≈ runcircuit(prod(U0),compilecircuit(U0,gates))
 end
+
+""" MEASUREMENTS """
+
 
 @testset "generation of preparation states" begin
   N = 4
@@ -328,14 +308,24 @@ end
   gates = randomquantumcircuit(N,depth)
   ψ = runcircuit(ψ0,gates)
   ψ_vec = fullvector(ψ)
-  prob = abs2.(ψ_vec)
+  probs = abs2.(ψ_vec)
   
   nshots = 100000
   samples = measure(ψ,nshots)
   @test size(samples)[1] == nshots
   @test size(samples)[2] == N
   data_prob = empiricalprobability(samples)
-  @test prob ≈ data_prob atol=1e-2
+  @test probs ≈ data_prob atol=1e-2
+
+  ρ = runcircuit(N,gates,noise="AD",γ=0.01)
+  ρ_mat = fullmatrix(ρ)
+  probs = real(diag(ρ_mat))
+
+  samples = measure(ρ,nshots)
+  @test size(samples)[1] == nshots
+  @test size(samples)[2] == N
+  data_prob = empiricalprobability(samples)
+  @test probs ≈ data_prob atol=1e-2
 end
 
 @testset "measurement projections" begin

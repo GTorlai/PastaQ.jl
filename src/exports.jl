@@ -30,17 +30,17 @@ export
   compilecircuit,
   compilecircuit!,
   runcircuit,
+  choimatrix,
   makepreparationgates,
   makemeasurementgates,
   generatemeasurementsettings,
   generatepreparationsettings,
   measure,
   generatedata,
-  convertdata,
 
 # quantumtomography,jl
   # Methods
-  initializeQST,
+  initializetomography,
   lognormalize!,
   nll,
   gradlogZ,
@@ -49,6 +49,7 @@ export
   fidelity,
   getdensityoperator,
   statetomography,
+  processtomography,
 
 # optimizers/
   Optimizer,
@@ -57,8 +58,14 @@ export
   # Methods
   update!,
 
+# physics.jl
+  # Methods
+  transversefieldising,
+  groundstate,
+
 # utils.jl
   # Methods
   loadtrainingdataQST,
+  convertdata,
   fullvector,
   fullmatrix

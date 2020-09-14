@@ -7,7 +7,8 @@ using Test
     "circuits.jl",
     "circuitops.jl",
     "quantumcircuit.jl",
-    "quantumtomography.jl"
+    "quantumtomography.jl",
+    "benchmark_qiskit.jl"
   )
     println("Running $filename")
     include(filename)
