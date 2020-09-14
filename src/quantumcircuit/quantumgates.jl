@@ -118,7 +118,7 @@ gate(::GateName"Rz"; ϕ::Number) =
 
 # Rotation around generic axis n̂
 gate(::GateName"Rn";
-    θ::Real, ϕ::Real, λ::Real) =
+     θ::Real, ϕ::Real, λ::Real) =
   [          cos(θ/2)    -exp(im*λ)*sin(θ/2)
    exp(im*ϕ)*sin(θ/2) exp(im*(ϕ+λ))*cos(θ/2)]
 

@@ -64,8 +64,8 @@ end
 """
 Create a layer of gates.
 """
-gatelayer(gatename::AbstractString, N::Int) =
-  [(gatename, n) for n in 1:N]
+gatelayer(gatename::AbstractString, N::Int; kwargs...) =
+  [(gatename, n, values(kwargs)) for n in 1:N]
 
 """
 Append a layer of gates to a gate list.
@@ -74,15 +74,11 @@ appendlayer!(gates::AbstractVector{ <: Tuple},
              gatename::AbstractString, N::Int) =
   append!(gates, gatelayer(gatename, N))
 
-
-# TODO: replace this with gate("randU", ...)
 """
 Random rotation
 """
-function randomrotation(site::Int)
-  θ,ϕ,λ = rand!(zeros(3))
-  return ("Rn", site, (θ = π*θ, ϕ = 2*π*ϕ, λ = 2*π*λ))
-end
+randomrotation(site::Int) =
+  ("Rn", site, (θ = π*rand(), ϕ = 2*π*rand(), λ = 2*π*rand()))
 
 # TODO: replace with gatelayer(gatename, bonds; nqubit = 2)
 # bonds could be:
@@ -120,9 +116,6 @@ function randomcircuit(N::Int,depth::Int,twoqubit_bonds::Array;
     for j in 1:N
       onequbitgatename = onequbitgates[rand(1:numgates_1q)]
       if onequbitgatename == "Rn"
-        # TODO: replace with:
-        # g = ("randU", j)
-        # For some reason this breaks the tests.
         g = randomrotation(j)
       else
         g = (onequbitgatename, j)
