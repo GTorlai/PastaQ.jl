@@ -8,9 +8,8 @@ export
   applygate!,
 
 # circuits.jl
-  appendgates!,
-  hadamardlayer,
-  hadamardlayer!,
+  appendlayer!,
+  gatelayer,
   randomrotation,
   randomrotationlayer,
   randomrotationlayer!,

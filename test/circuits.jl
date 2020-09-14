@@ -3,10 +3,10 @@ using ITensors
 using Test
 using Random
 
-@testset "circuits: hadamardlayer" begin
+@testset "circuits: appendlayer!" begin
   N = 5
   gates = Tuple[]
-  hadamardlayer!(gates,N)
+  appendlayer!(gates, "H", N)
   @test length(gates) == N
   for j in 1:N
     @test gates[j] isa Tuple{String,Int64}

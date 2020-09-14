@@ -62,30 +62,17 @@ function squarearray(Lx::Int,Ly::Int)
 end
 
 """
-Add a list of gates to gates (data structure) 
+Create a layer of gates.
 """
-function appendgates!(gates::Vector{<:Tuple},newgates::Vector{<:Tuple})
-  for newgate in newgates
-    push!(gates,newgate)
-  end
-end
+gatelayer(gatename::AbstractString, N::Int) =
+  [(gatename, n) for n in 1:N]
 
 """
-Layer of Hadamard gates
+Append a layer of gates to a gate list.
 """
-function hadamardlayer(N::Int)
-  gates = Tuple[]
-  for j in 1:N
-    push!(gates,("H", j))
-  end
-  return gates
-end
-
-function hadamardlayer!(gates::Array,N::Int)
-  newgates = hadamardlayer(N)
-  appendgates!(gates,newgates)
-  return gates
-end
+appendlayer!(gates::AbstractVector{ <: Tuple},
+             gatename::AbstractString, N::Int) =
+  append!(gates, gatelayer(gatename, N))
 
 """
 Random rotation
@@ -109,7 +96,7 @@ end
 
 function randomrotationlayer!(gates::Array,N::Int)
   newgates = randomrotationlayer(N)
-  appendgates!(gates,newgates)
+  append!(gates, newgates)
   return gates
 end
 
@@ -126,7 +113,7 @@ end
 
 function twoqubitlayer!(gates::Array,gatename::String,bonds::Array)
   newgates = twoqubitlayer(gatename,bonds)
-  appendgates!(gates,newgates)
+  append!(gates, newgates)
   return gates
 end
 
