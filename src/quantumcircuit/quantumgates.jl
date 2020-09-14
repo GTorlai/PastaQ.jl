@@ -242,6 +242,15 @@ gate(::GateName"CCCNOT") =
    0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0]
 
 #
+# n-qubit gates
+#
+
+function gate(::GateName"randU", N::Int)
+  Q, _ = NDTensors.qr_positive(randn(ComplexF64, N, N))
+  return Q
+end
+
+#
 # State preparation gates
 #
 
@@ -380,9 +389,14 @@ gate(::GateName{gn}; kwargs...) where {gn} =
 
 gate(s::String) = gate(GateName(s))
 
+# Version that accepts a dimension for the gate,
+# for n-qubit gates
+gate(gn::GateName, N::Int; kwargs...) =
+  gate(gn; kwargs...)
+
 function gate(gn::GateName, s::Index...; kwargs...)
   rs = reverse(s)
-  g = gate(gn; kwargs...) 
+  g = gate(gn, dim(s); kwargs...) 
   if ndims(g) == 1
     return itensor(g, rs...)
   elseif ndims(g) == 2
