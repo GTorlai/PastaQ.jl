@@ -74,31 +74,31 @@ appendlayer!(gates::AbstractVector{ <: Tuple},
              gatename::AbstractString, N::Int) =
   append!(gates, gatelayer(gatename, N))
 
-"""
-Random rotation
-"""
-function randomrotation(site::Int)
-  θ,ϕ,λ = rand!(zeros(3))
-  return ("Rn", site, (θ = π*θ, ϕ = 2*π*ϕ, λ = 2*π*λ))
-end
-
-"""
-Layer of random rotations
-"""
-function randomrotationlayer(N::Int)
-  gates = Tuple[]
-  for j in 1:N
-    g = randomrotation(j)
-    push!(gates,g)
-  end
-  return gates
-end
-
-function randomrotationlayer!(gates::Array,N::Int)
-  newgates = randomrotationlayer(N)
-  append!(gates, newgates)
-  return gates
-end
+#"""
+#Random rotation
+#"""
+#function randomrotation(site::Int)
+#  θ,ϕ,λ = rand!(zeros(3))
+#  return ("Rn", site, (θ = π*θ, ϕ = 2*π*ϕ, λ = 2*π*λ))
+#end
+#
+#"""
+#Layer of random rotations
+#"""
+#function randomrotationlayer(N::Int)
+#  gates = Tuple[]
+#  for j in 1:N
+#    g = randomrotation(j)
+#    push!(gates,g)
+#  end
+#  return gates
+#end
+#
+#function randomrotationlayer!(gates::Array,N::Int)
+#  newgates = randomrotationlayer(N)
+#  append!(gates, newgates)
+#  return gates
+#end
 
 """
 Layer of two-qubit gates 
@@ -118,7 +118,7 @@ function twoqubitlayer!(gates::Array,gatename::String,bonds::Array)
 end
 
 """
-Random quantum circuit
+Random quantum circuit.
 """
 function randomquantumcircuit(N::Int,depth::Int,twoqubit_bonds::Array;
                               twoqubitgate   = "CX",
@@ -132,9 +132,9 @@ function randomquantumcircuit(N::Int,depth::Int,twoqubit_bonds::Array;
     for j in 1:N
       onequbitgatename = onequbitgates[rand(1:numgates_1q)]
       if onequbitgatename == "Rn"
-        g = randomrotation(j)
+        g = ("randU", j)
       else
-        g = (onequbitgatename,j)
+        g = (onequbitgatename, j)
       end
       push!(gates,g) 
     end

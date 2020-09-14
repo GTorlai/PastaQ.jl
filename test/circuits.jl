@@ -15,33 +15,15 @@ using Random
   end
 end
 
-@testset "circuits: rand1Qrotationlayer" begin
+@testset "circuits: randU layer" begin
   N = 5
   gates = Tuple[]
-  randomrotationlayer!(gates,N)
+  appendlayer!(gates, "randU", N)
   @test length(gates) == N
   for j in 1:N
-    @test typeof(gates[j]) == Tuple{String,Int64,NamedTuple{(:θ, :ϕ, :λ),
-                                    Tuple{Float64,Float64,Float64}}}
-    @test gates[j][1] == "Rn"
+    @test typeof(gates[j]) == Tuple{String,Int64}
+    @test gates[j][1] == "randU"
     @test gates[j][2] == j
-    @test 0 ≤ gates[j][3].θ ≤ π
-    @test 0 ≤ gates[j][3].ϕ ≤ 2π
-    @test 0 ≤ gates[j][3].λ ≤ 2π
-  end
-  
-  #rng = MersenneTwister(1234)  
-  gates = Tuple[]
-  randomrotationlayer!(gates,N)
-  @test length(gates) == N
-  for j in 1:N
-    @test typeof(gates[j]) == Tuple{String,Int64,NamedTuple{(:θ, :ϕ, :λ),
-                                    Tuple{Float64,Float64,Float64}}}
-    @test gates[j][1] == "Rn"
-    @test gates[j][2] == j
-    @test 0 ≤ gates[j][3].θ ≤ π
-    @test 0 ≤ gates[j][3].ϕ ≤ 2π
-    @test 0 ≤ gates[j][3].λ ≤ 2π
   end
 end
 

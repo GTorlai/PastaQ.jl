@@ -10,9 +10,6 @@ export
 # circuits.jl
   appendlayer!,
   gatelayer,
-  randomrotation,
-  randomrotationlayer,
-  randomrotationlayer!,
   twoqubitlayer,
   twoqubitlayer!,
   lineararray,
