@@ -6,7 +6,7 @@ Random.seed!(1234)
 
 N = 40
 depth=16
-gates = randomquantumcircuit(N,depth)
+gates = randomcircuit(N,depth)
 
 # Evolution of pure state
 ψ = runcircuit(N,gates,cutoff=1e-9)
