@@ -74,32 +74,20 @@ appendlayer!(gates::AbstractVector{ <: Tuple},
              gatename::AbstractString, N::Int) =
   append!(gates, gatelayer(gatename, N))
 
-#"""
-#Random rotation
-#"""
-#function randomrotation(site::Int)
-#  θ,ϕ,λ = rand!(zeros(3))
-#  return ("Rn", site, (θ = π*θ, ϕ = 2*π*ϕ, λ = 2*π*λ))
-#end
-#
-#"""
-#Layer of random rotations
-#"""
-#function randomrotationlayer(N::Int)
-#  gates = Tuple[]
-#  for j in 1:N
-#    g = randomrotation(j)
-#    push!(gates,g)
-#  end
-#  return gates
-#end
-#
-#function randomrotationlayer!(gates::Array,N::Int)
-#  newgates = randomrotationlayer(N)
-#  append!(gates, newgates)
-#  return gates
-#end
 
+# TODO: replace this with gate("randU", ...)
+"""
+Random rotation
+"""
+function randomrotation(site::Int)
+  θ,ϕ,λ = rand!(zeros(3))
+  return ("Rn", site, (θ = π*θ, ϕ = 2*π*ϕ, λ = 2*π*λ))
+end
+
+# TODO: replace with gatelayer(gatename, bonds; nqubit = 2)
+# bonds could be:
+# Union{Int, AbstractRange, Vector{Int}}
+# to specify the starting location.
 """
 Layer of two-qubit gates 
 """
@@ -120,9 +108,9 @@ end
 """
 Random quantum circuit.
 """
-function randomquantumcircuit(N::Int,depth::Int,twoqubit_bonds::Array;
-                              twoqubitgate   = "CX",
-                              onequbitgates  = ["Rn"])
+function randomcircuit(N::Int,depth::Int,twoqubit_bonds::Array;
+                       twoqubitgate   = "CX",
+                       onequbitgates  = ["Rn"])
   gates = Tuple[]
   numgates_1q = length(onequbitgates)
   
@@ -132,7 +120,10 @@ function randomquantumcircuit(N::Int,depth::Int,twoqubit_bonds::Array;
     for j in 1:N
       onequbitgatename = onequbitgates[rand(1:numgates_1q)]
       if onequbitgatename == "Rn"
-        g = ("randU", j)
+        # TODO: replace with:
+        # g = ("randU", j)
+        # For some reason this breaks the tests.
+        g = randomrotation(j)
       else
         g = (onequbitgatename, j)
       end
@@ -142,22 +133,22 @@ function randomquantumcircuit(N::Int,depth::Int,twoqubit_bonds::Array;
   return gates
 end
 
-function randomquantumcircuit(N::Int,depth::Int;
-                              twoqubitgate   = "CX",
-                              onequbitgates  = ["Rn"])
+function randomcircuit(N::Int,depth::Int;
+                       twoqubitgate   = "CX",
+                       onequbitgates  = ["Rn"])
   twoqubit_bonds = lineararray(N)
-  return randomquantumcircuit(N,depth,twoqubit_bonds;
-                              twoqubitgate=twoqubitgate,
-                              onequbitgates=onequbitgates)
+  return randomcircuit(N,depth,twoqubit_bonds;
+                       twoqubitgate=twoqubitgate,
+                       onequbitgates=onequbitgates)
 end
 
-function randomquantumcircuit(Lx::Int,Ly::Int,depth::Int;
-                              twoqubitgate   = "CX",
-                              onequbitgates  = ["Rn"])
+function randomcircuit(Lx::Int,Ly::Int,depth::Int;
+                       twoqubitgate   = "CX",
+                       onequbitgates  = ["Rn"])
   twoqubit_bonds = squarearray(Lx,Ly)
   N = Lx * Ly
-  return randomquantumcircuit(N,depth,twoqubit_bonds;
-                              twoqubitgate=twoqubitgate,
-                              onequbitgates=onequbitgates)
+  return randomcircuit(N,depth,twoqubit_bonds;
+                       twoqubitgate=twoqubitgate,
+                       onequbitgates=onequbitgates)
 end
 

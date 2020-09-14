@@ -14,7 +14,7 @@ export
   twoqubitlayer!,
   lineararray,
   squarearray,
-  randomquantumcircuit,
+  randomcircuit,
 
 # quantumcircuit.jl
   # Methods

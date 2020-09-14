@@ -47,7 +47,7 @@ It is also possible to add a noise model, defined in terms of its kraus operator
 ```julia
 N = 20                                       # Number of qubits
 depth = 10                                   # Circuit's depth
-gates = randomquantumcircuit(N, depth)       # Generate gates
+gates = randomcircuit(N, depth)              # Generate gates
 ψ0 = qubits(N)                               # Initialize qubits
 ρ = runcircuit(ψ0, gates;noise="DEP",p=0.1)  # Run
 ```
