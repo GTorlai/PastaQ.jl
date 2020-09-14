@@ -134,18 +134,54 @@ function runcircuit(M::Union{MPS,MPO},gate_tensors::Vector{<:ITensor}; kwargs...
   return Mc
 end
 
+
+
 """
-Apply the circuit to a state (wavefunction/densitymatrix) from a list of gates
+    runcircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple}; noise=nothing, apply_dag=nothing, 
+               cutoff=1e-15, maxdim=10000, kwargs...)
+
+Apply the circuit to a state (wavefunction or density matrix) from a list of gates.
+
+If an MPS `|ψ⟩` is input, there are three possible modes:
+
+1. By default (`noise = nothing` and `apply_dag = nothing`), the evolution `U|ψ⟩` is performed.
+2. If `noise` is set to something nontrivial, the mixed evolution `ε(|ψ⟩⟨ψ|)` is performed.
+   Example: noise = "AD", γ=0.1 (amplitude damping channel with decay rate γ)
+3. If `noise = nothing` and `apply_dag = true`, the evolution `U|ψ⟩⟨ψ|U†` is performed.
+
+If an MPO `ρ` is input, there are three possible modes:
+
+1. By default (`noise = nothing` and `apply_dag = nothing`), the evolution `U ρ U†` is performed.
+2. If `noise` is set to something nontrivial, the evolution `ε(ρ)` is performed.
+3. If `noise = nothing` and `apply_dag = false`, the evolution `Uρ` is performed.
 """
+
 function runcircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple}; noise=nothing,apply_dag=nothing, 
                     cutoff=1e-15,maxdim=10000,kwargs...)
   gate_tensors = compilecircuit(M,gates; noise=noise, kwargs...) 
   runcircuit(M,gate_tensors; cutoff=cutoff,maxdim=maxdim,apply_dag=apply_dag, kwargs...)
 end
 
+
+
 """
-Empty run of the quantum circuit
+    runcircuit(N::Int, gates::Vector{<:Tuple}; process=false, noise=nothing,
+               cutoff=1e-15, maxdim=10000, kwargs...)
+
+Apply the circuit to a state (wavefunction or density matrix) from a list of gates, where the state has `N` physical qubits. 
+The starting state is generated automatically based on the flags `process`, `noise`, and `apply_dag`.
+
+1. By default (`noise = nothing`, `apply_dag = nothing`, and `process = false`), 
+   the evolution `U|ψ⟩` is performed where the starting state is set to `|ψ⟩ = |000...⟩`. 
+   The MPS `U|000...⟩` is returned.
+2. If `noise` is set to something nontrivial, the mixed evolution `ε(|ψ⟩⟨ψ|)` is performed, 
+   where the starting state is set to `|ψ⟩ = |000...⟩`. 
+   The MPO `ε(|000...⟩⟨000...|)` is returned.
+3. If `process = true`, the evolution `U 1̂` is performed, where the starting state `1̂ = (1⊗1⊗1⊗…⊗1)`. 
+   The MPO approximation for the unitary represented by the set of gates is returned. 
+   In this case, `noise` must be `nothing`.
 """
+
 function runcircuit(N::Int,gates::Vector{<:Tuple}; process=false,noise=nothing,
                     cutoff=1e-15,maxdim=10000,kwargs...)
   if process==false
@@ -154,7 +190,7 @@ function runcircuit(N::Int,gates::Vector{<:Tuple}; process=false,noise=nothing,
     # noisy:     ψ -> ρ = ε(|ψ⟩⟨ψ|)
     return runcircuit(ψ,gates;noise=noise,cutoff=cutoff,maxdim=maxdim,kwargs...)
   
-  elseif process==true & isnothing(noise)==true
+  elseif process==true & isnothing(noise)
     if isnothing(noise)
       U = circuit(N) # = 1⊗1⊗1⊗…⊗1
       return runcircuit(U,gates;noise=nothing,apply_dag=false,cutoff=cutoff,maxdim=maxdim,kwargs...) 
@@ -166,8 +202,25 @@ function runcircuit(N::Int,gates::Vector{<:Tuple}; process=false,noise=nothing,
 end
 
 """
-Compute the Choi matrix
+    choimatrix(N::Int, gates::Vector{<:Tuple}; noise=nothing, apply_dag=false,
+               cutoff=1e-15, maxdim=10000, kwargs...)
+
+Compute the Choi matrix `Λ` from a set of gates that make up a quantum process.
+
+If `noise = nothing` (the default), for an N-qubit process, by default the square 
+root of the Choi matrix `|U⟩` is returned, such that the Choi matrix is the rank-1 matrix 
+`Λ = |U⟩⟨U|`. `|U⟩` is an MPS with `2N` sites for a process running on `N` physical qubits. 
+It is the "state" version of the unitary approximation for the full gate evolution `U`.
+
+If `noise != nothing`, an approximation for the Choi matrix is returned as an MPO 
+with `2N` sites, for a process with `N` physical qubits.
+
+If `noise = nothing` and `apply_dag = true`, the Choi matrix `Λ` is returned as an MPO with 
+`2N` sites. In this case, the MPO `Λ` is equal to `|U⟩⟨U|`.
+
+#TODO: Explain site ordering and normalization
 """
+
 function choimatrix(N::Int,gates::Vector{<:Tuple};noise=nothing,apply_dag=false,
                     cutoff=1e-15,maxdim=10000,kwargs...)
   if isnothing(noise)
