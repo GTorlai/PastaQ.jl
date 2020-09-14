@@ -5,109 +5,109 @@ using JLD
 using Test
 using LinearAlgebra
 
-function state_to_int(state::Array)
-  index = 0
-  for j in 1:length(state)
-    index += 2^(j-1)*state[length(state)+1-j]
-  end
-  return index
-end
-
-function empiricalprobability(samples::Matrix)
-  prob = zeros((1<<size(samples)[2]))
-  for n in 1:size(samples)[1]
-    sample = samples[n,:]
-    index = state_to_int(sample)
-    prob[index+1] += 1
-  end
-  prob = prob / size(samples)[1]
-  return prob
-end
-
-function probability_of(data_in::Array,data_out::Array,target_in::Array,target_out::Array)
-  nshots = size(data_in)[1]
-  prob = 0.0
-  for n in 1:nshots
-    if data_in[n,:]==target_in && data_out[n,:]==target_out
-      prob += 1.0/nshots
-    end
-  end
-  return prob
-end
-
-@testset "process data generation" begin
-  N = 1
-  ψ0 = qubits(N)
-  #gates = Tuple[("H",1)]
-  gates = Tuple[("Rn",1,(θ=1.0,ϕ=2.0,λ=3.0))]
-
-  gate_tensors = compilecircuit(ψ0,gates)
-  
-  Φ = choimatrix(N,gates)
-  
-  prep  = ["X+","X-","Y+","Y-","Z+","Z-"]
-  bases = ["X","Y","Z"]
-  
-  conditional_probability = zeros(6,6)
-
-  counter_a = 1
-  for j in prep
-    a = [j]
-    p_gates = preparationgates(a)
-    ψ_in   = runcircuit(ψ0,p_gates)
-    ψ_out  = runcircuit(ψ_in,gate_tensors) 
-    
-    counter_b = 1
-    for k in bases
-      b = [k]
-      m_gates = measurementgates(b)
-      ψ_meas = runcircuit(ψ_out,m_gates) 
-      
-      prob1 = abs2.(fullvector(ψ_meas))
-      
-      phidag = dag(Φ)
-      s = siteinds(Φ)
-      
-      for (i,σ) in enumerate(["+","-"])
-        input_state  = "state" * a[1]
-        output_state = "state" * b[1] * σ 
-        tmp = phidag[1] * dag(gate(input_state,s[1]))
-        tmp = tmp * phidag[2]
-        psix = tmp * gate(output_state,s[2])
-        prob2 = abs2(psix[])
-        #print("P=",a[1],"  ","M=",b[1]*σ,"  ")
-        #println("p1=",prob1[i],"  ","p2=",prob2)
-        @test prob1[i] ≈ prob2 atol=1e-1
-        
-        conditional_probability[counter_a,counter_b] = prob2
-        counter_b += 1
-      end
-      
-    end
-    counter_a += 1
-  end
-  
-  #nshots = 10000
-  #(data_in,data_out) = generatedata(N,gates,nshots;process=true)
-  #
-  #emp_prob = probability_of(data_in,data_out,["X+"],["X+"])
-  #@show emp_prob
-  #counter_a = 1
-  #for j in prep
-  #  a = [j]
-  #  counter_b = 1
-  #  for k in prep
-  #    b = [k]
-  #    emp_prob = 18*probability_of(data_in,data_out,a,b)
-  #    @show a,b,emp_prob,conditional_probability[counter_a,counter_b]
-  #    counter_b += 1
-  #    #@show a,b
-  #  end
-  #  counter_a += 1
-  #end
-end
-
-
+#function state_to_int(state::Array)
+#  index = 0
+#  for j in 1:length(state)
+#    index += 2^(j-1)*state[length(state)+1-j]
+#  end
+#  return index
+#end
+#
+#function empiricalprobability(samples::Matrix)
+#  prob = zeros((1<<size(samples)[2]))
+#  for n in 1:size(samples)[1]
+#    sample = samples[n,:]
+#    index = state_to_int(sample)
+#    prob[index+1] += 1
+#  end
+#  prob = prob / size(samples)[1]
+#  return prob
+#end
+#
+#function probability_of(data_in::Array,data_out::Array,target_in::Array,target_out::Array)
+#  nshots = size(data_in)[1]
+#  prob = 0.0
+#  for n in 1:nshots
+#    if data_in[n,:]==target_in && data_out[n,:]==target_out
+#      prob += 1.0/nshots
+#    end
+#  end
+#  return prob
+#end
+#
+#@testset "process data generation" begin
+#  N = 1
+#  ψ0 = qubits(N)
+#  #gates = Tuple[("H",1)]
+#  gates = Tuple[("Rn",1,(θ=1.0,ϕ=2.0,λ=3.0))]
+#
+#  gate_tensors = compilecircuit(ψ0,gates)
+#  
+#  Φ = choimatrix(N,gates)
+#  
+#  prep  = ["X+","X-","Y+","Y-","Z+","Z-"]
+#  bases = ["X","Y","Z"]
+#  
+#  conditional_probability = zeros(6,6)
+#
+#  counter_a = 1
+#  for j in prep
+#    a = [j]
+#    p_gates = preparationgates(a)
+#    ψ_in   = runcircuit(ψ0,p_gates)
+#    ψ_out  = runcircuit(ψ_in,gate_tensors) 
+#    
+#    counter_b = 1
+#    for k in bases
+#      b = [k]
+#      m_gates = measurementgates(b)
+#      ψ_meas = runcircuit(ψ_out,m_gates) 
+#      
+#      prob1 = abs2.(fullvector(ψ_meas))
+#      
+#      phidag = dag(Φ)
+#      s = siteinds(Φ)
+#      
+#      for (i,σ) in enumerate(["+","-"])
+#        input_state  = "state" * a[1]
+#        output_state = "state" * b[1] * σ 
+#        tmp = phidag[1] * dag(gate(input_state,s[1]))
+#        tmp = tmp * phidag[2]
+#        psix = tmp * gate(output_state,s[2])
+#        prob2 = abs2(psix[])
+#        #print("P=",a[1],"  ","M=",b[1]*σ,"  ")
+#        #println("p1=",prob1[i],"  ","p2=",prob2)
+#        @test prob1[i] ≈ prob2 atol=1e-1
+#        
+#        conditional_probability[counter_a,counter_b] = prob2
+#        counter_b += 1
+#      end
+#      
+#    end
+#    counter_a += 1
+#  end
+#  
+#  #nshots = 10000
+#  #(data_in,data_out) = generatedata(N,gates,nshots;process=true)
+#  #
+#  #emp_prob = probability_of(data_in,data_out,["X+"],["X+"])
+#  #@show emp_prob
+#  #counter_a = 1
+#  #for j in prep
+#  #  a = [j]
+#  #  counter_b = 1
+#  #  for k in prep
+#  #    b = [k]
+#  #    emp_prob = 18*probability_of(data_in,data_out,a,b)
+#  #    @show a,b,emp_prob,conditional_probability[counter_a,counter_b]
+#  #    counter_b += 1
+#  #    #@show a,b
+#  #  end
+#  #  counter_a += 1
+#  #end
+#end
+#
+#
 #@testset "generation of preparation states" begin
 #  N = 4
 #  nshots = 100
@@ -154,7 +154,7 @@ end
 #  probs = abs2.(ψ_vec)
 #  
 #  nshots = 100000
-#  samples = measure(ψ,nshots)
+#  samples = generatedata(ψ,nshots)
 #  @test size(samples)[1] == nshots
 #  @test size(samples)[2] == N
 #  data_prob = empiricalprobability(samples)
@@ -164,14 +164,12 @@ end
 #  ρ_mat = fullmatrix(ρ)
 #  probs = real(diag(ρ_mat))
 #
-#  samples = measure(ρ,nshots)
+#  samples = generatedata(ρ,nshots)
 #  @test size(samples)[1] == nshots
 #  @test size(samples)[2] == N
 #  data_prob = empiricalprobability(samples)
 #  @test probs ≈ data_prob atol=1e-2
 #end
-#
-#
 #
 #
 #
@@ -191,7 +189,7 @@ end
 #    meas_gates = measurementgates(basis)
 #    #meas_tensors = compilecircuit(ψ,meas_gates)
 #    ψ_out = runcircuit(ψ,meas_gates)
-#    x1 = measure(ψ_out,1)
+#    x1 = generatedata(ψ_out,1)
 #    x1 .+= 1 
 #    
 #    if (basis[1] == "Z")
@@ -285,3 +283,54 @@ end
 #  end
 #end
 #
+#
+
+@testset "generatedata" begin
+  
+  N = 4
+  nshots = 100
+  gates = randomquantumcircuit(N,4)
+  ψ = runcircuit(N,gates)
+  ρ = runcircuit(N,gates;noise="AD",γ=0.1)
+
+  # 1a) Generate data with a MPS on the reference basis
+  data = generatedata(ψ,nshots)
+  @test size(data) == (nshots,N)
+  # 1b) Generate data with a MPO on the reference basis
+  data = generatedata(ρ,nshots)
+  @test size(data) == (nshots,N)
+  
+  # 2a) Generate data with a MPS on multiple bases
+  bases = measurementsettings(N,nshots;bases_id=["X","Y","Z"])
+  data = generatedata(ψ,nshots,bases)
+  @test size(data) == (nshots,N)
+  # 2b) Generate data with a MPO on multiple bases
+  bases = measurementsettings(N,nshots;bases_id=["X","Y","Z"])
+  data = generatedata(ρ,nshots,bases)
+  @test size(data) == (nshots,N)
+
+  # 3) Measure MPS at the output of a circuit
+  data = generatedata(N,gates,nshots)
+  @test size(data) == (nshots,N)
+  data = generatedata(N,gates,nshots;noise="AD",γ=0.1)
+  @test size(data) == (nshots,N)
+  data = generatedata(N,gates,nshots;bases_id=["X","Y","Z"])
+  @test size(data) == (nshots,N)
+  data = generatedata(N,gates,nshots;noise="AD",γ=0.1,bases_id=["X","Y","Z"])
+  @test size(data) == (nshots,N)
+  M,data = generatedata(N,gates,nshots;return_state=true)
+  M,data = generatedata(N,gates,nshots;return_state=true,noise="AD",γ=0.1)
+  M,data = generatedata(N,gates,nshots;return_state=true,bases_id=["X","Y","Z"])
+  M,data = generatedata(N,gates,nshots;return_state=true,noise="AD",γ=0.1,bases_id=["X","Y","Z"])
+  
+  # 4) Process tomography
+  (data_in,data_out) = generate_processdata(N,gates,nshots)
+  @test size(data_in) == (nshots,N)
+  @test size(data_out) == (nshots,N)
+  (data_in,data_out) = generate_processdata(N,gates,nshots;noise="AD",γ=0.1)
+  @test size(data_in) == (nshots,N)
+  @test size(data_out) == (nshots,N)
+  #(Λ,data_in,data_out) = generate_processdata(N,gates,nshots;choi=true,return_state=true)
+  #(Λ,data_in,data_out) = generate_processdata(N,gates,nshots;choi=true,return_state=true,noise="AD",γ=0.1)
+
+end

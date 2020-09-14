@@ -1,4 +1,23 @@
 """
+Perform a projective measurements on a wavefunction or density operator
+"""
+function generatedata(M::Union{MPS,MPO},nshots::Int)
+  orthogonalize!(M,1)
+  if (nshots==1)
+    measurements = sample(M)
+    measurements .-= 1
+  else
+    measurements = Matrix{Int64}(undef, nshots, length(M))
+    for n in 1:nshots
+      measurement = sample(M)
+      measurement .-= 1
+      measurements[n,:] = measurement
+    end
+  end
+  return measurements
+end
+
+"""
 Given as input a measurement basis, returns the corresponding
 gate data structure.
 Example:
@@ -11,25 +30,6 @@ function measurementgates(basis::Array)
   for j in 1:length(basis)
     if (basis[j]!= "Z")
       push!(gate_list,("meas$(basis[j])", j))
-    end
-  end
-  return gate_list
-end
-
-"""
-Given as input a preparation state, returns the corresponding
-gate data structure.
-Example:
-prep = ["X+","Z+","Z+","Y+"]
--> gate_list = [("prepX+", 1),
-                ("prepY+", 4)]
-"""
-function preparationgates(prep::Array)
-  gate_list = Tuple[]
-  for j in 1:length(prep)
-    if (prep[j]!= "Z+")
-      gatename = "prep$(prep[j])"
-      push!(gate_list, (gatename, j))
     end
   end
   return gate_list
@@ -59,6 +59,78 @@ function measurementsettings(N::Int,numshots::Int;
   return measurementbases
 end
 
+
+
+"""
+MEASUREMENT IN MULTIPLE BASES
+"""
+
+# Generate nshots datapoints in bases for MPS/MPO
+"""
+Generate a dataset of measurements in different bases
+"""
+function generatedata(M::Union{MPS,MPO},nshots::Int,bases::Array)
+  data = Matrix{String}(undef, nshots,length(M))
+  for n in 1:nshots
+    data[n,:] = generatedata(M,bases[n,:])
+  end
+  return data 
+end
+
+# Generate a single data point in a basis for MPS/MPO
+function generatedata(M0::Union{MPS,MPO},basis::Array)
+  meas_gates = measurementgates(basis)
+  M = runcircuit(M0,meas_gates)
+  measurement = generatedata(M,1)
+  return convertdatapoint(measurement,basis)
+end
+
+""" 
+Generate data at the output of a circuit
+"""
+
+function generatedata(N::Int64,gates::Vector{<:Tuple},nshots::Int64;
+                      noise=nothing,bases_id=nothing,return_state::Bool=false,
+                      cutoff::Float64=1e-15,maxdim::Int64=10000,
+                      kwargs...)
+  M = runcircuit(N,gates;process=false,noise=noise,
+                 cutoff=cutoff,maxdim=maxdim,kwargs...)
+  if isnothing(bases_id)
+    data = generatedata(M,nshots)
+  else
+    bases = measurementsettings(N,nshots;bases_id=bases_id)
+    data = generatedata(M,nshots,bases)
+  end
+  return (return_state ? (M,data) : data)
+end
+
+
+
+
+"""
+QUANTUM PROCESS TOMOGRAPHY
+"""
+
+
+"""
+Given as input a preparation state, returns the corresponding
+gate data structure.
+Example:
+prep = ["X+","Z+","Z+","Y+"]
+-> gate_list = [("prepX+", 1),
+                ("prepY+", 4)]
+"""
+function preparationgates(prep::Array)
+  gate_list = Tuple[]
+  for j in 1:length(prep)
+    if (prep[j]!= "Z+")
+      gatename = "prep$(prep[j])"
+      push!(gate_list, (gatename, j))
+    end
+  end
+  return gate_list
+end
+
 """
 Generate a set of preparation states:
 - nshots = total number of states
@@ -83,123 +155,69 @@ function preparationsettings(N::Int,numshots::Int;
 end
 
 
-"""
-DATA GENERATION AT CIRCUIT OUTPUT
-"""
 
-"""
-Perform a projective measurements on a wavefunction or density operator
-"""
-function measure(M::Union{MPS,MPO},nshots::Int)
-  orthogonalize!(M,1)
-  if (nshots==1)
-    measurements = sample(M)
-    measurements .-= 1
-  else
-    measurements = Matrix{Int64}(undef, nshots, length(M))
-    for n in 1:nshots
-      measurement = sample(M)
-      measurement .-= 1
-      measurements[n,:] = measurement
-    end
-  end
-  return measurements
-end
-
-function generatedata(N::Int64,gates::Vector{<:Tuple},nshots::Int64; 
-                      noise=nothing,process=false,
-                      cutoff::Float64=1e-15,maxdim::Int64=10000,
-                      bases_id::Array=["X","Y","Z"],
-                      prep_id::Array=["X+","X-","Y+","Y-","Z+","Z-"],
-                      numbases=nothing,numprep=nothing,
-                      kwargs...)
-  
-  # Measure at the output of the circuit
-  if process==false
-    M = runcircuit(N,gates;process=false,noise=noise,
-                   cutoff=cutoff,maxdim=maxdim,
-                   kwargs...)
-    bases = measurementsettings(N,nshots,bases_id=bases_id,
-                                numbases=numbases)
-    generatedata(M,nshots,bases) 
-  
-  # Generate data for process tomography
-  else
-    preps = preparationsettings(N,nshots,prep_id=prep_id,
-                                numprep=numprep)
-    
-    bases = measurementsettings(N,nshots,bases_id=bases_id,
-                                numbases=numbases)
-    ψ0 = qubits(N)
-    gate_tensors = compilecircuit(ψ0,gates; noise=noise, kwargs...)
-    data_in  = preps
-    data_out = generatedata(ψ0,gate_tensors,nshots,preps,bases;
-                            noise=noise,cutoff=cutoff,
-                            maxdim=maxdim,kwargs...) 
-    return (data_in,data_out)
-  end
-end
-
-"""
-STATE PREPARATION + MEASUREMENT AT THE OUTPUT
+""" 
+Generate data at the output of a circuit
 """
 
 # Generate a single data point for process tomography
-function generatedata(M0::Union{MPS,MPO},
-                      gate_tensors::Vector{<:ITensor},
-                      prep::Array,basis::Array;
-                      noise=nothing,
-                      cutoff::Float64=1e-15,maxdim::Int64=10000,
-                      kwargs...)
+function generate_processdata(M0::Union{MPS,MPO},
+                              gate_tensors::Vector{<:ITensor},
+                              prep::Array,basis::Array;
+                              noise=nothing,choi::Bool=false,
+                              cutoff::Float64=1e-15,maxdim::Int64=10000,
+                              kwargs...)
   prep_gates = preparationgates(prep)
   meas_gates = measurementgates(basis)
   M_in  = runcircuit(M0,prep_gates)
   M_out = runcircuit(M_in,gate_tensors,
                      cutoff=cutoff,maxdim=maxdim) 
   M_meas = runcircuit(M_out,meas_gates)
-  measurement = measure(M_meas,1)
+  measurement = generatedata(M_meas,1)
   return convertdatapoint(measurement,basis)
 end
 
-# Generate nshots data points for process tomography
-function generatedata(M0::Union{MPS,MPO},
-                      gate_tensors::Vector{<:ITensor},
-                      nshots::Int64,preps::Array,bases::Array;
-                      noise=nothing,
+
+function generate_processdata(N::Int64,gates::Vector{<:Tuple},nshots::Int64;
+                      noise=nothing,choi::Bool=false,return_state::Bool=false,
+                      bases_id::Array=["X","Y","Z"],
+                      prep_id::Array=["X+","X-","Y+","Y-","Z+","Z-"],
+                      numbases=nothing,numprep=nothing,
                       cutoff::Float64=1e-15,maxdim::Int64=10000,
                       kwargs...)
-  data = Matrix{String}(undef, nshots,length(M0))
-  for n in 1:nshots
-    data[n,:] = generatedata(M0,gate_tensors,preps[n,:],bases[n,:];
-                            noise=noise,cutoff=cutoff,
-                            maxdim=maxdim,kwargs...)
-  end
-  return data  
+   
+    preps = preparationsettings(N,nshots,prep_id=prep_id,
+                                numprep=numprep)
+    
+    bases = measurementsettings(N,nshots,bases_id=bases_id,
+                                numbases=numbases)
+
+    if choi
+      Λ = choimatrix(N,gates;noise=noise,cutoff=cutoff,maxdim=maxdim,kwargs...)
+      data = Matrix{String}(undef, nshots,length(ψ0))
+      #TODO FINISH THIS
+      error("data generation with choi matrix not implemented yet")
+      #for n in 1:nshots
+      #  data[n,:] = generate_processdata(ψ0,gate_tensors,preps[n,:],bases[n,:];
+      #                          noise=noise,cutoff=cutoff,
+      #                          maxdim=maxdim,kwargs...)
+      #end
+      #
+      return (1,2,3)
+      #return (return_state ? (Λ ,preps, data) : (preps,data))
+    else
+      ψ0 = qubits(N)
+      gate_tensors = compilecircuit(ψ0,gates; noise=noise, kwargs...)
+      data = Matrix{String}(undef, nshots,length(ψ0))
+      for n in 1:nshots
+        data[n,:] = generate_processdata(ψ0,gate_tensors,preps[n,:],bases[n,:];
+                                noise=noise,cutoff=cutoff,
+                                maxdim=maxdim,kwargs...)
+      end
+      return (preps,data) 
+    end
 end
 
-"""
-MEASUREMENT AT THE OUTPUT
-"""
-
-# Generate a single data point in a basis for MPS/MPO
-function generatedata(M0::Union{MPS,MPO},basis::Array)
-  meas_gates = measurementgates(basis)
-  M = runcircuit(M0,meas_gates)
-  measurement = measure(M,1)
-  return convertdatapoint(measurement,basis)
-end
-
-# Generate nshots datapoints in bases for MPS/MPO
-"""
-Generate a dataset of measurements in different bases
-"""
-function generatedata(M::Union{MPS,MPO},nshots::Int,bases::Array)
-  data = Matrix{String}(undef, nshots,length(M))
-  for n in 1:nshots
-    data[n,:] = generatedata(M,bases[n,:])
-  end
-  return data 
-end
 
 """
 Convert a data point from (sample,basis) -> data

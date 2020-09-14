@@ -38,8 +38,8 @@ export
   measurementgates,
   measurementsettings,
   preparationsettings,
-  measure,
   generatedata,
+  generate_processdata,
   convertdatapoint,
 
 # quantumtomography,jl
