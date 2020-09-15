@@ -86,6 +86,8 @@ end
 """
 MEASUREMENT IN MULTIPLE BASES
 """
+
+
 """
   generatedata(M0::Union{MPS,MPO},basis::Array)
 
