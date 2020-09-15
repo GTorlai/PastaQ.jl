@@ -47,11 +47,12 @@ export
   gradlogZ,
   gradnll,
   gradients,
-  fidelity,
-  fullfidelity,
-  getdensityoperator,
   statetomography,
   processtomography,
+  fidelity,
+  fullfidelity,
+  trace_mpo,
+  getdensityoperator,
   
 # optimizers/
   Optimizer,
