@@ -39,6 +39,7 @@ export
   measurementsettings,
   preparationsettings,
   generatedata,
+  projectchoi,
   generate_processdata,
   convertdatapoint,
 

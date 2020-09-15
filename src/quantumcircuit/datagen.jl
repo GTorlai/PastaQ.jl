@@ -159,12 +159,11 @@ end
 """ 
 Generate data at the output of a circuit
 """
-
 # Generate a single data point for process tomography
 function generate_processdata(M0::Union{MPS,MPO},
                               gate_tensors::Vector{<:ITensor},
                               prep::Array,basis::Array;
-                              noise=nothing,choi::Bool=false,
+                              noise=nothing,
                               cutoff::Float64=1e-15,maxdim::Int64=10000,
                               kwargs...)
   prep_gates = preparationgates(prep)
@@ -174,6 +173,39 @@ function generate_processdata(M0::Union{MPS,MPO},
                      cutoff=cutoff,maxdim=maxdim) 
   M_meas = runcircuit(M_out,meas_gates)
   measurement = generatedata(M_meas,1)
+  
+  return convertdatapoint(measurement,basis)
+end
+
+#TODO
+# Fix inconstincenice with prroject choi
+function projectchoi(Λ0::Union{MPS,MPO},prep::Array)
+  Λ = copy(Λ0) 
+  state = "state" .* copy(prep) 
+  
+  M = ITensor[]
+  s = (typeof(Λ)==MPS ? siteinds(Λ) : firstsiteinds(Λ))
+  
+  for j in 1:2:length(Λ)
+    # No conjugate on the gate (transpose input)
+    if typeof(Λ) == MPS
+      Λ[j] = Λ[j] * gate(state[(j+1)÷2],s[j])
+    else
+      Λ[j] = Λ[j] * dag(gate(state[(j+1)÷2],s[j]))
+      Λ[j] = Λ[j] * prime(gate(state[(j+1)÷2],s[j]))
+    end
+    push!(M,Λ[j]*Λ[j+1])
+  end
+  return (typeof(Λ) == MPS ? MPS(M) : MPO(M))
+end
+
+# Generate a single data point for process tomography
+function generate_processdata(Λ0::Union{MPS,MPO},prep::Array,basis::Array)
+  
+  meas_gates = measurementgates(basis)
+  ϕ = projectchoi(Λ0,prep)
+  ϕ_meas = runcircuit(ϕ,meas_gates)
+  measurement = generatedata(ϕ_meas,1)
   return convertdatapoint(measurement,basis)
 end
 
@@ -194,24 +226,20 @@ function generate_processdata(N::Int64,gates::Vector{<:Tuple},nshots::Int64;
 
     if choi
       Λ = choimatrix(N,gates;noise=noise,cutoff=cutoff,maxdim=maxdim,kwargs...)
-      data = Matrix{String}(undef, nshots,length(ψ0))
-      #TODO FINISH THIS
-      error("data generation with choi matrix not implemented yet")
-      #for n in 1:nshots
-      #  data[n,:] = generate_processdata(ψ0,gate_tensors,preps[n,:],bases[n,:];
-      #                          noise=noise,cutoff=cutoff,
-      #                          maxdim=maxdim,kwargs...)
-      #end
-      #
-      return (1,2,3)
-      #return (return_state ? (Λ ,preps, data) : (preps,data))
+      data = Matrix{String}(undef, nshots,length(Λ)÷2)
+      
+      for n in 1:nshots
+        data[n,:] = generate_processdata(Λ,preps[n,:],bases[n,:])
+      end
+      
+      return (return_state ? (Λ ,preps, data) : (preps,data))
     else
       ψ0 = qubits(N)
       gate_tensors = compilecircuit(ψ0,gates; noise=noise, kwargs...)
       data = Matrix{String}(undef, nshots,length(ψ0))
       for n in 1:nshots
         data[n,:] = generate_processdata(ψ0,gate_tensors,preps[n,:],bases[n,:];
-                                noise=noise,cutoff=cutoff,
+                                noise=noise,cutoff=cutoff,choi=false,
                                 maxdim=maxdim,kwargs...)
       end
       return (preps,data) 
@@ -255,13 +283,13 @@ function convertdatapoint(datapoint::Array,basis::Array;state::Bool=false)
   return newdata
 end
 
-#function convertdatapoints(datapoints::Array,bases::Array;state::Bool=false)
-#  newdata = Matrix{String}(undef, size(datapoints)[1],size(datapoints)[2]) 
-#  
-#  for n in 1:size(datapoints)[1]
-#    newdata[n,:] = convertdatapoint(datapoints[n,:],bases[n,:],state=state)
-#  end
-#  return newdata
-#end
-#
+function convertdatapoints(datapoints::Array,bases::Array;state::Bool=false)
+  newdata = Matrix{String}(undef, size(datapoints)[1],size(datapoints)[2]) 
+  
+  for n in 1:size(datapoints)[1]
+    newdata[n,:] = convertdatapoint(datapoints[n,:],bases[n,:],state=state)
+  end
+  return newdata
+end
+
 
