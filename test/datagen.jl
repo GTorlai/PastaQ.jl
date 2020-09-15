@@ -78,7 +78,7 @@ end
   N = 4
   depth = 10
   ψ0 = qubits(N)
-  gates = randomquantumcircuit(N,depth)
+  gates = randomcircuit(N,depth)
   ψ = runcircuit(ψ0,gates)
   ψ_vec = fullvector(ψ)
   probs = abs2.(ψ_vec)
@@ -109,7 +109,7 @@ end
   bases = measurementsettings(N,nshots)
   
   depth = 8
-  gates = randomquantumcircuit(N,depth)
+  gates = randomcircuit(N,depth)
   ψ = runcircuit(ψ0,gates)
   s = siteinds(ψ)
 
@@ -215,10 +215,10 @@ end
 
 
 @testset "project choi" begin
-  N = 2
+  N = 4
   ntrial=100
-  #gates = randomquantumcircuit(N,2)
-  gates = Tuple[("Rn",1,(θ=1.0,ϕ=2.0,λ=3.0))]
+  gates = randomcircuit(N,4)
+  #gates = Tuple[("Rn",1,(θ=1.0,ϕ=2.0,λ=3.0))]
  
   # 1: Noiseless
   Ψ = choimatrix(N,gates)
@@ -335,7 +335,7 @@ end
   
   N = 4
   nshots = 100
-  gates = randomquantumcircuit(N,4)
+  gates = randomcircuit(N,4)
   ψ = runcircuit(N,gates)
   ρ = runcircuit(N,gates;noise="AD",γ=0.1)
 

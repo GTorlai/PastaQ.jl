@@ -707,7 +707,7 @@ end
   
   @test ex_F ≈ F
   
-  gates = randomquantumcircuit(N,2)
+  gates = randomcircuit(N,2)
   Φ1 = choimatrix(N,gates)
   F = fidelity(Φ1,Φ1)
   @test F ≈ 1.0

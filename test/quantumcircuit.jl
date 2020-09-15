@@ -161,7 +161,7 @@ end
 @testset "reset qubits" begin
   N = 5
   depth = 5
-  gates = randomquantumcircuit(N,depth)
+  gates = randomcircuit(N,depth)
   ψ0 = qubits(N)
   ψ = runcircuit(ψ0,gates)
   
@@ -188,7 +188,7 @@ end
 @testset "runcircuit: unitary quantum circuit" begin
   N = 3
   depth = 4
-  gates = randomquantumcircuit(N,depth)
+  gates = randomcircuit(N,depth)
   ngates = N*depth + depth÷2 * (N-1)
   @test length(gates) == ngates
   
@@ -207,7 +207,7 @@ end
 @testset "runcircuit: noisy quantum circuit" begin
   N = 5
   depth = 4
-  gates = randomquantumcircuit(N,depth)
+  gates = randomcircuit(N,depth)
   ngates = N*depth + depth÷2 * (N-1)
   @test length(gates) == ngates
 
@@ -231,7 +231,7 @@ end
 
 @testset "runcircuit: inverted gate order" begin
   N = 8
-  gates = randomquantumcircuit(N,2)
+  gates = randomcircuit(N,2)
   
   for n in 1:10
     s1 = rand(2:N)
@@ -246,7 +246,7 @@ end
 
 @testset "runcircuit: long range gates" begin
   N = 8
-  gates = randomquantumcircuit(N,2)
+  gates = randomcircuit(N,2)
   
   for n in 1:10
     s1 = rand(1:N)

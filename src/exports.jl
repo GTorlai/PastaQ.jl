@@ -8,17 +8,13 @@ export
   applygate!,
 
 # circuits.jl
-  appendgates!,
-  hadamardlayer,
-  hadamardlayer!,
-  randomrotation,
-  randomrotationlayer,
-  randomrotationlayer!,
+  appendlayer!,
+  gatelayer,
   twoqubitlayer,
   twoqubitlayer!,
   lineararray,
   squarearray,
-  randomquantumcircuit,
+  randomcircuit,
 
 # quantumcircuit.jl
   # Methods
