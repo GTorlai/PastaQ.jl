@@ -5,17 +5,16 @@ using HDF5
 
 Random.seed!(1234)
 
-N = 24
-depth = 8
-nshots = 200000
+N = 4
+depth = 2
+nshots = 10000
 
 gates = randomquantumcircuit(N,depth)
 noise = nothing
 
 if isnothing(noise)
-  Φ = choimatrix(N,gates)
   
-  (data_in,data_out) = generatedata(N,gates,nshots; process=true)
+  (Φ,data_in,data_out) = generate_processdata(N,gates,nshots;choi=true,return_state=true)
   
   output_path = "data_qpt_N$(N)_unitary_random_D=$(depth).h5"
   h5open(output_path, "w") do file
@@ -24,10 +23,9 @@ if isnothing(noise)
     write(file,"choi",Φ)
   end    
 else
-  Λ = choimatrix(N,gates;noise="AD",γ=0.1)
-
-  (data_in,data_out) = generatedata(N,gates,nshots;process=true,
-                                   noise="AD",γ=0.1)
+  
+  (Λ,data_in,data_out) = generate_processdata(N,gates,nshots;
+                                            noise="AD",γ=0.1)
 
   output_path = "data_qpt_N$(N)_noisy.h5"
   h5open(output_path, "w") do file
