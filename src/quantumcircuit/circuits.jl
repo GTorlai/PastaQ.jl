@@ -65,7 +65,7 @@ end
 Create a layer of gates.
 """
 gatelayer(gatename::AbstractString, N::Int; kwargs...) =
-  [(gatename, n, values(kwargs)) for n in 1:N]
+  [isempty(kwargs) ? (gatename, n) : (gatename, n, values(kwargs)) for n in 1:N]
 
 """
 Append a layer of gates to a gate list.
