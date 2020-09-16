@@ -1,15 +1,21 @@
+
 struct Momentum <: Optimizer 
   η::Float64
-  γ::Float64
+  μ::Float64
+  z::Vector{ITensor}
 end
 
-function Momentum(;η::Float64=0.01,γ::Float64=0.9)
-  return Momentum(η,γ)
+function Momentum(M::Union{MPS,MPO};η::Float64=0.01,μ::Float64=0.9)
+  z = ITensor[]
+  for j in 1:length(M)
+    push!(z,ITensor(zeros(size(M[j])),inds(M[j])))
+  end
+  return Momentum(η,μ,z)
 end
 
 function update!(M::Union{MPS,MPO},G::Array{ITensor},opt::Momentum)
   for j in 1:length(M)
-    new_G = opt.γ * M[j] + noprime(G[j])#(1.0-opt.γ) * noprime(G[j])
-    M[j] = M[j] - opt.η * new_G
+    opt.z[j] = opt.μ * opt.z[j] + noprime(G[j])
+    M[j] = M[j] - opt.η * opt.z[j]
   end
 end

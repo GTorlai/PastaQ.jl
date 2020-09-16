@@ -59,6 +59,7 @@ export
   SGD,
   Momentum,
   # Methods
+  configure!,
   update!,
 
 # physics.jl
