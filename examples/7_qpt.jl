@@ -13,9 +13,12 @@ if isnothing(noise)
   data_in,data_out,Φ = loadtrainingdataQPT(input_path)
   χ = maxlinkdim(Φ)
   
-  opt = SGD(η = 0.1)
+  Ψ0 = initializetomography(2*N,χ,σ=0.1)
   
-  Ψ = processtomography(data_in,data_out,opt;
+  #opt = SGD(η = 0.01)
+  opt = Adagrad(Ψ0;η=0.01,ϵ=1E-8)
+
+  Ψ = processtomography(Ψ0,data_in,data_out,opt;
                         χ = χ,
                         mixed=false,
                         batchsize=1000,

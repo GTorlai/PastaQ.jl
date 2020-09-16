@@ -432,6 +432,21 @@ function statetomography(data::Array,opt::Optimizer; kwargs...)
   return M
 end
 
+function processtomography(M::Union{MPS,MPO},data_in::Array,data_out::Array,opt::Optimizer; kwargs...)
+  N = size(data_in)[2]
+  @assert size(data_in) == size(data_out)
+  
+  data = Matrix{String}(undef, size(data_in)[1],2*N)
+  
+  for n in 1:size(data_in)[1]
+    for j in 1:N
+      data[n,2*j-1] = data_in[n,j]
+      data[n,2*j]   = data_out[n,j]
+    end
+  end
+  return statetomography(M,data,opt; choi=true,kwargs...)
+end
+
 function processtomography(data_in::Array,data_out::Array,opt::Optimizer; kwargs...)
   N = size(data_in)[2]
   @assert size(data_in) == size(data_out)
