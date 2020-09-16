@@ -58,8 +58,8 @@ export
   Optimizer,
   SGD,
   Momentum,
+  Adagrad,
   # Methods
-  configure!,
   update!,
 
 # physics.jl

@@ -9,8 +9,8 @@ function SGD(;η::Float64=0.01)
 end
 
 #function update!(M::Union{MPS,MPO},G::Array{ITensor},opt::SGD)
-function update!(M::Union{MPS,MPO},G::Array,opt::SGD)
+function update!(M::Union{MPS,MPO},∇::Array,opt::SGD)
   for j in 1:length(M)
-    M[j] = M[j] - opt.η * noprime(G[j])
+    M[j] = M[j] - opt.η * noprime(∇[j])
   end
 end

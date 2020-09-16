@@ -17,6 +17,7 @@ include("quantumcircuit/datagen.jl")
 
 include("optimizers/sgd.jl")
 include("optimizers/momentum.jl")
+include("optimizers/adagrad.jl")
 
 include("quantumtomography.jl")
 include("physics.jl")

@@ -13,9 +13,9 @@ function Momentum(M::Union{MPS,MPO};η::Float64=0.01,μ::Float64=0.9)
   return Momentum(η,μ,z)
 end
 
-function update!(M::Union{MPS,MPO},G::Array{ITensor},opt::Momentum)
+function update!(M::Union{MPS,MPO},∇::Array{ITensor},opt::Momentum)
   for j in 1:length(M)
-    opt.z[j] = opt.μ * opt.z[j] + noprime(G[j])
+    opt.z[j] = opt.μ * opt.z[j] + noprime(∇[j])
     M[j] = M[j] - opt.η * opt.z[j]
   end
 end
