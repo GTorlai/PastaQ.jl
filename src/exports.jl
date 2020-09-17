@@ -59,6 +59,7 @@ export
   SGD,
   Momentum,
   Adagrad,
+  Adadelta,
   # Methods
   update!,
 
@@ -67,9 +68,6 @@ export
   # Methods
   measure!,
   writeobserver,
-  #measurements,
-  #fidelities,
-  #NLL,
   
 # utils.jl
   # Methods
