@@ -37,6 +37,7 @@ function initializetomography(N::Int64,χ::Int64;
   return MPS(M)
 end
 
+
 """
   function initializetomography(N::Int64,χ::Int64,ξ::Int64;
                                 seed::Int64=1234,
@@ -79,6 +80,7 @@ function initializetomography(N::Int64,χ::Int64,ξ::Int64;
   return MPO(M)
 end
 
+
 """
   function lognormalize!(M::Union{MPS,MPO})
 
@@ -113,6 +115,7 @@ function lognormalize!(M::Union{MPS,MPO})
   logZ += log(real(blob[]))
   return logZ,localnorms
 end
+
 
 """
   function gradlogZ(M::Union{MPS,MPO};localnorm=nothing)
@@ -160,6 +163,7 @@ function gradlogZ(M::Union{MPS,MPO};localnorm=nothing)
   return 2*gradients,log(Z)
 end
 
+
 """
   function gradnll(ψ::MPS, data::Array; localnorm=nothing, choi::Bool=false)
 
@@ -178,6 +182,13 @@ The cross entropy function is
 where `∑ᵢ` runs over the measurement data. Returns the gradients:
 
 `∇ᵢ = - ∂ᵢ⟨log P(σ))⟩_data`
+
+If `localnorm=true`, rescale each gradient by the corresponding
+local normalization.
+
+If `choi=true`, `ψ` correspodns to a Choi matrix `Λ=|ψ⟩⟨ψ|`.
+The probability is then obtaining by transposing the input state, which 
+is equivalent to take the conjugate of the eigenstate projector.
 
 """
 function gradnll(ψ::MPS, data::Array; localnorm=nothing, choi::Bool=false)
@@ -298,6 +309,7 @@ function gradnll(ψ::MPS, data::Array; localnorm=nothing, choi::Bool=false)
   return gradients_tot, loss_tot
 end
 
+
 """
   function gradnll(lpdo::MPO, data::Array; localnorm=nothing, choi::Bool=false)
 
@@ -316,6 +328,12 @@ The cross entropy function is
 where `∑ᵢ` runs over the measurement data. Returns the gradients:
 
 `∇ᵢ = - ∂ᵢ⟨log P(σ))⟩_data`
+
+If `localnorm=true`, rescale each gradient by the corresponding
+local normalization.
+
+If `choi=true`, the probability is then obtaining by transposing the 
+input state, which is equivalent to take the conjugate of the eigenstate projector.
 
 """
 function gradnll(lpdo::MPO,data::Array;localnorm=nothing,choi::Bool=false)
@@ -460,8 +478,15 @@ function gradnll(lpdo::MPO,data::Array;localnorm=nothing,choi::Bool=false)
   return gradients,loss 
 end
 
+
 """
-Compute the total gradients
+  function gradients(M::Union{MPS,MPO},data::Array;localnorm=nothing,choi::Bool=false)
+
+Compute the gradients of the cost function:
+`C = log(Z) - ⟨log P(σ)⟩_data`
+
+If `choi=true`, add the Choi normalization `trace(Λ)=d^N` to the cost function.
+
 """
 function gradients(M::Union{MPS,MPO},data::Array;localnorm=nothing,choi::Bool=false)
   g_logZ,logZ = gradlogZ(M,localnorm=localnorm)
@@ -472,60 +497,25 @@ function gradients(M::Union{MPS,MPO},data::Array;localnorm=nothing,choi::Bool=fa
   return grads,loss
 end
 
-function statetomography(data::Array,opt::Optimizer; kwargs...)
-  N = size(data)[2]
-  mixed::Bool = get(kwargs,:mixed,false)
-  χ::Int64    = get(kwargs,:χ,10)
-  d::Int64    = get(kwargs,:d,2)
-  seed::Int64 = get(kwargs,:seed,1234)
-  σ::Float64  = get(kwargs,:σ,0.1)
-  
-  if !mixed
-    M0 = initializetomography(N,χ;d=d,seed=seed,σ=σ)
-  else
-    ξ::Int64 = get(kwargs,:ξ,2)
-    M0 = initializetomography(N,χ,ξ;d=d,seed=seed,σ=σ)
-  end 
-
-  M = statetomography(M0,data,opt; kwargs...)
-  return M
-end
-
-function processtomography(M::Union{MPS,MPO},data_in::Array,data_out::Array,opt::Optimizer; kwargs...)
-  N = size(data_in)[2]
-  @assert size(data_in) == size(data_out)
-  
-  data = Matrix{String}(undef, size(data_in)[1],2*N)
-  
-  for n in 1:size(data_in)[1]
-    for j in 1:N
-      data[n,2*j-1] = data_in[n,j]
-      data[n,2*j]   = data_out[n,j]
-    end
-  end
-  return statetomography(M,data,opt; choi=true,kwargs...)
-end
-
-function processtomography(data_in::Array,data_out::Array,opt::Optimizer; kwargs...)
-  N = size(data_in)[2]
-  @assert size(data_in) == size(data_out)
-  
-  data = Matrix{String}(undef, size(data_in)[1],2*N)
-  
-  for n in 1:size(data_in)[1]
-    for j in 1:N
-      data[n,2*j-1] = data_in[n,j]
-      data[n,2*j]   = data_out[n,j]
-    end
-  end
-  return statetomography(data,opt; choi=true,kwargs...)
-end
 
 """
-Run QST
+  statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwargs...)
+
+Run quantum state tomography using a the starting state `model` on `data`.
+
+Arguments:
+  - `model`: starting MPS/LPDO state.
+  - `data`: training data set of projective measurements.
+  - `batchsize`: number of data-points used to compute one gradient iteration.
+  - `epochs`: total number of full sweeps over the dataset.
+  - `target`: target quantum state underlying the data
+  - `choi`: if true, compute probability using Choi matrix
+  - `observer`: keep track of measurements and fidelities.
+  - `outputpath`: write observer on file 
 """
 function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwargs...)
                          
+  # Read arguments
   localnorm::Bool = get(kwargs,:localnorm,true)
   globalnorm::Bool = get(kwargs,:globalnorm,false)
   batchsize::Int64 = get(kwargs,:batchsize,500)
@@ -535,6 +525,7 @@ function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwarg
   observer = get(kwargs,:observer,nothing) 
   outputpath = get(kwargs,:fout,nothing)
 
+  # Convert data to projetors
   data = "state" .* data
   
   if (localnorm && globalnorm)
@@ -542,6 +533,8 @@ function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwarg
   end
   
   model = copy(model)
+
+  # Set up target quantum state
   if !isnothing(target)
     target = copy(target)
     if typeof(target)==MPS
@@ -556,25 +549,33 @@ function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwarg
     end
   end
   
+  # Number of training batches
   num_batches = Int(floor(size(data)[1]/batchsize))
   
   tot_time = 0.0
+
+  # Training iterations
   for ep in 1:epochs
     ep_time = @elapsed begin
   
     data = data[shuffle(1:end),:]
     
     avg_loss = 0.0
+
+    # Sweep over the data set
     for b in 1:num_batches
       batch = data[(b-1)*batchsize+1:b*batchsize,:]
       
+      # Local normalization
       if localnorm
         model_norm = copy(model)
         logZ,localnorms = lognormalize!(model_norm) 
         grads,loss = gradients(model_norm,batch,localnorm=localnorms,choi=choi)
+      # Global normalization
       elseif globalnorm
         lognormalize!(model)
         grads,loss = gradients(model,batch,choi=choi)
+      # Unnormalized
       else
         grads,loss = gradients(model,batch,choi=choi)
       end
@@ -583,9 +584,11 @@ function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwarg
     end
 
     end # end @elapsed
-
+    
+    # Measure
     if !isnothing(observer)
       measure!(observer,model;nll=avg_loss,target=target)
+      # Save on file
       if !isnothing(outputpath)
         writeobserver(observer,outputpath; M = model)
       end
@@ -613,16 +616,34 @@ function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwarg
 end
 
 
+"""
+  processtomography(M::Union{MPS,MPO},data_in::Array,data_out::Array,opt::Optimizer; kwargs...)
 
+Run quantum process tomography on `(data_in,data_out)` using `model` as variational ansatz.
 
-
-
-
-
-""" UTILITY FUNCTIONS """
+The data is reshuffled so it takes the format: `(input1,output1,input2,output2,…)`.
+"""
+function processtomography(M::Union{MPS,MPO},data_in::Array,data_out::Array,opt::Optimizer; kwargs...)
+  N = size(data_in)[2]
+  @assert size(data_in) == size(data_out)
+  
+  data = Matrix{String}(undef, size(data_in)[1],2*N)
+  
+  for n in 1:size(data_in)[1]
+    for j in 1:N
+      data[n,2*j-1] = data_in[n,j]
+      data[n,2*j]   = data_out[n,j]
+    end
+  end
+  return statetomography(M,data,opt; choi=true,kwargs...)
+end
 
 """
-Contract the Kraus indices to get the density matrix MPO
+  getdensityoperator(lpdo::MPO)
+
+Contract the `purifier` indices to get the MPO
+`ρ = lpdo lpdo†`
+
 """
 function getdensityoperator(lpdo::MPO)
   noprime!(lpdo)
@@ -665,13 +686,27 @@ function trace_mpo(M::MPO)
   return L[]
 end
 
+"""
+  fidelity(ψ::MPS,ϕ::MPS)
+
+Compute the fidelity between two MPS:
+
+`F = |⟨ψ|ϕ⟩|²
+"""
 function fidelity(ψ::MPS,ϕ::MPS)
   log_F̃ = log(abs2(inner(ψ,ϕ)))
   log_K = 2.0 * (lognorm(ψ) + lognorm(ϕ))
   fidelity = exp(log_F̃ - log_K)
   return fidelity
 end
+"""
+  fidelity(ψ::MPS,ρ::MPO)
+  fidelity(ρ::MPO,ψ::MPS)
 
+Compute the fidelity between an MPS and LPDO.
+
+`F = ⟨ψ|ρ|ψ⟩
+"""
 function fidelity(ψ::MPS,ρ::MPO)
   islpdo = any(x -> any(y -> hastags(y, "Purifier"), inds(x)), ρ)
   if islpdo 
@@ -689,7 +724,14 @@ end
 
 fidelity(ρ::MPO,ψ::MPS) = fidelity(ψ::MPS,ρ::MPO)
 
-function fullfidelity(ρ::MPO,σ::MPO;choi::Bool=false)
+"""
+  fullfidelity(ρ::MPO,σ::MPO;choi::Bool=false)
+
+Compute the full quantum fidelity between two density operatos
+by full enumeration.
+
+"""
+function fullfidelity(ρ::MPO,σ::MPO)
   @assert length(ρ) < 12
   ρ_mat = fullmatrix(getdensityoperator(ρ))
   σ_mat = fullmatrix(σ)
@@ -703,7 +745,16 @@ function fullfidelity(ρ::MPO,σ::MPO;choi::Bool=false)
 end
 
 """
-Negative log likelihood for MPS
+  nll(ψ::MPS,data::Array;choi::Bool=false)
+
+Compute the negative log-likelihood using an MPS ansatz
+over a dataset `data`:
+
+`nll ∝ -∑ᵢlog P(σᵢ)`
+
+If `choi=true`, the probability is then obtaining by transposing the 
+input state, which is equivalent to take the conjugate of the eigenstate projector.
+
 """
 function nll(ψ::MPS,data::Array;choi::Bool=false)
   N = length(ψ)
@@ -727,7 +778,15 @@ function nll(ψ::MPS,data::Array;choi::Bool=false)
 end
 
 """
-Negative log likelihood for LPDO
+  nll(lpdo::MPO,data::Array;choi::Bool=false)
+Compute the negative log-likelihood using an LPDO ansatz
+over a dataset `data`:
+
+`nll ∝ -∑ᵢlog P(σᵢ)`
+
+If `choi=true`, the probability is then obtaining by transposing the 
+input state, which is equivalent to take the conjugate of the eigenstate projector.
+
 """
 function nll(lpdo::MPO,data::Array;choi::Bool=false)
   N = length(lpdo)
@@ -750,5 +809,4 @@ function nll(lpdo::MPO,data::Array;choi::Bool=false)
   end
   return loss
 end
-
 

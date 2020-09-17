@@ -292,6 +292,13 @@ function choimatrix(N::Int,gates::Vector{<:Tuple};noise=nothing,apply_dag=false,
   return Λ
 end
 
+"""
+  splitchoi(Λ::MPO;noise=nothing,cutoff=1e-15,maxdim=1000)
+
+Map a Choi matrix from `N` sites to `2N` sites, arranged as
+(input1,output1,input2,output2,…)
+
+"""
 function splitchoi(Λ::MPO;noise=nothing,cutoff=1e-15,maxdim=1000)
   T = ITensor[]
   if isnothing(noise)
