@@ -44,7 +44,7 @@ function measurelocalops!(obs::TomographyObserver,
                           wf::ITensor,
                           i::Int)
   for o in ops(obs)
-    m = dot(wf, noprime(op(sites(obs),o,i)*wf))
+    m = dot(wf, noprime(gate(o,sites(obs),i)*wf))
     imag(m)>1e-8 && (@warn "encountered finite imaginary part when measuring $o")
     measurements(obs)[o][end][i]=real(m)
   end
@@ -75,6 +75,18 @@ function measure!(obs::TomographyObserver,ψ0::MPS;
   if !isnothing(target)
     F = fidelity(ψ,target)
     push!(fidelities(obs),F)
+  end
+end
+
+function writeobserver(obs::TomographyObserver,fout::String; M=nothing)
+  h5open(fout,"w") do file
+    # TODO save measurements
+    #write(file,"measurements",obs.measurements)
+    write(file,"fidelity",obs.fidelities)
+    write(file,"nll",obs.NLL)
+    if !isnothing(M)
+      write(file,"model",M)
+    end
   end
 end
 

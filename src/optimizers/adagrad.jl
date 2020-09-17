@@ -13,7 +13,8 @@ function Adagrad(M::Union{MPS,MPO};η::Float64=0.01,ϵ::Float64=1E-8)
   return Adagrad(η,ϵ,∇²)
 end
 
-function update!(M::Union{MPS,MPO},∇::Array{ITensor},opt::Adagrad)
+#function update!(M::Union{MPS,MPO},∇::Array{ITensor},opt::Adagrad)
+function update!(M::Union{MPS,MPO},∇,opt::Adagrad)
   for j in 1:length(M)
     opt.∇²[j] += ∇[j] .^ 2
     opt.∇²[j] .+= opt.ϵ 

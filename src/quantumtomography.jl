@@ -1,13 +1,21 @@
 """
-Initializer for MPS tomography
+  function initializetomography(N::Int64,χ::Int64;
+                                seed::Int64=1234,
+                                σ::Float64=0.1)
+Initialize a variational MPS for quantum tomography.
+
+Arguments:
+  - `N`: number of qubits
+  - `χ`: bond dimension of the MPS
+  - `seed`: seed of random number generator
+  - `σ`: width of initial box distribution
 """
-function initializetomography(N::Int,
-                              χ::Int;
-                              d::Int=2,
-                              seed::Int=1234,
+function initializetomography(N::Int64,χ::Int64;
+                              seed::Int64=1234,
                               σ::Float64=0.1)
   rng = MersenneTwister(seed)
-  
+  d = 2
+
   sites = [Index(d; tags="Site, n=$s") for s in 1:N]
   links = [Index(χ; tags="Link, l=$l") for l in 1:N-1]
 
@@ -16,7 +24,6 @@ function initializetomography(N::Int,
   rand_mat = σ * (ones(d,χ) - 2*rand(rng,d,χ))
   rand_mat += im * σ * (ones(d,χ) - 2*rand(rng,d,χ))
   push!(M,ITensor(rand_mat,sites[1],links[1]))
-  # Site 2..N-1
   for j in 2:N-1
     rand_mat = σ * (ones(χ,d,χ) - 2*rand(rng,χ,d,χ))
     rand_mat += im * σ * (ones(χ,d,χ) - 2*rand(rng,χ,d,χ))
@@ -31,19 +38,27 @@ function initializetomography(N::Int,
 end
 
 """
-Initializer for LPDO tomography
+  function initializetomography(N::Int64,χ::Int64,ξ::Int64;
+                                seed::Int64=1234,
+                                σ::Float64=0.1)
+Initialize a variational LPDO for quantum tomography.
+
+Arguments:
+  - `N`: number of qubits
+  - `χ`: bond dimension of the LPDO
+  - `ξ`: local purification dimension of the LPDO
+  - `seed`: seed of random number generator
+  - `σ`: width of initial box distribution
 """
-function initializetomography(N::Int,
-                              χ::Int,
-                              ξ::Int;
-                              d::Int=2,
-                              seed::Int=1234,
+function initializetomography(N::Int64,χ::Int64,ξ::Int64;
+                              seed::Int64=1234,
                               σ::Float64=0.1)
   rng = MersenneTwister(seed)
-  
+  d = 2
+
   sites = [Index(d; tags="Site,n=$s") for s in 1:N]
   links = [Index(χ; tags="Link,l=$l") for l in 1:N-1]
-  kraus = [Index(ξ; tags="Kraus,k=$s") for s in 1:N]
+  kraus = [Index(ξ; tags="Purifier,k=$s") for s in 1:N]
 
   M = ITensor[]
   # Site 1 
@@ -64,9 +79,13 @@ function initializetomography(N::Int,
   return MPO(M)
 end
 
-
 """
-Normalize the MPS/LPDO locally and store the local norms
+  function lognormalize!(M::Union{MPS,MPO})
+
+Normalize a MPS/LPDO and store local normalizations:
+
+- `Z = ⟨ψ|ψ⟩` for `ψ = M = MPS`
+- `Z = Tr(ρ)` for `ρ = M M†` , `M = LPDO` 
 """
 function lognormalize!(M::Union{MPS,MPO})
 
@@ -96,7 +115,16 @@ function lognormalize!(M::Union{MPS,MPO})
 end
 
 """
-Gradients of logZ for MPS/LPDO
+  function gradlogZ(M::Union{MPS,MPO};localnorm=nothing)
+
+Compute the gradients of the log-normalization with respect
+to each MPS/MPO tensor component:
+
+- `∇ᵢ = ∂ᵢlog⟨ψ|ψ⟩` for `ψ = M = MPS`
+- `∇ᵢ = ∂ᵢlogTr(ρ)` for `ρ = M M†` , `M = LPDO`
+
+If `localnorm=true`, rescale each gradient by the corresponding
+local normalization.
 """
 function gradlogZ(M::Union{MPS,MPO};localnorm=nothing)
   N = length(M)
@@ -133,7 +161,24 @@ function gradlogZ(M::Union{MPS,MPO};localnorm=nothing)
 end
 
 """
-Gradients of NLL for MPS 
+  function gradnll(ψ::MPS, data::Array; localnorm=nothing, choi::Bool=false)
+
+Compute the gradients of the cross-entropy between the MPS probability
+distribution of the empirical data distribution for a set of projective 
+measurements in different local bases. The probability of a single 
+data-point `σ = (σ₁,σ₂,…)` is :
+
+`P(σ) = |⟨σ|Û|ψ⟩|²`   
+
+where `Û` is the depth-1 local circuit implementing the basis rotation.
+The cross entropy function is
+
+`nll ∝ -∑ᵢlog P(σᵢ)`
+
+where `∑ᵢ` runs over the measurement data. Returns the gradients:
+
+`∇ᵢ = - ∂ᵢ⟨log P(σ))⟩_data`
+
 """
 function gradnll(ψ::MPS, data::Array; localnorm=nothing, choi::Bool=false)
   N = length(ψ)
@@ -254,7 +299,24 @@ function gradnll(ψ::MPS, data::Array; localnorm=nothing, choi::Bool=false)
 end
 
 """
-Gradients of NLL for LPDO 
+  function gradnll(lpdo::MPO, data::Array; localnorm=nothing, choi::Bool=false)
+
+Compute the gradients of the cross-entropy between the LPDO probability 
+distribution of the empirical data distribution for a set of projective 
+measurements in different local bases. The probability of a single 
+data-point `σ = (σ₁,σ₂,…)` is :
+
+`P(σ) = ⟨σ|Û ρ Û†|σ⟩ = |⟨σ|Û M M† Û†|σ⟩ = |⟨σ|Û M`   
+
+where `Û` is the depth-1 local circuit implementing the basis rotation.
+The cross entropy function is
+
+`nll ∝ -∑ᵢlog P(σᵢ)`
+
+where `∑ᵢ` runs over the measurement data. Returns the gradients:
+
+`∇ᵢ = - ∂ᵢ⟨log P(σ))⟩_data`
+
 """
 function gradnll(lpdo::MPO,data::Array;localnorm=nothing,choi::Bool=false)
   loss = 0.0
@@ -270,7 +332,7 @@ function gradnll(lpdo::MPO,data::Array;localnorm=nothing,choi::Bool=false)
   
   kraus = Index[]
   for j in 1:N
-    push!(kraus,firstind(lpdo[j],"Kraus"))
+    push!(kraus,firstind(lpdo[j],"Purifier"))
   end
 
   ElT = eltype(lpdo[1])
@@ -410,9 +472,6 @@ function gradients(M::Union{MPS,MPO},data::Array;localnorm=nothing,choi::Bool=fa
   return grads,loss
 end
 
-"""
-Run QST
-"""
 function statetomography(data::Array,opt::Optimizer; kwargs...)
   N = size(data)[2]
   mixed::Bool = get(kwargs,:mixed,false)
@@ -473,8 +532,8 @@ function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwarg
   epochs::Int64 = get(kwargs,:epochs,1000)
   target = get(kwargs,:target,nothing)
   choi::Bool = get(kwargs,:choi,false)
-  
-
+  observer = get(kwargs,:observer,nothing) 
+  outputpath = get(kwargs,:fout,nothing)
 
   data = "state" .* data
   
@@ -525,6 +584,13 @@ function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwarg
 
     end # end @elapsed
 
+    if !isnothing(observer)
+      measure!(observer,model;nll=avg_loss,target=target)
+      if !isnothing(outputpath)
+        writeobserver(observer,outputpath; M = model)
+      end
+    end
+    
     print("Ep = $ep  ")
     @printf("Loss = %.5E  ",avg_loss)
     if !isnothing(target)
@@ -542,7 +608,8 @@ function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwarg
   end
   @printf("Total Time = %.3f sec",tot_time)
   lognormalize!(model)
-  return model 
+  
+  return (isnothing(observer) ? model : (model,observer))  
 end
 
 
@@ -585,14 +652,6 @@ function getdensityoperator(lpdo::MPO)
   return rho
 end
 
-# Assume target is normalized
-function fidelity(ψ::MPS,ϕ::MPS)
-  log_F̃ = log(abs2(inner(ψ,ϕ)))
-  log_K = 2.0 * (lognorm(ψ) + lognorm(ϕ))
-  fidelity = exp(log_F̃ - log_K)
-  return fidelity
-end
-
 function trace_mpo(M::MPO)
   N = length(M)
   L = M[1] * delta(dag(siteinds(M)[1]))
@@ -606,8 +665,16 @@ function trace_mpo(M::MPO)
   return L[]
 end
 
-function fidelity(ρ::MPO,ψ::MPS;lpdo::Bool=true)
-  if lpdo 
+function fidelity(ψ::MPS,ϕ::MPS)
+  log_F̃ = log(abs2(inner(ψ,ϕ)))
+  log_K = 2.0 * (lognorm(ψ) + lognorm(ϕ))
+  fidelity = exp(log_F̃ - log_K)
+  return fidelity
+end
+
+function fidelity(ψ::MPS,ρ::MPO)
+  islpdo = any(x -> any(y -> hastags(y, "Purifier"), inds(x)), ρ)
+  if islpdo 
     A = *(ρ,ψ,method="densitymatrix",cutoff=1e-10)
     log_F̃ = log(abs(inner(A,A)))
     log_K = 2.0*(lognorm(ψ) + lognorm(ρ))
@@ -619,6 +686,8 @@ function fidelity(ρ::MPO,ψ::MPS;lpdo::Bool=true)
   end
   return fidelity
 end
+
+fidelity(ρ::MPO,ψ::MPS) = fidelity(ψ::MPS,ρ::MPO)
 
 function fullfidelity(ρ::MPO,σ::MPO;choi::Bool=false)
   @assert length(ρ) < 12
@@ -663,98 +732,23 @@ Negative log likelihood for LPDO
 function nll(lpdo::MPO,data::Array;choi::Bool=false)
   N = length(lpdo)
   loss = 0.0
-  s = Index[]
-  for j in 1:N
-    push!(s,firstind(lpdo[j],"Site"))
-  end
+  s = firstsiteinds(lpdo)
   
   for n in 1:size(data)[1]
     x = data[n,:]
-    if choi
-      prob = prime(lpdo[1],"Link") * gate(x[1],s[1])
-      prob = prob * dag(lpdo[1]) * dag(gate(x[1],s[1]))
-    else
-      prob = prime(lpdo[1],"Link") * dag(gate(x[1],s[1]))
-      prob = prob * dag(lpdo[1]) * gate(x[1],s[1])
+
+    # Project LPDO into the measurement eigenstates
+    Φdag = dag(copy(lpdo))
+    for j in 1:N
+      Φdag[j] = (isodd(j) & choi ? Φdag[j] = Φdag[j] * dag(gate(x[j],s[j])) :
+                                   Φdag[j] = Φdag[j] * gate(x[j],s[j]))
     end
-    for j in 2:N
-      if isodd(j) & choi
-        prob = prob * prime(lpdo[j],"Link") * gate(x[j],s[j])
-        prob = prob * dag(lpdo[j]) * dag(gate(x[j],s[j]))
-      else
-        prob = prob * prime(lpdo[j],"Link") * dag(gate(x[j],s[j]))
-        prob = prob * dag(lpdo[j]) * gate(x[j],s[j])
-      end
-    end
-    loss -= log(real(prob[]))/size(data)[1]
+    
+    # Compute overlap
+    prob = inner(Φdag,Φdag)
+    loss -= log(real(prob))/size(data)[1]
   end
   return loss
 end
 
-
-
-
-""" OLD FUNCTIONS """
-
-
-#
-##function measureonesiteop(psi::MPS,local_op::ITensor)
-##  site = getsitenumber(firstind(local_op,tags="Site"))
-##  orthogonalize!(psi,site)
-##  if abs(1.0-norm(psi[site])) > 1E-8
-##    error("MPS is not normalized, norm=$(norm(psi[site]))")
-##  end
-##  psi_m = copy(psi)
-##  psi_m[site] = psi_m[site] * local_op
-##  measurement = inner(psi,psi_m)
-##  return measurement
-##end
-##
-##function measureonesiteop(psi::MPS,opID::String)
-##  N = length(psi)
-##  sites = siteinds(psi)
-##  measurement = Vector{Float64}(undef,N)
-##  for j in 1:N
-##    local_op = op(sites[j],opID)
-##    measurement[j] = measureonesiteop(psi,local_op)
-##  end
-##  return measurement
-##end
-##
-#
-#
-#function lognormalize!(M::Union{MPS,MPO}; choi::Bool=false)
-#  
-#  # PROCESS TOMOGRAPHY
-#  if choi
-#    choinorm = 2^(0.5*length(M))
-#    #choi_local = 1/2^0.25 
-#    choi_local = 1/2^0.25 
-#
-#    localnorms = []
-#    blob = dag(M[1]) * prime(M[1],"Link")
-#    localZ = norm(blob)
-#    logZ = 0.5*log(localZ)
-#    blob /= sqrt(localZ)
-#    M[1] /= (choi_local * localZ^0.25)
-#    push!(localnorms,localZ^0.25)
-#    for j in 2:length(M)-1
-#      blob = blob * dag(M[j]);
-#      blob = blob * prime(M[j],"Link")
-#      localZ = norm(blob)
-#      logZ += 0.5*log(localZ)
-#      blob /= sqrt(localZ)
-#      M[j] /= (choi_local * localZ^0.25)
-#      push!(localnorms,localZ^0.25)  
-#    end
-#    blob = blob * dag(M[length(M)]);
-#    blob = blob * prime(M[length(M)],"Link")
-#    localZ = norm(blob)
-#    M[length(M)] /= (choi_local * sqrt(localZ))
-#    push!(localnorms,sqrt(localZ))
-#    logZ += log(real(blob[]))
-#    logZ += log(choinorm)
-#    localnorms .= localnorms .* choi_local
-#  end
-#end
 

@@ -66,6 +66,7 @@ export
   TomographyObserver,
   # Methods
   measure!,
+  writeobserver,
   #measurements,
   #fidelities,
   #NLL,
