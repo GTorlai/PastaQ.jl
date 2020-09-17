@@ -43,8 +43,8 @@ qubits(N::Int; mixed::Bool=false) = qubits(siteinds("qubit", N); mixed=mixed)
   resetqubits!(M::Union{MPS,MPO})
 
 Reset qubits to the initial state:
-- |ψ⟩=|0,0,…,0⟩ if `M = MPS`
-- ρ = |0,0,…,0⟩⟨0,0,…,0| if `M = MPO`
+- `|ψ⟩=|0,0,…,0⟩` if `M = MPS`
+- `ρ = |0,0,…,0⟩⟨0,0,…,0|` if `M = MPO`
 """
 
 function resetqubits!(M::Union{MPS,MPO})
@@ -169,7 +169,7 @@ If an MPS `|ψ⟩` is input, there are three possible modes:
 
 1. By default (`noise = nothing` and `apply_dag = nothing`), the evolution `U|ψ⟩` is performed.
 2. If `noise` is set to something nontrivial, the mixed evolution `ε(|ψ⟩⟨ψ|)` is performed.
-   Example: noise = "AD", γ=0.1 (amplitude damping channel with decay rate γ)
+   Example: `noise = "AD"`, `γ=0.1` (amplitude damping channel with decay rate `γ`)
 3. If `noise = nothing` and `apply_dag = true`, the evolution `U|ψ⟩⟨ψ|U†` is performed.
 
 If an MPO `ρ` is input, there are three possible modes:

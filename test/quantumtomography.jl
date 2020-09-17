@@ -736,7 +736,7 @@ end
   @test F ≈ ex_F
   
   σ = getdensityoperator(ρ)
-  F1 = fidelity(σ,ψ;lpdo=false)
+  F1 = fidelity(σ,ψ)
   @test F1 ≈ ex_F 
 end
 

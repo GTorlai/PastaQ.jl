@@ -19,8 +19,10 @@ include("optimizers/sgd.jl")
 include("optimizers/momentum.jl")
 include("optimizers/adagrad.jl")
 
-include("quantumtomography.jl")
-include("physics.jl")
+include("observer.jl")
 include("utils.jl")
+include("quantumtomography.jl")
+
+
 
 end # module

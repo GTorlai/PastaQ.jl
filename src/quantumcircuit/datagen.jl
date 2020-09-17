@@ -94,8 +94,8 @@ MEASUREMENT IN MULTIPLE BASES
 Generate a single measurements data-point in an input `basis`. 
 If `Û` is the depth-1 local circuit rotating each qubit, the 
 data-point `σ = (σ₁,σ₂,…)` id drawn from the probablity distribution:
-- P(σ) = |⟨σ|Û|ψ⟩|²   : if M = ψ is MPS
-- P(σ) = <σ|Û ρ Û†|σ⟩ : if M = ρ is MPO   
+- `P(σ) = |⟨σ|Û|ψ⟩|²`   : if `M = ψ` is MPS
+- `P(σ) = <σ|Û ρ Û†|σ⟩` : if `M = ρ` is MPO   
 """
 
 function generatedata(M0::Union{MPS,MPO},basis::Array)
@@ -134,8 +134,8 @@ specified by a set of quantum `gates`.
 Arguments:
   - `gates`: a set of quantum gates.
   - `noise`: apply a noise model after each quantum gate in the circuit
-  - basis_id: set of basis used (ex: `basis_id=["X","Y","Z"])
-  - return_state: if true, returns the ouput state `ψ = U|0,0,…,0⟩`
+  - `basis_id`: set of basis used (ex: `basis_id=["X","Y","Z"])
+  - `return_state`: if true, returns the ouput state `ψ = U|0,0,…,0⟩`
 """
 
 function generatedata(N::Int64,gates::Vector{<:Tuple},nshots::Int64;
@@ -195,16 +195,18 @@ function preparationsettings(N::Int,nshots::Int;
 end
 
 """
-  measurementgates(basis::Array)
+  preparationgates(prep::Array)
 
 Given as input a prepared input state, returns the corresponding
 gate data structure. If the state is `"Z+"`, no action is required.
 If not, a quantum gate for state preparation is added to the list.
 
 Example:
+```
 prep = ["X+","Z+","Z+","Y+"]
--> gate_list = [("prepX+", 1),
-                ("prepY+", 4)]
+gate_list = [("prepX+", 1),
+             ("prepY+", 4)]
+```
 """
 
 function preparationgates(prep::Array)
@@ -332,7 +334,7 @@ Arguments:
   - `gates`: a set of quantum gates
   - `noise`: apply a noise model after each quantum gate in the circuit
   - `prep_id`: a set of input states (e.g. `["X+","X-","Y+","Y-","Z+","Z-"]`)   
-  - `basis_id`: set of basis used (e.g. `["X","Y","Z"])
+  - `basis_id`: set of basis used (e.g. `["X","Y","Z"]`)
   - `choi`: if true, generate data using the Choi matrix
   - `return_state`: if true, returns the ouput state `ψ = U|0,0,…,0⟩`
 """

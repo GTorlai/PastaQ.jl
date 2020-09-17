@@ -62,11 +62,14 @@ export
   # Methods
   update!,
 
-# physics.jl
+# observer.jl
+  TomographyObserver,
   # Methods
-  transversefieldising,
-  groundstate,
-
+  measure!,
+  #measurements,
+  #fidelities,
+  #NLL,
+  
 # utils.jl
   # Methods
   loadtrainingdataQST,
