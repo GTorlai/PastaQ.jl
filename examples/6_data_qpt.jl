@@ -5,11 +5,11 @@ using HDF5
 
 Random.seed!(1234)
 
-N = 4
-depth = 2
-nshots = 10000
+N = 20
+depth = 8
+nshots = 200000
 
-gates = randomquantumcircuit(N,depth)
+gates = randomcircuit(N,depth)
 noise = nothing
 
 if isnothing(noise)
