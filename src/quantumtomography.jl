@@ -337,15 +337,10 @@ input state, which is equivalent to take the conjugate of the eigenstate project
 
 """
 function gradnll(lpdo::MPO,data::Array;localnorm=nothing,choi::Bool=false)
-  loss = 0.0
-
   N = length(lpdo)
-  
-  s = Index[]
-  for j in 1:N
-    push!(s,firstind(lpdo[j],"Site"))
-  end
 
+  s = firstsiteinds(lpdo)  
+  
   links = [linkind(lpdo, n) for n in 1:N-1]
   
   kraus = Index[]
@@ -354,128 +349,160 @@ function gradnll(lpdo::MPO,data::Array;localnorm=nothing,choi::Bool=false)
   end
 
   ElT = eltype(lpdo[1])
-
-  L = Vector{ITensor{2}}(undef, N)
-  Llpdo = Vector{ITensor}(undef, N)
-  Lgrad = Vector{ITensor}(undef,N)
-  for n in 1:N-1
-    L[n] = ITensor(ElT, undef, links[n]',links[n])
-  end
-  for n in 2:N-1
-    Llpdo[n] = ITensor(ElT, undef, kraus[n],links[n]',links[n-1])
-  end
-  for n in 1:N-2
-    Lgrad[n] = ITensor(ElT,undef,links[n],kraus[n+1],links[n+1]')
-  end
-  Lgrad[N-1] = ITensor(ElT,undef,links[N-1],kraus[N])
-
-  R = Vector{ITensor{2}}(undef, N)
-  Rlpdo = Vector{ITensor}(undef, N)
-  for n in N:-1:2
-    R[n] = ITensor(ElT, undef, links[n-1]',links[n-1])
-  end 
-  for n in N-1:-1:2
-    Rlpdo[n] = ITensor(ElT, undef, links[n-1]',kraus[n],links[n])
-  end
   
-  Agrad = Vector{ITensor}(undef, N)
-  Agrad[1] = ITensor(ElT, undef, kraus[1],links[1]',s[1])
-  for n in 2:N-1
-    Agrad[n] = ITensor(ElT, undef, links[n-1],kraus[n],links[n]',s[n])
-  end
+  nthreads = Threads.nthreads()
 
-  T = Vector{ITensor}(undef,N)
-  Tp = Vector{ITensor}(undef,N)
-  T[1] = ITensor(ElT, undef, kraus[1],links[1])
-  Tp[1] = prime(T[1],"Link")
-  for n in 2:N-1
-    T[n] = ITensor(ElT, undef, kraus[n],links[n],links[n-1])
-    Tp[n] = prime(T[n],"Link")
+  L     = [Vector{ITensor{2}}(undef, N) for _ in 1:nthreads]
+  Llpdo = [Vector{ITensor}(undef, N) for _ in 1:nthreads]
+  Lgrad = [Vector{ITensor}(undef,N) for _ in 1:nthreads]
+
+  R     = [Vector{ITensor{2}}(undef, N) for _ in 1:nthreads]
+  Rlpdo = [Vector{ITensor}(undef, N) for _ in 1:nthreads]
+  
+  Agrad = [Vector{ITensor}(undef, N) for _ in 1:nthreads]
+  
+  T  = [Vector{ITensor}(undef,N) for _ in 1:nthreads] 
+  Tp = [Vector{ITensor}(undef,N) for _ in 1:nthreads]
+  
+  grads     = [Vector{ITensor}(undef,N) for _ in 1:nthreads] 
+  gradients = [Vector{ITensor}(undef,N) for _ in 1:nthreads]
+  
+  for nthread in 1:nthreads
+
+    for n in 1:N-1
+      L[nthread][n] = ITensor(ElT, undef, links[n]',links[n])
+    end
+    for n in 2:N-1
+      Llpdo[nthread][n] = ITensor(ElT, undef, kraus[n],links[n]',links[n-1])
+    end
+    for n in 1:N-2
+      Lgrad[nthread][n] = ITensor(ElT,undef,links[n],kraus[n+1],links[n+1]')
+    end
+    Lgrad[nthread][N-1] = ITensor(ElT,undef,links[N-1],kraus[N])
+
+    for n in N:-1:2
+      R[nthread][n] = ITensor(ElT, undef, links[n-1]',links[n-1])
+    end 
+    for n in N-1:-1:2
+      Rlpdo[nthread][n] = ITensor(ElT, undef, links[n-1]',kraus[n],links[n])
+    end
+  
+    Agrad[nthread][1] = ITensor(ElT, undef, kraus[1],links[1]',s[1])
+    for n in 2:N-1
+      Agrad[nthread][n] = ITensor(ElT, undef, links[n-1],kraus[n],links[n]',s[n])
+    end
+
+    T[nthread][1] = ITensor(ElT, undef, kraus[1],links[1])
+    Tp[nthread][1] = prime(T[nthread][1],"Link")
+    for n in 2:N-1
+      T[nthread][n] = ITensor(ElT, undef, kraus[n],links[n],links[n-1])
+      Tp[nthread][n] = prime(T[nthread][n],"Link")
+    end
+    T[nthread][N] = ITensor(ElT, undef, kraus[N],links[N-1])
+    Tp[nthread][N] = prime(T[nthread][N],"Link")
+  
+    grads[nthread][1] = ITensor(ElT, undef,links[1],kraus[1],s[1])
+    gradients[nthread][1] = ITensor(ElT,links[1],kraus[1],s[1])
+    for n in 2:N-1
+      grads[nthread][n] = ITensor(ElT, undef,links[n],links[n-1],kraus[n],s[n])
+      gradients[nthread][n] = ITensor(ElT,links[n],links[n-1],kraus[n],s[n])
+    end
+    grads[nthread][N] = ITensor(ElT, undef,links[N-1],kraus[N],s[N])
+    gradients[nthread][N] = ITensor(ElT, links[N-1],kraus[N],s[N])
   end
-  T[N] = ITensor(ElT, undef, kraus[N],links[N-1])
-  Tp[N] = prime(T[N],"Link")
   
   if isnothing(localnorm)
     localnorm = ones(N)
   end
-
-  grads = Vector{ITensor}(undef,N)
-  gradients = Vector{ITensor}(undef,N)
-  grads[1] = ITensor(ElT, undef,links[1],kraus[1],s[1])
-  gradients[1] = ITensor(ElT,links[1],kraus[1],s[1])
-  for n in 2:N-1
-    grads[n] = ITensor(ElT, undef,links[n],links[n-1],kraus[n],s[n])
-    gradients[n] = ITensor(ElT,links[n],links[n-1],kraus[n],s[n])
-  end
-  grads[N] = ITensor(ElT, undef,links[N-1],kraus[N],s[N])
-  gradients[N] = ITensor(ElT, links[N-1],kraus[N],s[N])
   
-  for n in 1:size(data)[1]
+  loss = zeros(nthreads)
+
+  Threads.@threads for n in 1:size(data)[1]
+
+    nthread = Threads.threadid()
+
     x = data[n,:]
     
     """ LEFT ENVIRONMENTS """
     if choi
-      T[1] .= lpdo[1] .* gate(x[1],s[1])
-      L[1] .= prime(T[1],"Link") .* dag(T[1])
+      T[nthread][1] .= lpdo[1] .* gate(x[1],s[1])
+      L[nthread][1] .= prime(T[nthread][1],"Link") .* dag(T[nthread][1])
     else
-      T[1] .= lpdo[1] .* dag(gate(x[1],s[1]))
-      L[1] .= prime(T[1],"Link") .* dag(T[1])
+      T[nthread][1] .= lpdo[1] .* dag(gate(x[1],s[1]))
+      L[nthread][1] .= prime(T[nthread][1],"Link") .* dag(T[nthread][1])
     end
     for j in 2:N-1
       if isodd(j) & choi
-        T[j] .= lpdo[j] .* gate(x[j],s[j])
+        T[nthread][j] .= lpdo[j] .* gate(x[j],s[j])
       else
-        T[j] .= lpdo[j] .* dag(gate(x[j],s[j]))
+        T[nthread][j] .= lpdo[j] .* dag(gate(x[j],s[j]))
       end
-      Llpdo[j] .= prime(T[j],"Link") .* L[j-1]
-      L[j] .= Llpdo[j] .* dag(T[j])
+      Llpdo[nthread][j] .= prime(T[nthread][j],"Link") .* L[nthread][j-1]
+      L[nthread][j] .= Llpdo[nthread][j] .* dag(T[nthread][j])
     end
-    T[N] .= lpdo[N] .* dag(gate(x[N],s[N]))
-    prob = L[N-1] * prime(T[N],"Link")
-    prob = prob * dag(T[N])
+    T[nthread][N] .= lpdo[N] .* dag(gate(x[N],s[N]))
+    prob = L[nthread][N-1] * prime(T[nthread][N],"Link")
+    prob = prob * dag(T[nthread][N])
     prob = real(prob[])
-    loss -= log(prob)/size(data)[1]
+    loss[nthread] -= log(prob)/size(data)[1]
     
     """ RIGHT ENVIRONMENTS """
-    R[N] .= prime(T[N],"Link") .* dag(T[N])
+    R[nthread][N] .= prime(T[nthread][N],"Link") .* dag(T[nthread][N])
     for j in reverse(2:N-1)
-      Rlpdo[j] .= prime(T[j],"Link") .* R[j+1] 
-      R[j] .= Rlpdo[j] .* dag(T[j])
+      Rlpdo[nthread][j] .= prime(T[nthread][j],"Link") .* R[nthread][j+1] 
+      R[nthread][j] .= Rlpdo[nthread][j] .* dag(T[nthread][j])
     end
     
     """ GRADIENTS """
     if choi
-      Tp[1] .= prime(lpdo[1],"Link") .* gate(x[1],s[1])
-      Agrad[1] .=  Tp[1] .* dag(gate(x[1],s[1]))
+      Tp[nthread][1] .= prime(lpdo[1],"Link") .* gate(x[1],s[1])
+      Agrad[nthread][1] .=  Tp[nthread][1] .* dag(gate(x[1],s[1]))
     else
-      Tp[1] .= prime(lpdo[1],"Link") .* dag(gate(x[1],s[1]))
-      Agrad[1] .=  Tp[1] .* gate(x[1],s[1])
+      Tp[nthread][1] .= prime(lpdo[1],"Link") .* dag(gate(x[1],s[1]))
+      Agrad[nthread][1] .=  Tp[nthread][1] .* gate(x[1],s[1])
     end
-    grads[1] .= R[2] .* Agrad[1]
-    gradients[1] .+= (1 / (localnorm[1] * prob)) .* grads[1]
+    grads[nthread][1] .= R[nthread][2] .* Agrad[nthread][1]
+    gradients[nthread][1] .+= (1 / (localnorm[1] * prob)) .* grads[nthread][1]
     for j in 2:N-1
       if isodd(j) & choi
-        Tp[j] .= prime(lpdo[j],"Link") .* gate(x[j],s[j])
-        Lgrad[j-1] .= L[j-1] .* Tp[j]
-        Agrad[j] .= Lgrad[j-1] .* dag(gate(x[j],s[j]))
+        Tp[nthread][j] .= prime(lpdo[j],"Link") .* gate(x[j],s[j])
+        Lgrad[nthread][j-1] .= L[nthread][j-1] .* Tp[nthread][j]
+        Agrad[nthread][j] .= Lgrad[nthread][j-1] .* dag(gate(x[j],s[j]))
       else
-        Tp[j] .= prime(lpdo[j],"Link") .* dag(gate(x[j],s[j]))
-        Lgrad[j-1] .= L[j-1] .* Tp[j]
-        Agrad[j] .= Lgrad[j-1] .* gate(x[j],s[j])
+        Tp[nthread][j] .= prime(lpdo[j],"Link") .* dag(gate(x[j],s[j]))
+        Lgrad[nthread][j-1] .= L[nthread][j-1] .* Tp[nthread][j]
+        Agrad[nthread][j] .= Lgrad[nthread][j-1] .* gate(x[j],s[j])
       end
-      grads[j] .= R[j+1] .* Agrad[j] 
-      gradients[j] .+= (1 / (localnorm[j] * prob)) .* grads[j]
+      grads[nthread][j] .= R[nthread][j+1] .* Agrad[nthread][j] 
+      gradients[nthread][j] .+= (1 / (localnorm[j] * prob)) .* grads[nthread][j]
     end
-    Tp[N] .= prime(lpdo[N],"Link") .* dag(gate(x[N],s[N]))
-    Lgrad[N-1] .= L[N-1] .* Tp[N]
-    grads[N] .= Lgrad[N-1] .* gate(x[N],s[N])
-    gradients[N] .+= (1 / (localnorm[N] * prob)) .* grads[N]
+    Tp[nthread][N] .= prime(lpdo[N],"Link") .* dag(gate(x[N],s[N]))
+    Lgrad[nthread][N-1] .= L[nthread][N-1] .* Tp[nthread][N]
+    grads[nthread][N] .= Lgrad[nthread][N-1] .* gate(x[N],s[N])
+    gradients[nthread][N] .+= (1 / (localnorm[N] * prob)) .* grads[nthread][N]
   end
   
-  for g in gradients
-    g .= -2/size(data)[1] .* g
+  for nthread in 1:nthreads
+    for g in gradients[nthread]
+      g .= (-2/size(data)[1]) .* g
+    end
   end
-  return gradients,loss 
+  
+  gradients_tot = Vector{ITensor}(undef,N) 
+  gradients_tot[1] = ITensor(ElT,links[1],kraus[1],s[1])
+  for n in 2:N-1
+    gradients_tot[n] = ITensor(ElT,links[n],links[n-1],kraus[n],s[n])
+  end
+  gradients_tot[N] = ITensor(ElT, links[N-1],kraus[N],s[N])
+  
+  loss_tot = 0.0
+  for nthread in 1:nthreads
+    gradients_tot .+= gradients[nthread]
+    loss_tot += loss[nthread]
+  end
+  
+  return gradients_tot, loss_tot
+
 end
 
 

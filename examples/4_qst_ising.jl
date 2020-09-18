@@ -21,8 +21,6 @@ println("Training...")
 #ψ = statetomography(ψ0,data,opt;
 (ψ,obs) = statetomography(ψ0,data,opt;observer=obs,
                           fout="prova.h5",
-                          χ=χ,
-                          mixed=false,
                           batchsize=500,
                           epochs=5,
                           target=ψ_target,
