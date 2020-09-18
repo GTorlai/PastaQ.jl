@@ -740,4 +740,93 @@ end
   @test F1 ≈ ex_F 
 end
 
+@testset "trace distance" begin 
+
+  ψ1 = initializetomography(3,2;seed=1111)
+  ψ2 = initializetomography(3,2;seed=2222)
+  
+  for j in 1:length(ψ1)
+    replaceind!(ψ2[j],firstind(ψ2[j],"Site"),firstind(ψ1[j],"Site"))
+  end
+  
+  ρ_mpo = MPO(ψ1)
+  σ_mpo = MPO(ψ2)
+
+  ρ_mat = fullmatrix(ρ_mpo)
+  σ_mat = fullmatrix(σ_mpo)
+  Kρ = tr(ρ_mat) 
+  Kσ = tr(σ_mat) 
+  
+  δ = ρ_mat/Kρ - σ_mat/Kσ
+
+  T = sqrt(tr(conj(transpose(δ)) * δ))
+
+  F = fidelity(ρ_mpo,σ_mpo)
+  @test T ≈ F
+
+    
+  ρ = initializetomography(3,2,2;seed=1111)
+  for j in 1:length(ψ1)
+    replaceind!(ρ[j],inds(ρ[j],"Site")[1],firstind(ψ1[j],"Site"))
+  end
+  
+  ρ_mpo = getdensityoperator(ρ)
+  σ_mpo = MPO(ψ2)
+
+  ρ_mat = fullmatrix(ρ_mpo)
+  σ_mat = fullmatrix(σ_mpo)
+  Kρ = tr(ρ_mat) 
+  Kσ = tr(σ_mat) 
+  
+  δ = ρ_mat/Kρ - σ_mat/Kσ
+
+  T = sqrt(tr(conj(transpose(δ)) * δ))
+
+  F = fidelity(ρ,σ_mpo)
+  @test T ≈ F
+
+
+  σ = initializetomography(3,2,2;seed=1111)
+  for j in 1:length(ψ2)
+    replaceind!(σ[j],inds(σ[j],"Site")[1],firstind(ψ2[j],"Site"))
+  end
+  
+  ρ_mpo = MPO(ψ1)
+  σ_mpo = getdensityoperator(σ)
+
+  ρ_mat = fullmatrix(ρ_mpo)
+  σ_mat = fullmatrix(σ_mpo)
+  Kρ = tr(ρ_mat) 
+  Kσ = tr(σ_mat) 
+  
+  δ = ρ_mat/Kρ - σ_mat/Kσ
+
+  T = sqrt(tr(conj(transpose(δ)) * δ))
+
+  F = fidelity(ρ_mpo,σ)
+  @test T ≈ F
+  
+  ρ = initializetomography(3,2,2;seed=1111)
+  σ = initializetomography(3,2,2;seed=1111)
+  for j in 1:length(ψ2)
+    replaceind!(σ[j],inds(σ[j],"Site")[1],firstind(ρ[j],"Site"))
+  end
+  
+  ρ_mpo = getdensityoperator(ρ)
+  σ_mpo = getdensityoperator(σ)
+
+  ρ_mat = fullmatrix(ρ_mpo)
+  σ_mat = fullmatrix(σ_mpo)
+  Kρ = tr(ρ_mat) 
+  Kσ = tr(σ_mat) 
+  
+  δ = ρ_mat/Kρ - σ_mat/Kσ
+
+  T = sqrt(tr(conj(transpose(δ)) * δ))
+
+  F = fidelity(ρ,σ)
+  @test T ≈ F
+  
+end
+
 

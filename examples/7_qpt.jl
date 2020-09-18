@@ -4,10 +4,10 @@ using Random
 using HDF5
 
 Random.seed!(1234)
-N = 20
-depth=8
-noise=nothing
-nshots = 100000
+N = 4
+depth=2
+noise= true#nothing
+nshots = 10000
 
 if isnothing(noise)
   input_path = "data_qpt_N$(N)_unitary_random_D=$(depth).h5"
@@ -38,33 +38,23 @@ if isnothing(noise)
                         globalnorm=false)
   
 else
-  input_path = "data_qpt_N$(N)_noisy.h5"
-  data_in,data_out,Λ = loadtrainingdataQPT(input_path; ismpo=true)
-  χ = maxlinkdim(Λ)
+  input_path = "data_qpt_N$(N)_noisy_random_D=$(depth).h5"
+  data_in,data_out,Φ = loadtrainingdataQPT(input_path; ismpo=true)
   if !isnothing(nshots)
     data_in  = data_in[1:nshots,:]    
     data_out = data_out[1:nshots,:]
   end
   @show maxlinkdim(Φ)
   
-  ##@show Λ
-  #for j in 1:length(Λ) 
-  #  ind = (j+1)÷2
-  #  if isodd(j)
-  #    replacetags!(Λ[j],"Input,Site,n=$ind,qubit","Site,n=$j),qubit")
-  #  else
-  #    replacetags!(Λ[j],"Output,Site,n=$ind,qubit","Site,n=$j,qubit")
-  #  end
-  #end
-  #opt = SGD(η = 0.1)
-  #
-  #Ψ = processtomography(data_in,data_out,opt;
-  #                      χ = χ,
-  #                      mixed=true,
-  #                      batchsize=100,
-  #                      epochs=100,
-  #                      target=Λ,
-  #                      localnorm=false,
-  #                      globalnorm=false)
-  #
+  opt = SGD(η = 0.1)
+  χ = maxlinkdim(Φ)
+  ξ = 2  
+  Λ0 = initializetomography(2*N,χ,ξ)
+  Λ  = processtomography(Λ0,data_in,data_out,opt;
+                        batchsize=1000,
+                        epochs=1000,
+                        target=Φ,
+                        localnorm=true,
+                        globalnorm=false)
+  
 end

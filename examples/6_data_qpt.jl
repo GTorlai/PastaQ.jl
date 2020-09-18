@@ -5,12 +5,12 @@ using HDF5
 
 Random.seed!(1234)
 
-N = 20
-depth = 8
-nshots = 200000
+N = 4
+depth = 2
+nshots = 10000
 
 gates = randomcircuit(N,depth)
-noise = nothing
+noise = true#nothing
 
 if isnothing(noise)
   
@@ -24,10 +24,10 @@ if isnothing(noise)
   end    
 else
   
-  (Λ,data_in,data_out) = generate_processdata(N,gates,nshots;
-                                            noise="AD",γ=0.1)
+  (Λ,data_in,data_out) = generate_processdata(N,gates,nshots;choi=true,return_state=true,
+                                            noise="AD",γ=0.05)
 
-  output_path = "data_qpt_N$(N)_noisy.h5"
+  output_path = "data_qpt_N$(N)_noisy_random_D=$(depth).h5"
   h5open(output_path, "w") do file
     write(file,"data_in",data_in)
     write(file,"data_out",data_out)

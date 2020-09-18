@@ -672,7 +672,8 @@ Contract the `purifier` indices to get the MPO
 `ρ = lpdo lpdo†`
 
 """
-function getdensityoperator(lpdo::MPO)
+function getdensityoperator(lpdo0::MPO)
+  lpdo = copy(lpdo0)
   noprime!(lpdo)
   N = length(lpdo)
   M = ITensor[]
@@ -726,6 +727,7 @@ function fidelity(ψ::MPS,ϕ::MPS)
   fidelity = exp(log_F̃ - log_K)
   return fidelity
 end
+
 """
   fidelity(ψ::MPS,ρ::MPO)
   fidelity(ρ::MPO,ψ::MPS)
@@ -750,6 +752,63 @@ function fidelity(ψ::MPS,ρ::MPO)
 end
 
 fidelity(ρ::MPO,ψ::MPS) = fidelity(ψ::MPS,ρ::MPO)
+
+"""
+  fidelity(lpdo::MPO,ρ::MPO)
+
+Compute the trace norm of the difference between two MPO.
+
+`F(ρ,σ) = sqrt(trace[(ρ-σ)†(ρ-σ)])
+"""
+function fidelity(ρ0::MPO,σ0::MPO)
+  islpdo_ρ = any(x -> any(y -> hastags(y, "Purifier"), inds(x)), ρ0)
+  islpdo_σ = any(x -> any(y -> hastags(y, "Purifier"), inds(x)), σ0)
+ 
+  if islpdo_ρ & islpdo_σ
+    ρ = copy(ρ0)
+    σ = copy(σ0)
+    # Normalize both LPDO to 1
+    lognormalize!(ρ)
+    lognormalize!(σ)
+    # Extract density operators MPO
+    ρ′ = getdensityoperator(ρ)
+    σ′ = getdensityoperator(σ)
+    Kρ  = 1.0
+    Kσ  = 1.0
+  
+  elseif islpdo_ρ & !islpdo_σ
+    # Normalize the LPDO to 1
+    ρ = copy(ρ0)
+    lognormalize!(ρ)
+    ρ′ = getdensityoperator(ρ)
+    σ′ = σ0
+    # Get the MPO normalization
+    Kρ  = 1.0
+    Kσ = trace_mpo(σ′)
+  
+  elseif !islpdo_ρ & islpdo_σ
+    # Normalize the LPDO to 1
+    σ = copy(σ0)
+    lognormalize!(σ)
+    σ′ = getdensityoperator(σ)
+    ρ′ = ρ0
+    # Get the MPO normalization
+    Kρ = trace_mpo(ρ′)
+    Kσ  = 1.0
+  else
+    ρ′ = ρ0
+    σ′ = σ0
+    Kρ = trace_mpo(ρ′)
+    Kσ = trace_mpo(σ′)
+  end
+  
+  distance  = inner(ρ′,ρ′)/Kρ^2
+  distance += inner(σ′,σ′)/Kσ^2
+  distance -= 2.0*inner(ρ′,σ′)/(Kρ*Kσ)
+  
+  return real(sqrt(distance))
+end
+
 
 """
   fullfidelity(ρ::MPO,σ::MPO;choi::Bool=false)
