@@ -5,9 +5,9 @@ using HDF5
 
 Random.seed!(1234)
 N = 20
-depth=2
+depth=8
 noise=nothing
-nshots = nothing
+nshots = 100000
 
 if isnothing(noise)
   input_path = "data_qpt_N$(N)_unitary_random_D=$(depth).h5"
@@ -21,13 +21,17 @@ if isnothing(noise)
 
   Ψ0 = initializetomography(2*N,χ,σ=0.1)
   
-  #opt = SGD(η = 0.01)
-  opt = Adagrad(Ψ0;η=0.005,ϵ=1E-8)
-
-  Ψ = processtomography(Ψ0,data_in,data_out,opt;
-                        χ = χ,
-                        mixed=false,
-                        batchsize=900,
+  opt = SGD(η = 0.1)
+  #opt = Adagrad(Ψ0;η=0.005,ϵ=1E-8)
+  #opt = Adadelta(Ψ0;γ=0.9,ϵ=1E-10)
+  
+  obs = TomographyObserver(Ψ0)
+  outputpath= "qpt_N$(N)_unitary_random_D=$(depth)_SGD_ns$(nshots).h5"
+  #Ψ = processtomography(Ψ0,data_in,data_out,opt;
+  (Ψ,obs) = processtomography(Ψ0,data_in,data_out,opt;
+                        observer=obs,
+                        fout=outputpath,
+                        batchsize=1000,
                         epochs=1000,
                         target=Φ,
                         localnorm=true,
