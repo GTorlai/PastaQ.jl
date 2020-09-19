@@ -624,12 +624,19 @@ function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwarg
     print("Ep = $ep  ")
     @printf("Loss = %.5E  ",avg_loss)
     if !isnothing(target)
-      #if choi==true && typeof(target)==MPO
-      #  F = fullfidelity(model,target)
-      #else
       F = fidelity(model,target)
       #end
-      @printf("Fidelity = %.3E  ",F)
+      if (typeof(model) == MPO) & (typeof(target) == MPO)
+        @printf("Trace distance = %.3E  ",F)
+        if (length(model) <= 12)
+          disable_warn_order!()
+          fid = fullfidelity(model,target)
+          reset_warn_order!()
+          @printf("Fidelity = %.3E  ",fid)
+        end
+      else
+        @printf("Fidelity = %.3E  ",F)
+      end
     end
     @printf("Time = %.3f sec",ep_time)
     print("\n")
