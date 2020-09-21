@@ -40,11 +40,11 @@ end
 @testset "generation of preparation states" begin
   N = 4
   nshots = 100
-  states = preparationsettings(N,nshots)
+  states = randompreparations(N,nshots)
   @test size(states)[1] == nshots
   @test size(states)[2] == N
   
-  states = preparationsettings(N,nshots,numprep=10)
+  states = randompreparations(N,nshots,n_distinctstates=10)
   @test size(states)[1] == nshots
   @test size(states)[2] == N
   
@@ -58,11 +58,11 @@ end
 @testset "generation of measurement bases" begin
   N = 4
   nshots = 100
-  bases = measurementsettings(N,nshots)
+  bases = randombases(N,nshots)
   @test size(bases)[1] == nshots
   @test size(bases)[2] == N
   
-  bases = measurementsettings(N,nshots,numbases=10)
+  bases = randombases(N,nshots,n_distinctbases=10)
   @test size(bases)[1] == nshots
   @test size(bases)[2] == N
   
@@ -84,7 +84,7 @@ end
   probs = abs2.(ψ_vec)
   
   nshots = 100000
-  samples = generatedata(ψ,nshots)
+  samples = generatedata!(ψ,nshots)
   @test size(samples)[1] == nshots
   @test size(samples)[2] == N
   data_prob = empiricalprobability(samples)
@@ -94,7 +94,7 @@ end
   ρ_mat = fullmatrix(ρ)
   probs = real(diag(ρ_mat))
 
-  samples = generatedata(ρ,nshots)
+  samples = generatedata!(ρ,nshots)
   @test size(samples)[1] == nshots
   @test size(samples)[2] == N
   data_prob = empiricalprobability(samples)
@@ -106,7 +106,7 @@ end
   N = 8
   nshots = 20
   ψ0 = qubits(N)
-  bases = measurementsettings(N,nshots)
+  bases = randombases(N,nshots)
   
   depth = 8
   gates = randomcircuit(N,depth)
@@ -118,7 +118,7 @@ end
     meas_gates = measurementgates(basis)
     #meas_tensors = compilecircuit(ψ,meas_gates)
     ψ_out = runcircuit(ψ,meas_gates)
-    x1 = generatedata(ψ_out,1)
+    x1 = generatedata!(ψ_out)
     x1 .+= 1 
     
     if (basis[1] == "Z")
@@ -223,8 +223,8 @@ end
   # 1: Noiseless
   Ψ = choimatrix(N,gates)
   
-  bases = measurementsettings(N,ntrial)
-  preps = preparationsettings(N,ntrial)
+  bases = randombases(N,ntrial)
+  preps = randompreparations(N,ntrial)
   
   for n in 1:ntrial
     pgates = preparationgates(preps[n,:])
@@ -243,8 +243,8 @@ end
   # 2: Noisy
   Λ = choimatrix(N,gates;noise="AD",γ=0.1)
   
-  bases = measurementsettings(N,ntrial)
-  preps = preparationsettings(N,ntrial)
+  bases = randombases(N,ntrial)
+  preps = randompreparations(N,ntrial)
   for n in 1:ntrial
     pgates = preparationgates(preps[n,:])
     mgates = measurementgates(bases[n,:])
@@ -340,18 +340,18 @@ end
   ρ = runcircuit(N,gates;noise="AD",γ=0.1)
 
   # 1a) Generate data with a MPS on the reference basis
-  data = generatedata(ψ,nshots)
+  data = generatedata!(ψ,nshots)
   @test size(data) == (nshots,N)
   # 1b) Generate data with a MPO on the reference basis
-  data = generatedata(ρ,nshots)
+  data = generatedata!(ρ,nshots)
   @test size(data) == (nshots,N)
   
   # 2a) Generate data with a MPS on multiple bases
-  bases = measurementsettings(N,nshots;bases_id=["X","Y","Z"])
+  bases = randombases(N,nshots;localbasis=["X","Y","Z"])
   data = generatedata(ψ,nshots,bases)
   @test size(data) == (nshots,N)
   # 2b) Generate data with a MPO on multiple bases
-  bases = measurementsettings(N,nshots;bases_id=["X","Y","Z"])
+  bases = randombases(N,nshots;localbasis=["X","Y","Z"])
   data = generatedata(ρ,nshots,bases)
   @test size(data) == (nshots,N)
 
@@ -360,23 +360,23 @@ end
   @test size(data) == (nshots,N)
   data = generatedata(N,gates,nshots;noise="AD",γ=0.1)
   @test size(data) == (nshots,N)
-  data = generatedata(N,gates,nshots;bases_id=["X","Y","Z"])
+  data = generatedata(N,gates,nshots;localbasis=["X","Y","Z"])
   @test size(data) == (nshots,N)
-  data = generatedata(N,gates,nshots;noise="AD",γ=0.1,bases_id=["X","Y","Z"])
+  data = generatedata(N,gates,nshots;noise="AD",γ=0.1,localbasis=["X","Y","Z"])
   @test size(data) == (nshots,N)
   M,data = generatedata(N,gates,nshots;return_state=true)
   M,data = generatedata(N,gates,nshots;return_state=true,noise="AD",γ=0.1)
-  M,data = generatedata(N,gates,nshots;return_state=true,bases_id=["X","Y","Z"])
-  M,data = generatedata(N,gates,nshots;return_state=true,noise="AD",γ=0.1,bases_id=["X","Y","Z"])
+  M,data = generatedata(N,gates,nshots;return_state=true,localbasis=["X","Y","Z"])
+  M,data = generatedata(N,gates,nshots;return_state=true,noise="AD",γ=0.1,localbasis=["X","Y","Z"])
   
   # 4) Process tomography
-  (data_in,data_out) = generate_processdata(N,gates,nshots;choi=false)
+  (data_in,data_out) = generatedata(N,gates,nshots;process=true,choi=false)
   @test size(data_in) == (nshots,N)
   @test size(data_out) == (nshots,N)
-  (data_in,data_out) = generate_processdata(N,gates,nshots;choi=false,noise="AD",γ=0.1)
+  (data_in,data_out) = generatedata(N,gates,nshots;process=true,choi=false,noise="AD",γ=0.1)
   @test size(data_in) == (nshots,N)
   @test size(data_out) == (nshots,N)
-  (Λ,data_in,data_out) = generate_processdata(N,gates,nshots;choi=true,return_state=true)
-  (Λ,data_in,data_out) = generate_processdata(N,gates,nshots;choi=true,return_state=true,noise="AD",γ=0.1)
+  (Λ,data_in,data_out) = generatedata(N,gates,nshots;process=true,choi=true,return_state=true)
+  (Λ,data_in,data_out) = generatedata(N,gates,nshots;process=true,choi=true,return_state=true,noise="AD",γ=0.1)
 
 end
