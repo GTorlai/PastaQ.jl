@@ -10,7 +10,7 @@ using Test
     "quantumcircuit.jl",
     "datagen.jl",
     "quantumtomography.jl",
-    "benchmark_qiskit.jl"
+    #"benchmark_qiskit.jl"
   )
     println("Running $filename")
     include(filename)

@@ -1,10 +1,10 @@
 """
-  function initializetomography(N::Int64,χ::Int64;
-                                seed::Int64=1234,
-                                σ::Float64=0.1)
+    function initializetomography(N::Int64,χ::Int64;
+                                  seed::Int64=1234,
+                                  σ::Float64=0.1)
 Initialize a variational MPS for quantum tomography.
 
-Arguments:
+# Arguments:
   - `N`: number of qubits
   - `χ`: bond dimension of the MPS
   - `seed`: seed of random number generator
@@ -39,12 +39,12 @@ end
 
 
 """
-  function initializetomography(N::Int64,χ::Int64,ξ::Int64;
-                                seed::Int64=1234,
-                                σ::Float64=0.1)
+    function initializetomography(N::Int64,χ::Int64,ξ::Int64;
+                                  seed::Int64=1234,
+                                  σ::Float64=0.1)
 Initialize a variational LPDO for quantum tomography.
 
-Arguments:
+# Arguments:
   - `N`: number of qubits
   - `χ`: bond dimension of the LPDO
   - `ξ`: local purification dimension of the LPDO
@@ -82,7 +82,7 @@ end
 
 
 """
-  function lognormalize!(M::Union{MPS,MPO})
+    function lognormalize!(M::Union{MPS,MPO})
 
 Normalize a MPS/LPDO and store local normalizations:
 
@@ -118,7 +118,7 @@ end
 
 
 """
-  function gradlogZ(M::Union{MPS,MPO};localnorm=nothing)
+    function gradlogZ(M::Union{MPS,MPO};localnorm=nothing)
 
 Compute the gradients of the log-normalization with respect
 to each MPS/MPO tensor component:
@@ -165,7 +165,7 @@ end
 
 
 """
-  function gradnll(ψ::MPS, data::Array; localnorm=nothing, choi::Bool=false)
+    function gradnll(ψ::MPS, data::Array; localnorm=nothing, choi::Bool=false)
 
 Compute the gradients of the cross-entropy between the MPS probability
 distribution of the empirical data distribution for a set of projective 
@@ -311,7 +311,7 @@ end
 
 
 """
-  function gradnll(lpdo::MPO, data::Array; localnorm=nothing, choi::Bool=false)
+    function gradnll(lpdo::MPO, data::Array; localnorm=nothing, choi::Bool=false)
 
 Compute the gradients of the cross-entropy between the LPDO probability 
 distribution of the empirical data distribution for a set of projective 
@@ -507,13 +507,12 @@ end
 
 
 """
-  function gradients(M::Union{MPS,MPO},data::Array;localnorm=nothing,choi::Bool=false)
+    function gradients(M::Union{MPS,MPO},data::Array;localnorm=nothing,choi::Bool=false)
 
 Compute the gradients of the cost function:
 `C = log(Z) - ⟨log P(σ)⟩_data`
 
 If `choi=true`, add the Choi normalization `trace(Λ)=d^N` to the cost function.
-
 """
 function gradients(M::Union{MPS,MPO},data::Array;localnorm=nothing,choi::Bool=false)
   g_logZ,logZ = gradlogZ(M,localnorm=localnorm)
@@ -526,11 +525,11 @@ end
 
 
 """
-  statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwargs...)
+    statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwargs...)
 
 Run quantum state tomography using a the starting state `model` on `data`.
 
-Arguments:
+# Arguments:
   - `model`: starting MPS/LPDO state.
   - `data`: training data set of projective measurements.
   - `batchsize`: number of data-points used to compute one gradient iteration.
@@ -625,7 +624,6 @@ function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwarg
     @printf("Loss = %.5E  ",avg_loss)
     if !isnothing(target)
       F = fidelity(model,target)
-      #end
       if (typeof(model) == MPO) & (typeof(target) == MPO)
         @printf("Trace distance = %.3E  ",F)
         if (length(model) <= 12)
@@ -651,7 +649,7 @@ end
 
 
 """
-  processtomography(M::Union{MPS,MPO},data_in::Array,data_out::Array,opt::Optimizer; kwargs...)
+    processtomography(M::Union{MPS,MPO},data_in::Array,data_out::Array,opt::Optimizer; kwargs...)
 
 Run quantum process tomography on `(data_in,data_out)` using `model` as variational ansatz.
 
@@ -673,11 +671,10 @@ function processtomography(M::Union{MPS,MPO},data_in::Array,data_out::Array,opt:
 end
 
 """
-  getdensityoperator(lpdo::MPO)
+    getdensityoperator(lpdo::MPO)
 
 Contract the `purifier` indices to get the MPO
 `ρ = lpdo lpdo†`
-
 """
 function getdensityoperator(lpdo0::MPO)
   lpdo = copy(lpdo0)
@@ -708,51 +705,38 @@ function getdensityoperator(lpdo0::MPO)
   return rho
 end
 
-function trace_mpo(M::MPO)
-  N = length(M)
-  L = M[1] * delta(dag(siteinds(M)[1]))
-  if (N==1)
-    return L
-  end
-  for j in 2:N
-    trM = M[j] * delta(dag(siteinds(M)[j]))
-    L = L * trM
-  end
-  return L[]
-end
-
 """
-  fidelity(ψ::MPS,ϕ::MPS)
+    fidelity(ψ::MPS,ϕ::MPS)
 
 Compute the fidelity between two MPS:
 
-`F = |⟨ψ|ϕ⟩|²
+`F = |⟨ψ|ϕ⟩|²`
 """
 function fidelity(ψ::MPS,ϕ::MPS)
-  log_F̃ = log(abs2(inner(ψ,ϕ)))
+  log_F̃ = 2.0*abs(loginner(ψ,ϕ))
   log_K = 2.0 * (lognorm(ψ) + lognorm(ϕ))
   fidelity = exp(log_F̃ - log_K)
   return fidelity
 end
 
 """
-  fidelity(ψ::MPS,ρ::MPO)
-  fidelity(ρ::MPO,ψ::MPS)
+    fidelity(ψ::MPS,ρ::MPO)
+
+    fidelity(ρ::MPO,ψ::MPS)
 
 Compute the fidelity between an MPS and LPDO.
 
-`F = ⟨ψ|ρ|ψ⟩
+`F = ⟨ψ|ρ|ψ⟩`
 """
 function fidelity(ψ::MPS,ρ::MPO)
   islpdo = any(x -> any(y -> hastags(y, "Purifier"), inds(x)), ρ)
   if islpdo 
-    A = *(ρ,ψ,method="densitymatrix",cutoff=1e-10)
-    log_F̃ = log(abs(inner(A,A)))
+    log_F̃ = log(abs(inner(ρ,ψ,ρ,ψ)))
     log_K = 2.0*(lognorm(ψ) + lognorm(ρ))
     fidelity = exp(log_F̃ - log_K)
   else
     log_F̃ = log(abs(inner(ψ,ρ,ψ)))
-    log_K = 2.0*lognorm(ψ) + log(trace_mpo(ρ)) 
+    log_K = 2.0*lognorm(ψ) + log(tr(ρ)) 
     fidelity = exp(log_F̃ - log_K)
   end
   return fidelity
@@ -760,14 +744,16 @@ end
 
 fidelity(ρ::MPO,ψ::MPS) = fidelity(ψ::MPS,ρ::MPO)
 
+fidelity(ρ::MPO,σ::MPO) = frobenius_distance(ρ,σ)
+
 """
-  fidelity(lpdo::MPO,ρ::MPO)
+    frobenius_distance(lpdo::MPO,ρ::MPO)
 
 Compute the trace norm of the difference between two MPO.
 
-`F(ρ,σ) = sqrt(trace[(ρ-σ)†(ρ-σ)])
+`F(ρ,σ) = sqrt(trace[(ρ-σ)†(ρ-σ)])`
 """
-function fidelity(ρ0::MPO,σ0::MPO)
+function frobenius_distance(ρ0::MPO,σ0::MPO)
   islpdo_ρ = any(x -> any(y -> hastags(y, "Purifier"), inds(x)), ρ0)
   islpdo_σ = any(x -> any(y -> hastags(y, "Purifier"), inds(x)), σ0)
  
@@ -791,7 +777,7 @@ function fidelity(ρ0::MPO,σ0::MPO)
     σ′ = σ0
     # Get the MPO normalization
     Kρ  = 1.0
-    Kσ = trace_mpo(σ′)
+    Kσ = tr(σ′)
   
   elseif !islpdo_ρ & islpdo_σ
     # Normalize the LPDO to 1
@@ -800,13 +786,13 @@ function fidelity(ρ0::MPO,σ0::MPO)
     σ′ = getdensityoperator(σ)
     ρ′ = ρ0
     # Get the MPO normalization
-    Kρ = trace_mpo(ρ′)
+    Kρ = tr(ρ′)
     Kσ  = 1.0
   else
     ρ′ = ρ0
     σ′ = σ0
-    Kρ = trace_mpo(ρ′)
-    Kσ = trace_mpo(σ′)
+    Kρ = tr(ρ′)
+    Kσ = tr(σ′)
   end
   
   distance  = inner(ρ′,ρ′)/Kρ^2
@@ -818,11 +804,10 @@ end
 
 
 """
-  fullfidelity(ρ::MPO,σ::MPO;choi::Bool=false)
+    fullfidelity(ρ::MPO,σ::MPO;choi::Bool=false)
 
 Compute the full quantum fidelity between two density operatos
 by full enumeration.
-
 """
 function fullfidelity(ρ::MPO,σ::MPO)
   @assert length(ρ) < 12
@@ -838,7 +823,7 @@ function fullfidelity(ρ::MPO,σ::MPO)
 end
 
 """
-  nll(ψ::MPS,data::Array;choi::Bool=false)
+    nll(ψ::MPS,data::Array;choi::Bool=false)
 
 Compute the negative log-likelihood using an MPS ansatz
 over a dataset `data`:
@@ -847,7 +832,6 @@ over a dataset `data`:
 
 If `choi=true`, the probability is then obtaining by transposing the 
 input state, which is equivalent to take the conjugate of the eigenstate projector.
-
 """
 function nll(ψ::MPS,data::Array;choi::Bool=false)
   N = length(ψ)
@@ -871,7 +855,8 @@ function nll(ψ::MPS,data::Array;choi::Bool=false)
 end
 
 """
-  nll(lpdo::MPO,data::Array;choi::Bool=false)
+    nll(lpdo::MPO,data::Array;choi::Bool=false)
+
 Compute the negative log-likelihood using an LPDO ansatz
 over a dataset `data`:
 
@@ -879,7 +864,6 @@ over a dataset `data`:
 
 If `choi=true`, the probability is then obtaining by transposing the 
 input state, which is equivalent to take the conjugate of the eigenstate projector.
-
 """
 function nll(lpdo::MPO,data::Array;choi::Bool=false)
   N = length(lpdo)

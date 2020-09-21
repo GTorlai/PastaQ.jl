@@ -71,12 +71,12 @@ end
 #function update!(M::Union{MPS,MPO},∇::Array{ITensor},opt::Adagrad)
 function update!(M::Union{MPS,MPO},∇::Array,opt::Adagrad)
   for j in 1:length(M)
-    opt.∇²[j] += ∇[j] .^ 2 # Should be OK, but check
-    opt.∇²[j] .+= opt.ϵ     # This is OK 
-    g = sqrt.(opt.∇²[j])    # Should be OK
-    #δ = g .^ -1             # This is shady
-    
-    M[j] = M[j] - opt.η * (noprime(∇[j]) ./ g)
+    opt.∇²[j] += ∇[j] .^ 2 
+    ∇² = copy(opt.∇²[j])
+    ∇² .+= opt.ϵ
+    g = sqrt.(∇²)    
+    δ = g .^ -1             
+    M[j] = M[j] - opt.η * (noprime(∇[j]) ⊙ δ)
   end
 end
 
@@ -108,15 +108,20 @@ function update!(M::Union{MPS,MPO},∇,opt::Adadelta)
     opt.∇²[j] = opt.γ * opt.∇²[j] + (1-opt.γ) * ∇[j] .^ 2
     
     # Get RMS signal for square gradients
-    #opt.∇²[j] .+= opt.ϵ 
-    g1 = sqrt.(opt.∇²[j] .+= opt.ϵ)
-    
-    # Get RMS signal for square updates
-    g2 = sqrt.(opt.Δθ²[j] .+= opt.ϵ)
-    Δ = noprime(∇[j]) ./ prime(g1)
-    Δθ = noprime(Δ) ⊙ prime(g2)
+    ∇² = copy(opt.∇²[j])
+    ∇² .+= opt.ϵ
+    g1 = sqrt.(∇²)    
+    δ1 = g1 .^(-1)
 
-    # Update parameters
+    # Get RMS signal for square updates
+    Δθ² = copy(opt.Δθ²[j])
+    Δθ² .+= opt.ϵ
+    g2 = sqrt.(Δθ²)
+    #g2 = sqrt.(opt.Δθ²[j] .+ opt.ϵ)
+    Δ = noprime(∇[j]) ⊙ δ1
+    Δθ = noprime(Δ) ⊙ g2
+
+    ## Update parameters
     M[j] = M[j] - Δθ
 
     # Update square updates

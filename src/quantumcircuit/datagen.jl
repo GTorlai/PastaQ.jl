@@ -189,44 +189,6 @@ function generatedata(M::Union{MPS,MPO},nshots::Int,bases::Array)
 end
 
 
-""" 
-    generatedata(N::Int64,gates::Vector{<:Tuple},nshots::Int64;
-                 noise=nothing,return_state::Bool=false,
-                 localbasis=["X","Y","Z"],n_distinctbases=nothing,
-                 cutoff::Float64=1e-15,maxdim::Int64=10000,
-                 kwargs...)
-
-Generate `nshots` measurements at the output of a `N`-qubit quantum circuit, 
-specified by a set of quantum `gates`.
-
-# Arguments:
-  - `gates`: a set of quantum gates.
-  - `noise`: apply a noise model after each quantum gate in the circuit
-  - `localbasis`: set of basis used (ex: `basis_id=["X","Y","Z"])
-  - `return_state`: if true, returns the ouput state `ψ = U|0,0,…,0⟩`
-"""
-function generatedata(N::Int64,gates::Vector{<:Tuple},nshots::Int64;
-                      noise=nothing,return_state::Bool=false,
-                      localbasis=["X","Y","Z"],n_distinctbases=nothing,
-                      cutoff::Float64=1e-15,maxdim::Int64=10000,
-                      kwargs...)
-  
-  # Apply the quantum channel
-  M = runcircuit(N,gates;process=false,noise=noise,
-                 cutoff=cutoff,maxdim=maxdim,kwargs...)
-  # Reference basis
-  if isnothing(localbasis)
-    data = generatedata!(M,nshots)
-  # Pauli bases
-  else
-    bases = randombases(N,nshots;localbasis=localbasis,n_distinctbases=n_distinctbases)
-    data = generatedata(M,nshots,bases)
-  end
-  return (return_state ? (M,data) : data)
-end
-
-
-
 """
 QUANTUM PROCESS TOMOGRAPHY
 """
