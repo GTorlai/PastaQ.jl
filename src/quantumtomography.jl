@@ -44,7 +44,7 @@ function initializetomography(N::Int,
   
   sites = [Index(d; tags="Site,n=$s") for s in 1:N]
   links = [Index(χ; tags="Link,l=$l") for l in 1:N-1]
-  kraus = [Index(ξ; tags="Kraus,k=$s") for s in 1:N]
+  kraus = [Index(ξ; tags="purifier,k=$s") for s in 1:N]
 
   M = ITensor[]
   # Site 1 
@@ -69,30 +69,30 @@ end
 """
 Normalize the MPS/LPDO locally and store the local norms
 """
-function lognormalize!(M::Union{MPS,MPO})
+function lognormalize!(L::LPDO)
   localnorms = []
-  blob = dag(M[1]) * prime(M[1],"Link")
+  blob = noprime(ket(L, 1), "Site") * bra(L, 1)
   localZ = norm(blob)
-  logZ = 0.5*log(localZ)
+  logZ = 0.5 * log(localZ)
   blob /= sqrt(localZ)
-  M[1] /= (localZ^0.25)
-  push!(localnorms,localZ^0.25)
-  for j in 2:length(M)-1
-    blob = blob * dag(M[j]);
-    blob = blob * prime(M[j],"Link")
+  L.X[1] /= (localZ^0.25)
+  push!(localnorms, localZ^0.25)
+  for j in 2:length(L)-1
+    blob = blob * noprime(ket(L, j), "Site")
+    blob = blob * bra(L, j)
     localZ = norm(blob)
     logZ += 0.5*log(localZ)
     blob /= sqrt(localZ)
-    M[j] /= (localZ^0.25)
-    push!(localnorms,localZ^0.25)  
+    L.X[j] /= (localZ^0.25)
+    push!(localnorms, localZ^0.25)  
   end
-  blob = blob * dag(M[length(M)]);
-  blob = blob * prime(M[length(M)],"Link")
+  blob = blob * noprime(ket(L, length(L)), "Site")
+  blob = blob * bra(L, length(L))
   localZ = norm(blob)
-  M[length(M)] /= sqrt(localZ)
-  push!(localnorms,sqrt(localZ))
+  L.X[length(L)] /= sqrt(localZ)
+  push!(localnorms, sqrt(localZ))
   logZ += log(real(blob[]))
-  return logZ,localnorms
+  return logZ, localnorms
 end
 
 """
@@ -249,7 +249,7 @@ function gradnll(lpdo::MPO,data::Array;localnorm=nothing)
   
   kraus = Index[]
   for j in 1:N
-    push!(kraus,firstind(lpdo[j],"Kraus"))
+    push!(kraus,firstind(lpdo[j],"purifier"))
   end
 
   ElT = eltype(lpdo[1])
@@ -442,10 +442,10 @@ function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwarg
       
       if localnorm
         model_norm = copy(model)
-        logZ,localnorms = lognormalize!(model_norm) 
+        logZ,localnorms = lognormalize!(LPDO(model_norm))
         grads,loss = gradients(model_norm,batch,localnorm=localnorms)
       elseif globalnorm
-        logZ,localnorms = lognormalize!(model)
+        logZ,localnorms = lognormalize!(LPDO(model))
         grads,loss = gradients(model,batch)
       else
         grads,loss = gradients(model,batch)
@@ -510,7 +510,7 @@ end
 
 function fidelity(psi::MPS,target::MPS)
   psi_eval = copy(psi)
-  lognormalize!(psi_eval)
+  lognormalize!(LPDO(psi_eval))
   @assert norm(psi_eval) ≈ 1
   fidelity = abs2(inner(psi_eval,target))
   return fidelity
@@ -518,7 +518,7 @@ end
 
 function fidelity(lpdo::MPO,target::MPS)
   lpdo_eval = copy(lpdo)
-  lognormalize!(lpdo_eval)
+  lognormalize!(LPDO(lpdo_eval))
   @assert norm(lpdo_eval) ≈ 1
   A = *(lpdo_eval,target,method="densitymatrix",cutoff=1e-10)
   fidelity = abs(inner(A,A))

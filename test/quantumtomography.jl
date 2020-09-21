@@ -171,10 +171,10 @@ end
   psi = initializetomography(N,χ)
   @test length(psi) == N
   logZ1 = 2.0*lognorm(psi)
-  logZ2,_ = lognormalize!(psi)
+  logZ2,_ = lognormalize!(LPDO(psi))
   @test logZ1 ≈ logZ2
   psi = initializetomography(N,χ)
-  lognormalize!(psi)
+  lognormalize!(LPDO(psi))
   @test norm(psi) ≈ 1
 end
 
@@ -188,7 +188,7 @@ end
     @test array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
   end
   psi = initializetomography(N,χ)
-  logZ,localnorms = lognormalize!(psi)
+  logZ,localnorms = lognormalize!(LPDO(psi))
   @test norm(psi)^2 ≈ 1
   alg_grad_localnorm,_ = gradlogZ(psi,localnorm=localnorms)
   for j in 1:N
@@ -215,7 +215,7 @@ end
     @test array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
   end
   psi = initializetomography(N,χ)
-  logZ,localnorms = lognormalize!(psi)
+  logZ,localnorms = lognormalize!(LPDO(psi))
   @test norm(psi)^2 ≈ 1
   alg_grad_localnorm,loss = gradnll(psi,data,localnorm=localnorms)
   for j in 1:N
@@ -252,7 +252,7 @@ end
   end
 
   psi = initializetomography(N,χ)
-  logZ,localnorms = lognormalize!(psi)
+  logZ,localnorms = lognormalize!(LPDO(psi))
   NLL  = nll(psi,data)
   ex_loss = NLL
   @test norm(psi)^2 ≈ 1
@@ -269,13 +269,13 @@ end
   N = 3
   χ = 4
   psi1 = initializetomography(N,χ)
-  lognormalize!(psi1)
+  lognormalize!(LPDO(psi1))
   @test abs2(norm(psi1)) ≈ 1
   psi1_vec = fullvector(psi1)
   
   psi2 = copy(psi1)
   psi2[1] = ITensor(ones(2,4),inds(psi2[1])[1],inds(psi2[1])[2])
-  lognormalize!(psi2)
+  lognormalize!(LPDO(psi2))
   @test abs2(norm(psi2)) ≈ 1
   psi2_vec = fullvector(psi2)
   
@@ -287,13 +287,13 @@ end
   N = 3
   χ = 2
   psi = initializetomography(N,χ)
-  lognormalize!(psi)
+  lognormalize!(LPDO(psi))
   @test abs2(norm(psi)) ≈ 1
   psi_vec = fullvector(psi)   
  
   ξ = 2
   lpdo = initializetomography(N,χ,ξ)
-  lognormalize!(lpdo)
+  lognormalize!(LPDO(lpdo))
   @test abs2(norm(lpdo)) ≈ 1
   rho = getdensityoperator(lpdo)
   rho_mat = fullmatrix(rho)
@@ -317,10 +317,10 @@ end
   lpdo = initializetomography(N,χ,ξ)
   @test length(lpdo) == N
   logZ1 = 2.0*lognorm(lpdo)
-  logZ2,_ = lognormalize!(lpdo)
+  logZ2,_ = lognormalize!(LPDO(lpdo))
   @test logZ1 ≈ logZ2
   lpdo = initializetomography(N,χ,ξ)
-  lognormalize!(lpdo)
+  lognormalize!(LPDO(lpdo))
   @test norm(lpdo) ≈ 1
 end
 
@@ -330,7 +330,7 @@ end
   ξ = 3
   lpdo = initializetomography(N,χ,ξ)
   @test length(lpdo) == N
-  lognormalize!(lpdo)
+  lognormalize!(LPDO(lpdo))
   rho = getdensityoperator(lpdo)
   rho_mat = fullmatrix(rho)
   @test sum(abs.(imag(diag(rho_mat)))) ≈ 0.0 atol=1e-10
@@ -356,7 +356,7 @@ end
   @test alg_gradient ≈ num_grad[N] rtol=1e-3
   
   lpdo = initializetomography(N,χ,ξ)
-  logZ,localnorms = lognormalize!(lpdo)
+  logZ,localnorms = lognormalize!(LPDO(lpdo))
   @test norm(lpdo)^2 ≈ 1
   alg_grad,_ = gradlogZ(lpdo,localnorm=localnorms)
   
@@ -399,7 +399,7 @@ end
   @test alg_gradient ≈ num_grad[N] rtol=1e-3
   
   lpdo = initializetomography(N,χ,ξ)
-  logZ,localnorms = lognormalize!(lpdo)
+  logZ,localnorms = lognormalize!(LPDO(lpdo))
   @test norm(lpdo)^2 ≈ 1
   alg_grad,loss = gradnll(lpdo,data,localnorm=localnorms)
   alg_gradient = permutedims(array(alg_grad[1]),[3,1,2])
