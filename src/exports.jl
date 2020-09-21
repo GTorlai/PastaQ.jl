@@ -30,12 +30,17 @@ export
   compilecircuit!,
   runcircuit,
   choimatrix,
-  makepreparationgates,
-  makemeasurementgates,
-  generatemeasurementsettings,
-  generatepreparationsettings,
-  measure,
+
+# datagen.jl
+  # Methhods
+  preparationgates,
+  measurementgates,
+  randombases,
+  randompreparations,
+  generatedata!,
   generatedata,
+  projectchoi,
+  convertdatapoint,
 
 # quantumtomography,jl
   # Methods
@@ -45,11 +50,13 @@ export
   gradlogZ,
   gradnll,
   gradients,
-  fidelity,
-  getdensityoperator,
   statetomography,
   processtomography,
-
+  fidelity,
+  fullfidelity,
+  trace_mpo,
+  getdensityoperator,
+  
 # optimizers/
   Optimizer,
   SGD,
@@ -65,6 +72,6 @@ export
 # utils.jl
   # Methods
   loadtrainingdataQST,
-  convertdata,
+  loadtrainingdataQPT,
   fullvector,
   fullmatrix
