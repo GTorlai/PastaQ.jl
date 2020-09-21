@@ -1,72 +1,51 @@
 """
-  wavefunction(sites::Vector{<:Index})
-  wavefunction(N::Int)
+    qubits(sites::Vector{<:Index}; mixed::Bool=false)
 
-Initialize MPS wavefunction `|ψ⟩`
-"""
-
-wavefunction(sites::Vector{<:Index}) = productMPS(sites, "0")
-
-wavefunction(N::Int) = wavefunction(siteinds("qubit", N))
-
-
-""" 
-  densitymatrix(sites::Vector{<:Index})
-  densitymatrix(N::Int)
-
-Initialize MPO density matrix `ρ`
-"""
-
-densitymatrix(sites::Vector{<:Index}) = 
-  MPO(productMPS(sites, "0"))
-
-densitymatrix(N::Int) = 
-  MPO(siteinds("qubit",N))
-
-
-"""
-  qubits(sites::Vector{<:Index}; mixed::Bool=false)
-  qubits(N::Int; mixed::Bool=false)
+    qubits(N::Int; mixed::Bool=false)
 
 Initialize qubits to:
 - An MPS wavefunction `|ψ⟩` if `mixed=false`
 - An MPO density matrix `ρ` if `mixed=true`
 """
-
 qubits(sites::Vector{<:Index}; mixed::Bool=false) = 
-  mixed ? densitymatrix(sites) : wavefunction(sites) 
+  mixed ? MPO(productMPS(sites, "0")) : productMPS(sites, "0") 
 
 qubits(N::Int; mixed::Bool=false) = qubits(siteinds("qubit", N); mixed=mixed)
 
 
 """ 
-  resetqubits!(M::Union{MPS,MPO})
+    resetqubits!(M::Union{MPS,MPO})
 
 Reset qubits to the initial state:
 - `|ψ⟩=|0,0,…,0⟩` if `M = MPS`
 - `ρ = |0,0,…,0⟩⟨0,0,…,0|` if `M = MPO`
 """
-
 function resetqubits!(M::Union{MPS,MPO})
   indices = [firstind(M[j],tags="Site",plev=0) for j in 1:length(M)]
-  M_new = (typeof(M) == MPS ? wavefunction(indices) : densitymatrix(indices))
+  M_new = qubits(indices, mixed = !(M isa MPS))
+  #M_new = (M isa MPS ? qubits(indices) : densitymatrix(indices))
   M[:] = M_new
   return M
 end
 
 """
+    circuit(sites::Vector{<:Index}) = MPO(sites, "Id")
+
+    circuit(N::Int) = circuit(siteinds("qubit", N))
+
 Initialize a circuit MPO
 """
 circuit(sites::Vector{<:Index}) = MPO(sites, "Id")
 
 circuit(N::Int) = circuit(siteinds("qubit", N))
 
+
 """----------------------------------------------
                   CIRCUIT FUNCTIONS 
 ------------------------------------------------- """
 
 """
-  compilecircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple};
+    compilecircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple};
                  noise=nothing, kwargs...)
 
 Generates a vector of ITensors from a tuple of gates. 
@@ -178,7 +157,6 @@ If an MPO `ρ` is input, there are three possible modes:
 2. If `noise` is set to something nontrivial, the evolution `ε(ρ)` is performed.
 3. If `noise = nothing` and `apply_dag = false`, the evolution `Uρ` is performed.
 """
-
 function runcircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple}; noise=nothing,apply_dag=nothing, 
                     cutoff=1e-15,maxdim=10000,kwargs...)
   gate_tensors = compilecircuit(M,gates; noise=noise, kwargs...) 
@@ -204,7 +182,6 @@ The starting state is generated automatically based on the flags `process`, `noi
    The MPO approximation for the unitary represented by the set of gates is returned. 
    In this case, `noise` must be `nothing`.
 """
-
 function runcircuit(N::Int,gates::Vector{<:Tuple}; process=false,noise=nothing,
                     cutoff=1e-15,maxdim=10000,kwargs...)
   if process==false
@@ -243,7 +220,6 @@ If `noise = nothing` and `apply_dag = true`, the Choi matrix `Λ` is returned as
 
 #TODO: Explain site ordering and normalization
 """
-
 function choimatrix(N::Int,gates::Vector{<:Tuple};noise=nothing,apply_dag=false,
                     cutoff=1e-15,maxdim=10000,kwargs...)
   if isnothing(noise)

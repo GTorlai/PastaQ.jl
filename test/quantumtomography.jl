@@ -216,7 +216,7 @@ end
   nsamples = 100
   Random.seed!(1234)
   rawdata = rand(0:1,nsamples,N)
-  bases = measurementsettings(N,nsamples,bases_id=["X","Y","Z"]) 
+  bases = randombases(N,nsamples)
   data = Matrix{String}(undef, nsamples,N)
   for n in 1:nsamples
     data[n,:] = convertdatapoint(rawdata[n,:],bases[n,:],state=true)
@@ -256,7 +256,7 @@ end
   nsamples = 100
   Random.seed!(1234)
   rawdata = rand(0:1,nsamples,N)
-  bases = measurementsettings(N,nsamples,bases_id=["X","Y","Z"]) 
+  bases = randombases(N,nsamples)
   data = Matrix{String}(undef, nsamples,N)
   for n in 1:nsamples
     data[n,:] = convertdatapoint(rawdata[n,:],bases[n,:],state=true)
@@ -369,7 +369,7 @@ end
   nsamples = 100
   Random.seed!(1234)
   rawdata = rand(0:1,nsamples,N)
-  bases = measurementsettings(N,nsamples,bases_id=["X","Y","Z"]) 
+  bases = randombases(N,nsamples)
   data = Matrix{String}(undef, nsamples,N)
   for n in 1:nsamples
     data[n,:] = convertdatapoint(rawdata[n,:],bases[n,:],state=true)
@@ -412,7 +412,7 @@ end
   nsamples = 100
   Random.seed!(1234)
   rawdata = rand(0:1,nsamples,N)
-  bases = measurementsettings(N,nsamples,bases_id=["X","Y","Z"]) 
+  bases = randombases(N,nsamples)
   data = Matrix{String}(undef, nsamples,N)
   for n in 1:nsamples
     data[n,:] = convertdatapoint(rawdata[n,:],bases[n,:],state=true)
@@ -558,7 +558,7 @@ end
   nsamples = 100
   Random.seed!(1234)
   rawdata = rand(0:1,nsamples,N)
-  bases = measurementsettings(N,nsamples,bases_id=["X","Y","Z"])
+  bases = randombases(N,nsamples)
   data = Matrix{String}(undef, nsamples,N)
   for n in 1:nsamples
     data[n,:] = convertdatapoint(rawdata[n,:],bases[n,:],state=true)
@@ -629,7 +629,7 @@ PROCESS TOMOGRAPHY WITH LPDO
   nsamples = 100
   Random.seed!(1234)
   rawdata = rand(0:1,nsamples,N)
-  bases = measurementsettings(N,nsamples,bases_id=["X","Y","Z"])
+  bases = randombases(N,nsamples)
   data = Matrix{String}(undef, nsamples,N)
   for n in 1:nsamples
     data[n,:] = convertdatapoint(rawdata[n,:],bases[n,:],state=true)

@@ -32,11 +32,11 @@ export
   # Methhods
   preparationgates,
   measurementgates,
-  measurementsettings,
-  preparationsettings,
+  randombases,
+  randompreparations,
+  generatedata!,
   generatedata,
   projectchoi,
-  generate_processdata,
   convertdatapoint,
 
 # quantumtomography,jl
