@@ -1,19 +1,6 @@
 using PastaQ
 using ITensors
 
-function trace_mpo(M::MPO)
-  N = length(M)
-  L = M[1] * delta(dag(siteinds(M)[1]))
-  if (N==1)
-    return L
-  end
-  for j in 2:N
-    trM = M[j] * delta(dag(siteinds(M)[j]))
-    L = L * trM
-  end
-  return L[]
-end
-
 N = 50
 h = 1.0
 H,ψ = transversefieldising(N,h,hamiltonian=true)

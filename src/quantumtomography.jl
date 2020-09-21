@@ -27,8 +27,7 @@ function initializetomography(N::Int,
   rand_mat += im * σ * (ones(χ,d) - 2*rand(rng,χ,d))
   push!(M,ITensor(rand_mat,links[N-1],sites[N]))
   
-  psi = MPS(M)
-  return psi
+  return MPS(M)
 end
 
 """
@@ -62,14 +61,15 @@ function initializetomography(N::Int,
   rand_mat += im * σ * (ones(d,χ,ξ) - 2*rand!(rng,zeros(d,χ,ξ)))
   push!(M,ITensor(rand_mat,sites[N],links[N-1],kraus[N]))
   
-  lpdo = MPO(M)
-  return lpdo
+  return MPO(M)
 end
+
 
 """
 Normalize the MPS/LPDO locally and store the local norms
 """
 function lognormalize!(M::Union{MPS,MPO})
+
   localnorms = []
   blob = dag(M[1]) * prime(M[1],"Link")
   localZ = norm(blob)
@@ -106,7 +106,6 @@ function gradlogZ(M::Union{MPS,MPO};localnorm=nothing)
   if isnothing(localnorm)
     localnorm = ones(N)
   end
-  
   # Sweep right to get L
   L[1] = dag(M[1]) * prime(M[1],"Link")
   for j in 2:N-1
@@ -129,20 +128,21 @@ function gradlogZ(M::Union{MPS,MPO};localnorm=nothing)
     gradients[j] = (L[j-1] * prime(M[j],"Link") * R[j+1])/(localnorm[j]*Z)
   end
   gradients[N] = (L[N-1] * prime(M[N],"Link"))/(localnorm[N]*Z)
+  
   return 2*gradients,log(Z)
 end
 
 """
 Gradients of NLL for MPS 
 """
-function gradnll(psi::MPS,data::Array;localnorm=nothing)
-  N = length(psi)
+function gradnll(ψ::MPS, data::Array; localnorm=nothing, choi::Bool=false)
+  N = length(ψ)
 
-  s = siteinds(psi)
+  s = siteinds(ψ)
 
-  links = [linkind(psi, n) for n in 1:N-1]
+  links = [linkind(ψ, n) for n in 1:N-1]
 
-  ElT = eltype(psi[1])
+  ElT = eltype(ψ[1])
 
   nthreads = Threads.nthreads()
 
@@ -170,14 +170,14 @@ function gradnll(psi::MPS,data::Array;localnorm=nothing)
     localnorm = ones(N)
   end
 
-  psidag = dag(psi)
+  ψdag = dag(ψ)
 
-  gradients = [[ITensor(ElT, inds(psi[j])) for j in 1:N] for _ in 1:nthreads]
+  gradients = [[ITensor(ElT, inds(ψ[j])) for j in 1:N] for _ in 1:nthreads]
 
-  grads = [[ITensor(ElT, undef, inds(psi[j])) for j in 1:N] for _ in 1:nthreads]
+  grads = [[ITensor(ElT, undef, inds(ψ[j])) for j in 1:N] for _ in 1:nthreads]
 
   loss = zeros(nthreads)
-
+ 
   Threads.@threads for n in 1:size(data)[1]
 
     nthread = Threads.threadid()
@@ -185,44 +185,65 @@ function gradnll(psi::MPS,data::Array;localnorm=nothing)
     x = data[n,:] 
     
     """ LEFT ENVIRONMENTS """
-    L[nthread][1] .= psidag[1] .* gate(x[1],s[1])
-    for j in 2:N-1
-      Lpsi[nthread][j] .= L[nthread][j-1] .* psidag[j]
-      L[nthread][j] .= Lpsi[nthread][j] .* gate(x[j],s[j])
+    if choi
+      L[nthread][1] .= ψdag[1] .* dag(gate(x[1],s[1]))
+    else
+      L[nthread][1] .= ψdag[1] .* gate(x[1],s[1])
     end
-    Lpsi[nthread][N] .= L[nthread][N-1] .* psidag[N]
-    psix = (Lpsi[nthread][N] * gate(x[N],s[N]))[]
-    prob = abs2(psix)
+    for j in 2:N-1
+      Lpsi[nthread][j] .= L[nthread][j-1] .* ψdag[j]
+      if isodd(j) & choi
+        L[nthread][j] .= Lpsi[nthread][j] .* dag(gate(x[j],s[j]))
+      else
+        L[nthread][j] .= Lpsi[nthread][j] .* gate(x[j],s[j])
+      end
+    end
+    Lpsi[nthread][N] .= L[nthread][N-1] .* ψdag[N]
+    ψx = (Lpsi[nthread][N] * gate(x[N],s[N]))[]
+    prob = abs2(ψx)
     loss[nthread] -= log(prob)/size(data)[1]
     
     """ RIGHT ENVIRONMENTS """
-    R[nthread][N] .= psidag[N] .* gate(x[N],s[N])
+    R[nthread][N] .= ψdag[N] .* gate(x[N],s[N])
     for j in reverse(2:N-1)
-      Rpsi[nthread][j] .= psidag[j] .* R[nthread][j+1]
-      R[nthread][j] .= Rpsi[nthread][j] .* gate(x[j],s[j])
+      Rpsi[nthread][j] .= ψdag[j] .* R[nthread][j+1]
+      if isodd(j) & choi
+        R[nthread][j] .= Rpsi[nthread][j] .* dag(gate(x[j],s[j]))
+      else
+        R[nthread][j] .= Rpsi[nthread][j] .* gate(x[j],s[j])
+      end
     end
 
     """ GRADIENTS """
     # TODO: fuse into one call to mul!
-    grads[nthread][1] .= gate(x[1],s[1]) .* R[nthread][2] 
-    gradients[nthread][1] .+= (1 / (localnorm[1] * psix)) .* grads[nthread][1]
+    if choi
+      grads[nthread][1] .= dag(gate(x[1],s[1])) .* R[nthread][2]
+    else
+      grads[nthread][1] .= gate(x[1],s[1]) .* R[nthread][2]
+    end
+    gradients[nthread][1] .+= (1 / (localnorm[1] * ψx)) .* grads[nthread][1]
     for j in 2:N-1
-      Rpsi[nthread][j] .= L[nthread][j-1] .* gate(x[j],s[j])
+      if isodd(j) & choi
+        Rpsi[nthread][j] .= L[nthread][j-1] .* dag(gate(x[j],s[j]))
+      else
+        Rpsi[nthread][j] .= L[nthread][j-1] .* gate(x[j],s[j])
+      end
+        
       # TODO: fuse into one call to mul!
       grads[nthread][j] .= Rpsi[nthread][j] .* R[nthread][j+1]
-      gradients[nthread][j] .+= (1 / (localnorm[j] * psix)) .* grads[nthread][j]
+      gradients[nthread][j] .+= (1 / (localnorm[j] * ψx)) .* grads[nthread][j]
     end
     grads[nthread][N] .= L[nthread][N-1] .* gate(x[N], s[N])
-    gradients[nthread][N] .+= (1 / (localnorm[N] * psix)) .* grads[nthread][N]
+    gradients[nthread][N] .+= (1 / (localnorm[N] * ψx)) .* grads[nthread][N]
   end
-
+  
   for nthread in 1:nthreads
     for g in gradients[nthread]
       g .= (-2/size(data)[1]) .* g
     end
   end
 
-  gradients_tot = [ITensor(ElT, inds(psi[j])) for j in 1:N]
+  gradients_tot = [ITensor(ElT, inds(ψ[j])) for j in 1:N]
   loss_tot = 0.0
   for nthread in 1:nthreads
     gradients_tot .+= gradients[nthread]
@@ -235,7 +256,7 @@ end
 """
 Gradients of NLL for LPDO 
 """
-function gradnll(lpdo::MPO,data::Array;localnorm=nothing)
+function gradnll(lpdo::MPO,data::Array;localnorm=nothing,choi::Bool=false)
   loss = 0.0
 
   N = length(lpdo)
@@ -311,11 +332,21 @@ function gradnll(lpdo::MPO,data::Array;localnorm=nothing)
   
   for n in 1:size(data)[1]
     x = data[n,:]
+    
     """ LEFT ENVIRONMENTS """
-    T[1] .= lpdo[1] .* dag(gate(x[1],s[1]))
-    L[1] .= prime(T[1],"Link") .* dag(T[1])
+    if choi
+      T[1] .= lpdo[1] .* gate(x[1],s[1])
+      L[1] .= prime(T[1],"Link") .* dag(T[1])
+    else
+      T[1] .= lpdo[1] .* dag(gate(x[1],s[1]))
+      L[1] .= prime(T[1],"Link") .* dag(T[1])
+    end
     for j in 2:N-1
-      T[j] .= lpdo[j] .* dag(gate(x[j],s[j]))
+      if isodd(j) & choi
+        T[j] .= lpdo[j] .* gate(x[j],s[j])
+      else
+        T[j] .= lpdo[j] .* dag(gate(x[j],s[j]))
+      end
       Llpdo[j] .= prime(T[j],"Link") .* L[j-1]
       L[j] .= Llpdo[j] .* dag(T[j])
     end
@@ -333,14 +364,25 @@ function gradnll(lpdo::MPO,data::Array;localnorm=nothing)
     end
     
     """ GRADIENTS """
-    Tp[1] .= prime(lpdo[1],"Link") .* dag(gate(x[1],s[1]))
-    Agrad[1] .=  Tp[1] .* gate(x[1],s[1])
+    if choi
+      Tp[1] .= prime(lpdo[1],"Link") .* gate(x[1],s[1])
+      Agrad[1] .=  Tp[1] .* dag(gate(x[1],s[1]))
+    else
+      Tp[1] .= prime(lpdo[1],"Link") .* dag(gate(x[1],s[1]))
+      Agrad[1] .=  Tp[1] .* gate(x[1],s[1])
+    end
     grads[1] .= R[2] .* Agrad[1]
     gradients[1] .+= (1 / (localnorm[1] * prob)) .* grads[1]
-     for j in 2:N-1
-      Tp[j] .= prime(lpdo[j],"Link") .* dag(gate(x[j],s[j]))
-      Lgrad[j-1] .= L[j-1] .* Tp[j]
-      Agrad[j] .= Lgrad[j-1] .* gate(x[j],s[j])
+    for j in 2:N-1
+      if isodd(j) & choi
+        Tp[j] .= prime(lpdo[j],"Link") .* gate(x[j],s[j])
+        Lgrad[j-1] .= L[j-1] .* Tp[j]
+        Agrad[j] .= Lgrad[j-1] .* dag(gate(x[j],s[j]))
+      else
+        Tp[j] .= prime(lpdo[j],"Link") .* dag(gate(x[j],s[j]))
+        Lgrad[j-1] .= L[j-1] .* Tp[j]
+        Agrad[j] .= Lgrad[j-1] .* gate(x[j],s[j])
+      end
       grads[j] .= R[j+1] .* Agrad[j] 
       gradients[j] .+= (1 / (localnorm[j] * prob)) .* grads[j]
     end
@@ -349,6 +391,7 @@ function gradnll(lpdo::MPO,data::Array;localnorm=nothing)
     grads[N] .= Lgrad[N-1] .* gate(x[N],s[N])
     gradients[N] .+= (1 / (localnorm[N] * prob)) .* grads[N]
   end
+  
   for g in gradients
     g .= -2/size(data)[1] .* g
   end
@@ -358,11 +401,12 @@ end
 """
 Compute the total gradients
 """
-function gradients(M::Union{MPS,MPO},data::Array;localnorm=nothing)
+function gradients(M::Union{MPS,MPO},data::Array;localnorm=nothing,choi::Bool=false)
   g_logZ,logZ = gradlogZ(M,localnorm=localnorm)
-  g_nll, nll  = gradnll(M,data,localnorm=localnorm)
+  g_nll, nll  = gradnll(M,data,localnorm=localnorm,choi=choi)
   grads = g_logZ + g_nll
   loss = logZ + nll
+  loss += (choi ? -0.5 * length(M) * log(2) : 0.0)
   return grads,loss
 end
 
@@ -376,7 +420,7 @@ function statetomography(data::Array,opt::Optimizer; kwargs...)
   d::Int64    = get(kwargs,:d,2)
   seed::Int64 = get(kwargs,:seed,1234)
   σ::Float64  = get(kwargs,:σ,0.1)
-
+  
   if !mixed
     M0 = initializetomography(N,χ;d=d,seed=seed,σ=σ)
   else
@@ -392,16 +436,15 @@ function processtomography(data_in::Array,data_out::Array,opt::Optimizer; kwargs
   N = size(data_in)[2]
   @assert size(data_in) == size(data_out)
   
-  data = zeros(size(data_in)[1],2*N)
+  data = Matrix{String}(undef, size(data_in)[1],2*N)
+  
   for n in 1:size(data_in)[1]
     for j in 1:N
       data[n,2*j-1] = data_in[n,j]
       data[n,2*j]   = data_out[n,j]
     end
   end
-  
-  M = statetomography(data,opt; kwargs...)
-
+  return statetomography(data,opt; choi=true,kwargs...)
 end
 
 """
@@ -413,9 +456,13 @@ function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwarg
   globalnorm::Bool = get(kwargs,:globalnorm,false)
   batchsize::Int64 = get(kwargs,:batchsize,500)
   epochs::Int64 = get(kwargs,:epochs,1000)
-  target::MPS = get(kwargs,:target,nothing)
+  target = get(kwargs,:target,nothing)
+  choi::Bool = get(kwargs,:choi,false)
   
-                         
+
+
+  data = "state" .* data
+  
   if (localnorm && globalnorm)
     error("Both input norms are set to true")
   end
@@ -423,17 +470,24 @@ function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwarg
   model = copy(model)
   if !isnothing(target)
     target = copy(target)
-    for j in 1:length(model)
-      replaceind!(target[j],firstind(target[j],"Site"),firstind(model[j],"Site"))
+    if typeof(target)==MPS
+      for j in 1:length(model)
+        replaceind!(target[j],firstind(target[j],"Site"),firstind(model[j],"Site"))
+      end
+    else
+      for j in 1:length(model)
+        replaceind!(target[j],inds(target[j],"Site")[1],firstind(model[j],"Site"))
+        replaceind!(target[j],inds(target[j],"Site")[2],prime(firstind(model[j],"Site")))
+      end
     end
   end
+  
   num_batches = Int(floor(size(data)[1]/batchsize))
   
   tot_time = 0.0
-
   for ep in 1:epochs
     ep_time = @elapsed begin
-
+  
     data = data[shuffle(1:end),:]
     
     avg_loss = 0.0
@@ -443,12 +497,12 @@ function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwarg
       if localnorm
         model_norm = copy(model)
         logZ,localnorms = lognormalize!(model_norm) 
-        grads,loss = gradients(model_norm,batch,localnorm=localnorms)
+        grads,loss = gradients(model_norm,batch,localnorm=localnorms,choi=choi)
       elseif globalnorm
-        logZ,localnorms = lognormalize!(model)
-        grads,loss = gradients(model,batch)
+        lognormalize!(model)
+        grads,loss = gradients(model,batch,choi=choi)
       else
-        grads,loss = gradients(model,batch)
+        grads,loss = gradients(model,batch,choi=choi)
       end
       avg_loss += loss/Float64(num_batches)
       update!(model,grads,opt)
@@ -459,7 +513,11 @@ function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwarg
     print("Ep = $ep  ")
     @printf("Loss = %.5E  ",avg_loss)
     if !isnothing(target)
+      #if choi==true && typeof(target)==MPO
+      #  F = fullfidelity(model,target)
+      #else
       F = fidelity(model,target)
+      #end
       @printf("Fidelity = %.3E  ",F)
     end
     @printf("Time = %.3f sec",ep_time)
@@ -468,8 +526,12 @@ function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwarg
     tot_time += ep_time
   end
   @printf("Total Time = %.3f sec",tot_time)
-  return model
+  lognormalize!(model)
+  return model 
 end
+
+
+
 
 
 
@@ -508,38 +570,73 @@ function getdensityoperator(lpdo::MPO)
   return rho
 end
 
-function fidelity(psi::MPS,target::MPS)
-  psi_eval = copy(psi)
-  lognormalize!(psi_eval)
-  @assert norm(psi_eval) ≈ 1
-  fidelity = abs2(inner(psi_eval,target))
+# Assume target is normalized
+function fidelity(ψ::MPS,ϕ::MPS)
+  log_F̃ = log(abs2(inner(ψ,ϕ)))
+  log_K = 2.0 * (lognorm(ψ) + lognorm(ϕ))
+  fidelity = exp(log_F̃ - log_K)
   return fidelity
 end
 
-function fidelity(lpdo::MPO,target::MPS)
-  lpdo_eval = copy(lpdo)
-  lognormalize!(lpdo_eval)
-  @assert norm(lpdo_eval) ≈ 1
-  A = *(lpdo_eval,target,method="densitymatrix",cutoff=1e-10)
-  fidelity = abs(inner(A,A))
+function trace_mpo(M::MPO)
+  N = length(M)
+  L = M[1] * delta(dag(siteinds(M)[1]))
+  if (N==1)
+    return L
+  end
+  for j in 2:N
+    trM = M[j] * delta(dag(siteinds(M)[j]))
+    L = L * trM
+  end
+  return L[]
+end
+
+function fidelity(ρ::MPO,ψ::MPS;lpdo::Bool=true)
+  if lpdo 
+    A = *(ρ,ψ,method="densitymatrix",cutoff=1e-10)
+    log_F̃ = log(abs(inner(A,A)))
+    log_K = 2.0*(lognorm(ψ) + lognorm(ρ))
+    fidelity = exp(log_F̃ - log_K)
+  else
+    log_F̃ = log(abs(inner(ψ,ρ,ψ)))
+    log_K = 2.0*lognorm(ψ) + log(trace_mpo(ρ)) 
+    fidelity = exp(log_F̃ - log_K)
+  end
   return fidelity
+end
+
+function fullfidelity(ρ::MPO,σ::MPO;choi::Bool=false)
+  @assert length(ρ) < 12
+  ρ_mat = fullmatrix(getdensityoperator(ρ))
+  σ_mat = fullmatrix(σ)
+  
+  ρ_mat ./= tr(ρ_mat)
+  σ_mat ./= tr(σ_mat)
+  
+  F = sqrt(ρ_mat) * (σ_mat * sqrt(ρ_mat))
+  F = real(tr(sqrt(F)))
+  return F
 end
 
 """
 Negative log likelihood for MPS
 """
-function nll(psi::MPS,data::Array)
-  N = length(psi)
+function nll(ψ::MPS,data::Array;choi::Bool=false)
+  N = length(ψ)
+  @assert N==size(data)[2]
   loss = 0.0
-  s = siteinds(psi)
+  s = siteinds(ψ)
+  
   for n in 1:size(data)[1]
     x = data[n,:]
-    psix = dag(psi[1]) * gate(x[1],s[1])
+    ψx = (choi ? dag(ψ[1]) * dag(gate(x[1],s[1])) :
+                 dag(ψ[1]) * gate(x[1],s[1]))
     for j in 2:N
-      psi_r = dag(psi[j]) * gate(x[j],s[j])
-      psix = psix * psi_r
+      ψ_r = (isodd(j) & choi ? ψ_r = dag(ψ[j]) * dag(gate(x[j],s[j])) :
+                               ψ_r = dag(ψ[j]) * gate(x[j],s[j]))
+      ψx = ψx * ψ_r
     end
-    prob = abs2(psix[])
+    prob = abs2(ψx[])
     loss -= log(prob)/size(data)[1]
   end
   return loss
@@ -548,20 +645,31 @@ end
 """
 Negative log likelihood for LPDO
 """
-function nll(lpdo::MPO,data::Array)
+function nll(lpdo::MPO,data::Array;choi::Bool=false)
   N = length(lpdo)
   loss = 0.0
   s = Index[]
   for j in 1:N
     push!(s,firstind(lpdo[j],"Site"))
   end
+  
   for n in 1:size(data)[1]
     x = data[n,:]
-    prob = prime(lpdo[1],"Link") * dag(gate(x[1],s[1]))
-    prob = prob * dag(lpdo[1]) * gate(x[1],s[1])
+    if choi
+      prob = prime(lpdo[1],"Link") * gate(x[1],s[1])
+      prob = prob * dag(lpdo[1]) * dag(gate(x[1],s[1]))
+    else
+      prob = prime(lpdo[1],"Link") * dag(gate(x[1],s[1]))
+      prob = prob * dag(lpdo[1]) * gate(x[1],s[1])
+    end
     for j in 2:N
-      prob = prob * prime(lpdo[j],"Link") * dag(gate(x[j],s[j]))
-      prob = prob * dag(lpdo[j]) * gate(x[j],s[j])
+      if isodd(j) & choi
+        prob = prob * prime(lpdo[j],"Link") * gate(x[j],s[j])
+        prob = prob * dag(lpdo[j]) * dag(gate(x[j],s[j]))
+      else
+        prob = prob * prime(lpdo[j],"Link") * dag(gate(x[j],s[j]))
+        prob = prob * dag(lpdo[j]) * gate(x[j],s[j])
+      end
     end
     loss -= log(real(prob[]))/size(data)[1]
   end
@@ -569,26 +677,69 @@ function nll(lpdo::MPO,data::Array)
 end
 
 
-#function measureonesiteop(psi::MPS,local_op::ITensor)
-#  site = getsitenumber(firstind(local_op,tags="Site"))
-#  orthogonalize!(psi,site)
-#  if abs(1.0-norm(psi[site])) > 1E-8
-#    error("MPS is not normalized, norm=$(norm(psi[site]))")
-#  end
-#  psi_m = copy(psi)
-#  psi_m[site] = psi_m[site] * local_op
-#  measurement = inner(psi,psi_m)
-#  return measurement
-#end
+
+
+""" OLD FUNCTIONS """
+
+
 #
-#function measureonesiteop(psi::MPS,opID::String)
-#  N = length(psi)
-#  sites = siteinds(psi)
-#  measurement = Vector{Float64}(undef,N)
-#  for j in 1:N
-#    local_op = op(sites[j],opID)
-#    measurement[j] = measureonesiteop(psi,local_op)
-#  end
-#  return measurement
-#end
+##function measureonesiteop(psi::MPS,local_op::ITensor)
+##  site = getsitenumber(firstind(local_op,tags="Site"))
+##  orthogonalize!(psi,site)
+##  if abs(1.0-norm(psi[site])) > 1E-8
+##    error("MPS is not normalized, norm=$(norm(psi[site]))")
+##  end
+##  psi_m = copy(psi)
+##  psi_m[site] = psi_m[site] * local_op
+##  measurement = inner(psi,psi_m)
+##  return measurement
+##end
+##
+##function measureonesiteop(psi::MPS,opID::String)
+##  N = length(psi)
+##  sites = siteinds(psi)
+##  measurement = Vector{Float64}(undef,N)
+##  for j in 1:N
+##    local_op = op(sites[j],opID)
+##    measurement[j] = measureonesiteop(psi,local_op)
+##  end
+##  return measurement
+##end
+##
 #
+#
+#function lognormalize!(M::Union{MPS,MPO}; choi::Bool=false)
+#  
+#  # PROCESS TOMOGRAPHY
+#  if choi
+#    choinorm = 2^(0.5*length(M))
+#    #choi_local = 1/2^0.25 
+#    choi_local = 1/2^0.25 
+#
+#    localnorms = []
+#    blob = dag(M[1]) * prime(M[1],"Link")
+#    localZ = norm(blob)
+#    logZ = 0.5*log(localZ)
+#    blob /= sqrt(localZ)
+#    M[1] /= (choi_local * localZ^0.25)
+#    push!(localnorms,localZ^0.25)
+#    for j in 2:length(M)-1
+#      blob = blob * dag(M[j]);
+#      blob = blob * prime(M[j],"Link")
+#      localZ = norm(blob)
+#      logZ += 0.5*log(localZ)
+#      blob /= sqrt(localZ)
+#      M[j] /= (choi_local * localZ^0.25)
+#      push!(localnorms,localZ^0.25)  
+#    end
+#    blob = blob * dag(M[length(M)]);
+#    blob = blob * prime(M[length(M)],"Link")
+#    localZ = norm(blob)
+#    M[length(M)] /= (choi_local * sqrt(localZ))
+#    push!(localnorms,sqrt(localZ))
+#    logZ += log(real(blob[]))
+#    logZ += log(choinorm)
+#    localnorms .= localnorms .* choi_local
+#  end
+#end
+

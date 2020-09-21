@@ -1,39 +1,16 @@
-function loadtrainingdataQST(input_path::String)
+function loadtrainingdataQST(input_path::String;ismpo::Bool=false)
   data_file = h5open(input_path,"r")
   data = read(data_file,"data")
-  #data .= "state" .* data
-  target = read(data_file,"psi",MPS)
+  target = (ismpo ? read(data_file,"psi",MPO) : read(data_file,"psi",MPS))
   return data,target
 end
 
-"""
-Convert a data point from (sample,basis) -> data
-Ex: (0,1,0,0) (X,Z,Y,X) -> (X+,Z-,Y+,X+)
-"""
-function convertdata(datapoint::Array,basis::Array)
-  newdata = []
-  for j in 1:length(datapoint)
-    if basis[j] == "X"
-      if datapoint[j] == 0
-        push!(newdata,"stateX+")
-      else
-        push!(newdata,"stateX-")
-      end
-    elseif basis[j] == "Y"
-      if datapoint[j] == 0
-        push!(newdata,"stateY+")
-      else
-        push!(newdata,"stateY-")
-      end
-    elseif basis[j] == "Z"
-      if datapoint[j] == 0
-        push!(newdata,"stateZ+")
-      else
-        push!(newdata,"stateZ-")
-      end
-    end
-  end
-  return newdata
+function loadtrainingdataQPT(input_path::String;ismpo::Bool=false)
+  data_file = h5open(input_path,"r")
+  data_in = read(data_file,"data_in")
+  data_out = read(data_file,"data_out")
+  target = (ismpo ? read(data_file,"choi",MPO) : read(data_file,"choi",MPS))
+  return data_in,data_out,target
 end
 
 function fullvector(M::MPS; reverse::Bool = true)
