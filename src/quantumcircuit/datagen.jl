@@ -1,14 +1,14 @@
 
 """
-    measurementsettings(N::Int,nshots::Int;
-                        local_basis::Array=["X","Y","Z"],
-                        numbases=nothing)
+    randombases(N::Int,nshots::Int;
+                localbasis::Array=["X","Y","Z"],
+                n_distinctbases=nothing)
 
 Generate `nshots` measurement bases. By default, each
 local basis is randomly selected between `["X","Y","Z"]`, with
 `"Z"` being the default basis where the quantum state is written.
-If `numbases` is provided, the output consist of `numbases`
-different measurement basis, each being repeated `nshots÷numbases`
+If `numbases` is provided, the output consist of `n_distinctbases`
+different measurement basis, each being repeated `nshots÷n_distinctbases`
 times.
 """
 function randombases(N::Int,numshots::Int;
@@ -58,15 +58,15 @@ end
 
 
 """
-    preparationsettings(N::Int,nshots::Int;
-                        prep_id::Array=["X+","X-","Y+","Y-","Z+","Z-"],
-                        numprep=nothing)
+    rarnndompreparations(N::Int,nshots::Int;
+                         states::Array=["X+","X-","Y+","Y-","Z+","Z-"],
+                         n_distinctstates=nothing)
 
 Generate `nshots` input states to a quantum circuit. By default, each
 single-qubit state is randomly selected between the 6 eigenstates of
 the Pauli matrices, `["X+","X-","Y+","Y-","Z+","Z-"]`.
-If `numprep` is provided, the output consist of `numprep`
-different input states, each being repeated `nshots÷numprep`
+If `n_distinctstates` is provided, the output consist of `numprep`
+different input states, each being repeated `nshots÷n_distinctstates`
 times.
 """
 function randompreparations(N::Int,nshots::Int;
@@ -113,7 +113,7 @@ end
 
 
 """
-    generatedata(M::Union{MPS,MPO},nshots::Int)
+    generatedata!(M::Union{MPS,MPO},nshots::Int)
 
 Perform a projective measurement of a wavefunction 
 `|ψ⟩` or density operator `ρ`. The measurement consist of
@@ -131,7 +131,7 @@ end
 
 
 """
-    generatedata(M::Union{MPS,MPO},nshots::Int)
+    generatedata!(M::Union{MPS,MPO},nshots::Int)
 
 Perform `nshots` projective measurements on a wavefunction 
 `|ψ⟩` or density operator `ρ`. 
@@ -155,9 +155,15 @@ MEASUREMENT IN MULTIPLE BASES
 
 Generate a single measurements data-point in an input `basis`. 
 If `Û` is the depth-1 local circuit rotating each qubit, the 
+<<<<<<< HEAD
+data-point `σ = (σ₁,σ₂,…)` id drawn from the probablity distribution:
+- `P(σ) = |⟨σ|Û|ψ⟩|²`   : if `M = ψ` is MPS
+- `P(σ) = <σ|Û ρ Û†|σ⟩` : if `M = ρ` is MPO   
+=======
 data-point `σ = (σ₁,σ₂,…)` is drawn from the probablity distribution:
 - P(σ) = |⟨σ|Û|ψ⟩|²   : if M = ψ is MPS
 - P(σ) = <σ|Û ρ Û†|σ⟩ : if M = ρ is MPO   
+>>>>>>> master
 """
 function generatedata(M0::Union{MPS,MPO},basis::Array)
   # Generate basis rotation gates
@@ -183,54 +189,16 @@ function generatedata(M::Union{MPS,MPO},nshots::Int,bases::Array)
 end
 
 
-""" 
-    generatedata(N::Int64,gates::Vector{<:Tuple},nshots::Int64;
-                 noise=nothing,bases_id=nothing,return_state::Bool=false,
-                 cutoff::Float64=1e-15,maxdim::Int64=10000,
-                 kwargs...)
-
-Generate `nshots` measurements at the output of a `N`-qubit quantum circuit, 
-specified by a set of quantum `gates`.
-
-# Arguments:
-  - `gates`: a set of quantum gates.
-  - `noise`: apply a noise model after each quantum gate in the circuit
-  - basis_id: set of basis used (ex: `basis_id=["X","Y","Z"])
-  - return_state: if true, returns the ouput state `ψ = U|0,0,…,0⟩`
-"""
-function generatedata(N::Int64,gates::Vector{<:Tuple},nshots::Int64;
-                      noise=nothing,return_state::Bool=false,
-                      localbasis=["X","Y","Z"],n_distinctbases=nothing,
-                      cutoff::Float64=1e-15,maxdim::Int64=10000,
-                      kwargs...)
-  
-  # Apply the quantum channel
-  M = runcircuit(N,gates;process=false,noise=noise,
-                 cutoff=cutoff,maxdim=maxdim,kwargs...)
-  # Reference basis
-  if isnothing(localbasis)
-    data = generatedata!(M,nshots)
-  # Pauli bases
-  else
-    bases = randombases(N,nshots;localbasis=localbasis,n_distinctbases=n_distinctbases)
-    data = generatedata(M,nshots,bases)
-  end
-  return (return_state ? (M,data) : data)
-end
-
-
-
 """
 QUANTUM PROCESS TOMOGRAPHY
 """
 
 """ 
-    generate_processdata(M0::Union{MPS,MPO},
-                         gate_tensors::Vector{<:ITensor},
-                         prep::Array,basis::Array;
-                         cutoff::Float64=1e-15,maxdim::Int64=10000,
-                         kwargs...)
-
+    generatedata(M0::Union{MPS,MPO},
+                 gate_tensors::Vector{<:ITensor},
+                 prep::Array,basis::Array;
+                 cutoff::Float64=1e-15,maxdim::Int64=10000,
+                 kwargs...)
 
 Generate a single data-point for quantum process tomography, 
 consisting of an input state (a product state of single-qubit
@@ -294,7 +262,7 @@ function projectchoi(Λ0::Union{MPS,MPO},prep::Array)
 end
 
 """
-    generate_processdata(Λ0::Union{MPS,MPO},prep::Array,basis::Array)
+    generatedata(Λ0::Union{MPS,MPO},prep::Array,basis::Array)
 
 Generate a single data-point for quantum process tomography using an
 input Choi matrix `Λ0`. Each data-point consists of an input state 
@@ -387,7 +355,6 @@ function generatedata(N::Int64,gates::Vector{<:Tuple},nshots::Int64;
     end
   end
 end
-
 
 """
     convertdatapoint(datapoint::Array,basis::Array;state::Bool=false)

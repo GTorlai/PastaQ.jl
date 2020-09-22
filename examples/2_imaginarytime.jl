@@ -1,7 +1,7 @@
 using PastaQ
 using ITensors
 
-N = 50
+N = 20
 h = 1.0
 H,ψ = transversefieldising(N,h,hamiltonian=true)
 E = inner(ψ,H,ψ)
@@ -36,12 +36,12 @@ for b in 1:100
 
   ρ = runcircuit(ρ0,gate_tensors,state_evolution=false,
                  cutoff=1e-9,maxdim=1000)
-  Z = trace_mpo(ρ)
+  Z = tr(ρ)
   for j in 1:N 
     ρ[j] = ρ[j] / Z^(1.0/N)
   end 
   
-  E_th = trace_mpo(*(ρ,prime(H),method="densitymatrix",cutoff=1e-10))
+  E_th = tr(*(ρ,prime(H),method="densitymatrix",cutoff=1e-10))
   println("β = $β : <H> = $E_th  (χ = $(maxlinkdim(ρ)))")
 end
 
@@ -80,7 +80,7 @@ end
 #ρ = runcircuit(ρ0,gate_tensors,state_evolution=false)
 #
 ## Normalize the density matrix
-#Z = trace_mpo(ρ)
+#Z = tr(ρ)
 #for j in 1:N 
 #  ρ[j] = ρ[j] / Z^(1.0/N)
 #end 

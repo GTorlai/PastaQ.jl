@@ -54,21 +54,25 @@ export
   processtomography,
   fidelity,
   fullfidelity,
-  trace_mpo,
+  frobenius_distance,
   getdensityoperator,
   
 # optimizers/
   Optimizer,
-  SGD,
-  Momentum,
+  Sgd,
+  Adagrad,
+  Adadelta,
+  Adam,
+  Adamax,
   # Methods
   update!,
 
-# physics.jl
+# observer.jl
+  TomographyObserver,
   # Methods
-  transversefieldising,
-  groundstate,
-
+  measure!,
+  writeobserver,
+  
 # utils.jl
   # Methods
   loadtrainingdataQST,
