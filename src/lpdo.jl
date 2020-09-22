@@ -9,13 +9,13 @@ end
 LPDO(X::Union{MPS, MPO}) = LPDO(X, ts"purifier")
 
 Base.length(L::LPDO) = length(L.X)
-Base.setindex!(L::LPDO, args...) = setindex!(L.X, args...)
 
 # TODO: define this (not defined for MPS/MPO yet)
 #Base.lastindex(L::LPDO) = lastindex(L.X)
 
-# TODO: decide if this is a good definition
+# TODO: decide if these are good definitions
 #Base.getindex(L::LPDO, args...) = getindex(L.X, args...)
+#Base.setindex!(L::LPDO, args...) = setindex!(L.X, args...)
 
 purifier_tag(L::LPDO) = L.purifier_tag
 

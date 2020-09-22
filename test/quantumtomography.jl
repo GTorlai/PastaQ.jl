@@ -202,7 +202,7 @@ end
   ψ = initializetomography(N,χ)
   num_grad = numgradslogZ(ψ)
 
-  logZ,localnorms = lognormalize!(ψ)
+  logZ,localnorms = lognormalize!(LPDO(ψ))
   @test norm(ψ)^2 ≈ 1
   alg_grad,_ = gradlogZ(ψ,localnorm=localnorms)
   for j in 1:N
@@ -242,7 +242,7 @@ end
   # 3. Locally normalized
   ψ = initializetomography(N,χ)
   num_grad = numgradsnll(ψ,data)
-  logZ,localnorms = lognormalize!(ψ)
+  logZ,localnorms = lognormalize!(LPDO(ψ))
   @test norm(ψ)^2 ≈ 1
   alg_grad_localnorm,loss = gradnll(ψ,data,localnorm=localnorms)
   for j in 1:N
@@ -299,7 +299,7 @@ end
   num_gradNLL = numgradsnll(ψ,data)
   num_grads = num_gradZ + num_gradNLL
   
-  logZ,localnorms = lognormalize!(ψ)
+  logZ,localnorms = lognormalize!(LPDO(ψ))
   NLL  = nll(ψ,data)
   ex_loss = NLL
   @test norm(ψ)^2 ≈ 1
@@ -435,7 +435,7 @@ end
 
   # 2. Globally normalized
   ψ = initializetomography(N,χ)
-  lognormalize!(ψ)
+  lognormalize!(LPDO(ψ))
   num_gradZ = numgradslogZ(ψ)
   num_gradNLL = numgradsnll(ψ,data;choi=true)
   num_grads = num_gradZ + num_gradNLL
@@ -479,7 +479,7 @@ end
   logZ2,_ = lognormalize!(LPDO(ρ))
   @test logZ1 ≈ logZ2
   ρ = initializetomography(N,χ,ξ)
-  lognormalize!(ρ)
+  lognormalize!(LPDO(ρ))
   @test norm(ρ) ≈ 1
 end
 
@@ -535,7 +535,7 @@ end
   ρ = initializetomography(N,χ,ξ)
   num_grad = numgradslogZ(ρ)
 
-  logZ,localnorms = lognormalize!(ρ)
+  logZ,localnorms = lognormalize!(LPDO(ρ))
   @test norm(ρ)^2 ≈ 1
   alg_grad,_ = gradlogZ(ρ,localnorm=localnorms)
 
@@ -582,7 +582,7 @@ end
   
   # 2. Globally normalized
   ρ = initializetomography(N,χ,ξ)
-  lognormalize!(ρ)
+  lognormalize!(LPDO(ρ))
   @test norm(ρ) ≈ 1
   num_grad = numgradsnll(ρ,data)
   alg_grad,loss = gradnll(ρ,data)
@@ -670,7 +670,7 @@ PROCESS TOMOGRAPHY WITH LPDO
   # 3. Locally normalized
   Λ = initializetomography(N,χ,ξ)
   num_grad = numgradsnll(Λ,data,choi=true)
-  logZ,localnorms = lognormalize!(Λ)
+  logZ,localnorms = lognormalize!(LPDO(Λ))
   ex_loss = nll(Λ,data,choi=true) 
   alg_grad,loss = gradnll(Λ,data,localnorm=localnorms,choi=true)
   @test ex_loss ≈ loss
