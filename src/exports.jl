@@ -16,6 +16,9 @@ export
   squarearray,
   randomcircuit,
 
+# lpdo.jl
+  LPDO,
+
 # quantumcircuit.jl
   # Methods
   qubits,
@@ -51,7 +54,7 @@ export
   processtomography,
   fidelity,
   fullfidelity,
-  trace_mpo,
+  frobenius_distance,
   getdensityoperator,
   
 # optimizers/

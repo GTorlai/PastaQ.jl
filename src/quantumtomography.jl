@@ -59,7 +59,7 @@ function initializetomography(N::Int64,χ::Int64,ξ::Int64;
 
   sites = [Index(d; tags="Site,n=$s") for s in 1:N]
   links = [Index(χ; tags="Link,l=$l") for l in 1:N-1]
-  kraus = [Index(ξ; tags="Purifier,k=$s") for s in 1:N]
+  kraus = [Index(ξ; tags="purifier,k=$s") for s in 1:N]
 
   M = ITensor[]
   # Site 1 
@@ -82,40 +82,45 @@ end
 
 
 """
-    function lognormalize!(M::Union{MPS,MPO})
+    lognormalize!(L::LPDO)
+    lognormalize!(M::MPS)
 
-Normalize a MPS/LPDO and store local normalizations:
-
-- `Z = ⟨ψ|ψ⟩` for `ψ = M = MPS`
-- `Z = Tr(ρ)` for `ρ = M M†` , `M = LPDO` 
+Normalize the MPS/LPDO and returns the log of the norm and a vector of the local norms of each site.
 """
-function lognormalize!(M::Union{MPS,MPO})
-
+function lognormalize!(L::LPDO)
+  N = length(L)
   localnorms = []
-  blob = dag(M[1]) * prime(M[1],"Link")
+  # TODO: replace with:
+  # noprime(ket(L, 1), siteind(L, 1))
+  blob = noprime(ket(L, 1), "Site") * bra(L, 1)
   localZ = norm(blob)
-  logZ = 0.5*log(localZ)
+  logZ = 0.5 * log(localZ)
   blob /= sqrt(localZ)
-  M[1] /= (localZ^0.25)
-  push!(localnorms,localZ^0.25)
-  for j in 2:length(M)-1
-    blob = blob * dag(M[j]);
-    blob = blob * prime(M[j],"Link")
+  L.X[1] /= (localZ^0.25)
+  push!(localnorms, localZ^0.25)
+  for j in 2:length(L)-1
+    # TODO: replace with:
+    # noprime(ket(L, j), siteind(L, j))
+    blob = blob * noprime(ket(L, j), "Site")
+    blob = blob * bra(L, j)
     localZ = norm(blob)
     logZ += 0.5*log(localZ)
     blob /= sqrt(localZ)
-    M[j] /= (localZ^0.25)
-    push!(localnorms,localZ^0.25)  
+    L.X[j] /= (localZ^0.25)
+    push!(localnorms, localZ^0.25)  
   end
-  blob = blob * dag(M[length(M)]);
-  blob = blob * prime(M[length(M)],"Link")
+  # TODO: replace with:
+  # noprime(ket(L, N), siteind(L, N))
+  blob = blob * noprime(ket(L, N), "Site")
+  blob = blob * bra(L, N)
   localZ = norm(blob)
-  M[length(M)] /= sqrt(localZ)
-  push!(localnorms,sqrt(localZ))
+  L.X[length(L)] /= sqrt(localZ)
+  push!(localnorms, sqrt(localZ))
   logZ += log(real(blob[]))
-  return logZ,localnorms
+  return logZ, localnorms
 end
 
+lognormalize!(M::MPS) = lognormalize!(LPDO(M))
 
 """
     function gradlogZ(M::Union{MPS,MPO};localnorm=nothing)
@@ -345,7 +350,7 @@ function gradnll(lpdo::MPO,data::Array;localnorm=nothing,choi::Bool=false)
   
   kraus = Index[]
   for j in 1:N
-    push!(kraus,firstind(lpdo[j],"Purifier"))
+    push!(kraus,firstind(lpdo[j],"purifier"))
   end
 
   ElT = eltype(lpdo[1])
@@ -595,11 +600,11 @@ function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwarg
       # Local normalization
       if localnorm
         model_norm = copy(model)
-        logZ,localnorms = lognormalize!(model_norm) 
+        logZ,localnorms = lognormalize!(LPDO(model_norm))
         grads,loss = gradients(model_norm,batch,localnorm=localnorms,choi=choi)
       # Global normalization
       elseif globalnorm
-        lognormalize!(model)
+        lognormalize!(LPDO(model))
         grads,loss = gradients(model,batch,choi=choi)
       # Unnormalized
       else
@@ -731,7 +736,7 @@ Compute the fidelity between an MPS and LPDO.
 `F = ⟨ψ|ρ|ψ⟩`
 """
 function fidelity(ψ::MPS,ρ::MPO)
-  islpdo = any(x -> any(y -> hastags(y, "Purifier"), inds(x)), ρ)
+  islpdo = any(x -> any(y -> hastags(y, "purifier"), inds(x)), ρ)
   if islpdo 
     A = *(ρ,ψ,method="densitymatrix",cutoff=1e-10)
     log_F̃ = log(abs(inner(A,A)))
@@ -758,15 +763,15 @@ Compute the trace norm of the difference between two MPO.
 `F(ρ,σ) = sqrt(trace[(ρ-σ)†(ρ-σ)])`
 """
 function frobenius_distance(ρ0::MPO,σ0::MPO)
-  islpdo_ρ = any(x -> any(y -> hastags(y, "Purifier"), inds(x)), ρ0)
-  islpdo_σ = any(x -> any(y -> hastags(y, "Purifier"), inds(x)), σ0)
+  islpdo_ρ = any(x -> any(y -> hastags(y, "purifier"), inds(x)), ρ0)
+  islpdo_σ = any(x -> any(y -> hastags(y, "purifier"), inds(x)), σ0)
  
   if islpdo_ρ & islpdo_σ
     ρ = copy(ρ0)
     σ = copy(σ0)
     # Normalize both LPDO to 1
-    lognormalize!(ρ)
-    lognormalize!(σ)
+    lognormalize!(LPDO(ρ))
+    lognormalize!(LPDO(σ))
     # Extract density operators MPO
     ρ′ = getdensityoperator(ρ)
     σ′ = getdensityoperator(σ)
@@ -776,7 +781,7 @@ function frobenius_distance(ρ0::MPO,σ0::MPO)
   elseif islpdo_ρ & !islpdo_σ
     # Normalize the LPDO to 1
     ρ = copy(ρ0)
-    lognormalize!(ρ)
+    lognormalize!(LPDO(ρ))
     ρ′ = getdensityoperator(ρ)
     σ′ = σ0
     # Get the MPO normalization
@@ -786,7 +791,7 @@ function frobenius_distance(ρ0::MPO,σ0::MPO)
   elseif !islpdo_ρ & islpdo_σ
     # Normalize the LPDO to 1
     σ = copy(σ0)
-    lognormalize!(σ)
+    lognormalize!(LPDO(σ))
     σ′ = getdensityoperator(σ)
     ρ′ = ρ0
     # Get the MPO normalization

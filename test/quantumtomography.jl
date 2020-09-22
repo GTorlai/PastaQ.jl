@@ -476,10 +476,10 @@ end
   ρ = initializetomography(N,χ,ξ)
   @test length(ρ) == N
   logZ1 = 2.0*lognorm(ρ)
-  logZ2,_ = lognormalize!(ρ)
+  logZ2,_ = lognormalize!(LPDO(ρ))
   @test logZ1 ≈ logZ2
   ρ = initializetomography(N,χ,ξ)
-  lognormalize!(ρ)
+  lognormalize!(LPDO(ρ))
   @test norm(ρ) ≈ 1
 end
 
@@ -489,7 +489,7 @@ end
   ξ = 3
   ρ = initializetomography(N,χ,ξ)
   @test length(ρ) == N
-  lognormalize!(ρ)
+  lognormalize!(LPDO(ρ))
   rho = getdensityoperator(ρ)
   rho_mat = fullmatrix(rho)
   @test sum(abs.(imag(diag(rho_mat)))) ≈ 0.0 atol=1e-10
@@ -517,7 +517,7 @@ end
   
   # 2. Globally normalizeid
   ρ = initializetomography(N,χ,ξ)
-  lognormalize!(ρ)
+  lognormalize!(LPDO(ρ))
   @test norm(ρ) ≈ 1
   alg_grad,_ = gradlogZ(ρ)
   num_grad = numgradslogZ(ρ)
@@ -535,7 +535,7 @@ end
   ρ = initializetomography(N,χ,ξ)
   num_grad = numgradslogZ(ρ)
 
-  logZ,localnorms = lognormalize!(ρ)
+  logZ,localnorms = lognormalize!(LPDO(ρ))
   @test norm(ρ)^2 ≈ 1
   alg_grad,_ = gradlogZ(ρ,localnorm=localnorms)
 
@@ -582,7 +582,7 @@ end
   
   # 2. Globally normalized
   ρ = initializetomography(N,χ,ξ)
-  lognormalize!(ρ)
+  lognormalize!(LPDO(ρ))
   @test norm(ρ) ≈ 1
   num_grad = numgradsnll(ρ,data)
   alg_grad,loss = gradnll(ρ,data)
@@ -600,7 +600,7 @@ end
   # 3. Locally normalized
   ρ = initializetomography(N,χ,ξ)
   num_grad = numgradsnll(ρ,data)
-  logZ,localnorms = lognormalize!(ρ)
+  logZ,localnorms = lognormalize!(LPDO(ρ))
   @test norm(ρ) ≈ 1
   alg_grad,loss = gradnll(ρ,data,localnorm=localnorms)
   ex_loss = nll(ρ,data)
@@ -653,7 +653,7 @@ PROCESS TOMOGRAPHY WITH LPDO
   
   # 2. Globally normalized
   Λ = initializetomography(N,χ,ξ) 
-  lognormalize!(Λ)
+  lognormalize!(LPDO(Λ))
   num_grad = numgradsnll(Λ,data,choi=true)
   ex_loss = nll(Λ,data,choi=true) 
   alg_grad,loss = gradnll(Λ,data,choi=true)
@@ -670,7 +670,7 @@ PROCESS TOMOGRAPHY WITH LPDO
   # 3. Locally normalized
   Λ = initializetomography(N,χ,ξ)
   num_grad = numgradsnll(Λ,data,choi=true)
-  logZ,localnorms = lognormalize!(Λ)
+  logZ,localnorms = lognormalize!(LPDO(Λ))
   ex_loss = nll(Λ,data,choi=true) 
   alg_grad,loss = gradnll(Λ,data,localnorm=localnorms,choi=true)
   @test ex_loss ≈ loss

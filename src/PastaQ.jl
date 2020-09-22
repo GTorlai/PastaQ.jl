@@ -8,6 +8,7 @@ using HDF5
 using Printf
 
 include("exports.jl")
+include("lpdo.jl")
 
 include("quantumcircuit/quantumgates.jl")
 include("quantumcircuit/circuitops.jl")
