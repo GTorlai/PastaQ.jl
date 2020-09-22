@@ -171,7 +171,7 @@ end
   ψ = initializetomography(N,χ)
   @test length(ψ) == N
   logZ1 = 2.0*lognorm(ψ)
-  logZ2,_ = lognormalize!(LPDO(ψ))
+  logZ2,_ = lognormalize!(ψ)
   @test logZ1 ≈ logZ2
   @test norm(ψ) ≈ 1
 end
@@ -190,7 +190,7 @@ end
   
   # 2. Globally normalized
   ψ = initializetomography(N,χ)
-  lognormalize!(LPDO(ψ))
+  lognormalize!(ψ)
   @test norm(ψ)^2 ≈ 1
   alg_grad,_ = gradlogZ(ψ)
   num_grad = numgradslogZ(ψ)
@@ -202,7 +202,7 @@ end
   ψ = initializetomography(N,χ)
   num_grad = numgradslogZ(ψ)
 
-  logZ,localnorms = lognormalize!(LPDO(ψ))
+  logZ,localnorms = lognormalize!(ψ)
   @test norm(ψ)^2 ≈ 1
   alg_grad,_ = gradlogZ(ψ,localnorm=localnorms)
   for j in 1:N
@@ -232,7 +232,7 @@ end
   
   # 2. Globally normalized
   ψ = initializetomography(N,χ)
-  lognormalize!(LPDO(ψ))
+  lognormalize!(ψ)
   num_grad = numgradsnll(ψ,data)
   alg_grad,loss = gradnll(ψ,data)
   for j in 1:N
@@ -242,7 +242,7 @@ end
   # 3. Locally normalized
   ψ = initializetomography(N,χ)
   num_grad = numgradsnll(ψ,data)
-  logZ,localnorms = lognormalize!(LPDO(ψ))
+  logZ,localnorms = lognormalize!(ψ)
   @test norm(ψ)^2 ≈ 1
   alg_grad_localnorm,loss = gradnll(ψ,data,localnorm=localnorms)
   for j in 1:N
@@ -279,7 +279,7 @@ end
 
   # 2. Globally normalized
   ψ = initializetomography(N,χ)
-  lognormalize!(LPDO(ψ))
+  lognormalize!(ψ)
   num_gradZ = numgradslogZ(ψ)
   num_gradNLL = numgradsnll(ψ,data)
   num_grads = num_gradZ + num_gradNLL
@@ -299,7 +299,7 @@ end
   num_gradNLL = numgradsnll(ψ,data)
   num_grads = num_gradZ + num_gradNLL
   
-  logZ,localnorms = lognormalize!(LPDO(ψ))
+  logZ,localnorms = lognormalize!(ψ)
   NLL  = nll(ψ,data)
   ex_loss = NLL
   @test norm(ψ)^2 ≈ 1
@@ -342,7 +342,7 @@ end
 
   # 2. Globally normalized
   ψ = initializetomography(N,χ)
-  logZ,_ = lognormalize!(LPDO(ψ))
+  logZ,_ = lognormalize!(ψ)
   #@test norm(ψ)^2 ≈ 2^(0.5*N)
   alg_grad,_ = gradlogZ(ψ)
   num_grad = numgradslogZ(ψ)
@@ -354,7 +354,7 @@ end
   ψ = initializetomography(N,χ)
   num_grad = numgradslogZ(ψ)
 
-  logZ,localnorms = lognormalize!(LPDO(ψ))
+  logZ,localnorms = lognormalize!(ψ)
   #@test norm(ψ)^2 ≈ 2^(0.5*N)
   alg_grad,_ = gradlogZ(ψ,localnorm=localnorms)
   for j in 1:N
@@ -385,7 +385,7 @@ end
   
   # 2. Globally normalized
   ψ = initializetomography(N,χ)
-  lognormalize!(LPDO(ψ))
+  lognormalize!(ψ)
   num_grad = numgradsnll(ψ,data,choi=true)
   #@test norm(ψ)^2 ≈ 2^(Nphysical)
   alg_grad,loss = gradnll(ψ,data;choi=true)
@@ -396,7 +396,7 @@ end
   # 3. Locally normalized
   ψ = initializetomography(N,χ)
   num_grad = numgradsnll(ψ,data,choi=true)
-  logZ,localnorms = lognormalize!(LPDO(ψ))
+  logZ,localnorms = lognormalize!(ψ)
   #@test norm(ψ)^2 ≈ 2^(Nphysical)
   alg_grad,loss = gradnll(ψ,data,localnorm=localnorms,choi=true)
   for j in 1:N
@@ -435,7 +435,7 @@ end
 
   # 2. Globally normalized
   ψ = initializetomography(N,χ)
-  lognormalize!(LPDO(ψ))
+  lognormalize!(ψ)
   num_gradZ = numgradslogZ(ψ)
   num_gradNLL = numgradsnll(ψ,data;choi=true)
   num_grads = num_gradZ + num_gradNLL
@@ -455,7 +455,7 @@ end
   num_gradNLL = numgradsnll(ψ,data;choi=true)
   num_grads = num_gradZ + num_gradNLL
   
-  logZ,localnorms = lognormalize!(LPDO(ψ))
+  logZ,localnorms = lognormalize!(ψ)
   NLL  = nll(ψ,data;choi=true)
   ex_loss = NLL - 0.5*N*log(2)
   

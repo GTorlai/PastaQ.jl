@@ -66,10 +66,16 @@ end
 
 
 """
-Normalize the MPS/LPDO locally and store the local norms
+    lognormalize!(L::LPDO)
+    lognormalize!(M::MPS)
+
+Normalize the MPS/LPDO and returns the log of the norm and a vector of the local norms of each site.
 """
 function lognormalize!(L::LPDO)
+  N = length(L)
   localnorms = []
+  # TODO: replace with:
+  # noprime(ket(L, 1), siteind(L, 1))
   blob = noprime(ket(L, 1), "Site") * bra(L, 1)
   localZ = norm(blob)
   logZ = 0.5 * log(localZ)
@@ -77,6 +83,8 @@ function lognormalize!(L::LPDO)
   L.X[1] /= (localZ^0.25)
   push!(localnorms, localZ^0.25)
   for j in 2:length(L)-1
+    # TODO: replace with:
+    # noprime(ket(L, j), siteind(L, j))
     blob = blob * noprime(ket(L, j), "Site")
     blob = blob * bra(L, j)
     localZ = norm(blob)
@@ -85,14 +93,18 @@ function lognormalize!(L::LPDO)
     L.X[j] /= (localZ^0.25)
     push!(localnorms, localZ^0.25)  
   end
-  blob = blob * noprime(ket(L, length(L)), "Site")
-  blob = blob * bra(L, length(L))
+  # TODO: replace with:
+  # noprime(ket(L, N), siteind(L, N))
+  blob = blob * noprime(ket(L, N), "Site")
+  blob = blob * bra(L, N)
   localZ = norm(blob)
   L.X[length(L)] /= sqrt(localZ)
   push!(localnorms, sqrt(localZ))
   logZ += log(real(blob[]))
   return logZ, localnorms
 end
+
+lognormalize!(M::MPS) = lognormalize!(LPDO(M))
 
 """
 Gradients of logZ for MPS/LPDO
