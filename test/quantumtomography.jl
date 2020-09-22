@@ -734,7 +734,6 @@ end
   ex_F = dot(ψ_vec,ρ_mat * ψ_vec)
   F = fidelity(ρ,ψ)
   @test F ≈ ex_F
-  
   σ = getdensityoperator(ρ)
   F1 = fidelity(σ,ψ)
   @test F1 ≈ ex_F 

@@ -56,10 +56,11 @@ export
   
 # optimizers/
   Optimizer,
-  SGD,
-  Momentum,
+  Sgd,
   Adagrad,
   Adadelta,
+  Adam,
+  Adamax,
   # Methods
   update!,
 

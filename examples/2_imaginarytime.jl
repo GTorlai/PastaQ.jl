@@ -1,7 +1,7 @@
 using PastaQ
 using ITensors
 
-N = 50
+N = 20
 h = 1.0
 H,ψ = transversefieldising(N,h,hamiltonian=true)
 E = inner(ψ,H,ψ)

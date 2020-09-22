@@ -605,8 +605,10 @@ function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwarg
       else
         grads,loss = gradients(model,batch,choi=choi)
       end
+
+      nupdate = ep * num_batches + b
       avg_loss += loss/Float64(num_batches)
-      update!(model,grads,opt)
+      update!(model,grads,opt;step=nupdate)
     end
 
     end # end @elapsed
@@ -713,7 +715,7 @@ Compute the fidelity between two MPS:
 `F = |⟨ψ|ϕ⟩|²`
 """
 function fidelity(ψ::MPS,ϕ::MPS)
-  log_F̃ = 2.0*abs(loginner(ψ,ϕ))
+  log_F̃ = 2.0*real(loginner(ψ,ϕ))
   log_K = 2.0 * (lognorm(ψ) + lognorm(ϕ))
   fidelity = exp(log_F̃ - log_K)
   return fidelity
@@ -731,7 +733,9 @@ Compute the fidelity between an MPS and LPDO.
 function fidelity(ψ::MPS,ρ::MPO)
   islpdo = any(x -> any(y -> hastags(y, "Purifier"), inds(x)), ρ)
   if islpdo 
-    log_F̃ = log(abs(inner(ρ,ψ,ρ,ψ)))
+    A = *(ρ,ψ,method="densitymatrix",cutoff=1e-10)
+    log_F̃ = log(abs(inner(A,A)))
+    #log_F̃ = log(abs(inner(ρ,ψ,ρ,ψ)))
     log_K = 2.0*(lognorm(ψ) + lognorm(ρ))
     fidelity = exp(log_F̃ - log_K)
   else
