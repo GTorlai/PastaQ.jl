@@ -455,7 +455,7 @@ end
   num_gradNLL = numgradsnll(ψ,data;choi=true)
   num_grads = num_gradZ + num_gradNLL
   
-  logZ,localnorms = lognormalize!(ψ)
+  logZ,localnorms = lognormalize!(LPDO(ψ))
   NLL  = nll(ψ,data;choi=true)
   ex_loss = NLL - 0.5*N*log(2)
   
@@ -600,7 +600,7 @@ end
   # 3. Locally normalized
   ρ = initializetomography(N,χ,ξ)
   num_grad = numgradsnll(ρ,data)
-  logZ,localnorms = lognormalize!(ρ)
+  logZ,localnorms = lognormalize!(LPDO(ρ))
   @test norm(ρ) ≈ 1
   alg_grad,loss = gradnll(ρ,data,localnorm=localnorms)
   ex_loss = nll(ρ,data)
