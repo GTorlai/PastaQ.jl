@@ -16,6 +16,9 @@ export
   squarearray,
   randomcircuit,
 
+# lpdo.jl
+  LPDO,
+
 # quantumcircuit.jl
   # Methods
   qubits,
