@@ -190,12 +190,13 @@ function runcircuit(N::Int,gates::Vector{<:Tuple}; process=false,noise=nothing,
     # noisy:     ψ -> ρ = ε(|ψ⟩⟨ψ|)
     return runcircuit(ψ,gates;noise=noise,cutoff=cutoff,maxdim=maxdim,kwargs...)
   
-  elseif process==true & isnothing(noise)
+  elseif process==true
     if isnothing(noise)
       U = circuit(N) # = 1⊗1⊗1⊗…⊗1
       return runcircuit(U,gates;noise=nothing,apply_dag=false,cutoff=cutoff,maxdim=maxdim,kwargs...) 
     else
-      error("Cannot build the circuit MPO if noise!=nothing")
+      Λ = choimatrix(N,gates;noise=noise,cutoff=cutoff,maxdim=maxdim,kwargs...)
+      #error("Cannot build the circuit MPO if noise!=nothing")
     end
   end
     

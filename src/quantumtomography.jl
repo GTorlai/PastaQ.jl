@@ -633,7 +633,7 @@ function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwarg
       F = fidelity(model,target)
       if (typeof(model) == MPO) & (typeof(target) == MPO)
         @printf("Trace distance = %.3E  ",F)
-        if (length(model) <= 12)
+        if (length(model) <= 8)
           disable_warn_order!()
           fid = fullfidelity(model,target)
           reset_warn_order!()
@@ -648,8 +648,8 @@ function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwarg
 
     tot_time += ep_time
   end
-  @printf("Total Time = %.3f sec",tot_time)
-  lognormalize!(model)
+  @printf("Total Time = %.3f sec\n",tot_time)
+  lognormalize!(LPDO(model))
   
   return (isnothing(observer) ? model : (model,observer))  
 end
@@ -767,42 +767,22 @@ function frobenius_distance(ρ0::MPO,σ0::MPO)
   islpdo_σ = any(x -> any(y -> hastags(y, "purifier"), inds(x)), σ0)
  
   if islpdo_ρ & islpdo_σ
-    ρ = copy(ρ0)
-    σ = copy(σ0)
-    # Normalize both LPDO to 1
-    lognormalize!(LPDO(ρ))
-    lognormalize!(LPDO(σ))
-    # Extract density operators MPO
-    ρ′ = getdensityoperator(ρ)
-    σ′ = getdensityoperator(σ)
-    Kρ  = 1.0
-    Kσ  = 1.0
+    ρ′ = getdensityoperator(copy(ρ0))
+    σ′ = getdensityoperator(copy(σ0))
   
   elseif islpdo_ρ & !islpdo_σ
-    # Normalize the LPDO to 1
-    ρ = copy(ρ0)
-    lognormalize!(LPDO(ρ))
-    ρ′ = getdensityoperator(ρ)
+    ρ′ = getdensityoperator(copy(ρ0))
     σ′ = σ0
-    # Get the MPO normalization
-    Kρ  = 1.0
-    Kσ = tr(σ′)
   
   elseif !islpdo_ρ & islpdo_σ
-    # Normalize the LPDO to 1
-    σ = copy(σ0)
-    lognormalize!(LPDO(σ))
-    σ′ = getdensityoperator(σ)
+    σ′ = getdensityoperator(copy(σ0))
     ρ′ = ρ0
-    # Get the MPO normalization
-    Kρ = tr(ρ′)
-    Kσ  = 1.0
   else
     ρ′ = ρ0
     σ′ = σ0
-    Kρ = tr(ρ′)
-    Kσ = tr(σ′)
   end
+  Kρ = tr(ρ′)
+  Kσ = tr(σ′)
   
   distance  = inner(ρ′,ρ′)/Kρ^2
   distance += inner(σ′,σ′)/Kσ^2

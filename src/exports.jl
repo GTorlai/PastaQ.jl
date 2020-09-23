@@ -75,7 +75,7 @@ export
   
 # utils.jl
   # Methods
-  loadtrainingdataQST,
-  loadtrainingdataQPT,
+  savedata,
+  loaddata,
   fullvector,
   fullmatrix

@@ -1,16 +1,40 @@
-function loadtrainingdataQST(input_path::String;ismpo::Bool=false)
-  data_file = h5open(input_path,"r")
-  data = read(data_file,"data")
-  target = (ismpo ? read(data_file,"psi",MPO) : read(data_file,"psi",MPS))
-  return data,target
+function savedata(model::Union{MPS,MPO},
+                  data::Array,output_path::String)
+  h5rewrite(output_path) do fout
+    write(fout,"data",data)
+    write(fout,"model",model)
+  end
 end
 
-function loadtrainingdataQPT(input_path::String;ismpo::Bool=false)
-  data_file = h5open(input_path,"r")
-  data_in = read(data_file,"data_in")
-  data_out = read(data_file,"data_out")
-  target = (ismpo ? read(data_file,"choi",MPO) : read(data_file,"choi",MPS))
-  return data_in,data_out,target
+function savedata(model::Union{MPS,MPO},
+                  data_in::Array,data_out::Array,
+                  output_path::String)
+  h5rewrite(output_path) do fout
+    write(fout,"data_in",data_in)
+    write(fout,"data_out",data_out)
+    write(fout,"model",model)
+  end
+end
+
+
+function loaddata(input_path::String;process::Bool=false)
+  fin = h5open(input_path,"r")
+  
+  g = g_open(fin,"model")
+  typestring = read(attrs(g)["type"])
+  modeltype = eval(Meta.parse(typestring))
+
+  model = read(fin,"model",modeltype)
+  
+  if process
+    data_in = read(fin,"data_in")
+    data_out = read(fin,"data_out")
+    return model,data_in,data_out
+  else
+    data = read(fin,"data")
+    return model,data
+  end
+  close(fout)
 end
 
 function fullvector(M::MPS; reverse::Bool = true)

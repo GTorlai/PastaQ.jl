@@ -741,8 +741,9 @@ end
 
 @testset "trace distance" begin 
 
-  ψ1 = initializetomography(3,2;seed=1111)
-  ψ2 = initializetomography(3,2;seed=2222)
+  N = 4
+  ψ1 = initializetomography(N,2;seed=1111)
+  ψ2 = initializetomography(N,2;seed=2222)
   
   for j in 1:length(ψ1)
     replaceind!(ψ2[j],firstind(ψ2[j],"Site"),firstind(ψ1[j],"Site"))
@@ -764,7 +765,7 @@ end
   @test T ≈ F
 
     
-  ρ = initializetomography(3,2,2;seed=1111)
+  ρ = initializetomography(N,2,2;seed=1111)
   for j in 1:length(ψ1)
     replaceind!(ρ[j],inds(ρ[j],"Site")[1],firstind(ψ1[j],"Site"))
   end
@@ -785,7 +786,7 @@ end
   @test T ≈ F
 
 
-  σ = initializetomography(3,2,2;seed=1111)
+  σ = initializetomography(N,2,2;seed=1111)
   for j in 1:length(ψ2)
     replaceind!(σ[j],inds(σ[j],"Site")[1],firstind(ψ2[j],"Site"))
   end
@@ -805,8 +806,8 @@ end
   F = fidelity(ρ_mpo,σ)
   @test T ≈ F
   
-  ρ = initializetomography(3,2,2;seed=1111)
-  σ = initializetomography(3,2,2;seed=1111)
+  ρ = initializetomography(N,2,2;seed=1111)
+  σ = initializetomography(N,2,2;seed=1111)
   for j in 1:length(ψ2)
     replaceind!(σ[j],inds(σ[j],"Site")[1],firstind(ρ[j],"Site"))
   end

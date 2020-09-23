@@ -150,40 +150,39 @@ MEASUREMENT IN MULTIPLE BASES
 """
 
 
-"""
-    generatedata(M0::Union{MPS,MPO},basis::Array)
+#"""
+#    generatedata(M0::Union{MPS,MPO},basis::Array)
+#
+#Generate a single measurements data-point in an input `basis`. 
+#"""
+#function generatedata(M0::Union{MPS,MPO},basis::Array)
+#  # Generate basis rotation gates
+#  meas_gates = measurementgates(basis)
+#  # Apply basis rotation
+#  M = runcircuit(M0,meas_gates)
+#  # Measure
+#  measurement = generatedata!(M)
+#  return convertdatapoint(measurement,basis)
+#end
 
-Generate a single measurements data-point in an input `basis`. 
-If `Û` is the depth-1 local circuit rotating each qubit, the 
-<<<<<<< HEAD
-data-point `σ = (σ₁,σ₂,…)` id drawn from the probablity distribution:
-- `P(σ) = |⟨σ|Û|ψ⟩|²`   : if `M = ψ` is MPS
-- `P(σ) = <σ|Û ρ Û†|σ⟩` : if `M = ρ` is MPO   
-=======
-data-point `σ = (σ₁,σ₂,…)` is drawn from the probablity distribution:
+"""
+    generatedata(M::Union{MPS,MPO},bases::Array)
+Generate a dataset of `nshots` measurements acccording to a set
+of input `bases`. For a single measurement, tf `Û` is the depth-1 
+local circuit rotating each qubit, the  data-point `σ = (σ₁,σ₂,…)
+is drawn from the probability distribution:
 - P(σ) = |⟨σ|Û|ψ⟩|²   : if M = ψ is MPS
 - P(σ) = <σ|Û ρ Û†|σ⟩ : if M = ρ is MPO   
->>>>>>> master
 """
-function generatedata(M0::Union{MPS,MPO},basis::Array)
-  # Generate basis rotation gates
-  meas_gates = measurementgates(basis)
-  # Apply basis rotation
-  M = runcircuit(M0,meas_gates)
-  # Measure
-  measurement = generatedata!(M)
-  return convertdatapoint(measurement,basis)
-end
-
-"""
-    generatedata(M::Union{MPS,MPO},nshots::Int,bases::Array)
-Generate a dataset of `nshots` measurements acccording to a set
-of input `bases`.
-"""
-function generatedata(M::Union{MPS,MPO},nshots::Int,bases::Array)
-  data = Matrix{String}(undef, nshots,length(M))
-  for n in 1:nshots
-    data[n,:] = generatedata(M,bases[n,:])
+function generatedata(M0::Union{MPS,MPO},bases::Array)
+  @assert length(M0) == size(bases)[2]
+  data = Matrix{String}(undef, size(bases)[1],length(M0))
+  for n in 1:size(bases)[1]
+    meas_gates = measurementgates(bases[n,:])
+    M = runcircuit(M0,meas_gates)
+    measurement = generatedata!(M)
+    data[n,:] = convertdatapoint(measurement,bases[n,:])
+    #data[n,:] = generatedata(M,bases[n,:])
   end
   return data 
 end
@@ -309,7 +308,7 @@ model.
 """
 function generatedata(N::Int64,gates::Vector{<:Tuple},nshots::Int64;
                       noise=nothing,return_state::Bool=false,
-                      choi::Bool=false,process::Bool=false,
+                      choi::Bool=true,process::Bool=false,
                       localbasis::Array=["X","Y","Z"],
                       inputstates::Array=["X+","X-","Y+","Y-","Z+","Z-"],
                       n_distinctbases = nothing,n_distinctstates=nothing,
@@ -321,7 +320,7 @@ function generatedata(N::Int64,gates::Vector{<:Tuple},nshots::Int64;
     # Apply the quantum channel
     M = runcircuit(N,gates;process=false,noise=noise,
                    cutoff=cutoff,maxdim=maxdim,kwargs...)
-    data = generatedata(M,nshots,bases)
+    data = generatedata(M,bases)
     return (return_state ? (M,data) : data)
   else
     # Generate a set of prepared input state to the channel

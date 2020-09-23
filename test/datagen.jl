@@ -348,11 +348,11 @@ end
   
   # 2a) Generate data with a MPS on multiple bases
   bases = randombases(N,nshots;localbasis=["X","Y","Z"])
-  data = generatedata(ψ,nshots,bases)
+  data = generatedata(ψ,bases)
   @test size(data) == (nshots,N)
   # 2b) Generate data with a MPO on multiple bases
   bases = randombases(N,nshots;localbasis=["X","Y","Z"])
-  data = generatedata(ρ,nshots,bases)
+  data = generatedata(ρ,bases)
   @test size(data) == (nshots,N)
 
   # 3) Measure MPS at the output of a circuit
