@@ -1,7 +1,14 @@
 abstract type Optimizer end
 
 """
-SGD
+    Sgd
+
+Stochastic gradient descent with momentum.
+
+# Parameters
+  - `η`: learning rate
+  - `γ`: friction coefficient
+  - `v`: "velocity"
 """
 struct Sgd <: Optimizer 
   η::Float64
@@ -9,6 +16,11 @@ struct Sgd <: Optimizer
   v::Vector{ITensor}
 end
 
+""" 
+    Sgd(M::Union{MPS,MPO};η::Float64=0.01,γ::Float64=0.0)
+
+Initialize Sgd
+"""
 function Sgd(M::Union{MPS,MPO};η::Float64=0.01,γ::Float64=0.0)
   v = ITensor[]
   for j in 1:length(M)
@@ -17,6 +29,14 @@ function Sgd(M::Union{MPS,MPO};η::Float64=0.01,γ::Float64=0.0)
   return Sgd(η,γ,v)
 end
 
+"""
+    update!(M::Union{MPS,MPO},∇::Array,opt::Sgd; kwargs...)
+
+Update parameters with Sgd.
+
+1. `vⱼ = γ * vⱼ - η * ∇ⱼ`: integrated velocity
+2. `θⱼ = θⱼ + vⱼ`: parameter update
+"""
 function update!(M::Union{MPS,MPO},∇::Array,opt::Sgd; kwargs...)
   for j in 1:length(M)
     opt.v[j] = opt.γ * opt.v[j] - opt.η * ∇[j]
@@ -26,15 +46,24 @@ end
 
 
 """
-ADAGRAD
-"""
+    Adagrad
 
+# Parameters
+  - `η`: learning rate
+  - `ϵ`: shift 
+  - `∇²`: square gradients (running sums)
+"""
 struct Adagrad <: Optimizer 
   η::Float64
   ϵ::Float64
   ∇²::Vector{ITensor}
 end
 
+"""
+    Adagrad(M::Union{MPS,MPO};η::Float64=0.01,ϵ::Float64=1E-8)
+
+Initialize Adagrad
+"""
 function Adagrad(M::Union{MPS,MPO};η::Float64=0.01,ϵ::Float64=1E-8)
   ∇² = ITensor[]
   for j in 1:length(M)
@@ -43,6 +72,15 @@ function Adagrad(M::Union{MPS,MPO};η::Float64=0.01,ϵ::Float64=1E-8)
   return Adagrad(η,ϵ,∇²)
 end
 
+"""
+    update!(M::Union{MPS,MPO},∇::Array,opt::Adagrad)
+
+Update parameters with Adagrad.
+
+1. `gⱼ += ∇ⱼ²`: running some of square gradients
+2. `Δθⱼ = η * ∇ⱼ / (sqrt(gⱼ+ϵ)` 
+2. `θⱼ = θⱼ - Δθⱼ`: parameter update
+"""
 function update!(M::Union{MPS,MPO},∇::Array,opt::Adagrad)
   for j in 1:length(M)
     opt.∇²[j] += ∇[j] .^ 2 
@@ -56,9 +94,14 @@ end
 
 
 """
-ADADELTA
-"""
+    Adadelta
 
+# Parameters
+  - `γ`: friction coefficient
+  - `ϵ`: shift 
+  - `∇²`: square gradients (decaying average)
+  - `Δθ²`: square updates (decaying average)
+"""
 struct Adadelta <: Optimizer 
   γ::Float64
   ϵ::Float64
@@ -66,6 +109,11 @@ struct Adadelta <: Optimizer
   Δθ²::Vector{ITensor}
 end
 
+"""
+    Adadelta(M::Union{MPS,MPO};γ::Float64=0.9,ϵ::Float64=1E-8)
+
+Initialize Adadelta
+"""
 function Adadelta(M::Union{MPS,MPO};γ::Float64=0.9,ϵ::Float64=1E-8)
   Δθ² = ITensor[]
   ∇² = ITensor[]
@@ -76,6 +124,17 @@ function Adadelta(M::Union{MPS,MPO};γ::Float64=0.9,ϵ::Float64=1E-8)
   return Adadelta(γ,ϵ,∇²,Δθ²)
 end
 
+"""
+    update!(M::Union{MPS,MPO},∇::Array,opt::Adadelta; kwargs...)
+
+Update parameters with Adadelta
+
+
+1. `gⱼ = γ * gⱼ + (1-γ) * ∇ⱼ²`: decaying average
+2. `Δθⱼ = ∇ⱼ * sqrt(pⱼ) / sqrt(gⱼ+ϵ) ` 
+3. `θⱼ = θⱼ - Δθⱼ`: parameter update
+4. `pⱼ = γ * pⱼ + (1-γ) * Δθⱼ²`: decaying average
+"""
 function update!(M::Union{MPS,MPO},∇::Array,opt::Adadelta; kwargs...)
   for j in 1:length(M)
     # Update square gradients
@@ -105,7 +164,15 @@ end
 
 
 """
-ADAM
+    Adam
+
+# Parameters
+  - `η`: learning rate
+  - `β₁`: decay rate 1 
+  - `β₂`: decay rate 2
+  - `ϵ`: shift 
+  - `∇`: gradients (decaying average)
+  - `∇²`: square gradients (decaying average)
 """
 
 struct Adam <: Optimizer 
@@ -117,7 +184,14 @@ struct Adam <: Optimizer
   ∇²::Vector{ITensor}   # v in the paper
 end
 
-function Adam(M::Union{MPS,MPO};η::Float64=0.001,β₁::Float64=0.9,β₂::Float64=0.999,ϵ::Float64=1E-7)
+"""
+    Adam(M::Union{MPS,MPO};η::Float64=0.001,
+         β₁::Float64=0.9,β₂::Float64=0.999,ϵ::Float64=1E-7)
+
+Initialize Adam
+"""
+function Adam(M::Union{MPS,MPO};η::Float64=0.001,
+              β₁::Float64=0.9,β₂::Float64=0.999,ϵ::Float64=1E-7)
   ∇ = ITensor[]
   ∇² = ITensor[]
   for j in 1:length(M)
@@ -127,6 +201,11 @@ function Adam(M::Union{MPS,MPO};η::Float64=0.001,β₁::Float64=0.9,β₂::Floa
   return Adam(η,β₁,β₂,ϵ,∇,∇²)
 end
 
+"""
+    update!(M::Union{MPS,MPO},∇::Array,opt::Adam; kwargs...)
+
+Update parameters with Adam
+"""
 function update!(M::Union{MPS,MPO},∇::Array,opt::Adam; kwargs...)
   t = kwargs[:step]
   for j in 1:length(M)
@@ -147,39 +226,35 @@ function update!(M::Union{MPS,MPO},∇::Array,opt::Adam; kwargs...)
   end
 end
 
-
-"""
-ADAMAX
-"""
-
-struct Adamax <: Optimizer 
-  η::Float64
-  β₁::Float64
-  β₂::Float64
-  ∇::Vector{ITensor}    # m in the paper
-  u::Vector{ITensor}   # v in the paper
-end
-
-function Adamax(M::Union{MPS,MPO};η::Float64=0.001,β₁::Float64=0.9,β₂::Float64=0.999)
-  ∇ = ITensor[]
-  u = ITensor[]
-  for j in 1:length(M)
-    push!(∇,ITensor(zeros(size(M[j])),inds(M[j])))
-    push!(u,ITensor(zeros(size(M[j])),inds(M[j])))
-  end
-  return Adamax(η,β₁,β₂,∇,u)
-end
-
-function update!(M::Union{MPS,MPO},∇::Array,opt::Adamax; kwargs...)
-  t = kwargs[:step]
-  for j in 1:length(M)
-    # Update square gradients
-    opt.∇[j]  = opt.β₁ * opt.∇[j]  + (1-opt.β₁) * ∇[j]
-    opt.u[j]  = max.(opt.β₂ * opt.u[j], abs.(opt.∇[j])) 
-    δ = opt.u[j] .^-1
-    Δθ = opt.∇[j] ⊙ δ
-    # Update parameters
-    M[j] = M[j] - (opt.η/(1-opt.β₁^t)) * Δθ
-  end
-end
+#
+#struct Adamax <: Optimizer 
+#  η::Float64
+#  β₁::Float64
+#  β₂::Float64
+#  ∇::Vector{ITensor}    # m in the paper
+#  u::Vector{ITensor}   # v in the paper
+#end
+#
+#function Adamax(M::Union{MPS,MPO};η::Float64=0.001,β₁::Float64=0.9,β₂::Float64=0.999)
+#  ∇ = ITensor[]
+#  u = ITensor[]
+#  for j in 1:length(M)
+#    push!(∇,ITensor(zeros(size(M[j])),inds(M[j])))
+#    push!(u,ITensor(zeros(size(M[j])),inds(M[j])))
+#  end
+#  return Adamax(η,β₁,β₂,∇,u)
+#end
+#
+#function update!(M::Union{MPS,MPO},∇::Array,opt::Adamax; kwargs...)
+#  t = kwargs[:step]
+#  for j in 1:length(M)
+#    # Update square gradients
+#    opt.∇[j]  = opt.β₁ * opt.∇[j]  + (1-opt.β₁) * ∇[j]
+#    opt.u[j]  = max.(opt.β₂ * opt.u[j], abs.(opt.∇[j])) 
+#    δ = opt.u[j] .^-1
+#    Δθ = opt.∇[j] ⊙ δ
+#    # Update parameters
+#    M[j] = M[j] - (opt.η/(1-opt.β₁^t)) * Δθ
+#  end
+#end
 

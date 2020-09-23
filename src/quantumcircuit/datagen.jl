@@ -149,22 +149,6 @@ end
 MEASUREMENT IN MULTIPLE BASES
 """
 
-
-#"""
-#    generatedata(M0::Union{MPS,MPO},basis::Array)
-#
-#Generate a single measurements data-point in an input `basis`. 
-#"""
-#function generatedata(M0::Union{MPS,MPO},basis::Array)
-#  # Generate basis rotation gates
-#  meas_gates = measurementgates(basis)
-#  # Apply basis rotation
-#  M = runcircuit(M0,meas_gates)
-#  # Measure
-#  measurement = generatedata!(M)
-#  return convertdatapoint(measurement,basis)
-#end
-
 """
     generatedata(M::Union{MPS,MPO},bases::Array)
 Generate a dataset of `nshots` measurements acccording to a set
@@ -182,7 +166,6 @@ function generatedata(M0::Union{MPS,MPO},bases::Array)
     M = runcircuit(M0,meas_gates)
     measurement = generatedata!(M)
     data[n,:] = convertdatapoint(measurement,bases[n,:])
-    #data[n,:] = generatedata(M,bases[n,:])
   end
   return data 
 end

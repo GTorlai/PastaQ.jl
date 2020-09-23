@@ -194,7 +194,6 @@ local normalization.
 If `choi=true`, `ψ` correspodns to a Choi matrix `Λ=|ψ⟩⟨ψ|`.
 The probability is then obtaining by transposing the input state, which 
 is equivalent to take the conjugate of the eigenstate projector.
-
 """
 function gradnll(ψ::MPS, data::Array; localnorm=nothing, choi::Bool=false)
   N = length(ψ)
@@ -339,7 +338,6 @@ local normalization.
 
 If `choi=true`, the probability is then obtaining by transposing the 
 input state, which is equivalent to take the conjugate of the eigenstate projector.
-
 """
 function gradnll(lpdo::MPO,data::Array;localnorm=nothing,choi::Bool=false)
   N = length(lpdo)

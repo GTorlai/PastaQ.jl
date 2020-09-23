@@ -23,7 +23,6 @@ Reset qubits to the initial state:
 function resetqubits!(M::Union{MPS,MPO})
   indices = [firstind(M[j],tags="Site",plev=0) for j in 1:length(M)]
   M_new = qubits(indices, mixed = !(M isa MPS))
-  #M_new = (M isa MPS ? qubits(indices) : densitymatrix(indices))
   M[:] = M_new
   return M
 end
@@ -72,15 +71,17 @@ function compilecircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple};
 end
 
 """
-Apply the circuit to a ITensor from a list of tensors 
+  runcircuit(M::ITensor,gate_tensors::Vector{ <: ITensor};kwargs...)
+
+Apply the circuit to a ITensor from a list of tensors.
 """
-runcircuit(M::ITensor,
-           gate_tensors::Vector{ <: ITensor};
-           kwargs...) =
+runcircuit(M::ITensor,gate_tensors::Vector{ <: ITensor};kwargs...) =
   apply(gate_tensors, M; kwargs...)
 
 """
-Apply the circuit to a ITensor from a list of gates 
+    runcircuit(M::ITensor,gates::Vector{<:Tuple}; cutoff=1e-15,maxdim=10000,kwargs...)
+
+Apply the circuit to a ITensor from a list of gates.
 """
 function runcircuit(M::ITensor,gates::Vector{<:Tuple}; cutoff=1e-15,maxdim=10000,kwargs...)
   gate_tensors = compilecircuit(M,gates)
@@ -88,7 +89,9 @@ function runcircuit(M::ITensor,gates::Vector{<:Tuple}; cutoff=1e-15,maxdim=10000
 end
 
 """
-Apply the circuit to a state (wavefunction/densitymatrix) from a list of tensors
+    runcircuit(M::Union{MPS,MPO},gate_tensors::Vector{<:ITensor}; kwargs...)
+
+Apply the circuit to a state (wavefunction/densitymatrix) from a list of tensors.
 """
 function runcircuit(M::Union{MPS,MPO},gate_tensors::Vector{<:ITensor}; kwargs...) 
   # Check if gate_tensors contains Kraus operators
@@ -135,7 +138,6 @@ function runcircuit(M::Union{MPS,MPO},gate_tensors::Vector{<:ITensor}; kwargs...
   end
   return Mc
 end
-
 
 
 """
@@ -218,8 +220,6 @@ with `2N` sites, for a process with `N` physical qubits.
 
 If `noise = nothing` and `apply_dag = true`, the Choi matrix `Λ` is returned as an MPO with 
 `2N` sites. In this case, the MPO `Λ` is equal to `|U⟩⟨U|`.
-
-#TODO: Explain site ordering and normalization
 """
 function choimatrix(N::Int,gates::Vector{<:Tuple};noise=nothing,apply_dag=false,
                     cutoff=1e-15,maxdim=10000,kwargs...)
@@ -274,7 +274,6 @@ end
 
 Map a Choi matrix from `N` sites to `2N` sites, arranged as
 (input1,output1,input2,output2,…)
-
 """
 function splitchoi(Λ::MPO;noise=nothing,cutoff=1e-15,maxdim=1000)
   T = ITensor[]

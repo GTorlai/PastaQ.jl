@@ -46,3 +46,4 @@ opt = Sgd(ψ0;η = 0.005,γ=0.0)
                           epochs=20,
                           target=Ψ,
                           localnorm=true)
+@show ψ
