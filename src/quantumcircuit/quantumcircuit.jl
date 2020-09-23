@@ -197,8 +197,7 @@ function runcircuit(N::Int,gates::Vector{<:Tuple}; process=false,noise=nothing,
       U = circuit(N) # = 1⊗1⊗1⊗…⊗1
       return runcircuit(U,gates;noise=nothing,apply_dag=false,cutoff=cutoff,maxdim=maxdim,kwargs...) 
     else
-      Λ = choimatrix(N,gates;noise=noise,cutoff=cutoff,maxdim=maxdim,kwargs...)
-      #error("Cannot build the circuit MPO if noise!=nothing")
+      return choimatrix(N,gates;noise=noise,cutoff=cutoff,maxdim=maxdim,kwargs...)
     end
   end
     
