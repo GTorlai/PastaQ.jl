@@ -535,14 +535,16 @@ end
 
 
 """
-    gradients(M::Union{MPS,MPO},data::Array;localnorm=nothing,choi::Bool=false)
+    gradients(M::Union{MPS,LPDO}, data::Array; localnorm = nothing, choi::Bool = false)
 
 Compute the gradients of the cost function:
 `C = log(Z) - ⟨log P(σ)⟩_data`
 
 If `choi=true`, add the Choi normalization `trace(Λ)=d^N` to the cost function.
 """
-function gradients(M::Union{MPS,MPO},data::Array;localnorm=nothing,choi::Bool=false)
+function gradients(L::LPDO, data::Array;
+                   localnorm = nothing, choi::Bool = false)
+  M = L.X
   g_logZ,logZ = gradlogZ(M,localnorm=localnorm)
   g_nll, nll  = gradnll(M,data,localnorm=localnorm,choi=choi)
   grads = g_logZ + g_nll
@@ -551,9 +553,11 @@ function gradients(M::Union{MPS,MPO},data::Array;localnorm=nothing,choi::Bool=fa
   return grads,loss
 end
 
+gradients(ψ::MPS, args...; kwargs...) =
+  gradients(LPDO(ψ), args...; kwargs...)
 
 """
-    statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwargs...)
+    statetomography(model::Union{MPS,LPDO}, data::Array, opt::Optimizer; kwargs...)
 
 Run quantum state tomography using a the starting state `model` on `data`.
 
@@ -567,11 +571,11 @@ Run quantum state tomography using a the starting state `model` on `data`.
   - `observer`: keep track of measurements and fidelities.
   - `outputpath`: write observer on file 
 """
-function statetomography(model::Union{MPS,MPO},
+function statetomography(L::LPDO,
                          data::Array,
                          opt::Optimizer;
                          kwargs...)
-                         
+  model = L.X
   # Read arguments
   localnorm::Bool = get(kwargs,:localnorm,true)
   globalnorm::Bool = get(kwargs,:globalnorm,false)
@@ -680,19 +684,22 @@ function statetomography(model::Union{MPS,MPO},
   return (isnothing(observer) ? model : (model,observer))  
 end
 
+statetomography(ψ::MPS, args...; kwargs...) =
+  statetomography(LPDO(ψ), args...; kwargs...)
 
 """
-    processtomography(M::Union{MPS,MPO},data_in::Array,data_out::Array,opt::Optimizer; kwargs...)
+    processtomography(M::Union{MPS,LPDO},data_in::Array,data_out::Array,opt::Optimizer; kwargs...)
 
 Run quantum process tomography on `(data_in,data_out)` using `model` as variational ansatz.
 
 The data is reshuffled so it takes the format: `(input1,output1,input2,output2,…)`.
 """
-function processtomography(M::Union{MPS,MPO},
+function processtomography(L::LPDO,
                            data_in::Array,
                            data_out::Array,
                            opt::Optimizer;
                            kwargs...)
+  M = L.X
   N = size(data_in)[2]
   @assert size(data_in) == size(data_out)
   
@@ -706,6 +713,9 @@ function processtomography(M::Union{MPS,MPO},
   end
   return statetomography(M,data,opt; choi=true,kwargs...)
 end
+
+processtomography(ψ::MPS, args...; kwargs...) =
+  processtomography(LPDO(ψ), args...; kwargs...)
 
 """
     MPO(L::LPDO)
