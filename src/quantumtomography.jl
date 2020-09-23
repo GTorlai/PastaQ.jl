@@ -1,85 +1,113 @@
 """
-    function initializetomography(N::Int64,χ::Int64;
-                                  seed::Int64=1234,
-                                  σ::Float64=0.1)
+    initializetomography(sites::Vector{<:Index}; kwargs...)
+
+Initialize quantum tomography for a set of indices. 
+By default, inintializes MPS, unless `ξ` is non-trivial, 
+in which case it initializes a LPDO.
+"""
+function initializetomography(sites::Vector{<:Index}; kwargs...)
+  χ = get(kwargs,:χ,2)
+  ξ = get(kwargs,:ξ,nothing)
+  σ = get(kwargs,:σ,0.1)
+  return (isnothing(ξ) ? initializetomography(sites,χ;σ=σ) :
+                         initializetomography(sites,χ,ξ;σ=σ))
+end
+
+"""
+    initializetomography(N::Int64;kwargs...)
+
+Initialize quantum tomography given a number of qubits
+"""
+function initializetomography(N::Int64;kwargs...)
+  d = 2 # Dimension of the local Hilbert space
+  sites = [Index(d; tags="Site, n=$s") for s in 1:N]
+  return initializetomography(sites; kwargs...)
+end
+
+"""
+    initializetomography(M::Union{MPS,MPO}; kwargs...)
+
+
+Initialize quantum tomography, given a reference state,
+either in MPS or MPO (LPDO) form
+"""
+function initializetomography(M::Union{MPS,MPO}; kwargs...)
+  sites = (M isa MPS ? siteinds(M) : firstsiteinds(M))
+  return initializetomography(sites; kwargs...)
+end
+
+"""
+    function initializetomography(N::Int64,χ::Int64;σ::Float64=0.1)
+
 Initialize a variational MPS for quantum tomography.
 
 # Arguments:
   - `N`: number of qubits
   - `χ`: bond dimension of the MPS
-  - `seed`: seed of random number generator
   - `σ`: width of initial box distribution
 """
-function initializetomography(N::Int64,χ::Int64;
-                              seed::Int64=1234,
-                              σ::Float64=0.1)
-  rng = MersenneTwister(seed)
-  d = 2
 
-  sites = [Index(d; tags="Site, n=$s") for s in 1:N]
+function initializetomography(sites::Vector{<:Index},χ::Int64;σ::Float64=0.1)
+  d = 2 # Dimension of the local Hilbert space
+  N = length(sites)
+  
   links = [Index(χ; tags="Link, l=$l") for l in 1:N-1]
 
   M = ITensor[]
   # Site 1 
-  rand_mat = σ * (ones(d,χ) - 2*rand(rng,d,χ))
-  rand_mat += im * σ * (ones(d,χ) - 2*rand(rng,d,χ))
+  rand_mat = σ * (ones(d,χ) - 2*rand(d,χ))
+  rand_mat += im * σ * (ones(d,χ) - 2*rand(d,χ))
   push!(M,ITensor(rand_mat,sites[1],links[1]))
   for j in 2:N-1
-    rand_mat = σ * (ones(χ,d,χ) - 2*rand(rng,χ,d,χ))
-    rand_mat += im * σ * (ones(χ,d,χ) - 2*rand(rng,χ,d,χ))
+    rand_mat = σ * (ones(χ,d,χ) - 2*rand(χ,d,χ))
+    rand_mat += im * σ * (ones(χ,d,χ) - 2*rand(χ,d,χ))
     push!(M,ITensor(rand_mat,links[j-1],sites[j],links[j]))
   end
   # Site N
-  rand_mat = σ * (ones(χ,d) - 2*rand(rng,χ,d))
-  rand_mat += im * σ * (ones(χ,d) - 2*rand(rng,χ,d))
+  rand_mat = σ * (ones(χ,d) - 2*rand(χ,d))
+  rand_mat += im * σ * (ones(χ,d) - 2*rand(χ,d))
   push!(M,ITensor(rand_mat,links[N-1],sites[N]))
   
   return MPS(M)
 end
 
-
 """
-    function initializetomography(N::Int64,χ::Int64,ξ::Int64;
-                                  seed::Int64=1234,
-                                  σ::Float64=0.1)
+    function initializetomography(N::Int64,χ::Int64,ξ::Int64;σ::Float64=0.1)
+
 Initialize a variational LPDO for quantum tomography.
 
 # Arguments:
   - `N`: number of qubits
   - `χ`: bond dimension of the LPDO
   - `ξ`: local purification dimension of the LPDO
-  - `seed`: seed of random number generator
   - `σ`: width of initial box distribution
 """
-function initializetomography(N::Int64,χ::Int64,ξ::Int64;
-                              seed::Int64=1234,
-                              σ::Float64=0.1)
-  rng = MersenneTwister(seed)
-  d = 2
+function initializetomography(sites::Vector{<:Index},χ::Int64,ξ::Int64;σ::Float64=0.1)
+  d = 2 # Dimension of the local Hilbert space
+  N = length(sites)
 
-  sites = [Index(d; tags="Site,n=$s") for s in 1:N]
+  #sites = [Index(d; tags="Site,n=$s") for s in 1:N]
   links = [Index(χ; tags="Link,l=$l") for l in 1:N-1]
   kraus = [Index(ξ; tags="purifier,k=$s") for s in 1:N]
-
+  
   M = ITensor[]
   # Site 1 
-  rand_mat = σ * (ones(d,χ,ξ) - 2*rand!(rng,zeros(d,χ,ξ)))
-  rand_mat += im * σ * (ones(d,χ,ξ) - 2*rand!(rng,zeros(d,χ,ξ)))
+  rand_mat = σ * (ones(d,χ,ξ) - 2*rand(d,χ,ξ))
+  rand_mat += im * σ * (ones(d,χ,ξ) - 2*rand(d,χ,ξ))
   push!(M,ITensor(rand_mat,sites[1],links[1],kraus[1]))
   # Site 2..N-1
   for j in 2:N-1
-    rand_mat = σ * (ones(d,χ,ξ,χ) - 2*rand!(rng,zeros(d,χ,ξ,χ)))
-    rand_mat += im * σ * (ones(d,χ,ξ,χ) - 2*rand!(rng,zeros(d,χ,ξ,χ)))
+    rand_mat = σ * (ones(d,χ,ξ,χ) - 2*rand(d,χ,ξ,χ))
+    rand_mat += im * σ * (ones(d,χ,ξ,χ) - 2*rand(d,χ,ξ,χ))
     push!(M,ITensor(rand_mat,sites[j],links[j-1],kraus[j],links[j]))
   end
   # Site N
-  rand_mat = σ * (ones(d,χ,ξ) - 2*rand!(rng,zeros(d,χ,ξ)))
-  rand_mat += im * σ * (ones(d,χ,ξ) - 2*rand!(rng,zeros(d,χ,ξ)))
+  rand_mat = σ * (ones(d,χ,ξ) - 2*rand(d,χ,ξ))
+  rand_mat += im * σ * (ones(d,χ,ξ) - 2*rand(d,χ,ξ))
   push!(M,ITensor(rand_mat,sites[N],links[N-1],kraus[N]))
   
   return MPO(M)
 end
-
 
 """
     lognormalize!(L::LPDO)

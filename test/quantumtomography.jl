@@ -168,7 +168,7 @@ end
 @testset "mps-qst: lognormalization" begin
   N = 10
   χ = 4
-  ψ = initializetomography(N,χ)
+  ψ = initializetomography(N;χ=χ)
   @test length(ψ) == N
   logZ1 = 2.0*lognorm(ψ)
   logZ2,_ = lognormalize!(ψ)
@@ -181,7 +181,7 @@ end
   χ = 4
   
   # 1. Unnormalized
-  ψ = initializetomography(N,χ)
+  ψ = initializetomography(N;χ=χ)
   alg_grad,_ = gradlogZ(ψ)
   num_grad = numgradslogZ(ψ)
   for j in 1:N
@@ -189,7 +189,7 @@ end
   end
   
   # 2. Globally normalized
-  ψ = initializetomography(N,χ)
+  ψ = initializetomography(N;χ=χ)
   lognormalize!(ψ)
   @test norm(ψ)^2 ≈ 1
   alg_grad,_ = gradlogZ(ψ)
@@ -199,7 +199,7 @@ end
   end
 
   # 3. Locally normalized
-  ψ = initializetomography(N,χ)
+  ψ = initializetomography(N;χ=χ)
   num_grad = numgradslogZ(ψ)
 
   logZ,localnorms = lognormalize!(ψ)
@@ -223,7 +223,7 @@ end
   end
   
   # 1. Unnormalized
-  ψ = initializetomography(N,χ)
+  ψ = initializetomography(N;χ=χ)
   num_grad = numgradsnll(ψ,data)
   alg_grad,loss = gradnll(ψ,data)
   for j in 1:N
@@ -231,7 +231,7 @@ end
   end
   
   # 2. Globally normalized
-  ψ = initializetomography(N,χ)
+  ψ = initializetomography(N;χ=χ)
   lognormalize!(ψ)
   num_grad = numgradsnll(ψ,data)
   alg_grad,loss = gradnll(ψ,data)
@@ -240,7 +240,7 @@ end
   end
   
   # 3. Locally normalized
-  ψ = initializetomography(N,χ)
+  ψ = initializetomography(N;χ=χ)
   num_grad = numgradsnll(ψ,data)
   logZ,localnorms = lognormalize!(ψ)
   @test norm(ψ)^2 ≈ 1
@@ -263,7 +263,7 @@ end
   end
   
   # 1. Unnormalized
-  ψ = initializetomography(N,χ)
+  ψ = initializetomography(N;χ=χ)
   logZ = 2.0*log(norm(ψ))
   NLL  = nll(ψ,data)
   ex_loss = logZ + NLL
@@ -278,7 +278,7 @@ end
   end
 
   # 2. Globally normalized
-  ψ = initializetomography(N,χ)
+  ψ = initializetomography(N;χ=χ)
   lognormalize!(ψ)
   num_gradZ = numgradslogZ(ψ)
   num_gradNLL = numgradsnll(ψ,data)
@@ -294,7 +294,7 @@ end
   end
   
   # 3. Locally normalized
-  ψ = initializetomography(N,χ)
+  ψ = initializetomography(N;χ=χ)
   num_gradZ = numgradslogZ(ψ)
   num_gradNLL = numgradsnll(ψ,data)
   num_grads = num_gradZ + num_gradNLL
@@ -332,7 +332,7 @@ end
   χ = 4
   
   # 1. Unnormalized
-  ψ = initializetomography(N,χ)
+  ψ = initializetomography(N;χ=χ)
   num_grad = numgradslogZ(ψ)
   alg_grad,logZ = gradlogZ(ψ)
   
@@ -341,7 +341,7 @@ end
   end
 
   # 2. Globally normalized
-  ψ = initializetomography(N,χ)
+  ψ = initializetomography(N;χ=χ)
   logZ,_ = lognormalize!(ψ)
   #@test norm(ψ)^2 ≈ 2^(0.5*N)
   alg_grad,_ = gradlogZ(ψ)
@@ -351,7 +351,7 @@ end
   end
   
   # 3. Locally normalized
-  ψ = initializetomography(N,χ)
+  ψ = initializetomography(N;χ=χ)
   num_grad = numgradslogZ(ψ)
 
   logZ,localnorms = lognormalize!(ψ)
@@ -376,7 +376,7 @@ end
   end
   
   # 1. Unnnomalized
-  ψ = initializetomography(N,χ)
+  ψ = initializetomography(N;χ=χ)
   num_grad = numgradsnll(ψ,data,choi=true)
   alg_grad,loss = gradnll(ψ,data,choi=true)
   for j in 1:N
@@ -384,7 +384,7 @@ end
   end
   
   # 2. Globally normalized
-  ψ = initializetomography(N,χ)
+  ψ = initializetomography(N;χ=χ)
   lognormalize!(ψ)
   num_grad = numgradsnll(ψ,data,choi=true)
   #@test norm(ψ)^2 ≈ 2^(Nphysical)
@@ -394,7 +394,7 @@ end
   end
   
   # 3. Locally normalized
-  ψ = initializetomography(N,χ)
+  ψ = initializetomography(N;χ=χ)
   num_grad = numgradsnll(ψ,data,choi=true)
   logZ,localnorms = lognormalize!(ψ)
   #@test norm(ψ)^2 ≈ 2^(Nphysical)
@@ -419,7 +419,7 @@ end
   end
   
   # 1. Unnormalized
-  ψ = initializetomography(N,χ)
+  ψ = initializetomography(N;χ=χ)
   logZ = 2.0*log(norm(ψ))
   NLL  = nll(ψ,data;choi=true)
   ex_loss = logZ + NLL - 0.5*N*log(2)
@@ -434,7 +434,7 @@ end
   end
 
   # 2. Globally normalized
-  ψ = initializetomography(N,χ)
+  ψ = initializetomography(N;χ=χ)
   lognormalize!(ψ)
   num_gradZ = numgradslogZ(ψ)
   num_gradNLL = numgradsnll(ψ,data;choi=true)
@@ -450,7 +450,7 @@ end
   end
   
   # 3. Locally normalized
-  ψ = initializetomography(N,χ)
+  ψ = initializetomography(N;χ=χ)
   num_gradZ = numgradslogZ(ψ)
   num_gradNLL = numgradsnll(ψ,data;choi=true)
   num_grads = num_gradZ + num_gradNLL
@@ -473,12 +473,12 @@ end
   N = 10
   χ = 4
   ξ = 2
-  ρ = initializetomography(N,χ,ξ)
+  ρ = initializetomography(N;χ=χ,ξ=ξ)
   @test length(ρ) == N
   logZ1 = 2.0*lognorm(ρ)
   logZ2,_ = lognormalize!(LPDO(ρ))
   @test logZ1 ≈ logZ2
-  ρ = initializetomography(N,χ,ξ)
+  ρ = initializetomography(N;χ=χ,ξ=ξ)
   lognormalize!(LPDO(ρ))
   @test norm(ρ) ≈ 1
 end
@@ -487,7 +487,7 @@ end
   N = 5
   χ = 4
   ξ = 3
-  ρ = initializetomography(N,χ,ξ)
+  ρ = initializetomography(N;χ=χ,ξ=ξ)
   @test length(ρ) == N
   lognormalize!(LPDO(ρ))
   rho = getdensityoperator(ρ)
@@ -503,7 +503,7 @@ end
   ξ = 3
   
   # 1. Unnormalized
-  ρ = initializetomography(N,χ,ξ)
+  ρ = initializetomography(N;χ=χ,ξ=ξ)
   alg_grad,_ = gradlogZ(ρ)
   num_grad = numgradslogZ(ρ)
   alg_gradient = permutedims(array(alg_grad[1]),[1,3,2])
@@ -516,7 +516,7 @@ end
   @test alg_gradient ≈ num_grad[N] rtol=1e-3
   
   # 2. Globally normalizeid
-  ρ = initializetomography(N,χ,ξ)
+  ρ = initializetomography(N;χ=χ,ξ=ξ)
   lognormalize!(LPDO(ρ))
   @test norm(ρ) ≈ 1
   alg_grad,_ = gradlogZ(ρ)
@@ -532,7 +532,7 @@ end
   @test alg_gradient ≈ num_grad[N] rtol=1e-3
 
   # 3. Locally normalized
-  ρ = initializetomography(N,χ,ξ)
+  ρ = initializetomography(N;χ=χ,ξ=ξ)
   num_grad = numgradslogZ(ρ)
 
   logZ,localnorms = lognormalize!(LPDO(ρ))
@@ -565,7 +565,7 @@ end
   end
   
   # 1. Unnormalized
-  ρ = initializetomography(N,χ,ξ)
+  ρ = initializetomography(N;χ=χ,ξ=ξ)
 
   num_grad = numgradsnll(ρ,data)
   alg_grad,loss = gradnll(ρ,data)
@@ -581,7 +581,7 @@ end
   @test alg_gradient ≈ num_grad[N] rtol=1e-3
   
   # 2. Globally normalized
-  ρ = initializetomography(N,χ,ξ)
+  ρ = initializetomography(N;χ=χ,ξ=ξ)
   lognormalize!(LPDO(ρ))
   @test norm(ρ) ≈ 1
   num_grad = numgradsnll(ρ,data)
@@ -598,7 +598,7 @@ end
   @test alg_gradient ≈ num_grad[N] rtol=1e-3
 
   # 3. Locally normalized
-  ρ = initializetomography(N,χ,ξ)
+  ρ = initializetomography(N;χ=χ,ξ=ξ)
   num_grad = numgradsnll(ρ,data)
   logZ,localnorms = lognormalize!(LPDO(ρ))
   @test norm(ρ) ≈ 1
@@ -636,7 +636,7 @@ PROCESS TOMOGRAPHY WITH LPDO
   end
   
   # 1. Unnormalized
-  Λ = initializetomography(N,χ,ξ)
+  Λ = initializetomography(N;χ=χ,ξ=ξ)
 
   num_grad = numgradsnll(Λ,data,choi=true)
   alg_grad,loss = gradnll(Λ,data,choi=true)
@@ -652,7 +652,7 @@ PROCESS TOMOGRAPHY WITH LPDO
   @test alg_gradient ≈ num_grad[N] rtol=1e-3
   
   # 2. Globally normalized
-  Λ = initializetomography(N,χ,ξ) 
+  Λ = initializetomography(N;χ=χ,ξ=ξ) 
   lognormalize!(LPDO(Λ))
   num_grad = numgradsnll(Λ,data,choi=true)
   ex_loss = nll(Λ,data,choi=true) 
@@ -668,7 +668,7 @@ PROCESS TOMOGRAPHY WITH LPDO
   @test alg_gradient ≈ num_grad[N] rtol=1e-3
 
   # 3. Locally normalized
-  Λ = initializetomography(N,χ,ξ)
+  Λ = initializetomography(N;χ=χ,ξ=ξ)
   num_grad = numgradsnll(Λ,data,choi=true)
   logZ,localnorms = lognormalize!(LPDO(Λ))
   ex_loss = nll(Λ,data,choi=true) 
@@ -690,7 +690,8 @@ end
   
   N = 3
   χ = 4
-  ψ1 = initializetomography(N,χ;seed=1111)
+  Random.seed!(1111)
+  ψ1 = initializetomography(N;χ=χ)
   ψ2 = copy(ψ1)
   ψ2[1] = ITensor(ones(2,4),inds(ψ2[1])[1],inds(ψ2[1])[2])
   
@@ -715,14 +716,15 @@ end
   """ F = <PSI|RHO|PSI> """
   N = 3
   χ = 2
-  ψ = initializetomography(N,χ)
+  ψ = initializetomography(N;χ=χ)
   ψ_vec = fullvector(ψ)   
   
   K = sum(ψ_vec .* conj(ψ_vec))
   ψ_vec ./= sqrt(K)
   
   ξ = 2
-  ρ = initializetomography(N,χ,ξ)
+  #ρ = initializetomography(N;χ=χ,ξ=ξ)
+  ρ = initializetomography(ψ;χ=χ,ξ=ξ)
   for j in 1:length(ρ)
     replaceind!(ψ[j],firstind(ψ[j],"Site"),firstind(ρ[j],"Site"))
   end
@@ -742,12 +744,14 @@ end
 @testset "trace distance" begin 
 
   N = 4
-  ψ1 = initializetomography(N,2;seed=1111)
-  ψ2 = initializetomography(N,2;seed=2222)
+  Random.seed!(1111)
+  ψ1 = initializetomography(N;χ=2)
+  Random.seed!(2222)
+  ψ2 = initializetomography(ψ1;χ=2)
   
-  for j in 1:length(ψ1)
-    replaceind!(ψ2[j],firstind(ψ2[j],"Site"),firstind(ψ1[j],"Site"))
-  end
+  #for j in 1:length(ψ1)
+  #  replaceind!(ψ2[j],firstind(ψ2[j],"Site"),firstind(ψ1[j],"Site"))
+  #end
   
   ρ_mpo = MPO(ψ1)
   σ_mpo = MPO(ψ2)
@@ -765,10 +769,11 @@ end
   @test T ≈ F
 
     
-  ρ = initializetomography(N,2,2;seed=1111)
-  for j in 1:length(ψ1)
-    replaceind!(ρ[j],inds(ρ[j],"Site")[1],firstind(ψ1[j],"Site"))
-  end
+  Random.seed!(1111)
+  ρ = initializetomography(ψ1;χ=2,ξ=2)
+  #for j in 1:length(ψ1)
+  #  replaceind!(ρ[j],inds(ρ[j],"Site")[1],firstind(ψ1[j],"Site"))
+  #end
   
   ρ_mpo = getdensityoperator(ρ)
   σ_mpo = MPO(ψ2)
@@ -786,10 +791,11 @@ end
   @test T ≈ F
 
 
-  σ = initializetomography(N,2,2;seed=1111)
-  for j in 1:length(ψ2)
-    replaceind!(σ[j],inds(σ[j],"Site")[1],firstind(ψ2[j],"Site"))
-  end
+  Random.seed!(1111)
+  σ = initializetomography(ψ1;χ=2,ξ=2)
+  #for j in 1:length(ψ2)
+  #  replaceind!(σ[j],inds(σ[j],"Site")[1],firstind(ψ2[j],"Site"))
+  #end
   
   ρ_mpo = MPO(ψ1)
   σ_mpo = getdensityoperator(σ)
@@ -806,11 +812,13 @@ end
   F = fidelity(ρ_mpo,σ)
   @test T ≈ F
   
-  ρ = initializetomography(N,2,2;seed=1111)
-  σ = initializetomography(N,2,2;seed=1111)
-  for j in 1:length(ψ2)
-    replaceind!(σ[j],inds(σ[j],"Site")[1],firstind(ρ[j],"Site"))
-  end
+  Random.seed!(1111)
+  ρ = initializetomography(N;χ=2,ξ=2)
+  Random.seed!(1111)
+  σ = initializetomography(ρ;χ=2,ξ=2)
+  #for j in 1:length(ψ2)
+  #  replaceind!(σ[j],inds(σ[j],"Site")[1],firstind(ρ[j],"Site"))
+  #end
   
   ρ_mpo = getdensityoperator(ρ)
   σ_mpo = getdensityoperator(σ)

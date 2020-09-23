@@ -9,7 +9,7 @@ Random.seed!(1234)
 N = length(Φ)
 χ = maxlinkdim(Φ)
 
-Γ0 = initializetomography(N,χ,σ=0.1)
+Γ0 = initializetomography(N;χ=χ,σ=0.1)
 opt = Sgd(Γ0;η = 0.1)
 
 println("Training...")
@@ -27,7 +27,7 @@ N = length(ϱ)
 χ = 8
 ξ = 2
 
-Λ0 = initializetomography(N,χ,ξ;σ=0.1)
+Λ0 = initializetomography(N;χ=χ,ξ=ξ,σ=0.1)
 opt = Sgd(Λ0;η = 0.1)
 
 println("Training...")
