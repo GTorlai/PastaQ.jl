@@ -58,9 +58,9 @@ end
 
 
 """
-    rarnndompreparations(N::Int,nshots::Int;
-                         states::Array=["X+","X-","Y+","Y-","Z+","Z-"],
-                         n_distinctstates=nothing)
+    randompreparations(N::Int,nshots::Int;
+                       states::Array=["X+","X-","Y+","Y-","Z+","Z-"],
+                       n_distinctstates=nothing)
 
 Generate `nshots` input states to a quantum circuit. By default, each
 single-qubit state is randomly selected between the 6 eigenstates of
