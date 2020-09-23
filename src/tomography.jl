@@ -1,7 +1,8 @@
 """
-    function initializetomography(N::Int64,χ::Int64;
-                                  seed::Int64=1234,
-                                  σ::Float64=0.1)
+    initializetomography(N::Int64,χ::Int64;
+                         seed::Int64=1234,
+                         σ::Float64=0.1)
+
 Initialize a variational MPS for quantum tomography.
 
 # Arguments:
@@ -16,10 +17,17 @@ function initializetomography(N::Int64,χ::Int64;
   rng = MersenneTwister(seed)
   d = 2
 
-  sites = [Index(d; tags="Site, n=$s") for s in 1:N]
+  sites = siteinds("Qubit", N)
   links = [Index(χ; tags="Link, l=$l") for l in 1:N-1]
 
   M = ITensor[]
+  if N == 1
+    rand_mat = σ * (ones(d) - 2 * rand(rng,d))
+    rand_mat += im * σ * (ones(d) - 2 * rand(rng,d))
+    push!(M, ITensor(rand_mat, sites[1]))
+    return MPS(M)
+  end
+
   # Site 1 
   rand_mat = σ * (ones(d,χ) - 2*rand(rng,d,χ))
   rand_mat += im * σ * (ones(d,χ) - 2*rand(rng,d,χ))
@@ -39,9 +47,10 @@ end
 
 
 """
-    function initializetomography(N::Int64,χ::Int64,ξ::Int64;
-                                  seed::Int64=1234,
-                                  σ::Float64=0.1)
+    initializetomography(N::Int64,χ::Int64,ξ::Int64;
+                         seed::Int64=1234,
+                         σ::Float64=0.1)
+
 Initialize a variational LPDO for quantum tomography.
 
 # Arguments:
@@ -53,31 +62,40 @@ Initialize a variational LPDO for quantum tomography.
 """
 function initializetomography(N::Int64,χ::Int64,ξ::Int64;
                               seed::Int64=1234,
-                              σ::Float64=0.1)
+                              σ::Float64=0.1,
+                              purifier_tag = ts"Purifier")
   rng = MersenneTwister(seed)
   d = 2
 
-  sites = [Index(d; tags="Site,n=$s") for s in 1:N]
+  sites = siteinds("Qubit", N)
   links = [Index(χ; tags="Link,l=$l") for l in 1:N-1]
-  kraus = [Index(ξ; tags="purifier,k=$s") for s in 1:N]
+  kraus = [Index(ξ; tags=addtags(purifier_tag, "k=$s")) for s in 1:N]
 
   M = ITensor[]
+  if N == 1
+    # Site 1 
+    rand_mat = σ * (ones(d,ξ) - 2*rand(rng,d,ξ))
+    rand_mat += im * σ * (ones(d,ξ) - 2*rand(rng,d,ξ))
+    push!(M,ITensor(rand_mat,sites[1],kraus[1]))
+    return LPDO(MPO(M))
+  end
+
   # Site 1 
-  rand_mat = σ * (ones(d,χ,ξ) - 2*rand!(rng,zeros(d,χ,ξ)))
-  rand_mat += im * σ * (ones(d,χ,ξ) - 2*rand!(rng,zeros(d,χ,ξ)))
+  rand_mat = σ * (ones(d,χ,ξ) - 2*rand(rng,d,χ,ξ))
+  rand_mat += im * σ * (ones(d,χ,ξ) - 2*rand(rng,d,χ,ξ))
   push!(M,ITensor(rand_mat,sites[1],links[1],kraus[1]))
   # Site 2..N-1
   for j in 2:N-1
-    rand_mat = σ * (ones(d,χ,ξ,χ) - 2*rand!(rng,zeros(d,χ,ξ,χ)))
-    rand_mat += im * σ * (ones(d,χ,ξ,χ) - 2*rand!(rng,zeros(d,χ,ξ,χ)))
+    rand_mat = σ * (ones(d,χ,ξ,χ) - 2*rand(rng,d,χ,ξ,χ))
+    rand_mat += im * σ * (ones(d,χ,ξ,χ) - 2*rand(rng,d,χ,ξ,χ))
     push!(M,ITensor(rand_mat,sites[j],links[j-1],kraus[j],links[j]))
   end
   # Site N
-  rand_mat = σ * (ones(d,χ,ξ) - 2*rand!(rng,zeros(d,χ,ξ)))
-  rand_mat += im * σ * (ones(d,χ,ξ) - 2*rand!(rng,zeros(d,χ,ξ)))
+  rand_mat = σ * (ones(d,χ,ξ) - 2*rand(rng,d,χ,ξ))
+  rand_mat += im * σ * (ones(d,χ,ξ) - 2*rand(rng,d,χ,ξ))
   push!(M,ITensor(rand_mat,sites[N],links[N-1],kraus[N]))
   
-  return MPO(M)
+  return LPDO(MPO(M), purifier_tag)
 end
 
 
@@ -123,7 +141,7 @@ end
 lognormalize!(M::MPS) = lognormalize!(LPDO(M))
 
 """
-    function gradlogZ(M::Union{MPS,MPO};localnorm=nothing)
+    function gradlogZ(M::Union{MPS,LPDO};localnorm=nothing)
 
 Compute the gradients of the log-normalization with respect
 to each MPS/MPO tensor component:
@@ -134,7 +152,8 @@ to each MPS/MPO tensor component:
 If `localnorm=true`, rescale each gradient by the corresponding
 local normalization.
 """
-function gradlogZ(M::Union{MPS,MPO};localnorm=nothing)
+function gradlogZ(L::LPDO; localnorm = nothing)
+  M = L.X
   N = length(M)
   L = Vector{ITensor}(undef, N-1)
   R = Vector{ITensor}(undef, N)
@@ -168,6 +187,7 @@ function gradlogZ(M::Union{MPS,MPO};localnorm=nothing)
   return 2*gradients,log(Z)
 end
 
+gradlogZ(M::MPS; kwargs...) = gradlogZ(LPDO(M); kwargs...)
 
 """
     function gradnll(ψ::MPS, data::Array; localnorm=nothing, choi::Bool=false)
@@ -196,7 +216,10 @@ The probability is then obtaining by transposing the input state, which
 is equivalent to take the conjugate of the eigenstate projector.
 
 """
-function gradnll(ψ::MPS, data::Array; localnorm=nothing, choi::Bool=false)
+function gradnll(ψ::MPS,
+                 data::Array;
+                 localnorm=nothing,
+                 choi::Bool=false)
   N = length(ψ)
 
   s = siteinds(ψ)
@@ -316,7 +339,7 @@ end
 
 
 """
-    function gradnll(lpdo::MPO, data::Array; localnorm=nothing, choi::Bool=false)
+    gradnll(lpdo::LPDO, data::Array; localnorm=nothing, choi::Bool=false)
 
 Compute the gradients of the cross-entropy between the LPDO probability 
 distribution of the empirical data distribution for a set of projective 
@@ -339,9 +362,10 @@ local normalization.
 
 If `choi=true`, the probability is then obtaining by transposing the 
 input state, which is equivalent to take the conjugate of the eigenstate projector.
-
 """
-function gradnll(lpdo::MPO,data::Array;localnorm=nothing,choi::Bool=false)
+function gradnll(L::LPDO, data::Array;
+                 localnorm = nothing, choi::Bool = false)
+  lpdo = L.X
   N = length(lpdo)
 
   s = firstsiteinds(lpdo)  
@@ -350,7 +374,7 @@ function gradnll(lpdo::MPO,data::Array;localnorm=nothing,choi::Bool=false)
   
   kraus = Index[]
   for j in 1:N
-    push!(kraus,firstind(lpdo[j],"purifier"))
+    push!(kraus,firstind(lpdo[j], "Purifier"))
   end
 
   ElT = eltype(lpdo[1])
@@ -507,12 +531,11 @@ function gradnll(lpdo::MPO,data::Array;localnorm=nothing,choi::Bool=false)
   end
   
   return gradients_tot, loss_tot
-
 end
 
 
 """
-    function gradients(M::Union{MPS,MPO},data::Array;localnorm=nothing,choi::Bool=false)
+    gradients(M::Union{MPS,MPO},data::Array;localnorm=nothing,choi::Bool=false)
 
 Compute the gradients of the cost function:
 `C = log(Z) - ⟨log P(σ)⟩_data`
@@ -544,7 +567,10 @@ Run quantum state tomography using a the starting state `model` on `data`.
   - `observer`: keep track of measurements and fidelities.
   - `outputpath`: write observer on file 
 """
-function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwargs...)
+function statetomography(model::Union{MPS,MPO},
+                         data::Array,
+                         opt::Optimizer;
+                         kwargs...)
                          
   # Read arguments
   localnorm::Bool = get(kwargs,:localnorm,true)
@@ -662,7 +688,11 @@ Run quantum process tomography on `(data_in,data_out)` using `model` as variatio
 
 The data is reshuffled so it takes the format: `(input1,output1,input2,output2,…)`.
 """
-function processtomography(M::Union{MPS,MPO},data_in::Array,data_out::Array,opt::Optimizer; kwargs...)
+function processtomography(M::Union{MPS,MPO},
+                           data_in::Array,
+                           data_out::Array,
+                           opt::Optimizer;
+                           kwargs...)
   N = size(data_in)[2]
   @assert size(data_in) == size(data_out)
   
@@ -678,35 +708,35 @@ function processtomography(M::Union{MPS,MPO},data_in::Array,data_out::Array,opt:
 end
 
 """
-    getdensityoperator(lpdo::MPO)
+    MPO(L::LPDO)
 
-Contract the `purifier` indices to get the MPO
-`ρ = lpdo lpdo†`
+Contract the purifier indices to get the MPO
+`ρ = L.X L.X†`
 """
-function getdensityoperator(lpdo0::MPO)
-  lpdo = copy(lpdo0)
+function ITensors.MPO(lpdo0::LPDO)
+  lpdo = copy(lpdo0.X)
   noprime!(lpdo)
   N = length(lpdo)
   M = ITensor[]
-  prime!(lpdo[1],tags="Site")
-  prime!(lpdo[1],tags="Link")
+  prime!(lpdo[1]; tags = "Site")
+  prime!(lpdo[1]; tags = "Link")
   tmp = dag(lpdo[1]) * noprime(lpdo[1])
-  Cdn = combiner(inds(tmp,tags="Link"),tags="Link,l=1")
-  push!(M,tmp * Cdn)
+  Cdn = combiner(inds(tmp, tags = "Link"), tags = "Link,l=1")
+  push!(M, tmp * Cdn)
   
   for j in 2:N-1
-    prime!(lpdo[j],tags="Site")
-    prime!(lpdo[j],tags="Link")
+    prime!(lpdo[j]; tags = "Site")
+    prime!(lpdo[j]; tags = "Link")
     tmp = dag(lpdo[j]) * noprime(lpdo[j]) 
     Cup = Cdn
     Cdn = combiner(inds(tmp,tags="Link,l=$j"),tags="Link,l=$j")
-    push!(M,tmp * Cup * Cdn)
+    push!(M, tmp * Cup * Cdn)
   end
-  prime!(lpdo[N],tags="Site")
-  prime!(lpdo[N],tags="Link")
+  prime!(lpdo[N]; tags = "Site")
+  prime!(lpdo[N]; tags = "Link")
   tmp = dag(lpdo[N]) * noprime(lpdo[N])
   Cup = Cdn
-  push!(M,tmp * Cdn)
+  push!(M, tmp * Cdn)
   rho = MPO(M)
   noprime!(lpdo)
   return rho
@@ -727,83 +757,63 @@ function fidelity(ψ::MPS,ϕ::MPS)
 end
 
 """
-    fidelity(ψ::MPS,ρ::MPO)
+    fidelity(ψ::MPS, ρ::LPDO)
 
-    fidelity(ρ::MPO,ψ::MPS)
+    fidelity(ρ::LPDO, ψ::MPS)
 
 Compute the fidelity between an MPS and LPDO.
 
 `F = ⟨ψ|ρ|ψ⟩`
 """
-function fidelity(ψ::MPS,ρ::MPO)
-  islpdo = any(x -> any(y -> hastags(y, "purifier"), inds(x)), ρ)
-  if islpdo 
-    A = *(ρ,ψ,method="densitymatrix",cutoff=1e-10)
-    log_F̃ = log(abs(inner(A,A)))
-    #log_F̃ = log(abs(inner(ρ,ψ,ρ,ψ)))
-    log_K = 2.0*(lognorm(ψ) + lognorm(ρ))
-    fidelity = exp(log_F̃ - log_K)
-  else
-    log_F̃ = log(abs(inner(ψ,ρ,ψ)))
-    log_K = 2.0*lognorm(ψ) + log(tr(ρ)) 
-    fidelity = exp(log_F̃ - log_K)
-  end
+function fidelity(ψ::MPS, L::LPDO)
+  ρ = L.X
+  A = *(ρ,ψ,method="densitymatrix",cutoff=1e-10)
+  log_F̃ = log(abs(inner(A,A)))
+  #log_F̃ = log(abs(inner(ρ,ψ,ρ,ψ)))
+  log_K = 2.0*(lognorm(ψ) + lognorm(ρ))
+  fidelity = exp(log_F̃ - log_K)
   return fidelity
 end
 
-fidelity(ρ::MPO,ψ::MPS) = fidelity(ψ::MPS,ρ::MPO)
-
-fidelity(ρ::MPO,σ::MPO) = frobenius_distance(ρ,σ)
+fidelity(ρ::LPDO, ψ::MPS) = fidelity(ψ, ρ)
 
 """
-    frobenius_distance(lpdo::MPO,ρ::MPO)
+    fidelity(ψ::MPS,ρ::MPO)
+
+    fidelity(ρ::MPO,ψ::MPS)
+
+Compute the fidelity between an MPS and MPO.
+
+`F = ⟨ψ|ρ|ψ⟩`
+"""
+function fidelity(ψ::MPS, ρ::MPO)
+  log_F̃ = log(abs(inner(ψ,ρ,ψ)))
+  log_K = 2.0*lognorm(ψ) + log(tr(ρ)) 
+  fidelity = exp(log_F̃ - log_K)
+  return fidelity
+end
+
+fidelity(ρ::MPO, ψ::MPS) = fidelity(ψ, ρ)
+
+"""
+    frobenius_distance(lpdo::MPO, ρ::MPO)
 
 Compute the trace norm of the difference between two MPO.
 
 `F(ρ,σ) = sqrt(trace[(ρ-σ)†(ρ-σ)])`
 """
-function frobenius_distance(ρ0::MPO,σ0::MPO)
-  islpdo_ρ = any(x -> any(y -> hastags(y, "purifier"), inds(x)), ρ0)
-  islpdo_σ = any(x -> any(y -> hastags(y, "purifier"), inds(x)), σ0)
- 
-  if islpdo_ρ & islpdo_σ
-    ρ = copy(ρ0)
-    σ = copy(σ0)
-    # Normalize both LPDO to 1
-    lognormalize!(LPDO(ρ))
-    lognormalize!(LPDO(σ))
-    # Extract density operators MPO
-    ρ′ = getdensityoperator(ρ)
-    σ′ = getdensityoperator(σ)
-    Kρ  = 1.0
-    Kσ  = 1.0
-  
-  elseif islpdo_ρ & !islpdo_σ
-    # Normalize the LPDO to 1
-    ρ = copy(ρ0)
-    lognormalize!(LPDO(ρ))
-    ρ′ = getdensityoperator(ρ)
-    σ′ = σ0
-    # Get the MPO normalization
-    Kρ  = 1.0
-    Kσ = tr(σ′)
-  
-  elseif !islpdo_ρ & islpdo_σ
-    # Normalize the LPDO to 1
-    σ = copy(σ0)
-    lognormalize!(LPDO(σ))
-    σ′ = getdensityoperator(σ)
-    ρ′ = ρ0
-    # Get the MPO normalization
-    Kρ = tr(ρ′)
-    Kσ  = 1.0
-  else
-    ρ′ = ρ0
-    σ′ = σ0
-    Kρ = tr(ρ′)
-    Kσ = tr(σ′)
-  end
-  
+function frobenius_distance(ρ0::LPDO, σ0::LPDO)
+  ρ = copy(ρ0)
+  σ = copy(σ0)
+  # Normalize both LPDO to 1
+  lognormalize!(ρ)
+  lognormalize!(σ)
+  # Extract density operators MPO
+  ρ′ = MPO(ρ)
+  σ′ = MPO(σ)
+  Kρ  = 1.0
+  Kσ  = 1.0
+
   distance  = inner(ρ′,ρ′)/Kρ^2
   distance += inner(σ′,σ′)/Kσ^2
   distance -= 2.0*inner(ρ′,σ′)/(Kρ*Kσ)
@@ -811,6 +821,52 @@ function frobenius_distance(ρ0::MPO,σ0::MPO)
   return real(sqrt(distance))
 end
 
+function frobenius_distance(ρ0::LPDO, σ0::MPO)
+  # Normalize the LPDO to 1
+  ρ = copy(ρ0)
+  lognormalize!(ρ)
+  ρ′ = MPO(ρ)
+  σ′ = σ0
+  # Get the MPO normalization
+  Kρ = 1.0
+  Kσ = tr(σ′)
+
+  distance  = inner(ρ′,ρ′)/Kρ^2
+  distance += inner(σ′,σ′)/Kσ^2
+  distance -= 2.0*inner(ρ′,σ′)/(Kρ*Kσ)
+  
+  return real(sqrt(distance))
+end
+
+function frobenius_distance(ρ0::MPO, σ0::LPDO)
+  # Normalize the LPDO to 1
+  σ = copy(σ0)
+  lognormalize!(σ)
+  σ′ = MPO(σ)
+  ρ′ = ρ0
+  # Get the MPO normalization
+  Kρ = tr(ρ′)
+  Kσ = 1.0
+
+  distance  = inner(ρ′,ρ′)/Kρ^2
+  distance += inner(σ′,σ′)/Kσ^2
+  distance -= 2.0*inner(ρ′,σ′)/(Kρ*Kσ)
+  
+  return real(sqrt(distance))
+end
+
+function frobenius_distance(ρ0::MPO, σ0::MPO)
+  ρ′ = ρ0
+  σ′ = σ0
+  Kρ = tr(ρ′)
+  Kσ = tr(σ′)
+  
+  distance  = inner(ρ′,ρ′)/Kρ^2
+  distance += inner(σ′,σ′)/Kσ^2
+  distance -= 2.0*inner(ρ′,σ′)/(Kρ*Kσ)
+  
+  return real(sqrt(distance))
+end
 
 """
     fullfidelity(ρ::MPO,σ::MPO;choi::Bool=false)
@@ -842,7 +898,8 @@ over a dataset `data`:
 If `choi=true`, the probability is then obtaining by transposing the 
 input state, which is equivalent to take the conjugate of the eigenstate projector.
 """
-function nll(ψ::MPS,data::Array;choi::Bool=false)
+function nll(L::LPDO{MPS}, data::Array; choi::Bool = false)
+  ψ = L.X
   N = length(ψ)
   @assert N==size(data)[2]
   loss = 0.0
@@ -863,8 +920,10 @@ function nll(ψ::MPS,data::Array;choi::Bool=false)
   return loss
 end
 
+nll(ψ::MPS, args...; kwargs...) = nll(LPDO(ψ), args...; kwargs...)
+
 """
-    nll(lpdo::MPO,data::Array;choi::Bool=false)
+    nll(lpdo::LPDO, data::Array; choi::Bool = false)
 
 Compute the negative log-likelihood using an LPDO ansatz
 over a dataset `data`:
@@ -874,7 +933,8 @@ over a dataset `data`:
 If `choi=true`, the probability is then obtaining by transposing the 
 input state, which is equivalent to take the conjugate of the eigenstate projector.
 """
-function nll(lpdo::MPO,data::Array;choi::Bool=false)
+function nll(L::LPDO{MPO}, data::Array; choi::Bool = false)
+  lpdo = L.X
   N = length(lpdo)
   loss = 0.0
   s = firstsiteinds(lpdo)

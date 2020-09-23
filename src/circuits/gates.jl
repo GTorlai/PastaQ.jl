@@ -1,12 +1,12 @@
 #
-# qubit site type
+# Qubit site type
 #
 
-ITensors.space(::SiteType"qubit") = 2
+ITensors.space(::SiteType"Qubit") = 2
 
-ITensors.state(::SiteType"qubit", ::StateName"0") = 1
+ITensors.state(::SiteType"Qubit", ::StateName"0") = 1
 
-ITensors.state(::SiteType"qubit", ::StateName"1") = 2
+ITensors.state(::SiteType"Qubit", ::StateName"1") = 2
 
 const GateName = OpName
 
@@ -416,10 +416,13 @@ gate(gn::String, s::Vector{<:Index}, ns::Int...; kwargs...) =
 
 #
 # op overload so that ITensor functions like MPO(::AutoMPO) can use the gate
-# definitions of the "qubit" site type"
+# definitions of the "Qubit" site type
 #
 
-function ITensors.op(gn::GateName, ::SiteType"qubit", s::Index...; kwargs...)
+function ITensors.op(gn::GateName,
+                     ::SiteType"Qubit",
+                     s::Index...;
+                     kwargs...)
   return gate(gn, s...; kwargs...)
 end
 

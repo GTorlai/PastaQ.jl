@@ -6,9 +6,11 @@ struct LPDO{MPOT <: Union{MPS, MPO}}
   purifier_tag::TagSet
 end
 
-LPDO(X::Union{MPS, MPO}) = LPDO(X, ts"purifier")
+LPDO(X::Union{MPS, MPO}) = LPDO(X, ts"Purifier")
 
 Base.length(L::LPDO) = length(L.X)
+
+Base.copy(L::LPDO) = LPDO(copy(L.X), L.purifier_tag)
 
 # TODO: define this (not defined for MPS/MPO yet)
 #Base.lastindex(L::LPDO) = lastindex(L.X)
@@ -25,4 +27,8 @@ bra(L::LPDO) = dag(L.X)
 bra(L::LPDO, j::Int) = dag(L.X[j])
 
 # TODO: define siteinds, firstsiteind, allsiteind, etc.
+
+LinearAlgebra.tr(L::LPDO) = inner(L.X, L.X)
+
+logtr(L::LPDO) = loginner(L.X, L.X)
 

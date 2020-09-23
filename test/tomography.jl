@@ -5,7 +5,8 @@ using LinearAlgebra
 using Random
 
 """ HELPER FUNCTIONS """
-function numgradslogZ(M::Union{MPS,MPO};accuracy=1e-8)
+function numgradslogZ(L::LPDO;accuracy=1e-8)
+  M = L.X
   N = length(M)
   grad_r = []
   grad_i = []
@@ -83,7 +84,13 @@ function numgradslogZ(M::Union{MPS,MPO};accuracy=1e-8)
   return grad_r-grad_i
 end
 
-function numgradsnll(M::Union{MPS,MPO},data::Array;accuracy=1e-8,choi::Bool=false)
+numgradslogZ(M::MPS; kwargs...) = numgradslogZ(LPDO(M); kwargs...)
+
+function numgradsnll(L::LPDO,
+                     data::Array;
+                     accuracy=1e-8,
+                     choi::Bool=false)
+  M = L.X
   N = length(M)
   grad_r = []
   grad_i = []
@@ -98,17 +105,17 @@ function numgradsnll(M::Union{MPS,MPO},data::Array;accuracy=1e-8,choi::Bool=fals
     epsilon[i] = accuracy
     eps = ITensor(epsilon,inds(M[1]))
     M[1] += eps
-    loss_p = nll(M,data,choi=choi) 
+    loss_p = nll(L,data,choi=choi) 
     M[1] -= eps
-    loss_m = nll(M,data,choi=choi) 
+    loss_m = nll(L,data,choi=choi) 
     grad_r[1][i] = (loss_p-loss_m)/(accuracy)
     
     epsilon[i] = im*accuracy
     eps = ITensor(epsilon,inds(M[1]))
     M[1] += eps
-    loss_p = nll(M,data,choi=choi) 
+    loss_p = nll(L,data,choi=choi) 
     M[1] -= eps
-    loss_m = nll(M,data,choi=choi) 
+    loss_m = nll(L,data,choi=choi) 
     grad_i[1][i] = (loss_p-loss_m)/(im*accuracy)
     
     epsilon[i] = 0.0
@@ -120,17 +127,17 @@ function numgradsnll(M::Union{MPS,MPO},data::Array;accuracy=1e-8,choi::Bool=fals
       epsilon[i] = accuracy
       eps = ITensor(epsilon,inds(M[j]))
       M[j] += eps
-      loss_p = nll(M,data,choi=choi) 
+      loss_p = nll(L,data,choi=choi) 
       M[j] -= eps
-      loss_m = nll(M,data,choi=choi) 
+      loss_m = nll(L,data,choi=choi) 
       grad_r[j][i] = (loss_p-loss_m)/(accuracy)
       
       epsilon[i] = im*accuracy
       eps = ITensor(epsilon,inds(M[j]))
       M[j] += eps
-      loss_p = nll(M,data,choi=choi) 
+      loss_p = nll(L,data,choi=choi) 
       M[j] -= eps
-      loss_m = nll(M,data,choi=choi) 
+      loss_m = nll(L,data,choi=choi) 
       grad_i[j][i] = (loss_p-loss_m)/(im*accuracy)
 
       epsilon[i] = 0.0
@@ -143,17 +150,17 @@ function numgradsnll(M::Union{MPS,MPO},data::Array;accuracy=1e-8,choi::Bool=fals
     epsilon[i] = accuracy
     eps = ITensor(epsilon,inds(M[N]))
     M[N] += eps
-    loss_p = nll(M,data,choi=choi) 
+    loss_p = nll(L,data,choi=choi) 
     M[N] -= eps
-    loss_m = nll(M,data,choi=choi) 
+    loss_m = nll(L,data,choi=choi) 
     grad_r[N][i] = (loss_p-loss_m)/(accuracy)
 
     epsilon[i] = im*accuracy
     eps = ITensor(epsilon,inds(M[N]))
     M[N] += eps
-    loss_p = nll(M,data,choi=choi) 
+    loss_p = nll(L,data,choi=choi) 
     M[N] -= eps
-    loss_m = nll(M,data,choi=choi) 
+    loss_m = nll(L,data,choi=choi) 
     grad_i[N][i] = (loss_p-loss_m)/(im*accuracy)
     
     epsilon[i] = 0.0
@@ -162,6 +169,8 @@ function numgradsnll(M::Union{MPS,MPO},data::Array;accuracy=1e-8,choi::Bool=fals
   return grad_r-grad_i
 end
 
+numgradsnll(M::MPS, args...; kwargs...) =
+  numgradsnll(LPDO(M), args...; kwargs...)
 
 """ MPS STATE TOMOGRAPHY TESTS """
 
@@ -475,12 +484,12 @@ end
   ξ = 2
   ρ = initializetomography(N,χ,ξ)
   @test length(ρ) == N
-  logZ1 = 2.0*lognorm(ρ)
-  logZ2,_ = lognormalize!(LPDO(ρ))
+  logZ1 = logtr(ρ)
+  logZ2,_ = lognormalize!(ρ)
   @test logZ1 ≈ logZ2
   ρ = initializetomography(N,χ,ξ)
-  lognormalize!(LPDO(ρ))
-  @test norm(ρ) ≈ 1
+  lognormalize!(ρ)
+  @test tr(ρ) ≈ 1
 end
 
 @testset "lpdo-qst: density matrix properties" begin
@@ -489,8 +498,8 @@ end
   ξ = 3
   ρ = initializetomography(N,χ,ξ)
   @test length(ρ) == N
-  lognormalize!(LPDO(ρ))
-  rho = getdensityoperator(ρ)
+  lognormalize!(ρ)
+  rho = MPO(ρ)
   rho_mat = fullmatrix(rho)
   @test sum(abs.(imag(diag(rho_mat)))) ≈ 0.0 atol=1e-10
   @test real(tr(rho_mat)) ≈ 1.0 atol=1e-10
@@ -517,8 +526,8 @@ end
   
   # 2. Globally normalizeid
   ρ = initializetomography(N,χ,ξ)
-  lognormalize!(LPDO(ρ))
-  @test norm(ρ) ≈ 1
+  lognormalize!(ρ)
+  @test tr(ρ) ≈ 1
   alg_grad,_ = gradlogZ(ρ)
   num_grad = numgradslogZ(ρ)
   
@@ -535,8 +544,8 @@ end
   ρ = initializetomography(N,χ,ξ)
   num_grad = numgradslogZ(ρ)
 
-  logZ,localnorms = lognormalize!(LPDO(ρ))
-  @test norm(ρ)^2 ≈ 1
+  logZ,localnorms = lognormalize!(ρ)
+  @test tr(ρ) ≈ 1
   alg_grad,_ = gradlogZ(ρ,localnorm=localnorms)
 
   alg_gradient = permutedims(array(alg_grad[1]),[1,3,2])
@@ -582,8 +591,8 @@ end
   
   # 2. Globally normalized
   ρ = initializetomography(N,χ,ξ)
-  lognormalize!(LPDO(ρ))
-  @test norm(ρ) ≈ 1
+  lognormalize!(ρ)
+  @test tr(ρ) ≈ 1
   num_grad = numgradsnll(ρ,data)
   alg_grad,loss = gradnll(ρ,data)
   ex_loss = nll(ρ,data)
@@ -600,8 +609,8 @@ end
   # 3. Locally normalized
   ρ = initializetomography(N,χ,ξ)
   num_grad = numgradsnll(ρ,data)
-  logZ,localnorms = lognormalize!(LPDO(ρ))
-  @test norm(ρ) ≈ 1
+  logZ,localnorms = lognormalize!(ρ)
+  @test tr(ρ) ≈ 1
   alg_grad,loss = gradnll(ρ,data,localnorm=localnorms)
   ex_loss = nll(ρ,data)
   @test ex_loss ≈ loss
@@ -653,7 +662,7 @@ PROCESS TOMOGRAPHY WITH LPDO
   
   # 2. Globally normalized
   Λ = initializetomography(N,χ,ξ) 
-  lognormalize!(LPDO(Λ))
+  lognormalize!(Λ)
   num_grad = numgradsnll(Λ,data,choi=true)
   ex_loss = nll(Λ,data,choi=true) 
   alg_grad,loss = gradnll(Λ,data,choi=true)
@@ -670,7 +679,7 @@ PROCESS TOMOGRAPHY WITH LPDO
   # 3. Locally normalized
   Λ = initializetomography(N,χ,ξ)
   num_grad = numgradsnll(Λ,data,choi=true)
-  logZ,localnorms = lognormalize!(LPDO(Λ))
+  logZ,localnorms = lognormalize!(Λ)
   ex_loss = nll(Λ,data,choi=true) 
   alg_grad,loss = gradnll(Λ,data,localnorm=localnorms,choi=true)
   @test ex_loss ≈ loss
@@ -724,19 +733,16 @@ end
   ξ = 2
   ρ = initializetomography(N,χ,ξ)
   for j in 1:length(ρ)
-    replaceind!(ψ[j],firstind(ψ[j],"Site"),firstind(ρ[j],"Site"))
+    replaceind!(ψ[j],firstind(ψ[j],"Site"),firstind(ρ.X[j],"Site"))
   end
   
-  ρ_mat = fullmatrix(getdensityoperator(ρ))
+  ρ_mat = fullmatrix(MPO(ρ))
   J = tr(ρ_mat)
   ρ_mat ./= J
 
-  ex_F = dot(ψ_vec,ρ_mat * ψ_vec)
-  F = fidelity(ρ,ψ)
+  ex_F = dot(ψ_vec, ρ_mat * ψ_vec)
+  F = fidelity(ρ, ψ)
   @test F ≈ ex_F
-  σ = getdensityoperator(ρ)
-  F1 = fidelity(σ,ψ)
-  @test F1 ≈ ex_F 
 end
 
 @testset "trace distance" begin 
@@ -760,16 +766,15 @@ end
 
   T = sqrt(tr(conj(transpose(δ)) * δ))
 
-  F = fidelity(ρ_mpo,σ_mpo)
+  F = frobenius_distance(ρ_mpo,σ_mpo)
   @test T ≈ F
-
-    
+ 
   ρ = initializetomography(3,2,2;seed=1111)
   for j in 1:length(ψ1)
-    replaceind!(ρ[j],inds(ρ[j],"Site")[1],firstind(ψ1[j],"Site"))
+    replaceind!(ρ.X[j],inds(ρ.X[j],"Site")[1],firstind(ψ1[j],"Site"))
   end
   
-  ρ_mpo = getdensityoperator(ρ)
+  ρ_mpo = MPO(ρ)
   σ_mpo = MPO(ψ2)
 
   ρ_mat = fullmatrix(ρ_mpo)
@@ -781,17 +786,17 @@ end
 
   T = sqrt(tr(conj(transpose(δ)) * δ))
 
-  F = fidelity(ρ,σ_mpo)
+  F = frobenius_distance(ρ, σ_mpo)
   @test T ≈ F
 
 
   σ = initializetomography(3,2,2;seed=1111)
   for j in 1:length(ψ2)
-    replaceind!(σ[j],inds(σ[j],"Site")[1],firstind(ψ2[j],"Site"))
+    replaceind!(σ.X[j],inds(σ.X[j],"Site")[1],firstind(ψ2[j],"Site"))
   end
   
   ρ_mpo = MPO(ψ1)
-  σ_mpo = getdensityoperator(σ)
+  σ_mpo = MPO(σ)
 
   ρ_mat = fullmatrix(ρ_mpo)
   σ_mat = fullmatrix(σ_mpo)
@@ -802,17 +807,17 @@ end
 
   T = sqrt(tr(conj(transpose(δ)) * δ))
 
-  F = fidelity(ρ_mpo,σ)
+  F = frobenius_distance(ρ_mpo,σ)
   @test T ≈ F
   
   ρ = initializetomography(3,2,2;seed=1111)
   σ = initializetomography(3,2,2;seed=1111)
   for j in 1:length(ψ2)
-    replaceind!(σ[j],inds(σ[j],"Site")[1],firstind(ρ[j],"Site"))
+    replaceind!(σ.X[j],inds(σ.X[j],"Site")[1],firstind(ρ.X[j],"Site"))
   end
   
-  ρ_mpo = getdensityoperator(ρ)
-  σ_mpo = getdensityoperator(σ)
+  ρ_mpo = MPO(ρ)
+  σ_mpo = MPO(σ)
 
   ρ_mat = fullmatrix(ρ_mpo)
   σ_mat = fullmatrix(σ_mpo)
@@ -823,7 +828,7 @@ end
 
   T = sqrt(tr(conj(transpose(δ)) * δ))
 
-  F = fidelity(ρ,σ)
+  F = frobenius_distance(ρ,σ)
   @test T ≈ F
   
 end
