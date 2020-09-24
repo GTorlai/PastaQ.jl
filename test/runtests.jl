@@ -4,12 +4,12 @@ using Test
   @testset "$filename" for filename in (
     "utils.jl",
     "optimizers.jl",
-    "quantumgates.jl",
+    "gates.jl",
     "circuits.jl",
     "circuitops.jl",
-    "quantumcircuit.jl",
+    "runcircuit.jl",
     "datagen.jl",
-    "quantumtomography.jl",
+    "tomography.jl",
     #"benchmark_qiskit.jl"
   )
     println("Running $filename")

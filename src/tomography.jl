@@ -9,8 +9,10 @@ function initializetomography(sites::Vector{<:Index}; kwargs...)
   χ = get(kwargs,:χ,2)
   ξ = get(kwargs,:ξ,nothing)
   σ = get(kwargs,:σ,0.1)
+  purifier_tag = get(kwargs,:purifier_tag,ts"Purifier")
+
   return (isnothing(ξ) ? initializetomography(sites,χ;σ=σ) :
-                         initializetomography(sites,χ,ξ;σ=σ))
+                         initializetomography(sites,χ,ξ;σ=σ,purifier_tag=purifier_tag))
 end
 
 """
@@ -20,7 +22,7 @@ Initialize quantum tomography given a number of qubits
 """
 function initializetomography(N::Int64;kwargs...)
   d = 2 # Dimension of the local Hilbert space
-  sites = [Index(d; tags="Site, n=$s") for s in 1:N]
+  sites = siteinds("Qubit", N)
   return initializetomography(sites; kwargs...)
 end
 
@@ -31,10 +33,18 @@ end
 Initialize quantum tomography, given a reference state,
 either in MPS or MPO (LPDO) form
 """
-function initializetomography(M::Union{MPS,MPO}; kwargs...)
-  sites = (M isa MPS ? siteinds(M) : firstsiteinds(M))
+function initializetomography(L::LPDO; kwargs...)
+  sites = firstsiteinds(L.X)
   return initializetomography(sites; kwargs...)
 end
+
+# TEMPORARY FUNCTION
+function initializetomography(ψ::MPS; kwargs...)
+  sites = siteinds(ψ)
+  return initializetomography(sites; kwargs...)
+end
+# Update with the above after `firstsiteinds(ψ::MPS)` is implemented
+#initializetomography(ψ::MPS; kwargs...) = initializetomography(LPDO(ψ); kwargs...)
 
 """
     function initializetomography(N::Int64,χ::Int64;σ::Float64=0.1)
@@ -50,10 +60,16 @@ Initialize a variational MPS for quantum tomography.
 function initializetomography(sites::Vector{<:Index},χ::Int64;σ::Float64=0.1)
   d = 2 # Dimension of the local Hilbert space
   N = length(sites)
-  
   links = [Index(χ; tags="Link, l=$l") for l in 1:N-1]
 
   M = ITensor[]
+  if N == 1
+    rand_mat = σ * (ones(d) - 2 * rand(rng,d))
+    rand_mat += im * σ * (ones(d) - 2 * rand(rng,d))
+    push!(M, ITensor(rand_mat, sites[1]))
+    return MPS(M)
+  end
+
   # Site 1 
   rand_mat = σ * (ones(d,χ) - 2*rand(d,χ))
   rand_mat += im * σ * (ones(d,χ) - 2*rand(d,χ))
@@ -72,7 +88,8 @@ function initializetomography(sites::Vector{<:Index},χ::Int64;σ::Float64=0.1)
 end
 
 """
-    function initializetomography(N::Int64,χ::Int64,ξ::Int64;σ::Float64=0.1)
+    function initializetomography(N::Int64,χ::Int64,ξ::Int64;
+                                  σ::Float64=0.1,purifier_tag = ts"Purifier")
 
 Initialize a variational LPDO for quantum tomography.
 
@@ -82,15 +99,22 @@ Initialize a variational LPDO for quantum tomography.
   - `ξ`: local purification dimension of the LPDO
   - `σ`: width of initial box distribution
 """
-function initializetomography(sites::Vector{<:Index},χ::Int64,ξ::Int64;σ::Float64=0.1)
+function initializetomography(sites::Vector{<:Index},χ::Int64,ξ::Int64;σ::Float64=0.1,purifier_tag = ts"Purifier")
   d = 2 # Dimension of the local Hilbert space
   N = length(sites)
 
-  #sites = [Index(d; tags="Site,n=$s") for s in 1:N]
   links = [Index(χ; tags="Link,l=$l") for l in 1:N-1]
-  kraus = [Index(ξ; tags="purifier,k=$s") for s in 1:N]
-  
+  kraus = [Index(ξ; tags=addtags(purifier_tag, "k=$s")) for s in 1:N]
+
   M = ITensor[]
+  if N == 1
+    # Site 1 
+    rand_mat = σ * (ones(d,ξ) - 2*rand(rng,d,ξ))
+    rand_mat += im * σ * (ones(d,ξ) - 2*rand(rng,d,ξ))
+    push!(M,ITensor(rand_mat,sites[1],kraus[1]))
+    return LPDO(MPO(M))
+  end
+
   # Site 1 
   rand_mat = σ * (ones(d,χ,ξ) - 2*rand(d,χ,ξ))
   rand_mat += im * σ * (ones(d,χ,ξ) - 2*rand(d,χ,ξ))
@@ -106,7 +130,7 @@ function initializetomography(sites::Vector{<:Index},χ::Int64,ξ::Int64;σ::Flo
   rand_mat += im * σ * (ones(d,χ,ξ) - 2*rand(d,χ,ξ))
   push!(M,ITensor(rand_mat,sites[N],links[N-1],kraus[N]))
   
-  return MPO(M)
+  return LPDO(MPO(M), purifier_tag)
 end
 
 """
@@ -148,10 +172,10 @@ function lognormalize!(L::LPDO)
   return logZ, localnorms
 end
 
-lognormalize!(M::MPS) = lognormalize!(LPDO(M))
+lognormalize!(ψ::MPS) = lognormalize!(LPDO(ψ))
 
 """
-    function gradlogZ(M::Union{MPS,MPO};localnorm=nothing)
+    function gradlogZ(M::Union{MPS,LPDO};localnorm=nothing)
 
 Compute the gradients of the log-normalization with respect
 to each MPS/MPO tensor component:
@@ -162,7 +186,8 @@ to each MPS/MPO tensor component:
 If `localnorm=true`, rescale each gradient by the corresponding
 local normalization.
 """
-function gradlogZ(M::Union{MPS,MPO};localnorm=nothing)
+function gradlogZ(L::LPDO; localnorm = nothing)
+  M = L.X
   N = length(M)
   L = Vector{ITensor}(undef, N-1)
   R = Vector{ITensor}(undef, N)
@@ -196,6 +221,7 @@ function gradlogZ(M::Union{MPS,MPO};localnorm=nothing)
   return 2*gradients,log(Z)
 end
 
+gradlogZ(ψ::MPS; kwargs...) = gradlogZ(LPDO(ψ); kwargs...)
 
 """
     function gradnll(ψ::MPS, data::Array; localnorm=nothing, choi::Bool=false)
@@ -223,7 +249,10 @@ If `choi=true`, `ψ` correspodns to a Choi matrix `Λ=|ψ⟩⟨ψ|`.
 The probability is then obtaining by transposing the input state, which 
 is equivalent to take the conjugate of the eigenstate projector.
 """
-function gradnll(ψ::MPS, data::Array; localnorm=nothing, choi::Bool=false)
+function gradnll(ψ::MPS,
+                 data::Array;
+                 localnorm=nothing,
+                 choi::Bool=false)
   N = length(ψ)
 
   s = siteinds(ψ)
@@ -343,7 +372,7 @@ end
 
 
 """
-    function gradnll(lpdo::MPO, data::Array; localnorm=nothing, choi::Bool=false)
+    gradnll(lpdo::LPDO, data::Array; localnorm=nothing, choi::Bool=false)
 
 Compute the gradients of the cross-entropy between the LPDO probability 
 distribution of the empirical data distribution for a set of projective 
@@ -367,196 +396,205 @@ local normalization.
 If `choi=true`, the probability is then obtaining by transposing the 
 input state, which is equivalent to take the conjugate of the eigenstate projector.
 """
-function gradnll(lpdo::MPO,data::Array;localnorm=nothing,choi::Bool=false)
-  N = length(lpdo)
+function gradnll(L::LPDO, data::Array;
+                 localnorm = nothing, choi::Bool = false)
+  if L.X isa MPS
+    return gradnll(L.X,data;localnorm=localnorm,choi=choi)
+  else
+    lpdo = L.X
+    N = length(lpdo)
 
-  s = firstsiteinds(lpdo)  
-  
-  links = [linkind(lpdo, n) for n in 1:N-1]
-  
-  kraus = Index[]
-  for j in 1:N
-    push!(kraus,firstind(lpdo[j],"purifier"))
-  end
-
-  ElT = eltype(lpdo[1])
-  
-  nthreads = Threads.nthreads()
-
-  L     = [Vector{ITensor{2}}(undef, N) for _ in 1:nthreads]
-  Llpdo = [Vector{ITensor}(undef, N) for _ in 1:nthreads]
-  Lgrad = [Vector{ITensor}(undef,N) for _ in 1:nthreads]
-
-  R     = [Vector{ITensor{2}}(undef, N) for _ in 1:nthreads]
-  Rlpdo = [Vector{ITensor}(undef, N) for _ in 1:nthreads]
-  
-  Agrad = [Vector{ITensor}(undef, N) for _ in 1:nthreads]
-  
-  T  = [Vector{ITensor}(undef,N) for _ in 1:nthreads] 
-  Tp = [Vector{ITensor}(undef,N) for _ in 1:nthreads]
-  
-  grads     = [Vector{ITensor}(undef,N) for _ in 1:nthreads] 
-  gradients = [Vector{ITensor}(undef,N) for _ in 1:nthreads]
-  
-  for nthread in 1:nthreads
-
-    for n in 1:N-1
-      L[nthread][n] = ITensor(ElT, undef, links[n]',links[n])
-    end
-    for n in 2:N-1
-      Llpdo[nthread][n] = ITensor(ElT, undef, kraus[n],links[n]',links[n-1])
-    end
-    for n in 1:N-2
-      Lgrad[nthread][n] = ITensor(ElT,undef,links[n],kraus[n+1],links[n+1]')
-    end
-    Lgrad[nthread][N-1] = ITensor(ElT,undef,links[N-1],kraus[N])
-
-    for n in N:-1:2
-      R[nthread][n] = ITensor(ElT, undef, links[n-1]',links[n-1])
-    end 
-    for n in N-1:-1:2
-      Rlpdo[nthread][n] = ITensor(ElT, undef, links[n-1]',kraus[n],links[n])
-    end
-  
-    Agrad[nthread][1] = ITensor(ElT, undef, kraus[1],links[1]',s[1])
-    for n in 2:N-1
-      Agrad[nthread][n] = ITensor(ElT, undef, links[n-1],kraus[n],links[n]',s[n])
-    end
-
-    T[nthread][1] = ITensor(ElT, undef, kraus[1],links[1])
-    Tp[nthread][1] = prime(T[nthread][1],"Link")
-    for n in 2:N-1
-      T[nthread][n] = ITensor(ElT, undef, kraus[n],links[n],links[n-1])
-      Tp[nthread][n] = prime(T[nthread][n],"Link")
-    end
-    T[nthread][N] = ITensor(ElT, undef, kraus[N],links[N-1])
-    Tp[nthread][N] = prime(T[nthread][N],"Link")
-  
-    grads[nthread][1] = ITensor(ElT, undef,links[1],kraus[1],s[1])
-    gradients[nthread][1] = ITensor(ElT,links[1],kraus[1],s[1])
-    for n in 2:N-1
-      grads[nthread][n] = ITensor(ElT, undef,links[n],links[n-1],kraus[n],s[n])
-      gradients[nthread][n] = ITensor(ElT,links[n],links[n-1],kraus[n],s[n])
-    end
-    grads[nthread][N] = ITensor(ElT, undef,links[N-1],kraus[N],s[N])
-    gradients[nthread][N] = ITensor(ElT, links[N-1],kraus[N],s[N])
-  end
-  
-  if isnothing(localnorm)
-    localnorm = ones(N)
-  end
-  
-  loss = zeros(nthreads)
-
-  Threads.@threads for n in 1:size(data)[1]
-
-    nthread = Threads.threadid()
-
-    x = data[n,:]
+    s = firstsiteinds(lpdo)  
     
-    """ LEFT ENVIRONMENTS """
-    if choi
-      T[nthread][1] .= lpdo[1] .* gate(x[1],s[1])
-      L[nthread][1] .= prime(T[nthread][1],"Link") .* dag(T[nthread][1])
-    else
-      T[nthread][1] .= lpdo[1] .* dag(gate(x[1],s[1]))
-      L[nthread][1] .= prime(T[nthread][1],"Link") .* dag(T[nthread][1])
+    links = [linkind(lpdo, n) for n in 1:N-1]
+    
+    kraus = Index[]
+    for j in 1:N
+      push!(kraus,firstind(lpdo[j], "Purifier"))
     end
-    for j in 2:N-1
-      if isodd(j) & choi
-        T[nthread][j] .= lpdo[j] .* gate(x[j],s[j])
-      else
-        T[nthread][j] .= lpdo[j] .* dag(gate(x[j],s[j]))
+
+    ElT = eltype(lpdo[1])
+    
+    nthreads = Threads.nthreads()
+
+    L     = [Vector{ITensor{2}}(undef, N) for _ in 1:nthreads]
+    Llpdo = [Vector{ITensor}(undef, N) for _ in 1:nthreads]
+    Lgrad = [Vector{ITensor}(undef,N) for _ in 1:nthreads]
+
+    R     = [Vector{ITensor{2}}(undef, N) for _ in 1:nthreads]
+    Rlpdo = [Vector{ITensor}(undef, N) for _ in 1:nthreads]
+    
+    Agrad = [Vector{ITensor}(undef, N) for _ in 1:nthreads]
+    
+    T  = [Vector{ITensor}(undef,N) for _ in 1:nthreads] 
+    Tp = [Vector{ITensor}(undef,N) for _ in 1:nthreads]
+    
+    grads     = [Vector{ITensor}(undef,N) for _ in 1:nthreads] 
+    gradients = [Vector{ITensor}(undef,N) for _ in 1:nthreads]
+    
+    for nthread in 1:nthreads
+
+      for n in 1:N-1
+        L[nthread][n] = ITensor(ElT, undef, links[n]',links[n])
       end
-      Llpdo[nthread][j] .= prime(T[nthread][j],"Link") .* L[nthread][j-1]
-      L[nthread][j] .= Llpdo[nthread][j] .* dag(T[nthread][j])
-    end
-    T[nthread][N] .= lpdo[N] .* dag(gate(x[N],s[N]))
-    prob = L[nthread][N-1] * prime(T[nthread][N],"Link")
-    prob = prob * dag(T[nthread][N])
-    prob = real(prob[])
-    loss[nthread] -= log(prob)/size(data)[1]
-    
-    """ RIGHT ENVIRONMENTS """
-    R[nthread][N] .= prime(T[nthread][N],"Link") .* dag(T[nthread][N])
-    for j in reverse(2:N-1)
-      Rlpdo[nthread][j] .= prime(T[nthread][j],"Link") .* R[nthread][j+1] 
-      R[nthread][j] .= Rlpdo[nthread][j] .* dag(T[nthread][j])
-    end
-    
-    """ GRADIENTS """
-    if choi
-      Tp[nthread][1] .= prime(lpdo[1],"Link") .* gate(x[1],s[1])
-      Agrad[nthread][1] .=  Tp[nthread][1] .* dag(gate(x[1],s[1]))
-    else
-      Tp[nthread][1] .= prime(lpdo[1],"Link") .* dag(gate(x[1],s[1]))
-      Agrad[nthread][1] .=  Tp[nthread][1] .* gate(x[1],s[1])
-    end
-    grads[nthread][1] .= R[nthread][2] .* Agrad[nthread][1]
-    gradients[nthread][1] .+= (1 / (localnorm[1] * prob)) .* grads[nthread][1]
-    for j in 2:N-1
-      if isodd(j) & choi
-        Tp[nthread][j] .= prime(lpdo[j],"Link") .* gate(x[j],s[j])
-        Lgrad[nthread][j-1] .= L[nthread][j-1] .* Tp[nthread][j]
-        Agrad[nthread][j] .= Lgrad[nthread][j-1] .* dag(gate(x[j],s[j]))
-      else
-        Tp[nthread][j] .= prime(lpdo[j],"Link") .* dag(gate(x[j],s[j]))
-        Lgrad[nthread][j-1] .= L[nthread][j-1] .* Tp[nthread][j]
-        Agrad[nthread][j] .= Lgrad[nthread][j-1] .* gate(x[j],s[j])
+      for n in 2:N-1
+        Llpdo[nthread][n] = ITensor(ElT, undef, kraus[n],links[n]',links[n-1])
       end
-      grads[nthread][j] .= R[nthread][j+1] .* Agrad[nthread][j] 
-      gradients[nthread][j] .+= (1 / (localnorm[j] * prob)) .* grads[nthread][j]
-    end
-    Tp[nthread][N] .= prime(lpdo[N],"Link") .* dag(gate(x[N],s[N]))
-    Lgrad[nthread][N-1] .= L[nthread][N-1] .* Tp[nthread][N]
-    grads[nthread][N] .= Lgrad[nthread][N-1] .* gate(x[N],s[N])
-    gradients[nthread][N] .+= (1 / (localnorm[N] * prob)) .* grads[nthread][N]
-  end
-  
-  for nthread in 1:nthreads
-    for g in gradients[nthread]
-      g .= (-2/size(data)[1]) .* g
-    end
-  end
-  
-  gradients_tot = Vector{ITensor}(undef,N) 
-  gradients_tot[1] = ITensor(ElT,links[1],kraus[1],s[1])
-  for n in 2:N-1
-    gradients_tot[n] = ITensor(ElT,links[n],links[n-1],kraus[n],s[n])
-  end
-  gradients_tot[N] = ITensor(ElT, links[N-1],kraus[N],s[N])
-  
-  loss_tot = 0.0
-  for nthread in 1:nthreads
-    gradients_tot .+= gradients[nthread]
-    loss_tot += loss[nthread]
-  end
-  
-  return gradients_tot, loss_tot
+      for n in 1:N-2
+        Lgrad[nthread][n] = ITensor(ElT,undef,links[n],kraus[n+1],links[n+1]')
+      end
+      Lgrad[nthread][N-1] = ITensor(ElT,undef,links[N-1],kraus[N])
 
+      for n in N:-1:2
+        R[nthread][n] = ITensor(ElT, undef, links[n-1]',links[n-1])
+      end 
+      for n in N-1:-1:2
+        Rlpdo[nthread][n] = ITensor(ElT, undef, links[n-1]',kraus[n],links[n])
+      end
+    
+      Agrad[nthread][1] = ITensor(ElT, undef, kraus[1],links[1]',s[1])
+      for n in 2:N-1
+        Agrad[nthread][n] = ITensor(ElT, undef, links[n-1],kraus[n],links[n]',s[n])
+      end
+
+      T[nthread][1] = ITensor(ElT, undef, kraus[1],links[1])
+      Tp[nthread][1] = prime(T[nthread][1],"Link")
+      for n in 2:N-1
+        T[nthread][n] = ITensor(ElT, undef, kraus[n],links[n],links[n-1])
+        Tp[nthread][n] = prime(T[nthread][n],"Link")
+      end
+      T[nthread][N] = ITensor(ElT, undef, kraus[N],links[N-1])
+      Tp[nthread][N] = prime(T[nthread][N],"Link")
+    
+      grads[nthread][1] = ITensor(ElT, undef,links[1],kraus[1],s[1])
+      gradients[nthread][1] = ITensor(ElT,links[1],kraus[1],s[1])
+      for n in 2:N-1
+        grads[nthread][n] = ITensor(ElT, undef,links[n],links[n-1],kraus[n],s[n])
+        gradients[nthread][n] = ITensor(ElT,links[n],links[n-1],kraus[n],s[n])
+      end
+      grads[nthread][N] = ITensor(ElT, undef,links[N-1],kraus[N],s[N])
+      gradients[nthread][N] = ITensor(ElT, links[N-1],kraus[N],s[N])
+    end
+    
+    if isnothing(localnorm)
+      localnorm = ones(N)
+    end
+    
+    loss = zeros(nthreads)
+
+    Threads.@threads for n in 1:size(data)[1]
+
+      nthread = Threads.threadid()
+
+      x = data[n,:]
+      
+      """ LEFT ENVIRONMENTS """
+      if choi
+        T[nthread][1] .= lpdo[1] .* gate(x[1],s[1])
+        L[nthread][1] .= prime(T[nthread][1],"Link") .* dag(T[nthread][1])
+      else
+        T[nthread][1] .= lpdo[1] .* dag(gate(x[1],s[1]))
+        L[nthread][1] .= prime(T[nthread][1],"Link") .* dag(T[nthread][1])
+      end
+      for j in 2:N-1
+        if isodd(j) & choi
+          T[nthread][j] .= lpdo[j] .* gate(x[j],s[j])
+        else
+          T[nthread][j] .= lpdo[j] .* dag(gate(x[j],s[j]))
+        end
+        Llpdo[nthread][j] .= prime(T[nthread][j],"Link") .* L[nthread][j-1]
+        L[nthread][j] .= Llpdo[nthread][j] .* dag(T[nthread][j])
+      end
+      T[nthread][N] .= lpdo[N] .* dag(gate(x[N],s[N]))
+      prob = L[nthread][N-1] * prime(T[nthread][N],"Link")
+      prob = prob * dag(T[nthread][N])
+      prob = real(prob[])
+      loss[nthread] -= log(prob)/size(data)[1]
+      
+      """ RIGHT ENVIRONMENTS """
+      R[nthread][N] .= prime(T[nthread][N],"Link") .* dag(T[nthread][N])
+      for j in reverse(2:N-1)
+        Rlpdo[nthread][j] .= prime(T[nthread][j],"Link") .* R[nthread][j+1] 
+        R[nthread][j] .= Rlpdo[nthread][j] .* dag(T[nthread][j])
+      end
+      
+      """ GRADIENTS """
+      if choi
+        Tp[nthread][1] .= prime(lpdo[1],"Link") .* gate(x[1],s[1])
+        Agrad[nthread][1] .=  Tp[nthread][1] .* dag(gate(x[1],s[1]))
+      else
+        Tp[nthread][1] .= prime(lpdo[1],"Link") .* dag(gate(x[1],s[1]))
+        Agrad[nthread][1] .=  Tp[nthread][1] .* gate(x[1],s[1])
+      end
+      grads[nthread][1] .= R[nthread][2] .* Agrad[nthread][1]
+      gradients[nthread][1] .+= (1 / (localnorm[1] * prob)) .* grads[nthread][1]
+      for j in 2:N-1
+        if isodd(j) & choi
+          Tp[nthread][j] .= prime(lpdo[j],"Link") .* gate(x[j],s[j])
+          Lgrad[nthread][j-1] .= L[nthread][j-1] .* Tp[nthread][j]
+          Agrad[nthread][j] .= Lgrad[nthread][j-1] .* dag(gate(x[j],s[j]))
+        else
+          Tp[nthread][j] .= prime(lpdo[j],"Link") .* dag(gate(x[j],s[j]))
+          Lgrad[nthread][j-1] .= L[nthread][j-1] .* Tp[nthread][j]
+          Agrad[nthread][j] .= Lgrad[nthread][j-1] .* gate(x[j],s[j])
+        end
+        grads[nthread][j] .= R[nthread][j+1] .* Agrad[nthread][j] 
+        gradients[nthread][j] .+= (1 / (localnorm[j] * prob)) .* grads[nthread][j]
+      end
+      Tp[nthread][N] .= prime(lpdo[N],"Link") .* dag(gate(x[N],s[N]))
+      Lgrad[nthread][N-1] .= L[nthread][N-1] .* Tp[nthread][N]
+      grads[nthread][N] .= Lgrad[nthread][N-1] .* gate(x[N],s[N])
+      gradients[nthread][N] .+= (1 / (localnorm[N] * prob)) .* grads[nthread][N]
+    end
+    
+    for nthread in 1:nthreads
+      for g in gradients[nthread]
+        g .= (-2/size(data)[1]) .* g
+      end
+    end
+    
+    gradients_tot = Vector{ITensor}(undef,N) 
+    gradients_tot[1] = ITensor(ElT,links[1],kraus[1],s[1])
+    for n in 2:N-1
+      gradients_tot[n] = ITensor(ElT,links[n],links[n-1],kraus[n],s[n])
+    end
+    gradients_tot[N] = ITensor(ElT, links[N-1],kraus[N],s[N])
+    
+    loss_tot = 0.0
+    for nthread in 1:nthreads
+      gradients_tot .+= gradients[nthread]
+      loss_tot += loss[nthread]
+    end
+    
+    return gradients_tot, loss_tot
+  end
 end
 
 
 """
-    function gradients(M::Union{MPS,MPO},data::Array;localnorm=nothing,choi::Bool=false)
+    gradients(M::Union{MPS,LPDO}, data::Array; localnorm = nothing, choi::Bool = false)
 
 Compute the gradients of the cost function:
 `C = log(Z) - ⟨log P(σ)⟩_data`
 
 If `choi=true`, add the Choi normalization `trace(Λ)=d^N` to the cost function.
 """
-function gradients(M::Union{MPS,MPO},data::Array;localnorm=nothing,choi::Bool=false)
-  g_logZ,logZ = gradlogZ(M,localnorm=localnorm)
-  g_nll, nll  = gradnll(M,data,localnorm=localnorm,choi=choi)
+function gradients(L::LPDO, data::Array;
+                   localnorm = nothing, choi::Bool = false)
+  #M = L.X
+  g_logZ,logZ = gradlogZ(L,localnorm=localnorm)
+  g_nll, nll  = gradnll(L,data,localnorm=localnorm,choi=choi)
   grads = g_logZ + g_nll
   loss = logZ + nll
-  loss += (choi ? -0.5 * length(M) * log(2) : 0.0)
+  loss += (choi ? -0.5 * length(L) * log(2) : 0.0)
   return grads,loss
 end
 
+gradients(ψ::MPS, args...; kwargs...) =
+  gradients(LPDO(ψ), args...; kwargs...)
 
 """
-    statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwargs...)
+    statetomography(model::Union{MPS,LPDO}, data::Array, opt::Optimizer; kwargs...)
 
 Run quantum state tomography using a the starting state `model` on `data`.
 
@@ -570,8 +608,19 @@ Run quantum state tomography using a the starting state `model` on `data`.
   - `observer`: keep track of measurements and fidelities.
   - `outputpath`: write observer on file 
 """
-function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwargs...)
-                         
+function statetomography(L::LPDO,
+                         data::Array,
+                         opt::Optimizer;
+                         kwargs...)
+  #if L.X isa MPS
+  #  model = L.X
+  #else
+  #  model = L.X
+  #end
+    
+  #model = L.X
+  model = L
+  
   # Read arguments
   localnorm::Bool = get(kwargs,:localnorm,true)
   globalnorm::Bool = get(kwargs,:globalnorm,false)
@@ -590,18 +639,21 @@ function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwarg
   end
   
   model = copy(model)
-
+  
   # Set up target quantum state
   if !isnothing(target)
     target = copy(target)
     if typeof(target)==MPS
       for j in 1:length(model)
-        replaceind!(target[j],firstind(target[j],"Site"),firstind(model[j],"Site"))
+        replaceind!(target[j],firstind(target[j],"Site"),firstind(model.X[j],"Site"))
+        #replaceind!(target[j],firstind(target[j],"Site"),firstind(model[j],"Site"))
       end
     else
       for j in 1:length(model)
-        replaceind!(target[j],inds(target[j],"Site")[1],firstind(model[j],"Site"))
-        replaceind!(target[j],inds(target[j],"Site")[2],prime(firstind(model[j],"Site")))
+        replaceind!(target[j],inds(target[j],"Site")[1],firstind(model.X[j],"Site"))
+        replaceind!(target[j],inds(target[j],"Site")[2],prime(firstind(model.X[j],"Site")))
+        #replaceind!(target[j],inds(target[j],"Site")[1],firstind(model[j],"Site"))
+        #replaceind!(target[j],inds(target[j],"Site")[2],prime(firstind(model[j],"Site")))
       end
     end
   end
@@ -625,12 +677,12 @@ function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwarg
       
       # Local normalization
       if localnorm
-        model_norm = copy(model)
-        logZ,localnorms = lognormalize!(LPDO(model_norm))
-        grads,loss = gradients(model_norm,batch,localnorm=localnorms,choi=choi)
+        modelcopy = copy(model)
+        logZ,localnorms = lognormalize!(modelcopy)
+        grads,loss = gradients(modelcopy,batch,localnorm=localnorms,choi=choi)
       # Global normalization
       elseif globalnorm
-        lognormalize!(LPDO(model))
+        lognormalize!(model)
         grads,loss = gradients(model,batch,choi=choi)
       # Unnormalized
       else
@@ -656,9 +708,9 @@ function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwarg
     print("Ep = $ep  ")
     @printf("Loss = %.5E  ",avg_loss)
     if !isnothing(target)
-      F = fidelity(model,target)
-      if (typeof(model) == MPO) & (typeof(target) == MPO)
-        @printf("Trace distance = %.3E  ",F)
+      if ((model.X isa MPO) & (target isa MPO)) 
+        frob_dist = frobenius_distance(model,target)
+        @printf("Trace distance = %.3E  ",frob_dist)
         if (length(model) <= 8)
           disable_warn_order!()
           fid = fullfidelity(model,target)
@@ -666,6 +718,7 @@ function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwarg
           @printf("Fidelity = %.3E  ",fid)
         end
       else
+        F = fidelity(model,target)
         @printf("Fidelity = %.3E  ",F)
       end
     end
@@ -675,20 +728,26 @@ function statetomography(model::Union{MPS,MPO},data::Array,opt::Optimizer; kwarg
     tot_time += ep_time
   end
   @printf("Total Time = %.3f sec\n",tot_time)
-  lognormalize!(LPDO(model))
+  lognormalize!(model)
   
   return (isnothing(observer) ? model : (model,observer))  
 end
 
+statetomography(ψ::MPS, args...; kwargs...) =
+  statetomography(LPDO(ψ), args...; kwargs...)
 
 """
-    processtomography(M::Union{MPS,MPO},data_in::Array,data_out::Array,opt::Optimizer; kwargs...)
+    processtomography(M::Union{MPS,LPDO},data_in::Array,data_out::Array,opt::Optimizer; kwargs...)
 
 Run quantum process tomography on `(data_in,data_out)` using `model` as variational ansatz.
 
 The data is reshuffled so it takes the format: `(input1,output1,input2,output2,…)`.
 """
-function processtomography(M::Union{MPS,MPO},data_in::Array,data_out::Array,opt::Optimizer; kwargs...)
+function processtomography(L::LPDO,
+                           data_in::Array,
+                           data_out::Array,
+                           opt::Optimizer;
+                           kwargs...)
   N = size(data_in)[2]
   @assert size(data_in) == size(data_out)
   
@@ -700,39 +759,42 @@ function processtomography(M::Union{MPS,MPO},data_in::Array,data_out::Array,opt:
       data[n,2*j]   = data_out[n,j]
     end
   end
-  return statetomography(M,data,opt; choi=true,kwargs...)
+  return statetomography(L,data,opt; choi=true,kwargs...)
 end
 
-"""
-    getdensityoperator(lpdo::MPO)
+processtomography(ψ::MPS, args...; kwargs...) =
+  processtomography(LPDO(ψ), args...; kwargs...)
 
-Contract the `purifier` indices to get the MPO
-`ρ = lpdo lpdo†`
 """
-function getdensityoperator(lpdo0::MPO)
-  lpdo = copy(lpdo0)
+    MPO(L::LPDO)
+
+Contract the purifier indices to get the MPO
+`ρ = L.X L.X†`
+"""
+function ITensors.MPO(lpdo0::LPDO)
+  lpdo = copy(lpdo0.X)
   noprime!(lpdo)
   N = length(lpdo)
   M = ITensor[]
-  prime!(lpdo[1],tags="Site")
-  prime!(lpdo[1],tags="Link")
+  prime!(lpdo[1]; tags = "Site")
+  prime!(lpdo[1]; tags = "Link")
   tmp = dag(lpdo[1]) * noprime(lpdo[1])
-  Cdn = combiner(inds(tmp,tags="Link"),tags="Link,l=1")
-  push!(M,tmp * Cdn)
+  Cdn = combiner(inds(tmp, tags = "Link"), tags = "Link,l=1")
+  push!(M, tmp * Cdn)
   
   for j in 2:N-1
-    prime!(lpdo[j],tags="Site")
-    prime!(lpdo[j],tags="Link")
+    prime!(lpdo[j]; tags = "Site")
+    prime!(lpdo[j]; tags = "Link")
     tmp = dag(lpdo[j]) * noprime(lpdo[j]) 
     Cup = Cdn
     Cdn = combiner(inds(tmp,tags="Link,l=$j"),tags="Link,l=$j")
-    push!(M,tmp * Cup * Cdn)
+    push!(M, tmp * Cup * Cdn)
   end
-  prime!(lpdo[N],tags="Site")
-  prime!(lpdo[N],tags="Link")
+  prime!(lpdo[N]; tags = "Site")
+  prime!(lpdo[N]; tags = "Link")
   tmp = dag(lpdo[N]) * noprime(lpdo[N])
   Cup = Cdn
-  push!(M,tmp * Cdn)
+  push!(M, tmp * Cdn)
   rho = MPO(M)
   noprime!(lpdo)
   return rho
@@ -753,60 +815,110 @@ function fidelity(ψ::MPS,ϕ::MPS)
 end
 
 """
-    fidelity(ψ::MPS,ρ::MPO)
+    fidelity(ψ::MPS, ρ::LPDO)
 
-    fidelity(ρ::MPO,ψ::MPS)
+    fidelity(ρ::LPDO, ψ::MPS)
 
 Compute the fidelity between an MPS and LPDO.
 
 `F = ⟨ψ|ρ|ψ⟩`
 """
-function fidelity(ψ::MPS,ρ::MPO)
-  islpdo = any(x -> any(y -> hastags(y, "purifier"), inds(x)), ρ)
-  if islpdo 
+function fidelity(ψ::MPS, L::LPDO)
+  if L.X isa MPS
+    return fidelity(ψ,L.X)
+  else
+    ρ = L.X
     A = *(ρ,ψ,method="densitymatrix",cutoff=1e-10)
     log_F̃ = log(abs(inner(A,A)))
     #log_F̃ = log(abs(inner(ρ,ψ,ρ,ψ)))
     log_K = 2.0*(lognorm(ψ) + lognorm(ρ))
-    fidelity = exp(log_F̃ - log_K)
-  else
-    log_F̃ = log(abs(inner(ψ,ρ,ψ)))
-    log_K = 2.0*lognorm(ψ) + log(tr(ρ)) 
-    fidelity = exp(log_F̃ - log_K)
+    return exp(log_F̃ - log_K)#fidelity
   end
+end
+
+fidelity(ρ::LPDO, ψ::MPS) = fidelity(ψ, ρ)
+
+"""
+    fidelity(ψ::MPS,ρ::MPO)
+
+    fidelity(ρ::MPO,ψ::MPS)
+
+Compute the fidelity between an MPS and MPO.
+
+`F = ⟨ψ|ρ|ψ⟩`
+"""
+function fidelity(ψ::MPS, ρ::MPO)
+  log_F̃ = log(abs(inner(ψ,ρ,ψ)))
+  log_K = 2.0*lognorm(ψ) + log(tr(ρ)) 
+  fidelity = exp(log_F̃ - log_K)
   return fidelity
 end
 
-fidelity(ρ::MPO,ψ::MPS) = fidelity(ψ::MPS,ρ::MPO)
-
-fidelity(ρ::MPO,σ::MPO) = frobenius_distance(ρ,σ)
+fidelity(ρ::MPO, ψ::MPS) = fidelity(ψ, ρ)
 
 """
-    frobenius_distance(lpdo::MPO,ρ::MPO)
+    frobenius_distance(lpdo::MPO, ρ::MPO)
 
 Compute the trace norm of the difference between two MPO.
 
 `F(ρ,σ) = sqrt(trace[(ρ-σ)†(ρ-σ)])`
 """
-function frobenius_distance(ρ0::MPO,σ0::MPO)
-  islpdo_ρ = any(x -> any(y -> hastags(y, "purifier"), inds(x)), ρ0)
-  islpdo_σ = any(x -> any(y -> hastags(y, "purifier"), inds(x)), σ0)
- 
-  if islpdo_ρ & islpdo_σ
-    ρ′ = getdensityoperator(copy(ρ0))
-    σ′ = getdensityoperator(copy(σ0))
+function frobenius_distance(ρ0::LPDO, σ0::LPDO)
+  ρ = copy(ρ0)
+  σ = copy(σ0)
+  # Normalize both LPDO to 1
+  lognormalize!(ρ)
+  lognormalize!(σ)
+  # Extract density operators MPO
+  ρ′ = MPO(ρ)
+  σ′ = MPO(σ)
+  Kρ  = 1.0
+  Kσ  = 1.0
+
+  distance  = inner(ρ′,ρ′)/Kρ^2
+  distance += inner(σ′,σ′)/Kσ^2
+  distance -= 2.0*inner(ρ′,σ′)/(Kρ*Kσ)
   
-  elseif islpdo_ρ & !islpdo_σ
-    ρ′ = getdensityoperator(copy(ρ0))
-    σ′ = σ0
+  return real(sqrt(distance))
+end
+
+function frobenius_distance(ρ0::LPDO, σ0::MPO)
+  # Normalize the LPDO to 1
+  ρ = copy(ρ0)
+  lognormalize!(ρ)
+  ρ′ = MPO(ρ)
+  σ′ = σ0
+  # Get the MPO normalization
+  Kρ = 1.0
+  Kσ = tr(σ′)
+
+  distance  = inner(ρ′,ρ′)/Kρ^2
+  distance += inner(σ′,σ′)/Kσ^2
+  distance -= 2.0*inner(ρ′,σ′)/(Kρ*Kσ)
   
-  elseif !islpdo_ρ & islpdo_σ
-    σ′ = getdensityoperator(copy(σ0))
-    ρ′ = ρ0
-  else
-    ρ′ = ρ0
-    σ′ = σ0
-  end
+  return real(sqrt(distance))
+end
+
+function frobenius_distance(ρ0::MPO, σ0::LPDO)
+  # Normalize the LPDO to 1
+  σ = copy(σ0)
+  lognormalize!(σ)
+  σ′ = MPO(σ)
+  ρ′ = ρ0
+  # Get the MPO normalization
+  Kρ = tr(ρ′)
+  Kσ = 1.0
+
+  distance  = inner(ρ′,ρ′)/Kρ^2
+  distance += inner(σ′,σ′)/Kσ^2
+  distance -= 2.0*inner(ρ′,σ′)/(Kρ*Kσ)
+  
+  return real(sqrt(distance))
+end
+
+function frobenius_distance(ρ0::MPO, σ0::MPO)
+  ρ′ = ρ0
+  σ′ = σ0
   Kρ = tr(ρ′)
   Kσ = tr(σ′)
   
@@ -817,16 +929,15 @@ function frobenius_distance(ρ0::MPO,σ0::MPO)
   return real(sqrt(distance))
 end
 
-
 """
     fullfidelity(ρ::MPO,σ::MPO;choi::Bool=false)
 
 Compute the full quantum fidelity between two density operatos
 by full enumeration.
 """
-function fullfidelity(ρ::MPO,σ::MPO)
-  @assert length(ρ) < 12
-  ρ_mat = fullmatrix(getdensityoperator(ρ))
+function fullfidelity(L::LPDO,σ::MPO)
+  @assert length(L) < 12
+  ρ_mat = fullmatrix(MPO(L))
   σ_mat = fullmatrix(σ)
   
   ρ_mat ./= tr(ρ_mat)
@@ -848,7 +959,8 @@ over a dataset `data`:
 If `choi=true`, the probability is then obtaining by transposing the 
 input state, which is equivalent to take the conjugate of the eigenstate projector.
 """
-function nll(ψ::MPS,data::Array;choi::Bool=false)
+function nll(L::LPDO{MPS}, data::Array; choi::Bool = false)
+  ψ = L.X
   N = length(ψ)
   @assert N==size(data)[2]
   loss = 0.0
@@ -869,8 +981,10 @@ function nll(ψ::MPS,data::Array;choi::Bool=false)
   return loss
 end
 
+nll(ψ::MPS, args...; kwargs...) = nll(LPDO(ψ), args...; kwargs...)
+
 """
-    nll(lpdo::MPO,data::Array;choi::Bool=false)
+    nll(lpdo::LPDO, data::Array; choi::Bool = false)
 
 Compute the negative log-likelihood using an LPDO ansatz
 over a dataset `data`:
@@ -880,7 +994,8 @@ over a dataset `data`:
 If `choi=true`, the probability is then obtaining by transposing the 
 input state, which is equivalent to take the conjugate of the eigenstate projector.
 """
-function nll(lpdo::MPO,data::Array;choi::Bool=false)
+function nll(L::LPDO{MPO}, data::Array; choi::Bool = false)
+  lpdo = L.X
   N = length(lpdo)
   loss = 0.0
   s = firstsiteinds(lpdo)

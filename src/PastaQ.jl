@@ -10,16 +10,15 @@ using Printf
 include("exports.jl")
 include("lpdo.jl")
 
-include("quantumcircuit/quantumgates.jl")
-include("quantumcircuit/circuitops.jl")
-include("quantumcircuit/quantumcircuit.jl")
-include("quantumcircuit/circuits.jl")
-include("quantumcircuit/datagen.jl")
+include("circuits/gates.jl")
+include("circuits/circuits.jl")
+include("circuits/runcircuit.jl")
+include("circuits/datagen.jl")
 
 include("optimizers.jl")
 include("observer.jl")
 include("utils.jl")
-include("quantumtomography.jl")
+include("tomography.jl")
 
 
 end # module

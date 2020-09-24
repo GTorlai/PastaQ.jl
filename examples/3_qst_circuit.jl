@@ -23,14 +23,13 @@ println("Training...")
 
 # Noisy circuit
 ϱ,data = loaddata("../data/qst_circuit_noisy.h5")
-#@show ϱ
 N = length(ϱ)
 χ = maxlinkdim(ϱ)
 ξ = 2
 
+
 ρ0 = initializetomography(N;χ=χ,ξ=ξ,σ=0.1)
 opt = Sgd(ρ0;η = 0.01)
-
 println("Training...")
 ρ = statetomography(ρ0,data,opt;
                     batchsize=1000,

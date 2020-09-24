@@ -21,13 +21,16 @@ end
 
 Initialize Sgd
 """
-function Sgd(M::Union{MPS,MPO};η::Float64=0.01,γ::Float64=0.0)
+function Sgd(L::LPDO;η::Float64=0.01,γ::Float64=0.0)
+  M = L.X
   v = ITensor[]
-  for j in 1:length(M)
+  for j in 1:length(L)
     push!(v,ITensor(zeros(size(M[j])),inds(M[j])))
   end
   return Sgd(η,γ,v)
 end
+
+Sgd(ψ::MPS;η::Float64=0.01,γ::Float64=0.0) = Sgd(LPDO(ψ);η=η,γ=γ)
 
 """
     update!(M::Union{MPS,MPO},∇::Array,opt::Sgd; kwargs...)
@@ -37,14 +40,15 @@ Update parameters with Sgd.
 1. `vⱼ = γ * vⱼ - η * ∇ⱼ`: integrated velocity
 2. `θⱼ = θⱼ + vⱼ`: parameter update
 """
-function update!(M::Union{MPS,MPO},∇::Array,opt::Sgd; kwargs...)
+function update!(L::LPDO,∇::Array,opt::Sgd; kwargs...)
+  M = L.X
   for j in 1:length(M)
     opt.v[j] = opt.γ * opt.v[j] - opt.η * ∇[j]
     M[j] = M[j] + opt.v[j] 
   end
 end
 
-
+update!(ψ::MPS,∇::Array,opt::Sgd; kwargs...) = update!(LPDO(ψ),∇,opt;kwargs...)
 """
     Adagrad
 
@@ -64,13 +68,16 @@ end
 
 Initialize Adagrad
 """
-function Adagrad(M::Union{MPS,MPO};η::Float64=0.01,ϵ::Float64=1E-8)
+function Adagrad(L::LPDO;η::Float64=0.01,ϵ::Float64=1E-8)
+  M = L.X
   ∇² = ITensor[]
   for j in 1:length(M)
     push!(∇²,ITensor(zeros(size(M[j])),inds(M[j])))
   end
   return Adagrad(η,ϵ,∇²)
 end
+
+Adagrad(ψ::MPS;η::Float64=0.01,ϵ::Float64=1E-8) = Adagrad(LPDO(ψ);η=η,ϵ=ϵ)
 
 """
     update!(M::Union{MPS,MPO},∇::Array,opt::Adagrad)
@@ -81,7 +88,8 @@ Update parameters with Adagrad.
 2. `Δθⱼ = η * ∇ⱼ / (sqrt(gⱼ+ϵ)` 
 2. `θⱼ = θⱼ - Δθⱼ`: parameter update
 """
-function update!(M::Union{MPS,MPO},∇::Array,opt::Adagrad)
+function update!(L::LPDO,∇::Array,opt::Adagrad; kwargs...)
+  M = L.X
   for j in 1:length(M)
     opt.∇²[j] += ∇[j] .^ 2 
     ∇² = copy(opt.∇²[j])
@@ -92,6 +100,7 @@ function update!(M::Union{MPS,MPO},∇::Array,opt::Adagrad)
   end
 end
 
+update!(ψ::MPS,∇::Array,opt::Adagrad; kwargs...) = update!(LPDO(ψ),∇,opt; kwargs...)
 
 """
     Adadelta
@@ -114,7 +123,8 @@ end
 
 Initialize Adadelta
 """
-function Adadelta(M::Union{MPS,MPO};γ::Float64=0.9,ϵ::Float64=1E-8)
+function Adadelta(L::LPDO;γ::Float64=0.9,ϵ::Float64=1E-8)
+  M = L.X
   Δθ² = ITensor[]
   ∇² = ITensor[]
   for j in 1:length(M)
@@ -123,6 +133,8 @@ function Adadelta(M::Union{MPS,MPO};γ::Float64=0.9,ϵ::Float64=1E-8)
   end
   return Adadelta(γ,ϵ,∇²,Δθ²)
 end
+
+Adadelta(ψ::MPS;γ::Float64=0.9,ϵ::Float64=1E-8) = Adadelta(LPDO(ψ);γ=γ,ϵ=ϵ) 
 
 """
     update!(M::Union{MPS,MPO},∇::Array,opt::Adadelta; kwargs...)
@@ -135,7 +147,8 @@ Update parameters with Adadelta
 3. `θⱼ = θⱼ - Δθⱼ`: parameter update
 4. `pⱼ = γ * pⱼ + (1-γ) * Δθⱼ²`: decaying average
 """
-function update!(M::Union{MPS,MPO},∇::Array,opt::Adadelta; kwargs...)
+function update!(L::LPDO,∇::Array,opt::Adadelta; kwargs...)
+  M = L.X
   for j in 1:length(M)
     # Update square gradients
     opt.∇²[j] = opt.γ * opt.∇²[j] + (1-opt.γ) * ∇[j] .^ 2
@@ -162,7 +175,7 @@ function update!(M::Union{MPS,MPO},∇::Array,opt::Adadelta; kwargs...)
   end
 end
 
-
+update!(ψ::MPS,∇::Array,opt::Adadelta; kwargs...) = update!(LPDO(ψ),∇,opt; kwargs...)
 """
     Adam
 
@@ -190,8 +203,9 @@ end
 
 Initialize Adam
 """
-function Adam(M::Union{MPS,MPO};η::Float64=0.001,
+function Adam(L::LPDO;η::Float64=0.001,
               β₁::Float64=0.9,β₂::Float64=0.999,ϵ::Float64=1E-7)
+  M = L.X
   ∇ = ITensor[]
   ∇² = ITensor[]
   for j in 1:length(M)
@@ -201,12 +215,15 @@ function Adam(M::Union{MPS,MPO};η::Float64=0.001,
   return Adam(η,β₁,β₂,ϵ,∇,∇²)
 end
 
+Adam(ψ::MPS;η::Float64=0.001,β₁::Float64=0.9,β₂::Float64=0.999,ϵ::Float64=1E-7) = Adam(LPDO(ψ);η=η,β₁=β₁,β₂=β₂,ϵ=ϵ)
+
 """
     update!(M::Union{MPS,MPO},∇::Array,opt::Adam; kwargs...)
 
 Update parameters with Adam
 """
-function update!(M::Union{MPS,MPO},∇::Array,opt::Adam; kwargs...)
+function update!(L::LPDO,∇::Array,opt::Adam; kwargs...)
+  M = L.X
   t = kwargs[:step]
   for j in 1:length(M)
     # Update square gradients
@@ -226,6 +243,7 @@ function update!(M::Union{MPS,MPO},∇::Array,opt::Adam; kwargs...)
   end
 end
 
+update!(ψ::MPS,∇::Array,opt::Adam; kwargs...) = update!(LPDO(ψ),∇,opt; kwargs...)
 #
 #struct Adamax <: Optimizer 
 #  η::Float64

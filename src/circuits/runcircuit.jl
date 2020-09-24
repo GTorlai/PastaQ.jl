@@ -10,7 +10,8 @@ Initialize qubits to:
 qubits(sites::Vector{<:Index}; mixed::Bool=false) = 
   mixed ? MPO(productMPS(sites, "0")) : productMPS(sites, "0") 
 
-qubits(N::Int; mixed::Bool=false) = qubits(siteinds("qubit", N); mixed=mixed)
+qubits(N::Int; mixed::Bool=false) =
+  qubits(siteinds("Qubit", N); mixed=mixed)
 
 
 """ 
@@ -30,18 +31,97 @@ end
 """
     circuit(sites::Vector{<:Index}) = MPO(sites, "Id")
 
-    circuit(N::Int) = circuit(siteinds("qubit", N))
+    circuit(N::Int) = circuit(siteinds("Qubit", N))
 
 Initialize a circuit MPO
 """
 circuit(sites::Vector{<:Index}) = MPO(sites, "Id")
 
-circuit(N::Int) = circuit(siteinds("qubit", N))
+circuit(N::Int) = circuit(siteinds("Qubit", N))
 
 
 """----------------------------------------------
                   CIRCUIT FUNCTIONS 
 ------------------------------------------------- """
+
+"""
+  gate(M::Union{MPS,MPO}, gatename::String, site::Int; kwargs...)
+
+Generate a gate_tensor for a single-qubit gate identified by `gatename`
+acting on site `site`, with indices identical to an input MPS/MPO.
+"""
+function gate(M::Union{MPS,MPO},
+              gatename::String,
+              site::Int; kwargs...)
+  site_ind = (typeof(M)==MPS ? siteind(M,site) :
+                               firstind(M[site], tags="Site", plev = 0))
+  return gate(gatename, site_ind; kwargs...)
+end
+
+"""
+  gate(M::Union{MPS,MPO},gatename::String, site::Tuple; kwargs...)
+
+Generate a gate_tensor for a two-qubit gate identified by `gatename`
+acting on sites `(site[1],site[2])`, with indices identical to an input MPS/MPO.
+"""
+function gate(M::Union{MPS,MPO},
+              gatename::String,
+              site::Tuple; kwargs...)
+  site_ind1 = (typeof(M)==MPS ? siteind(M,site[1]) :
+                                firstind(M[site[1]], tags="Site", plev = 0))
+  site_ind2 = (typeof(M)==MPS ? siteind(M,site[2]) :
+                                firstind(M[site[2]], tags="Site", plev = 0))
+
+  return gate(gatename,site_ind1,site_ind2; kwargs...)
+end
+
+gate(M::Union{MPS,MPO}, gatedata::Tuple) =
+  gate(M,gatedata...)
+
+gate(M::Union{MPS,MPO},
+     gatename::String,
+     sites::Union{Int, Tuple},
+     params::NamedTuple) =
+  gate(M, gatename, sites; params...)
+
+"""
+  applygate!(M::Union{MPS,MPO},gatename::String,sites::Union{Int,Tuple};kwargs...)
+
+Apply a quantum gate to an MPS/MPO.
+"""
+function applygate!(M::Union{MPS,MPO},
+                    gatename::String,
+                    sites::Union{Int,Tuple};
+                    kwargs...)
+  g = gate(M,gatename,sites;kwargs...)
+  Mc = apply(g,M;kwargs...)
+  M[:] = Mc
+  return M
+end
+
+"""
+  applygate!(M::Union{MPS,MPO},gate_tensor::ITensor; kwargs...)
+
+Contract a gate_tensor with an MPS/MPO.
+"""
+function applygate!(M::Union{MPS,MPO},
+                    gate_tensor::ITensor;
+                    kwargs...)
+  Mc = apply(gate_tensor,M;kwargs...)
+  M[:] = Mc
+  return M
+end
+
+## Retrieve the qubit number from a site index
+#function getsitenumber(i::Index)
+#  for n in 1:length(tags(i))
+#    str_n = String(tags(i)[n])
+#    if startswith(str_n, "n=")
+#      return parse(Int64, replace(str_n, "n="=>""))
+#    end
+#  end
+#  return nothing
+#end
 
 """
     compilecircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple};
@@ -93,7 +173,9 @@ end
 
 Apply the circuit to a state (wavefunction/densitymatrix) from a list of tensors.
 """
-function runcircuit(M::Union{MPS,MPO},gate_tensors::Vector{<:ITensor}; kwargs...) 
+function runcircuit(M::Union{MPS,MPO},
+                    gate_tensors::Vector{<:ITensor};
+                    kwargs...) 
   # Check if gate_tensors contains Kraus operators
   inds_sizes = [length(inds(g)) for g in gate_tensors]
   noiseflag = any(x -> x%2==1 , inds_sizes)
@@ -220,15 +302,19 @@ with `2N` sites, for a process with `N` physical qubits.
 If `noise = nothing` and `apply_dag = true`, the Choi matrix `Λ` is returned as an MPO with 
 `2N` sites. In this case, the MPO `Λ` is equal to `|U⟩⟨U|`.
 """
-function choimatrix(N::Int,gates::Vector{<:Tuple};noise=nothing,apply_dag=false,
-                    cutoff=1e-15,maxdim=10000,kwargs...)
+function choimatrix(N::Int,
+                    gates::Vector{<:Tuple};
+                    noise = nothing, apply_dag = false,
+                    cutoff = 1e-15, maxdim = 10000, kwargs...)
   if isnothing(noise)
     # Get circuit MPO
-    U = runcircuit(N,gates;process=true,cutoff=1e-15,maxdim=10000,kwargs...)
+    U = runcircuit(N, gates;
+                   process = true, cutoff = 1e-15,
+                   maxdim = 10000, kwargs...)
     
     # Choi indices 
-    addtags!(U,"Input", plev=0,tags="qubit")
-    addtags!(U,"Output",plev=1,tags="qubit")
+    addtags!(U, "Input", plev = 0, tags = "Qubit")
+    addtags!(U, "Output", plev = 1, tags = "Qubit")
     noprime!(U)
     # SVD to bring into 2N-sites MPS
     Λ0 = splitchoi(U,noise=nothing,cutoff=cutoff,maxdim=maxdim)
@@ -238,14 +324,14 @@ function choimatrix(N::Int,gates::Vector{<:Tuple};noise=nothing,apply_dag=false,
   else
     # Initialize circuit MPO
     U = circuit(N)
-    addtags!(U,"Input",plev=0,tags="qubit")
-    addtags!(U,"Output",plev=1,tags="qubit")
+    addtags!(U,"Input",plev=0,tags="Qubit")
+    addtags!(U,"Output",plev=1,tags="Qubit")
     prime!(U,tags="Input")
     prime!(U,tags="Link")
     
     s = [siteinds(U,tags="Output")[j][1] for j in 1:length(U)]
     compiler = circuit(s)
-    prime!(compiler,-1,tags="qubit") 
+    prime!(compiler,-1,tags="Qubit") 
     gate_tensors = compilecircuit(compiler, gates; noise=noise, kwargs...)
 
     M = ITensor[]

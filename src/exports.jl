@@ -18,6 +18,7 @@ export
 
 # lpdo.jl
   LPDO,
+  logtr,
 
 # quantumcircuit.jl
   # Methods
