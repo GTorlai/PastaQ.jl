@@ -224,7 +224,8 @@ end
 gradlogZ(ψ::MPS; kwargs...) = gradlogZ(LPDO(ψ); kwargs...)
 
 """
-    function gradnll(ψ::MPS, data::Array; localnorm=nothing, choi::Bool=false)
+    gradnll(L::LPDO{MPS}, data::Array; localnorm=nothing, choi::Bool=false)
+    gradnll(ψ::MPS,data::Array;localnorm=nothing,choi::Bool=false)
 
 Compute the gradients of the cross-entropy between the MPS probability
 distribution of the empirical data distribution for a set of projective 
@@ -249,10 +250,12 @@ If `choi=true`, `ψ` correspodns to a Choi matrix `Λ=|ψ⟩⟨ψ|`.
 The probability is then obtaining by transposing the input state, which 
 is equivalent to take the conjugate of the eigenstate projector.
 """
-function gradnll(ψ::MPS,
+#function gradnll(ψ::MPS,
+function gradnll(L::LPDO{MPS},
                  data::Array;
                  localnorm=nothing,
                  choi::Bool=false)
+  ψ = L.X
   N = length(ψ)
 
   s = siteinds(ψ)
@@ -370,9 +373,11 @@ function gradnll(ψ::MPS,
   return gradients_tot, loss_tot
 end
 
+gradnll(ψ::MPS,data::Array;localnorm=nothing,choi::Bool=false) = 
+  gradnll(LPDO(ψ),data;localnorm=localnorm,choi=choi)
 
 """
-    gradnll(lpdo::LPDO, data::Array; localnorm=nothing, choi::Bool=false)
+    gradnll(lpdo::LPDO{MPO}, data::Array; localnorm=nothing, choi::Bool=false)
 
 Compute the gradients of the cross-entropy between the LPDO probability 
 distribution of the empirical data distribution for a set of projective 
@@ -396,7 +401,7 @@ local normalization.
 If `choi=true`, the probability is then obtaining by transposing the 
 input state, which is equivalent to take the conjugate of the eigenstate projector.
 """
-function gradnll(L::LPDO, data::Array;
+function gradnll(L::LPDO{MPO}, data::Array;
                  localnorm = nothing, choi::Bool = false)
   lpdo = L.X
   N = length(lpdo)
@@ -569,6 +574,7 @@ end
 
 """
     gradients(L::LPDO, data::Array; localnorm = nothing, choi::Bool = false)
+    gradients(ψ::MPS, data::Array;localnorm = nothing, choi::Bool = false)
 
 Compute the gradients of the cost function:
 `C = log(Z) - ⟨log P(σ)⟩_data`
@@ -578,14 +584,16 @@ If `choi=true`, add the Choi normalization `trace(Λ)=d^N` to the cost function.
 function gradients(L::LPDO, data::Array;
                    localnorm = nothing, choi::Bool = false)
   g_logZ,logZ = gradlogZ(L,localnorm=localnorm)
-  M = (L.X isa MPS ? L.X : L)
-  g_nll, nll  = gradnll(M,data,localnorm=localnorm,choi=choi)
+  g_nll, nll  = gradnll(L,data,localnorm=localnorm,choi=choi)
   
   grads = g_logZ + g_nll
   loss = logZ + nll
   loss += (choi ? -0.5 * length(L) * log(2) : 0.0)
   return grads,loss
 end
+
+gradients(ψ::MPS, data::Array;localnorm = nothing, choi::Bool = false) = 
+  gradients(LPDO(ψ),data;localnorm=localnorm,choi=choi)
 
 """
     tomography(L::LPDO, data::Array, opt::Optimizer; kwargs...)
@@ -842,11 +850,14 @@ end
 fidelity(ρ::MPO, ψ::MPS) = fidelity(ψ, ρ)
 
 """
-    frobenius_distance(lpdo::MPO, ρ::MPO)
+    frobenius_distance(ρ0::LPDO, σ0::LPDO)
+    frobenius_distance(ρ0::LPDO, σ0::MPO)
+    frobenius_distance(ρ0::MPO,  σ0::LPDO)
+    frobenius_distance(ρ0::MPO,  σ0::MPO)
 
-Compute the trace norm of the difference between two MPO.
+Compute the trace norm of the difference between two LPDOs and MPOs.
 
-`F(ρ,σ) = sqrt(trace[(ρ-σ)†(ρ-σ)])`
+`T(ρ,σ) = sqrt(trace[(ρ-σ)†(ρ-σ)])`
 """
 function frobenius_distance(ρ0::LPDO, σ0::LPDO)
   ρ = copy(ρ0)
