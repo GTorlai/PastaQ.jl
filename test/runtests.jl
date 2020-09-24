@@ -11,7 +11,7 @@ using Test
     "datagen.jl",
     "tomography.jl",
     "examples.jl", 
-    #"benchmark_qiskit.jl"
+    "benchmark_qiskit.jl"
   )
     println("Running $filename")
     include(filename)
