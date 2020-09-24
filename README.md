@@ -1,4 +1,4 @@
-![alt text](https://github.com/GTorlai/PastaQ.jl/blob/master/docs/pastaQ_logo.jpg?raw=true)
+![alt text](https://github.com/GTorlai/PastaQ.jl/blob/master/docs/src/assets/logo.jpg?raw=true)
 
 PLEASE NOTE THIS IS PRE-RELEASE SOFTWARE 
 
