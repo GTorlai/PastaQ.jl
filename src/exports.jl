@@ -55,7 +55,8 @@ export
   fidelity,
   fullfidelity,
   frobenius_distance,
-  
+  fidelity_bound,
+
 # optimizers/
   Optimizer,
   SGD,

@@ -730,7 +730,7 @@ end
   @test F ≈ ex_F
 end
 
-@testset "trace distance" begin 
+@testset "frobenius distance" begin 
 
   N = 4
   Random.seed!(1111)
@@ -809,6 +809,74 @@ end
 
   F = frobenius_distance(ρ,σ)
   @test T ≈ F
+end
+
+@testset "fidelity bound" begin 
+
+  N = 4
+  Random.seed!(1111)
+  ψ1 = initializetomography(N;χ=2)
+  Random.seed!(2222)
+  ψ2 = initializetomography(ψ1;χ=2)
+  
+  ρ_mpo = MPO(ψ1)
+  σ_mpo = MPO(ψ2)
+
+  ρ_mat = fullmatrix(ρ_mpo)
+  σ_mat = fullmatrix(σ_mpo)
+  Kρ = tr(ρ_mat) 
+  Kσ = tr(σ_mat) 
+  
+  f = tr(conj(transpose(ρ_mat/Kρ)) * (σ_mat/Kσ))
+  F̃ = fidelity_bound(ρ_mpo,σ_mpo)
+  @test f ≈ F̃
+    
+  Random.seed!(1111)
+  ρ = initializetomography(ψ1;χ=2,ξ=2)
+  
+  ρ_mpo = MPO(ρ)
+  σ_mpo = MPO(ψ2)
+
+  ρ_mat = fullmatrix(ρ_mpo)
+  σ_mat = fullmatrix(σ_mpo)
+  Kρ = tr(ρ_mat) 
+  Kσ = tr(σ_mat) 
+
+  f = tr(conj(transpose(ρ_mat/Kρ)) * (σ_mat/Kσ))
+  F̃ = fidelity_bound(ρ,σ_mpo)
+  @test f ≈ F̃
+
+
+  Random.seed!(1111)
+  σ = initializetomography(ψ1;χ=2,ξ=2)
+  
+  ρ_mpo = MPO(ψ1)
+  σ_mpo = MPO(σ)
+
+  ρ_mat = fullmatrix(ρ_mpo)
+  σ_mat = fullmatrix(σ_mpo)
+  Kρ = tr(ρ_mat) 
+  Kσ = tr(σ_mat) 
+  f = tr(conj(transpose(ρ_mat/Kρ)) * (σ_mat/Kσ))
+  F̃ = fidelity_bound(ρ_mpo,σ)
+  @test f ≈ F̃
+  
+  Random.seed!(1111)
+  ρ = initializetomography(N;χ=2,ξ=2)
+  Random.seed!(1111)
+  σ = initializetomography(ρ;χ=2,ξ=2)
+  
+  ρ_mpo = MPO(ρ)
+  σ_mpo = MPO(σ)
+
+  ρ_mat = fullmatrix(ρ_mpo)
+  σ_mat = fullmatrix(σ_mpo)
+  Kρ = tr(ρ_mat) 
+  Kσ = tr(σ_mat) 
+  
+  f = tr(conj(transpose(ρ_mat/Kρ)) * (σ_mat/Kσ))
+  F̃ = fidelity_bound(ρ,σ)
+  @test f ≈ F̃
   
 end
 
