@@ -51,20 +51,18 @@ export
   gradlogZ,
   gradnll,
   gradients,
-  statetomography,
-  processtomography,
+  tomography,
   fidelity,
   fullfidelity,
   frobenius_distance,
-  getdensityoperator,
   
 # optimizers/
   Optimizer,
-  Sgd,
-  Adagrad,
-  Adadelta,
+  SGD,
+  AdaGrad,
+  AdaDelta,
   Adam,
-  Adamax,
+  AdaMax,
   # Methods
   update!,
 
@@ -76,7 +74,7 @@ export
   
 # utils.jl
   # Methods
-  loadtrainingdataQST,
-  loadtrainingdataQPT,
+  savedata,
+  loaddata,
   fullvector,
   fullmatrix

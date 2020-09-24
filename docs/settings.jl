@@ -12,7 +12,9 @@ settings = Dict(
   :pages => [
              "Introduction" => "index.md",
              "Documentation" => [
-                                 "Circuits" => "Circuits.md",
+                                 "Circuit Simulator" => "Circuits.md",
+                                 "Quantum Tomography" => "QuantumTomography.md",
+                                 "Optimizers" => "Optimizers.md",
                                 ],
            ],
   :format => Documenter.HTML(assets = ["assets/favicon.ico"],

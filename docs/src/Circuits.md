@@ -1,4 +1,11 @@
-# Circuit Simulation
+# Circuit Simulator 
+
+## Initialization
+
+```@docs
+qubits
+resetqubits!
+```
 
 ## Running a quantum circuit
 
@@ -6,3 +13,8 @@
 runcircuit
 ```
 
+## Choi matrix
+
+```@docs
+choimatrix
+```

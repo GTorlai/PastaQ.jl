@@ -1,17 +1,19 @@
 """
+    qubits(N::Int; mixed::Bool=false)
+    
     qubits(sites::Vector{<:Index}; mixed::Bool=false)
 
-    qubits(N::Int; mixed::Bool=false)
 
 Initialize qubits to:
 - An MPS wavefunction `|ψ⟩` if `mixed=false`
 - An MPO density matrix `ρ` if `mixed=true`
 """
+qubits(N::Int; mixed::Bool=false) =
+  qubits(siteinds("Qubit", N); mixed=mixed)
+
 qubits(sites::Vector{<:Index}; mixed::Bool=false) = 
   mixed ? MPO(productMPS(sites, "0")) : productMPS(sites, "0") 
 
-qubits(N::Int; mixed::Bool=false) =
-  qubits(siteinds("Qubit", N); mixed=mixed)
 
 
 """ 
@@ -24,7 +26,6 @@ Reset qubits to the initial state:
 function resetqubits!(M::Union{MPS,MPO})
   indices = [firstind(M[j],tags="Site",plev=0) for j in 1:length(M)]
   M_new = qubits(indices, mixed = !(M isa MPS))
-  #M_new = (M isa MPS ? qubits(indices) : densitymatrix(indices))
   M[:] = M_new
   return M
 end
@@ -113,17 +114,6 @@ function applygate!(M::Union{MPS,MPO},
   return M
 end
 
-## Retrieve the qubit number from a site index
-#function getsitenumber(i::Index)
-#  for n in 1:length(tags(i))
-#    str_n = String(tags(i)[n])
-#    if startswith(str_n, "n=")
-#      return parse(Int64, replace(str_n, "n="=>""))
-#    end
-#  end
-#  return nothing
-#end
-
 """
     compilecircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple};
                  noise=nothing, kwargs...)
@@ -152,23 +142,9 @@ function compilecircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple};
 end
 
 """
-Apply the circuit to a ITensor from a list of tensors 
-"""
-runcircuit(M::ITensor,
-           gate_tensors::Vector{ <: ITensor};
-           kwargs...) =
-  apply(gate_tensors, M; kwargs...)
+    runcircuit(M::Union{MPS,MPO},gate_tensors::Vector{<:ITensor}; kwargs...)
 
-"""
-Apply the circuit to a ITensor from a list of gates 
-"""
-function runcircuit(M::ITensor,gates::Vector{<:Tuple}; cutoff=1e-15,maxdim=10000,kwargs...)
-  gate_tensors = compilecircuit(M,gates)
-  return runcircuit(M,gate_tensors;cutoff=1e-15,maxdim=10000,kwargs...)
-end
-
-"""
-Apply the circuit to a state (wavefunction/densitymatrix) from a list of tensors
+Apply the circuit to a state (wavefunction/densitymatrix) from a list of tensors.
 """
 function runcircuit(M::Union{MPS,MPO},
                     gate_tensors::Vector{<:ITensor};
@@ -217,7 +193,6 @@ function runcircuit(M::Union{MPS,MPO},
   end
   return Mc
 end
-
 
 
 """
@@ -272,15 +247,33 @@ function runcircuit(N::Int,gates::Vector{<:Tuple}; process=false,noise=nothing,
     # noisy:     ψ -> ρ = ε(|ψ⟩⟨ψ|)
     return runcircuit(ψ,gates;noise=noise,cutoff=cutoff,maxdim=maxdim,kwargs...)
   
-  elseif process==true & isnothing(noise)
+  elseif process==true
     if isnothing(noise)
       U = circuit(N) # = 1⊗1⊗1⊗…⊗1
       return runcircuit(U,gates;noise=nothing,apply_dag=false,cutoff=cutoff,maxdim=maxdim,kwargs...) 
     else
-      error("Cannot build the circuit MPO if noise!=nothing")
+      return choimatrix(N,gates;noise=noise,cutoff=cutoff,maxdim=maxdim,kwargs...)
     end
   end
     
+end
+
+"""
+    runcircuit(M::ITensor,gate_tensors::Vector{ <: ITensor};kwargs...)
+
+Apply the circuit to a ITensor from a list of tensors.
+"""
+runcircuit(M::ITensor,gate_tensors::Vector{ <: ITensor};kwargs...) =
+  apply(gate_tensors, M; kwargs...)
+
+"""
+    runcircuit(M::ITensor,gates::Vector{<:Tuple}; cutoff=1e-15,maxdim=10000,kwargs...)
+
+Apply the circuit to a ITensor from a list of gates.
+"""
+function runcircuit(M::ITensor,gates::Vector{<:Tuple}; cutoff=1e-15,maxdim=10000,kwargs...)
+  gate_tensors = compilecircuit(M,gates)
+  return runcircuit(M,gate_tensors;cutoff=1e-15,maxdim=10000,kwargs...)
 end
 
 """
@@ -299,8 +292,6 @@ with `2N` sites, for a process with `N` physical qubits.
 
 If `noise = nothing` and `apply_dag = true`, the Choi matrix `Λ` is returned as an MPO with 
 `2N` sites. In this case, the MPO `Λ` is equal to `|U⟩⟨U|`.
-
-#TODO: Explain site ordering and normalization
 """
 function choimatrix(N::Int,
                     gates::Vector{<:Tuple};
@@ -359,7 +350,6 @@ end
 
 Map a Choi matrix from `N` sites to `2N` sites, arranged as
 (input1,output1,input2,output2,…)
-
 """
 function splitchoi(Λ::MPO;noise=nothing,cutoff=1e-15,maxdim=1000)
   T = ITensor[]

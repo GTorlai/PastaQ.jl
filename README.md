@@ -1,54 +1,91 @@
 ![alt text](https://github.com/GTorlai/PastaQ.jl/blob/master/docs/src/assets/logo.png?raw=true)
+[![Tests](https://github.com/GTorlai/PastaQ.jl/workflows/Tests/badge.svg)](https://github.com/GTorlai/PastaQ.jl/actions?query=workflow%3ATests)
+[![codecov](https://codecov.io/gh/GTorlai/PastaQ.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/GTorlai/PastaQ.jl)
+[![](https://img.shields.io/badge/docs-stable-blue.svg)](https://gtorlai.github.io/PastaQ.jl/stable/)
+[![](https://img.shields.io/badge/docs-dev-blue.svg)](https://gtorlai.github.io/PastaQ.jl/dev/)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![arXiv](https://img.shields.io/badge/arXiv--b31b1b.svg)](https://arxiv.org/abs/)
 
-PLEASE NOTE THIS IS PRE-RELEASE SOFTWARE 
+PLEASE NOTE THIS IS PRE-RELEASE SOFTWARE      
 
 EXPECT ROUGH EDGES AND BACKWARD INCOMPATIBLE UPDATES
 
 # A Package for Simulation, Tomography and Analysis of Quantum Computers
 
-PastaQ is a julia package for simulation and benchmarking of quantum computers using a combination of machine learning and tensor-network algorithms.
+PastaQ is a julia package for simulation and benchmarking of quantum computers using a combination
+of machine learning and tensor-network algorithms.
 
 The main features of PastaQ are:
-+ **Simulation of quantum circuits**. The package provides a simulator based on Matrix Product States (MPS) to simulate quantum circuits compiled into a set of quantum gates. Noisy circuits are simulated by specifying a noise model, which is applied to each quantum gate. We show as examples two quantum algorithms: the quantum Fourier transforrm and the variational quantum eigensolver.
-+ **Quantum state tomography**. This module implements the reconstruction of an unknown quantum state from measurement data. Depending whether the quantum state is pure or mixed, the variational ansatz implemented is an MPS or a locally-purified density operators (LPDO). The measurement data consists of a set of measurement bases and the corresponding bit-strings of the measurement outcome. The reconstruction is realized by minimizing a statistical divergence between the data and the tensor-network probability distributions.
-+ **Quantum process tomography**. This module implements the reconstruction of an unknown quantum channel from measurements.
++ **Simulation of quantum circuits**. The package provides a simulator based on Matrix Product States (MPS) to simulate quantum circuits compiled into a set of quantum gates. Noisy circuits are simulated by specifying a noise model of interest, which is applied to each quantum gate.
++ **Quantum state tomography**. Data-driven reconstruction of an unknown quantum wavefunction or density operators, learned respectively with an MPS and a Locally-Purified Density Operator (LPDO). The reconstruction can be certified by fidelity measurements with the target quantum state (if known, and if it admits an efficient tensor-network representation).
++ **Quantum process tomography**. Data-driven reconstruction of an unknown quantum channel, characterized in terms of its Choi matrix (using a similar approach to quantum state tomography). The channel can be unitary (i.e. rank-1 Choi matrix) or noisy.
 
-PastaQ is developed at the Center for Computational Quantum Physics of the Flatiron Institute, and it is supported by the Simons Foundation.
+PastaQ is developed at the Center for Computational Quantum Physics of the Flatiron Institute,
+and it is supported by the Simons Foundation.
 
-## Code overview
+## Installation
+The PastatQ package can be installed with the Julia package manager. From the Julia REPL,
+type ] to enter the Pkg REPL mode and run:
 
-### Quantum circuit simulator
-A quantum gate is described by a data structure `g = ("gatename",sites,params)` consisting of a `gatename` string identifying a particular gate, a set of `sites` identifying which qubits the gate acts on, and a set of gate parameters `params`. A comprehensive set of gates is provided, including Pauli matrices, phase and T gates, single-qubit rotations, controlled gates, and others. Additional user-specific gates can be added, if needed.
+```
+~ julia
+```
 
 ```julia
-using PastaQ
-# Quantum gates
+julia> ]
+
+pkg> add github.com/GTorlai/PastaQ.jl
+```
+
+Please note that right now, PastaQ.jl requires that you use Julia v1.4 or later.
+
+## Documentation
+
+- [**STABLE**](https://gtorlai.github.io/PastaQ.jl/stable/) --  **documentation of the most recently tagged version.**
+- [**DEVEL**](https://gtorlai.github.io/PastaQ.jl/dev/) -- *documentation of the in-development version.*
+
+## Code Overview
+The algorithms implemented in PastaQ rely on a tensor-network representation of
+quantum states, quantum circuits and quantum channels, which is provided by the
+ITensor package.
+
+### Simulation of quantum circuits
+A quantum circuit is built out of a collection of elementary quantum gates. In
+PastaQ, a quantum gate is described by a data structure `g = ("gatename",sites,params)`
+consisting of a `gatename` string identifying a particular gate, a set of `sites`
+identifying which qubits the gate acts on, and a set of gate parameters `params`
+(e.g. angles of qubit rotations). A comprehensive set of gates is provided,
+including Pauli matrices, phase and T gates, single-qubit rotations, controlled
+gates, Toffoli gate and others. Additional user-specific gates can be added.
+
+```julia
+# Building a circuit data-structure
 gates = [("X" , 1),                        # Pauli X on qubit 1
          ("CX", (1, 2)),                   # Controlled-X on qubits [1,2]
          ("Rx", 2, (θ=0.5,)),              # Rotation of θ around X
-         ("Rn", 3, (θ=0.5, ϕ=0.2, λ=1.2)), # Arbitrady rotation
+         ("Rn", 3, (θ=0.5, ϕ=0.2, λ=1.2)), # Arbitrady rotation with angles (θ,ϕ,λ)
          ("√SWAP", (3, 4)],                # Sqrt Swap on qubits [2,3]
-         ("T" , 4),                        # T gate on qubit 4
+         ("T" , 4)]                        # T gate on qubit 4
 ```
 
-For the case of a noiseless quantum circuit, the output quantum state is obtained by contraing each quantum gate in `gates` with an initial state, which can be chosen to be either a wavefunction or a density matrix (using the `mixed=true` flag), parametrized respectively with a matrix product state (MPS) and a matrix product operators (MPO). By default, the initial state is set to the |000...> state. The output state is obtained with the `runcircuit` function. This contains an intermediate compilation step, where each gate in `gates` is transformed into an ITensor.
+For the case of a noiseless circuit, the output quantum state (MPS) and the
+unitary circuit (MPO) can be obtained with the `runcircuit` function.
 
 ```julia
-N = 20                     # Number of qubits
-ψ0 = qubits(N)             # Initialize qubits
-ψ = runcircuit(ψ0, gates)  # Run
+using PastaQ
 
-ρ0 = qubits(N; mixed=true)
-ρ = runcircuit(ρ0, gates)
+# Example 1a: random quantum circuit
+
+N = 4     # Number of qubits
+depth = 4 # Depth of the circuit
+
+# Generate a random quantum circuit built out of layers of single-qubit random
+# rotations + CX gates, alternating between even and of odd layers.
+gates = randomcircuit(N,depth)
+
+# Returns the MPS at the output of the quantum circuit: `|ψ⟩ = Û|0,0,…,0⟩`
+ψ = runcircuit(N,gates)
+
+# Generate the MPO for the unitary circuit:
+U = runcircuit(N,gates;process=true)
 ```
-
-It is also possible to add a noise model, defined in terms of its kraus operators (e.g. depolarizing channel, amplitude damping channel, etc). Similar to regular gates, each noise model is characterized by a string identified `noisename` and a set of parameters. In the following example, we first generate a list of quantum gates for a 1D random quantum circuit, and then add a depolarizing channel with some probability. When running the circuit, the channel is applied after each gate (to the qubits involved in the gate). In this case, if the initial state is an MPS, it is automatically converted to an MPO.
-
-```julia
-N = 20                                       # Number of qubits
-depth = 10                                   # Circuit's depth
-gates = randomcircuit(N, depth)              # Generate gates
-ψ0 = qubits(N)                               # Initialize qubits
-ρ = runcircuit(ψ0, gates;noise="DEP",p=0.1)  # Run
-```
-

@@ -1,23 +1,64 @@
 """
-    initializetomography(N::Int64,χ::Int64;
-                         seed::Int64=1234,
-                         σ::Float64=0.1)
+    initializetomography(N::Int64;kwargs...)
+
+Initialize quantum tomography given a number of qubits
+"""
+function initializetomography(N::Int64;kwargs...)
+  d = 2 # Dimension of the local Hilbert space
+  sites = siteinds("Qubit", N)
+  return initializetomography(sites; kwargs...)
+end
+
+"""
+    initializetomography(sites::Vector{<:Index}; kwargs...)
+
+Initialize quantum tomography for a set of indices. 
+By default, inintializes MPS, unless `ξ` is non-trivial, 
+in which case it initializes a LPDO.
+"""
+function initializetomography(sites::Vector{<:Index}; kwargs...)
+  χ = get(kwargs,:χ,2)
+  ξ = get(kwargs,:ξ,nothing)
+  σ = get(kwargs,:σ,0.1)
+  purifier_tag = get(kwargs,:purifier_tag,ts"Purifier")
+
+  return (isnothing(ξ) ? initializetomography(sites,χ;σ=σ) :
+                         initializetomography(sites,χ,ξ;σ=σ,purifier_tag=purifier_tag))
+end
+
+"""
+    initializetomography(L::LPDO; kwargs...)
+
+
+Initialize quantum tomography, given a reference state,
+either in MPS or MPO (LPDO) form
+"""
+function initializetomography(L::LPDO; kwargs...)
+  sites = firstsiteinds(L.X)
+  return initializetomography(sites; kwargs...)
+end
+
+# TEMPORARY FUNCTION
+function initializetomography(ψ::MPS; kwargs...)
+  sites = siteinds(ψ)
+  return initializetomography(sites; kwargs...)
+end
+# Update with the above after `firstsiteinds(ψ::MPS)` is implemented
+#initializetomography(ψ::MPS; kwargs...) = initializetomography(LPDO(ψ); kwargs...)
+
+"""
+    function initializetomography(sites::Vector{<:Index},χ::Int64;σ::Float64=0.1)
 
 Initialize a variational MPS for quantum tomography.
 
 # Arguments:
   - `N`: number of qubits
   - `χ`: bond dimension of the MPS
-  - `seed`: seed of random number generator
   - `σ`: width of initial box distribution
 """
-function initializetomography(N::Int64,χ::Int64;
-                              seed::Int64=1234,
-                              σ::Float64=0.1)
-  rng = MersenneTwister(seed)
-  d = 2
-
-  sites = siteinds("Qubit", N)
+function initializetomography(sites::Vector{<:Index},χ::Int64;σ::Float64=0.1)
+  d = 2 # Dimension of the local Hilbert space
+  N = length(sites)
   links = [Index(χ; tags="Link, l=$l") for l in 1:N-1]
 
   M = ITensor[]
@@ -29,27 +70,25 @@ function initializetomography(N::Int64,χ::Int64;
   end
 
   # Site 1 
-  rand_mat = σ * (ones(d,χ) - 2*rand(rng,d,χ))
-  rand_mat += im * σ * (ones(d,χ) - 2*rand(rng,d,χ))
+  rand_mat = σ * (ones(d,χ) - 2*rand(d,χ))
+  rand_mat += im * σ * (ones(d,χ) - 2*rand(d,χ))
   push!(M,ITensor(rand_mat,sites[1],links[1]))
   for j in 2:N-1
-    rand_mat = σ * (ones(χ,d,χ) - 2*rand(rng,χ,d,χ))
-    rand_mat += im * σ * (ones(χ,d,χ) - 2*rand(rng,χ,d,χ))
+    rand_mat = σ * (ones(χ,d,χ) - 2*rand(χ,d,χ))
+    rand_mat += im * σ * (ones(χ,d,χ) - 2*rand(χ,d,χ))
     push!(M,ITensor(rand_mat,links[j-1],sites[j],links[j]))
   end
   # Site N
-  rand_mat = σ * (ones(χ,d) - 2*rand(rng,χ,d))
-  rand_mat += im * σ * (ones(χ,d) - 2*rand(rng,χ,d))
+  rand_mat = σ * (ones(χ,d) - 2*rand(χ,d))
+  rand_mat += im * σ * (ones(χ,d) - 2*rand(χ,d))
   push!(M,ITensor(rand_mat,links[N-1],sites[N]))
   
   return MPS(M)
 end
 
-
 """
-    initializetomography(N::Int64,χ::Int64,ξ::Int64;
-                         seed::Int64=1234,
-                         σ::Float64=0.1)
+    function initializetomography(sites::Vector{<:Index},χ::Int64,ξ::Int64;
+                                  σ::Float64=0.1,purifier_tag = ts"Purifier")
 
 Initialize a variational LPDO for quantum tomography.
 
@@ -57,17 +96,12 @@ Initialize a variational LPDO for quantum tomography.
   - `N`: number of qubits
   - `χ`: bond dimension of the LPDO
   - `ξ`: local purification dimension of the LPDO
-  - `seed`: seed of random number generator
   - `σ`: width of initial box distribution
 """
-function initializetomography(N::Int64,χ::Int64,ξ::Int64;
-                              seed::Int64=1234,
-                              σ::Float64=0.1,
-                              purifier_tag = ts"Purifier")
-  rng = MersenneTwister(seed)
-  d = 2
+function initializetomography(sites::Vector{<:Index},χ::Int64,ξ::Int64;σ::Float64=0.1,purifier_tag = ts"Purifier")
+  d = 2 # Dimension of the local Hilbert space
+  N = length(sites)
 
-  sites = siteinds("Qubit", N)
   links = [Index(χ; tags="Link,l=$l") for l in 1:N-1]
   kraus = [Index(ξ; tags=addtags(purifier_tag, "k=$s")) for s in 1:N]
 
@@ -81,23 +115,22 @@ function initializetomography(N::Int64,χ::Int64,ξ::Int64;
   end
 
   # Site 1 
-  rand_mat = σ * (ones(d,χ,ξ) - 2*rand(rng,d,χ,ξ))
-  rand_mat += im * σ * (ones(d,χ,ξ) - 2*rand(rng,d,χ,ξ))
+  rand_mat = σ * (ones(d,χ,ξ) - 2*rand(d,χ,ξ))
+  rand_mat += im * σ * (ones(d,χ,ξ) - 2*rand(d,χ,ξ))
   push!(M,ITensor(rand_mat,sites[1],links[1],kraus[1]))
   # Site 2..N-1
   for j in 2:N-1
-    rand_mat = σ * (ones(d,χ,ξ,χ) - 2*rand(rng,d,χ,ξ,χ))
-    rand_mat += im * σ * (ones(d,χ,ξ,χ) - 2*rand(rng,d,χ,ξ,χ))
+    rand_mat = σ * (ones(d,χ,ξ,χ) - 2*rand(d,χ,ξ,χ))
+    rand_mat += im * σ * (ones(d,χ,ξ,χ) - 2*rand(d,χ,ξ,χ))
     push!(M,ITensor(rand_mat,sites[j],links[j-1],kraus[j],links[j]))
   end
   # Site N
-  rand_mat = σ * (ones(d,χ,ξ) - 2*rand(rng,d,χ,ξ))
-  rand_mat += im * σ * (ones(d,χ,ξ) - 2*rand(rng,d,χ,ξ))
+  rand_mat = σ * (ones(d,χ,ξ) - 2*rand(d,χ,ξ))
+  rand_mat += im * σ * (ones(d,χ,ξ) - 2*rand(d,χ,ξ))
   push!(M,ITensor(rand_mat,sites[N],links[N-1],kraus[N]))
   
   return LPDO(MPO(M), purifier_tag)
 end
-
 
 """
     lognormalize!(L::LPDO)
@@ -138,13 +171,14 @@ function lognormalize!(L::LPDO)
   return logZ, localnorms
 end
 
-lognormalize!(M::MPS) = lognormalize!(LPDO(M))
+lognormalize!(ψ::MPS) = lognormalize!(LPDO(ψ))
 
 """
-    function gradlogZ(M::Union{MPS,LPDO};localnorm=nothing)
+    gradlogZ(L::LPDO;localnorm=nothing)
+    gradlogZ(ψ::MPS; kwargs...)
 
 Compute the gradients of the log-normalization with respect
-to each MPS/MPO tensor component:
+to each LPDO tensor component:
 
 - `∇ᵢ = ∂ᵢlog⟨ψ|ψ⟩` for `ψ = M = MPS`
 - `∇ᵢ = ∂ᵢlogTr(ρ)` for `ρ = M M†` , `M = LPDO`
@@ -187,10 +221,11 @@ function gradlogZ(L::LPDO; localnorm = nothing)
   return 2*gradients,log(Z)
 end
 
-gradlogZ(M::MPS; kwargs...) = gradlogZ(LPDO(M); kwargs...)
+gradlogZ(ψ::MPS; kwargs...) = gradlogZ(LPDO(ψ); kwargs...)
 
 """
-    function gradnll(ψ::MPS, data::Array; localnorm=nothing, choi::Bool=false)
+    gradnll(L::LPDO{MPS}, data::Array; localnorm=nothing, choi::Bool=false)
+    gradnll(ψ::MPS,data::Array;localnorm=nothing,choi::Bool=false)
 
 Compute the gradients of the cross-entropy between the MPS probability
 distribution of the empirical data distribution for a set of projective 
@@ -214,12 +249,13 @@ local normalization.
 If `choi=true`, `ψ` correspodns to a Choi matrix `Λ=|ψ⟩⟨ψ|`.
 The probability is then obtaining by transposing the input state, which 
 is equivalent to take the conjugate of the eigenstate projector.
-
 """
-function gradnll(ψ::MPS,
+#function gradnll(ψ::MPS,
+function gradnll(L::LPDO{MPS},
                  data::Array;
                  localnorm=nothing,
                  choi::Bool=false)
+  ψ = L.X
   N = length(ψ)
 
   s = siteinds(ψ)
@@ -337,9 +373,11 @@ function gradnll(ψ::MPS,
   return gradients_tot, loss_tot
 end
 
+gradnll(ψ::MPS,data::Array;localnorm=nothing,choi::Bool=false) = 
+  gradnll(LPDO(ψ),data;localnorm=localnorm,choi=choi)
 
 """
-    gradnll(lpdo::LPDO, data::Array; localnorm=nothing, choi::Bool=false)
+    gradnll(lpdo::LPDO{MPO}, data::Array; localnorm=nothing, choi::Bool=false)
 
 Compute the gradients of the cross-entropy between the LPDO probability 
 distribution of the empirical data distribution for a set of projective 
@@ -363,7 +401,7 @@ local normalization.
 If `choi=true`, the probability is then obtaining by transposing the 
 input state, which is equivalent to take the conjugate of the eigenstate projector.
 """
-function gradnll(L::LPDO, data::Array;
+function gradnll(L::LPDO{MPO}, data::Array;
                  localnorm = nothing, choi::Bool = false)
   lpdo = L.X
   N = length(lpdo)
@@ -535,7 +573,8 @@ end
 
 
 """
-    gradients(M::Union{MPS,LPDO}, data::Array; localnorm = nothing, choi::Bool = false)
+    gradients(L::LPDO, data::Array; localnorm = nothing, choi::Bool = false)
+    gradients(ψ::MPS, data::Array;localnorm = nothing, choi::Bool = false)
 
 Compute the gradients of the cost function:
 `C = log(Z) - ⟨log P(σ)⟩_data`
@@ -544,25 +583,26 @@ If `choi=true`, add the Choi normalization `trace(Λ)=d^N` to the cost function.
 """
 function gradients(L::LPDO, data::Array;
                    localnorm = nothing, choi::Bool = false)
-  M = L.X
-  g_logZ,logZ = gradlogZ(M,localnorm=localnorm)
-  g_nll, nll  = gradnll(M,data,localnorm=localnorm,choi=choi)
+  g_logZ,logZ = gradlogZ(L,localnorm=localnorm)
+  g_nll, nll  = gradnll(L,data,localnorm=localnorm,choi=choi)
+  
   grads = g_logZ + g_nll
   loss = logZ + nll
-  loss += (choi ? -0.5 * length(M) * log(2) : 0.0)
+  loss += (choi ? -0.5 * length(L) * log(2) : 0.0)
   return grads,loss
 end
 
-gradients(ψ::MPS, args...; kwargs...) =
-  gradients(LPDO(ψ), args...; kwargs...)
+gradients(ψ::MPS, data::Array;localnorm = nothing, choi::Bool = false) = 
+  gradients(LPDO(ψ),data;localnorm=localnorm,choi=choi)
 
 """
-    statetomography(model::Union{MPS,LPDO}, data::Array, opt::Optimizer; kwargs...)
+    tomography(L::LPDO, data::Array, opt::Optimizer; kwargs...)
+    tomography(ψ::MPS, data::Array,opt::Optimizer; kwargs...)
 
 Run quantum state tomography using a the starting state `model` on `data`.
 
 # Arguments:
-  - `model`: starting MPS/LPDO state.
+  - `model`: starting LPDO state.
   - `data`: training data set of projective measurements.
   - `batchsize`: number of data-points used to compute one gradient iteration.
   - `epochs`: total number of full sweeps over the dataset.
@@ -571,11 +611,11 @@ Run quantum state tomography using a the starting state `model` on `data`.
   - `observer`: keep track of measurements and fidelities.
   - `outputpath`: write observer on file 
 """
-function statetomography(L::LPDO,
-                         data::Array,
-                         opt::Optimizer;
-                         kwargs...)
-  model = L.X
+function tomography(L::LPDO,
+                    data::Array,
+                    opt::Optimizer;
+                    kwargs...)
+  
   # Read arguments
   localnorm::Bool = get(kwargs,:localnorm,true)
   globalnorm::Bool = get(kwargs,:globalnorm,false)
@@ -593,19 +633,19 @@ function statetomography(L::LPDO,
     error("Both input norms are set to true")
   end
   
-  model = copy(model)
-
+  model = copy(L)
+  
   # Set up target quantum state
   if !isnothing(target)
     target = copy(target)
     if typeof(target)==MPS
       for j in 1:length(model)
-        replaceind!(target[j],firstind(target[j],"Site"),firstind(model[j],"Site"))
+        replaceind!(target[j],firstind(target[j],"Site"),firstind(model.X[j],"Site"))
       end
     else
       for j in 1:length(model)
-        replaceind!(target[j],inds(target[j],"Site")[1],firstind(model[j],"Site"))
-        replaceind!(target[j],inds(target[j],"Site")[2],prime(firstind(model[j],"Site")))
+        replaceind!(target[j],inds(target[j],"Site")[1],firstind(model.X[j],"Site"))
+        replaceind!(target[j],inds(target[j],"Site")[2],prime(firstind(model.X[j],"Site")))
       end
     end
   end
@@ -629,12 +669,12 @@ function statetomography(L::LPDO,
       
       # Local normalization
       if localnorm
-        model_norm = copy(model)
-        logZ,localnorms = lognormalize!(LPDO(model_norm))
-        grads,loss = gradients(model_norm,batch,localnorm=localnorms,choi=choi)
+        modelcopy = copy(model)
+        logZ,localnorms = lognormalize!(modelcopy)
+        grads,loss = gradients(modelcopy,batch,localnorm=localnorms,choi=choi)
       # Global normalization
       elseif globalnorm
-        lognormalize!(LPDO(model))
+        lognormalize!(model)
         grads,loss = gradients(model,batch,choi=choi)
       # Unnormalized
       else
@@ -660,16 +700,17 @@ function statetomography(L::LPDO,
     print("Ep = $ep  ")
     @printf("Loss = %.5E  ",avg_loss)
     if !isnothing(target)
-      F = fidelity(model,target)
-      if (typeof(model) == MPO) & (typeof(target) == MPO)
-        @printf("Trace distance = %.3E  ",F)
-        if (length(model) <= 12)
+      if ((model.X isa MPO) & (target isa MPO)) 
+        frob_dist = frobenius_distance(model,target)
+        @printf("Trace distance = %.3E  ",frob_dist)
+        if (length(model) <= 8)
           disable_warn_order!()
           fid = fullfidelity(model,target)
           reset_warn_order!()
           @printf("Fidelity = %.3E  ",fid)
         end
       else
+        F = fidelity(model,target)
         @printf("Fidelity = %.3E  ",F)
       end
     end
@@ -678,28 +719,28 @@ function statetomography(L::LPDO,
 
     tot_time += ep_time
   end
-  @printf("Total Time = %.3f sec",tot_time)
+  @printf("Total Time = %.3f sec\n",tot_time)
   lognormalize!(model)
   
   return (isnothing(observer) ? model : (model,observer))  
 end
 
-statetomography(ψ::MPS, args...; kwargs...) =
-  statetomography(LPDO(ψ), args...; kwargs...)
+tomography(ψ::MPS, data::Array,opt::Optimizer; kwargs...) =
+  tomography(LPDO(ψ),data,opt; kwargs...)
 
 """
-    processtomography(M::Union{MPS,LPDO},data_in::Array,data_out::Array,opt::Optimizer; kwargs...)
+    tomography(L::LPDO,data_in::Array,data_out::Array,opt::Optimizer; kwargs...)
+    tomography(ψ::MPS,data_in::Array,data_out::Array,opt::Optimizer; kwargs...)
 
 Run quantum process tomography on `(data_in,data_out)` using `model` as variational ansatz.
 
 The data is reshuffled so it takes the format: `(input1,output1,input2,output2,…)`.
 """
-function processtomography(L::LPDO,
-                           data_in::Array,
-                           data_out::Array,
-                           opt::Optimizer;
-                           kwargs...)
-  M = L.X
+function tomography(L::LPDO,
+                    data_in::Array,
+                    data_out::Array,
+                    opt::Optimizer;
+                    kwargs...)
   N = size(data_in)[2]
   @assert size(data_in) == size(data_out)
   
@@ -711,11 +752,11 @@ function processtomography(L::LPDO,
       data[n,2*j]   = data_out[n,j]
     end
   end
-  return statetomography(M,data,opt; choi=true,kwargs...)
+  return tomography(L,data,opt; choi=true,kwargs...)
 end
 
-processtomography(ψ::MPS, args...; kwargs...) =
-  processtomography(LPDO(ψ), args...; kwargs...)
+tomography(ψ::MPS,data_in::Array, data_out::Array,opt::Optimizer; kwargs...) =
+  tomography(LPDO(ψ),data_in,data_out,opt; kwargs...)
 
 """
     MPO(L::LPDO)
@@ -776,13 +817,16 @@ Compute the fidelity between an MPS and LPDO.
 `F = ⟨ψ|ρ|ψ⟩`
 """
 function fidelity(ψ::MPS, L::LPDO)
-  ρ = L.X
-  A = *(ρ,ψ,method="densitymatrix",cutoff=1e-10)
-  log_F̃ = log(abs(inner(A,A)))
-  #log_F̃ = log(abs(inner(ρ,ψ,ρ,ψ)))
-  log_K = 2.0*(lognorm(ψ) + lognorm(ρ))
-  fidelity = exp(log_F̃ - log_K)
-  return fidelity
+  if L.X isa MPS
+    return fidelity(ψ,L.X)
+  else
+    ρ = L.X
+    A = *(ρ,ψ,method="densitymatrix",cutoff=1e-10)
+    log_F̃ = log(abs(inner(A,A)))
+    #log_F̃ = log(abs(inner(ρ,ψ,ρ,ψ)))
+    log_K = 2.0*(lognorm(ψ) + lognorm(ρ))
+    return exp(log_F̃ - log_K)#fidelity
+  end
 end
 
 fidelity(ρ::LPDO, ψ::MPS) = fidelity(ψ, ρ)
@@ -806,11 +850,14 @@ end
 fidelity(ρ::MPO, ψ::MPS) = fidelity(ψ, ρ)
 
 """
-    frobenius_distance(lpdo::MPO, ρ::MPO)
+    frobenius_distance(ρ0::LPDO, σ0::LPDO)
+    frobenius_distance(ρ0::LPDO, σ0::MPO)
+    frobenius_distance(ρ0::MPO,  σ0::LPDO)
+    frobenius_distance(ρ0::MPO,  σ0::MPO)
 
-Compute the trace norm of the difference between two MPO.
+Compute the trace norm of the difference between two LPDOs and MPOs.
 
-`F(ρ,σ) = sqrt(trace[(ρ-σ)†(ρ-σ)])`
+`T(ρ,σ) = sqrt(trace[(ρ-σ)†(ρ-σ)])`
 """
 function frobenius_distance(ρ0::LPDO, σ0::LPDO)
   ρ = copy(ρ0)
@@ -884,9 +931,9 @@ end
 Compute the full quantum fidelity between two density operatos
 by full enumeration.
 """
-function fullfidelity(ρ::MPO,σ::MPO)
-  @assert length(ρ) < 12
-  ρ_mat = fullmatrix(getdensityoperator(ρ))
+function fullfidelity(L::LPDO,σ::MPO)
+  @assert length(L) < 12
+  ρ_mat = fullmatrix(MPO(L))
   σ_mat = fullmatrix(σ)
   
   ρ_mat ./= tr(ρ_mat)

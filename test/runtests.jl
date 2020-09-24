@@ -10,6 +10,7 @@ using Test
     "runcircuit.jl",
     "datagen.jl",
     "tomography.jl",
+    "examples.jl", 
     #"benchmark_qiskit.jl"
   )
     println("Running $filename")

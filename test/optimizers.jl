@@ -37,7 +37,7 @@ end
   N = 3
   χ = 4
   d = 2
-  ψ = initializetomography(N,χ;σ=1.0)
+  ψ = initializetomography(N;χ=χ,σ=1.0)
   sites = siteinds(ψ) 
   links = linkinds(ψ)
 
@@ -46,7 +46,7 @@ end
   
   η = 0.1
   γ = 0.9
-  opt = Sgd(ψ;η=η,γ=γ)
+  opt = SGD(ψ;η=η,γ=γ)
   
   for n in 1:100
     ∇ = generategradients(sites,links,χ,d)
@@ -71,7 +71,7 @@ end
   N = 3
   χ = 4
   d = 2
-  ψ = initializetomography(N,χ)
+  ψ = initializetomography(N;χ=χ)
   sites = siteinds(ψ) 
   links = linkinds(ψ)
 
@@ -79,7 +79,7 @@ end
   ∇²_flat = zeros(size(ψ_flat))
   η = 0.1
   ϵ = 1E-8
-  opt = Adagrad(ψ;η=η,ϵ=ϵ)
+  opt = AdaGrad(ψ;η=η,ϵ=ϵ)
   
   for n in 1:2
     ∇ = generategradients(sites,links,χ,d)
@@ -104,7 +104,7 @@ end
   N = 3
   χ = 4
   d = 2
-  ψ = initializetomography(N,χ)
+  ψ = initializetomography(N;χ=χ)
   sites = siteinds(ψ) 
   links = linkinds(ψ)
   
@@ -113,7 +113,7 @@ end
   Δθ²_flat = zeros(size(ψ_flat))
   γ = 0.9
   ϵ = 1E-8
-  opt = Adadelta(ψ;γ=γ,ϵ=ϵ)
+  opt = AdaDelta(ψ;γ=γ,ϵ=ϵ)
   
   for n in 1:100
     ∇ = generategradients(sites,links,χ,d)
@@ -147,7 +147,7 @@ end
   N = 3
   χ = 4
   d = 2
-  ψ = initializetomography(N,χ)
+  ψ = initializetomography(N;χ=χ)
   sites = siteinds(ψ) 
   links = linkinds(ψ)
   
@@ -187,43 +187,43 @@ end
 end
 
 
-@testset "adamax" begin
-  N = 3
-  χ = 4
-  d = 2
-  ψ = initializetomography(N,χ)
-  sites = siteinds(ψ) 
-  links = linkinds(ψ)
-
-  ψ_flat  = flatten_tensorarray(ψ)
-  g_flat  = zeros(size(ψ_flat))
-  u_flat = zeros(size(ψ_flat))
-  β₁ = 0.9
-  β₂ = 0.999
-  η  = 0.01
-  opt = Adamax(ψ;η=η,β₁=β₁,β₂=β₂)
-  
-  for n in 1:1
-    ∇ = generategradients(sites,links,χ,d)
-    ∇_flat  = flatten_tensorarray(∇)
-    ψ_flat  = flatten_tensorarray(ψ)
-    
-    ## algorithm
-    #update!(ψ,∇,opt;step=n)
-    #ψ′_alg_flat = flatten_tensorarray(ψ)
-    
-    ## exact
-    g_flat  = β₁ * g_flat  + (1-β₁) * ∇_flat
-    u_flat  = max.(β₂ * u_flat,abs.(g_flat))
-    
-    Δθ_flat = g_flat ./ u_flat
-    
-    ψ′_flat = ψ_flat - (η/(1-β₁^n)) * Δθ_flat
-    
-    #@test ψ′_flat ≈ ψ′_alg_flat rtol = 1e-4
-
-  end
-end
+#@testset "adamax" begin
+#  N = 3
+#  χ = 4
+#  d = 2
+#  ψ = initializetomography(N,χ)
+#  sites = siteinds(ψ) 
+#  links = linkinds(ψ)
+#
+#  ψ_flat  = flatten_tensorarray(ψ)
+#  g_flat  = zeros(size(ψ_flat))
+#  u_flat = zeros(size(ψ_flat))
+#  β₁ = 0.9
+#  β₂ = 0.999
+#  η  = 0.01
+#  opt = AdaMax(ψ;η=η,β₁=β₁,β₂=β₂)
+#  
+#  for n in 1:1
+#    ∇ = generategradients(sites,links,χ,d)
+#    ∇_flat  = flatten_tensorarray(∇)
+#    ψ_flat  = flatten_tensorarray(ψ)
+#    
+#    ## algorithm
+#    #update!(ψ,∇,opt;step=n)
+#    #ψ′_alg_flat = flatten_tensorarray(ψ)
+#    
+#    ## exact
+#    g_flat  = β₁ * g_flat  + (1-β₁) * ∇_flat
+#    u_flat  = max.(β₂ * u_flat,abs.(g_flat))
+#    
+#    Δθ_flat = g_flat ./ u_flat
+#    
+#    ψ′_flat = ψ_flat - (η/(1-β₁^n)) * Δθ_flat
+#    
+#    #@test ψ′_flat ≈ ψ′_alg_flat rtol = 1e-4
+#
+#  end
+#end
 
 
 #@testset "nadam" begin
