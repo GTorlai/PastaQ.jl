@@ -58,11 +58,11 @@ export
   
 # optimizers/
   Optimizer,
-  Sgd,
-  Adagrad,
-  Adadelta,
+  SGD,
+  AdaGrad,
+  AdaDelta,
   Adam,
-  Adamax,
+  AdaMax,
   # Methods
   update!,
 

@@ -1,13 +1,13 @@
 abstract type Optimizer end
 
-struct Sgd <: Optimizer 
+struct SGD <: Optimizer 
   η::Float64
   γ::Float64
   v::Vector{ITensor}
 end
 
 """ 
-    Sgd(L::LPDO;η::Float64=0.01,γ::Float64=0.0)
+    SGD(L::LPDO;η::Float64=0.01,γ::Float64=0.0)
 
 Stochastic gradient descent with momentum.
 
@@ -16,26 +16,26 @@ Stochastic gradient descent with momentum.
   - `γ`: friction coefficient
   - `v`: "velocity"
 """
-function Sgd(L::LPDO;η::Float64=0.01,γ::Float64=0.0)
+function SGD(L::LPDO;η::Float64=0.01,γ::Float64=0.0)
   M = L.X
   v = ITensor[]
   for j in 1:length(L)
     push!(v,ITensor(zeros(size(M[j])),inds(M[j])))
   end
-  return Sgd(η,γ,v)
+  return SGD(η,γ,v)
 end
 
-Sgd(ψ::MPS;η::Float64=0.01,γ::Float64=0.0) = Sgd(LPDO(ψ);η=η,γ=γ)
+SGD(ψ::MPS;η::Float64=0.01,γ::Float64=0.0) = SGD(LPDO(ψ);η=η,γ=γ)
 
 """
-    update!(L::LPDO,∇::Array,opt::Sgd; kwargs...)
+    update!(L::LPDO,∇::Array,opt::SGD; kwargs...)
 
-Update parameters with Sgd.
+Update parameters with SGD.
 
 1. `vⱼ = γ * vⱼ - η * ∇ⱼ`: integrated velocity
 2. `θⱼ = θⱼ + vⱼ`: parameter update
 """
-function update!(L::LPDO,∇::Array,opt::Sgd; kwargs...)
+function update!(L::LPDO,∇::Array,opt::SGD; kwargs...)
   M = L.X
   for j in 1:length(M)
     opt.v[j] = opt.γ * opt.v[j] - opt.η * ∇[j]
@@ -43,18 +43,18 @@ function update!(L::LPDO,∇::Array,opt::Sgd; kwargs...)
   end
 end
 
-update!(ψ::MPS,∇::Array,opt::Sgd; kwargs...) = update!(LPDO(ψ),∇,opt;kwargs...)
+update!(ψ::MPS,∇::Array,opt::SGD; kwargs...) = update!(LPDO(ψ),∇,opt;kwargs...)
 
 
 
-struct Adagrad <: Optimizer 
+struct AdaGrad <: Optimizer 
   η::Float64
   ϵ::Float64
   ∇²::Vector{ITensor}
 end
 
 """
-    Adagrad(L::LPDO;η::Float64=0.01,ϵ::Float64=1E-8)
+    AdaGrad(L::LPDO;η::Float64=0.01,ϵ::Float64=1E-8)
 
 
 # Parameters
@@ -62,29 +62,29 @@ end
   - `ϵ`: shift 
   - `∇²`: square gradients (running sums)
 """
-function Adagrad(L::LPDO;η::Float64=0.01,ϵ::Float64=1E-8)
+function AdaGrad(L::LPDO;η::Float64=0.01,ϵ::Float64=1E-8)
   M = L.X
   ∇² = ITensor[]
   for j in 1:length(M)
     push!(∇²,ITensor(zeros(size(M[j])),inds(M[j])))
   end
-  return Adagrad(η,ϵ,∇²)
+  return AdaGrad(η,ϵ,∇²)
 end
 
-Adagrad(ψ::MPS;η::Float64=0.01,ϵ::Float64=1E-8) = Adagrad(LPDO(ψ);η=η,ϵ=ϵ)
+AdaGrad(ψ::MPS;η::Float64=0.01,ϵ::Float64=1E-8) = AdaGrad(LPDO(ψ);η=η,ϵ=ϵ)
 
 """
-    update!(L::LPDO,∇::Array,opt::Adagrad; kwargs...)
+    update!(L::LPDO,∇::Array,opt::AdaGrad; kwargs...)
 
-    update!(ψ::MPS,∇::Array,opt::Adagrad; kwargs...)
+    update!(ψ::MPS,∇::Array,opt::AdaGrad; kwargs...)
 
-Update parameters with Adagrad.
+Update parameters with AdaGrad.
 
 1. `gⱼ += ∇ⱼ²`: running some of square gradients
 2. `Δθⱼ = η * ∇ⱼ / (sqrt(gⱼ+ϵ)` 
 2. `θⱼ = θⱼ - Δθⱼ`: parameter update
 """
-function update!(L::LPDO,∇::Array,opt::Adagrad; kwargs...)
+function update!(L::LPDO,∇::Array,opt::AdaGrad; kwargs...)
   M = L.X
   for j in 1:length(M)
     opt.∇²[j] += ∇[j] .^ 2 
@@ -96,13 +96,13 @@ function update!(L::LPDO,∇::Array,opt::Adagrad; kwargs...)
   end
 end
 
-update!(ψ::MPS,∇::Array,opt::Adagrad; kwargs...) = update!(LPDO(ψ),∇,opt; kwargs...)
+update!(ψ::MPS,∇::Array,opt::AdaGrad; kwargs...) = update!(LPDO(ψ),∇,opt; kwargs...)
 
 
 
 
 
-struct Adadelta <: Optimizer 
+struct AdaDelta <: Optimizer 
   γ::Float64
   ϵ::Float64
   ∇²::Vector{ITensor}
@@ -110,7 +110,7 @@ struct Adadelta <: Optimizer
 end
 
 """
-    Adadelta(L::LPDO;γ::Float64=0.9,ϵ::Float64=1E-8)
+    AdaDelta(L::LPDO;γ::Float64=0.9,ϵ::Float64=1E-8)
 
 # Parameters
   - `γ`: friction coefficient
@@ -118,7 +118,7 @@ end
   - `∇²`: square gradients (decaying average)
   - `Δθ²`: square updates (decaying average)
 """
-function Adadelta(L::LPDO;γ::Float64=0.9,ϵ::Float64=1E-8)
+function AdaDelta(L::LPDO;γ::Float64=0.9,ϵ::Float64=1E-8)
   M = L.X
   Δθ² = ITensor[]
   ∇² = ITensor[]
@@ -126,17 +126,17 @@ function Adadelta(L::LPDO;γ::Float64=0.9,ϵ::Float64=1E-8)
     push!(Δθ²,ITensor(zeros(size(M[j])),inds(M[j])))
     push!(∇²,ITensor(zeros(size(M[j])),inds(M[j])))
   end
-  return Adadelta(γ,ϵ,∇²,Δθ²)
+  return AdaDelta(γ,ϵ,∇²,Δθ²)
 end
 
-Adadelta(ψ::MPS;γ::Float64=0.9,ϵ::Float64=1E-8) = Adadelta(LPDO(ψ);γ=γ,ϵ=ϵ) 
+AdaDelta(ψ::MPS;γ::Float64=0.9,ϵ::Float64=1E-8) = AdaDelta(LPDO(ψ);γ=γ,ϵ=ϵ) 
 
 """
-    update!(L::LPDO,∇::Array,opt::Adadelta; kwargs...)
+    update!(L::LPDO,∇::Array,opt::AdaDelta; kwargs...)
     
-    update!(ψ::MPS,∇::Array,opt::Adadelta; kwargs...)
+    update!(ψ::MPS,∇::Array,opt::AdaDelta; kwargs...)
 
-Update parameters with Adadelta
+Update parameters with AdaDelta
 
 
 1. `gⱼ = γ * gⱼ + (1-γ) * ∇ⱼ²`: decaying average
@@ -144,7 +144,7 @@ Update parameters with Adadelta
 3. `θⱼ = θⱼ - Δθⱼ`: parameter update
 4. `pⱼ = γ * pⱼ + (1-γ) * Δθⱼ²`: decaying average
 """
-function update!(L::LPDO,∇::Array,opt::Adadelta; kwargs...)
+function update!(L::LPDO,∇::Array,opt::AdaDelta; kwargs...)
   M = L.X
   for j in 1:length(M)
     # Update square gradients
@@ -172,7 +172,7 @@ function update!(L::LPDO,∇::Array,opt::Adadelta; kwargs...)
   end
 end
 
-update!(ψ::MPS,∇::Array,opt::Adadelta; kwargs...) = update!(LPDO(ψ),∇,opt; kwargs...)
+update!(ψ::MPS,∇::Array,opt::AdaDelta; kwargs...) = update!(LPDO(ψ),∇,opt; kwargs...)
 
 struct Adam <: Optimizer 
   η::Float64
@@ -242,7 +242,7 @@ end
 
 update!(ψ::MPS,∇::Array,opt::Adam; kwargs...) = update!(LPDO(ψ),∇,opt; kwargs...)
 #
-#struct Adamax <: Optimizer 
+#struct AdaMax <: Optimizer 
 #  η::Float64
 #  β₁::Float64
 #  β₂::Float64
@@ -250,17 +250,17 @@ update!(ψ::MPS,∇::Array,opt::Adam; kwargs...) = update!(LPDO(ψ),∇,opt; kwa
 #  u::Vector{ITensor}   # v in the paper
 #end
 #
-#function Adamax(M::Union{MPS,MPO};η::Float64=0.001,β₁::Float64=0.9,β₂::Float64=0.999)
+#function AdaMax(M::Union{MPS,MPO};η::Float64=0.001,β₁::Float64=0.9,β₂::Float64=0.999)
 #  ∇ = ITensor[]
 #  u = ITensor[]
 #  for j in 1:length(M)
 #    push!(∇,ITensor(zeros(size(M[j])),inds(M[j])))
 #    push!(u,ITensor(zeros(size(M[j])),inds(M[j])))
 #  end
-#  return Adamax(η,β₁,β₂,∇,u)
+#  return AdaMax(η,β₁,β₂,∇,u)
 #end
 #
-#function update!(M::Union{MPS,MPO},∇::Array,opt::Adamax; kwargs...)
+#function update!(M::Union{MPS,MPO},∇::Array,opt::AdaMax; kwargs...)
 #  t = kwargs[:step]
 #  for j in 1:length(M)
 #    # Update square gradients

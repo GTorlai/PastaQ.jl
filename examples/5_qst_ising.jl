@@ -39,7 +39,7 @@ data = generatedata(Ψ,bases)
 χ = maxlinkdim(Ψ)
 ψ0 = initializetomography(N;χ=χ,,σ=0.1)
 # Optimizer
-opt = Sgd(ψ0;η = 0.005,γ=0.0)
+opt = SGD(ψ0;η = 0.005,γ=0.0)
 # Run tomography
 ψ = tomography(ψ0,data,opt;
                batchsize=500,

@@ -398,182 +398,177 @@ input state, which is equivalent to take the conjugate of the eigenstate project
 """
 function gradnll(L::LPDO, data::Array;
                  localnorm = nothing, choi::Bool = false)
-  if L.X isa MPS
-    return gradnll(L.X,data;localnorm=localnorm,choi=choi)
-  else
-    lpdo = L.X
-    N = length(lpdo)
+  lpdo = L.X
+  N = length(lpdo)
 
-    s = firstsiteinds(lpdo)  
-    
-    links = [linkind(lpdo, n) for n in 1:N-1]
-    
-    kraus = Index[]
-    for j in 1:N
-      push!(kraus,firstind(lpdo[j], "Purifier"))
-    end
-
-    ElT = eltype(lpdo[1])
-    
-    nthreads = Threads.nthreads()
-
-    L     = [Vector{ITensor{2}}(undef, N) for _ in 1:nthreads]
-    Llpdo = [Vector{ITensor}(undef, N) for _ in 1:nthreads]
-    Lgrad = [Vector{ITensor}(undef,N) for _ in 1:nthreads]
-
-    R     = [Vector{ITensor{2}}(undef, N) for _ in 1:nthreads]
-    Rlpdo = [Vector{ITensor}(undef, N) for _ in 1:nthreads]
-    
-    Agrad = [Vector{ITensor}(undef, N) for _ in 1:nthreads]
-    
-    T  = [Vector{ITensor}(undef,N) for _ in 1:nthreads] 
-    Tp = [Vector{ITensor}(undef,N) for _ in 1:nthreads]
-    
-    grads     = [Vector{ITensor}(undef,N) for _ in 1:nthreads] 
-    gradients = [Vector{ITensor}(undef,N) for _ in 1:nthreads]
-    
-    for nthread in 1:nthreads
-
-      for n in 1:N-1
-        L[nthread][n] = ITensor(ElT, undef, links[n]',links[n])
-      end
-      for n in 2:N-1
-        Llpdo[nthread][n] = ITensor(ElT, undef, kraus[n],links[n]',links[n-1])
-      end
-      for n in 1:N-2
-        Lgrad[nthread][n] = ITensor(ElT,undef,links[n],kraus[n+1],links[n+1]')
-      end
-      Lgrad[nthread][N-1] = ITensor(ElT,undef,links[N-1],kraus[N])
-
-      for n in N:-1:2
-        R[nthread][n] = ITensor(ElT, undef, links[n-1]',links[n-1])
-      end 
-      for n in N-1:-1:2
-        Rlpdo[nthread][n] = ITensor(ElT, undef, links[n-1]',kraus[n],links[n])
-      end
-    
-      Agrad[nthread][1] = ITensor(ElT, undef, kraus[1],links[1]',s[1])
-      for n in 2:N-1
-        Agrad[nthread][n] = ITensor(ElT, undef, links[n-1],kraus[n],links[n]',s[n])
-      end
-
-      T[nthread][1] = ITensor(ElT, undef, kraus[1],links[1])
-      Tp[nthread][1] = prime(T[nthread][1],"Link")
-      for n in 2:N-1
-        T[nthread][n] = ITensor(ElT, undef, kraus[n],links[n],links[n-1])
-        Tp[nthread][n] = prime(T[nthread][n],"Link")
-      end
-      T[nthread][N] = ITensor(ElT, undef, kraus[N],links[N-1])
-      Tp[nthread][N] = prime(T[nthread][N],"Link")
-    
-      grads[nthread][1] = ITensor(ElT, undef,links[1],kraus[1],s[1])
-      gradients[nthread][1] = ITensor(ElT,links[1],kraus[1],s[1])
-      for n in 2:N-1
-        grads[nthread][n] = ITensor(ElT, undef,links[n],links[n-1],kraus[n],s[n])
-        gradients[nthread][n] = ITensor(ElT,links[n],links[n-1],kraus[n],s[n])
-      end
-      grads[nthread][N] = ITensor(ElT, undef,links[N-1],kraus[N],s[N])
-      gradients[nthread][N] = ITensor(ElT, links[N-1],kraus[N],s[N])
-    end
-    
-    if isnothing(localnorm)
-      localnorm = ones(N)
-    end
-    
-    loss = zeros(nthreads)
-
-    Threads.@threads for n in 1:size(data)[1]
-
-      nthread = Threads.threadid()
-
-      x = data[n,:]
-      
-      """ LEFT ENVIRONMENTS """
-      if choi
-        T[nthread][1] .= lpdo[1] .* gate(x[1],s[1])
-        L[nthread][1] .= prime(T[nthread][1],"Link") .* dag(T[nthread][1])
-      else
-        T[nthread][1] .= lpdo[1] .* dag(gate(x[1],s[1]))
-        L[nthread][1] .= prime(T[nthread][1],"Link") .* dag(T[nthread][1])
-      end
-      for j in 2:N-1
-        if isodd(j) & choi
-          T[nthread][j] .= lpdo[j] .* gate(x[j],s[j])
-        else
-          T[nthread][j] .= lpdo[j] .* dag(gate(x[j],s[j]))
-        end
-        Llpdo[nthread][j] .= prime(T[nthread][j],"Link") .* L[nthread][j-1]
-        L[nthread][j] .= Llpdo[nthread][j] .* dag(T[nthread][j])
-      end
-      T[nthread][N] .= lpdo[N] .* dag(gate(x[N],s[N]))
-      prob = L[nthread][N-1] * prime(T[nthread][N],"Link")
-      prob = prob * dag(T[nthread][N])
-      prob = real(prob[])
-      loss[nthread] -= log(prob)/size(data)[1]
-      
-      """ RIGHT ENVIRONMENTS """
-      R[nthread][N] .= prime(T[nthread][N],"Link") .* dag(T[nthread][N])
-      for j in reverse(2:N-1)
-        Rlpdo[nthread][j] .= prime(T[nthread][j],"Link") .* R[nthread][j+1] 
-        R[nthread][j] .= Rlpdo[nthread][j] .* dag(T[nthread][j])
-      end
-      
-      """ GRADIENTS """
-      if choi
-        Tp[nthread][1] .= prime(lpdo[1],"Link") .* gate(x[1],s[1])
-        Agrad[nthread][1] .=  Tp[nthread][1] .* dag(gate(x[1],s[1]))
-      else
-        Tp[nthread][1] .= prime(lpdo[1],"Link") .* dag(gate(x[1],s[1]))
-        Agrad[nthread][1] .=  Tp[nthread][1] .* gate(x[1],s[1])
-      end
-      grads[nthread][1] .= R[nthread][2] .* Agrad[nthread][1]
-      gradients[nthread][1] .+= (1 / (localnorm[1] * prob)) .* grads[nthread][1]
-      for j in 2:N-1
-        if isodd(j) & choi
-          Tp[nthread][j] .= prime(lpdo[j],"Link") .* gate(x[j],s[j])
-          Lgrad[nthread][j-1] .= L[nthread][j-1] .* Tp[nthread][j]
-          Agrad[nthread][j] .= Lgrad[nthread][j-1] .* dag(gate(x[j],s[j]))
-        else
-          Tp[nthread][j] .= prime(lpdo[j],"Link") .* dag(gate(x[j],s[j]))
-          Lgrad[nthread][j-1] .= L[nthread][j-1] .* Tp[nthread][j]
-          Agrad[nthread][j] .= Lgrad[nthread][j-1] .* gate(x[j],s[j])
-        end
-        grads[nthread][j] .= R[nthread][j+1] .* Agrad[nthread][j] 
-        gradients[nthread][j] .+= (1 / (localnorm[j] * prob)) .* grads[nthread][j]
-      end
-      Tp[nthread][N] .= prime(lpdo[N],"Link") .* dag(gate(x[N],s[N]))
-      Lgrad[nthread][N-1] .= L[nthread][N-1] .* Tp[nthread][N]
-      grads[nthread][N] .= Lgrad[nthread][N-1] .* gate(x[N],s[N])
-      gradients[nthread][N] .+= (1 / (localnorm[N] * prob)) .* grads[nthread][N]
-    end
-    
-    for nthread in 1:nthreads
-      for g in gradients[nthread]
-        g .= (-2/size(data)[1]) .* g
-      end
-    end
-    
-    gradients_tot = Vector{ITensor}(undef,N) 
-    gradients_tot[1] = ITensor(ElT,links[1],kraus[1],s[1])
-    for n in 2:N-1
-      gradients_tot[n] = ITensor(ElT,links[n],links[n-1],kraus[n],s[n])
-    end
-    gradients_tot[N] = ITensor(ElT, links[N-1],kraus[N],s[N])
-    
-    loss_tot = 0.0
-    for nthread in 1:nthreads
-      gradients_tot .+= gradients[nthread]
-      loss_tot += loss[nthread]
-    end
-    
-    return gradients_tot, loss_tot
+  s = firstsiteinds(lpdo)  
+  
+  links = [linkind(lpdo, n) for n in 1:N-1]
+  
+  kraus = Index[]
+  for j in 1:N
+    push!(kraus,firstind(lpdo[j], "Purifier"))
   end
+
+  ElT = eltype(lpdo[1])
+  
+  nthreads = Threads.nthreads()
+
+  L     = [Vector{ITensor{2}}(undef, N) for _ in 1:nthreads]
+  Llpdo = [Vector{ITensor}(undef, N) for _ in 1:nthreads]
+  Lgrad = [Vector{ITensor}(undef,N) for _ in 1:nthreads]
+
+  R     = [Vector{ITensor{2}}(undef, N) for _ in 1:nthreads]
+  Rlpdo = [Vector{ITensor}(undef, N) for _ in 1:nthreads]
+  
+  Agrad = [Vector{ITensor}(undef, N) for _ in 1:nthreads]
+  
+  T  = [Vector{ITensor}(undef,N) for _ in 1:nthreads] 
+  Tp = [Vector{ITensor}(undef,N) for _ in 1:nthreads]
+  
+  grads     = [Vector{ITensor}(undef,N) for _ in 1:nthreads] 
+  gradients = [Vector{ITensor}(undef,N) for _ in 1:nthreads]
+  
+  for nthread in 1:nthreads
+
+    for n in 1:N-1
+      L[nthread][n] = ITensor(ElT, undef, links[n]',links[n])
+    end
+    for n in 2:N-1
+      Llpdo[nthread][n] = ITensor(ElT, undef, kraus[n],links[n]',links[n-1])
+    end
+    for n in 1:N-2
+      Lgrad[nthread][n] = ITensor(ElT,undef,links[n],kraus[n+1],links[n+1]')
+    end
+    Lgrad[nthread][N-1] = ITensor(ElT,undef,links[N-1],kraus[N])
+
+    for n in N:-1:2
+      R[nthread][n] = ITensor(ElT, undef, links[n-1]',links[n-1])
+    end 
+    for n in N-1:-1:2
+      Rlpdo[nthread][n] = ITensor(ElT, undef, links[n-1]',kraus[n],links[n])
+    end
+  
+    Agrad[nthread][1] = ITensor(ElT, undef, kraus[1],links[1]',s[1])
+    for n in 2:N-1
+      Agrad[nthread][n] = ITensor(ElT, undef, links[n-1],kraus[n],links[n]',s[n])
+    end
+
+    T[nthread][1] = ITensor(ElT, undef, kraus[1],links[1])
+    Tp[nthread][1] = prime(T[nthread][1],"Link")
+    for n in 2:N-1
+      T[nthread][n] = ITensor(ElT, undef, kraus[n],links[n],links[n-1])
+      Tp[nthread][n] = prime(T[nthread][n],"Link")
+    end
+    T[nthread][N] = ITensor(ElT, undef, kraus[N],links[N-1])
+    Tp[nthread][N] = prime(T[nthread][N],"Link")
+  
+    grads[nthread][1] = ITensor(ElT, undef,links[1],kraus[1],s[1])
+    gradients[nthread][1] = ITensor(ElT,links[1],kraus[1],s[1])
+    for n in 2:N-1
+      grads[nthread][n] = ITensor(ElT, undef,links[n],links[n-1],kraus[n],s[n])
+      gradients[nthread][n] = ITensor(ElT,links[n],links[n-1],kraus[n],s[n])
+    end
+    grads[nthread][N] = ITensor(ElT, undef,links[N-1],kraus[N],s[N])
+    gradients[nthread][N] = ITensor(ElT, links[N-1],kraus[N],s[N])
+  end
+  
+  if isnothing(localnorm)
+    localnorm = ones(N)
+  end
+  
+  loss = zeros(nthreads)
+
+  Threads.@threads for n in 1:size(data)[1]
+
+    nthread = Threads.threadid()
+
+    x = data[n,:]
+    
+    """ LEFT ENVIRONMENTS """
+    if choi
+      T[nthread][1] .= lpdo[1] .* gate(x[1],s[1])
+      L[nthread][1] .= prime(T[nthread][1],"Link") .* dag(T[nthread][1])
+    else
+      T[nthread][1] .= lpdo[1] .* dag(gate(x[1],s[1]))
+      L[nthread][1] .= prime(T[nthread][1],"Link") .* dag(T[nthread][1])
+    end
+    for j in 2:N-1
+      if isodd(j) & choi
+        T[nthread][j] .= lpdo[j] .* gate(x[j],s[j])
+      else
+        T[nthread][j] .= lpdo[j] .* dag(gate(x[j],s[j]))
+      end
+      Llpdo[nthread][j] .= prime(T[nthread][j],"Link") .* L[nthread][j-1]
+      L[nthread][j] .= Llpdo[nthread][j] .* dag(T[nthread][j])
+    end
+    T[nthread][N] .= lpdo[N] .* dag(gate(x[N],s[N]))
+    prob = L[nthread][N-1] * prime(T[nthread][N],"Link")
+    prob = prob * dag(T[nthread][N])
+    prob = real(prob[])
+    loss[nthread] -= log(prob)/size(data)[1]
+    
+    """ RIGHT ENVIRONMENTS """
+    R[nthread][N] .= prime(T[nthread][N],"Link") .* dag(T[nthread][N])
+    for j in reverse(2:N-1)
+      Rlpdo[nthread][j] .= prime(T[nthread][j],"Link") .* R[nthread][j+1] 
+      R[nthread][j] .= Rlpdo[nthread][j] .* dag(T[nthread][j])
+    end
+    
+    """ GRADIENTS """
+    if choi
+      Tp[nthread][1] .= prime(lpdo[1],"Link") .* gate(x[1],s[1])
+      Agrad[nthread][1] .=  Tp[nthread][1] .* dag(gate(x[1],s[1]))
+    else
+      Tp[nthread][1] .= prime(lpdo[1],"Link") .* dag(gate(x[1],s[1]))
+      Agrad[nthread][1] .=  Tp[nthread][1] .* gate(x[1],s[1])
+    end
+    grads[nthread][1] .= R[nthread][2] .* Agrad[nthread][1]
+    gradients[nthread][1] .+= (1 / (localnorm[1] * prob)) .* grads[nthread][1]
+    for j in 2:N-1
+      if isodd(j) & choi
+        Tp[nthread][j] .= prime(lpdo[j],"Link") .* gate(x[j],s[j])
+        Lgrad[nthread][j-1] .= L[nthread][j-1] .* Tp[nthread][j]
+        Agrad[nthread][j] .= Lgrad[nthread][j-1] .* dag(gate(x[j],s[j]))
+      else
+        Tp[nthread][j] .= prime(lpdo[j],"Link") .* dag(gate(x[j],s[j]))
+        Lgrad[nthread][j-1] .= L[nthread][j-1] .* Tp[nthread][j]
+        Agrad[nthread][j] .= Lgrad[nthread][j-1] .* gate(x[j],s[j])
+      end
+      grads[nthread][j] .= R[nthread][j+1] .* Agrad[nthread][j] 
+      gradients[nthread][j] .+= (1 / (localnorm[j] * prob)) .* grads[nthread][j]
+    end
+    Tp[nthread][N] .= prime(lpdo[N],"Link") .* dag(gate(x[N],s[N]))
+    Lgrad[nthread][N-1] .= L[nthread][N-1] .* Tp[nthread][N]
+    grads[nthread][N] .= Lgrad[nthread][N-1] .* gate(x[N],s[N])
+    gradients[nthread][N] .+= (1 / (localnorm[N] * prob)) .* grads[nthread][N]
+  end
+  
+  for nthread in 1:nthreads
+    for g in gradients[nthread]
+      g .= (-2/size(data)[1]) .* g
+    end
+  end
+  
+  gradients_tot = Vector{ITensor}(undef,N) 
+  gradients_tot[1] = ITensor(ElT,links[1],kraus[1],s[1])
+  for n in 2:N-1
+    gradients_tot[n] = ITensor(ElT,links[n],links[n-1],kraus[n],s[n])
+  end
+  gradients_tot[N] = ITensor(ElT, links[N-1],kraus[N],s[N])
+  
+  loss_tot = 0.0
+  for nthread in 1:nthreads
+    gradients_tot .+= gradients[nthread]
+    loss_tot += loss[nthread]
+  end
+  
+  return gradients_tot, loss_tot
 end
 
 
 """
     gradients(L::LPDO, data::Array; localnorm = nothing, choi::Bool = false)
-    gradients(ψ::MPS, args...; kwargs...)
 
 Compute the gradients of the cost function:
 `C = log(Z) - ⟨log P(σ)⟩_data`
@@ -582,17 +577,15 @@ If `choi=true`, add the Choi normalization `trace(Λ)=d^N` to the cost function.
 """
 function gradients(L::LPDO, data::Array;
                    localnorm = nothing, choi::Bool = false)
-  #M = L.X
   g_logZ,logZ = gradlogZ(L,localnorm=localnorm)
-  g_nll, nll  = gradnll(L,data,localnorm=localnorm,choi=choi)
+  M = (L.X isa MPS ? L.X : L)
+  g_nll, nll  = gradnll(M,data,localnorm=localnorm,choi=choi)
+  
   grads = g_logZ + g_nll
   loss = logZ + nll
   loss += (choi ? -0.5 * length(L) * log(2) : 0.0)
   return grads,loss
 end
-
-gradients(ψ::MPS, args...; kwargs...) =
-  gradients(LPDO(ψ), args...; kwargs...)
 
 """
     tomography(L::LPDO, data::Array, opt::Optimizer; kwargs...)
@@ -614,7 +607,6 @@ function tomography(L::LPDO,
                     data::Array,
                     opt::Optimizer;
                     kwargs...)
-  model = L
   
   # Read arguments
   localnorm::Bool = get(kwargs,:localnorm,true)
@@ -633,7 +625,7 @@ function tomography(L::LPDO,
     error("Both input norms are set to true")
   end
   
-  model = copy(model)
+  model = copy(L)
   
   # Set up target quantum state
   if !isnothing(target)
@@ -729,7 +721,8 @@ tomography(ψ::MPS, data::Array,opt::Optimizer; kwargs...) =
   tomography(LPDO(ψ),data,opt; kwargs...)
 
 """
-    processtomography(M::Union{MPS,LPDO},data_in::Array,data_out::Array,opt::Optimizer; kwargs...)
+    tomography(L::LPDO,data_in::Array,data_out::Array,opt::Optimizer; kwargs...)
+    tomography(ψ::MPS,data_in::Array,data_out::Array,opt::Optimizer; kwargs...)
 
 Run quantum process tomography on `(data_in,data_out)` using `model` as variational ansatz.
 
@@ -754,9 +747,7 @@ function tomography(L::LPDO,
   return tomography(L,data,opt; choi=true,kwargs...)
 end
 
-tomography(ψ::MPS, args...; kwargs...) =
-  tomography(LPDO(ψ), args...; kwargs...)
-tomography(ψ::MPS,    data_in::Array, data_out::Array,opt::Optimizer; kwargs...) =
+tomography(ψ::MPS,data_in::Array, data_out::Array,opt::Optimizer; kwargs...) =
   tomography(LPDO(ψ),data_in,data_out,opt; kwargs...)
 
 """

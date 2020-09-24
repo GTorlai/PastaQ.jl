@@ -10,7 +10,7 @@ N = length(Φ)
 χ = maxlinkdim(Φ)
 
 Γ0 = initializetomography(N;χ=χ,σ=0.1)
-opt = Sgd(Γ0;η = 0.1)
+opt = SGD(Γ0;η = 0.1)
 
 println("Training...")
 Γ = tomography(Γ0,data_in,data_out,opt;
@@ -28,7 +28,7 @@ N = length(ϱ)
 ξ = 2
 
 Λ0 = initializetomography(N;χ=χ,ξ=ξ,σ=0.1)
-opt = Sgd(Λ0;η = 0.1)
+opt = SGD(Λ0;η = 0.1)
 
 println("Training...")
 Λ = tomography(Λ0,data_in,data_out,opt;

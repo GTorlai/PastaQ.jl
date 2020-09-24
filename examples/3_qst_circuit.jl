@@ -11,7 +11,7 @@ N = length(Ψ)
 χ = maxlinkdim(Ψ)
 
 ψ0 = initializetomography(N;χ=χ,σ=0.1)
-opt = Sgd(ψ0;η = 0.005)
+opt = SGD(ψ0;η = 0.005)
 
 println("Training...")
 ψ = tomography(ψ0,data,opt;
@@ -29,7 +29,7 @@ N = length(ϱ)
 
 
 ρ0 = initializetomography(N;χ=χ,ξ=ξ,σ=0.1)
-opt = Sgd(ρ0;η = 0.01)
+opt = SGD(ρ0;η = 0.01)
 println("Training...")
 ρ = tomography(ρ0,data,opt;
                batchsize=1000,
