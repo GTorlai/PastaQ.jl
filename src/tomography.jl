@@ -654,7 +654,9 @@ function tomography(L::LPDO,
     if !isnothing(target)
       if ((model.X isa MPO) & (target isa MPO)) 
         frob_dist = frobenius_distance(model,target)
+        fbound = fidelity_bound(model,target)
         @printf("Trace distance = %.3E  ",frob_dist)
+        @printf("Fidelity bound = %.3E  ",fbound)
         if (length(model) <= 8)
           disable_warn_order!()
           fid = fullfidelity(model,target)
@@ -878,7 +880,68 @@ function frobenius_distance(ρ0::MPO, σ0::MPO)
 end
 
 """
-    fullfidelity(ρ::Union{MPO, LPDO}, σ::Union{LPDO, MPO})
+    fidelity_bound(ρ0::LPDO, σ0::LPDO)
+    fidelity_bound(ρ0::LPDO, σ0::MPO)
+    fidelity_bound(ρ0::MPO,  σ0::LPDO)
+    fidelity_bound(ρ0::MPO,  σ0::MPO)
+
+Compute the the following fidelity bound
+
+`F̃(ρ,σ) = trace[ρ† σ)]`
+
+The bound becomes tight when the target state is nearly pure.
+"""
+function fidelity_bound(ρ0::LPDO, σ0::LPDO)
+  ρ = copy(ρ0)
+  σ = copy(σ0)
+  # Normalize both LPDO to 1
+  lognormalize!(ρ)
+  lognormalize!(σ)
+  # Extract density operators MPO
+  ρ′ = MPO(ρ)
+  σ′ = MPO(σ)
+  Kρ  = 1.0
+  Kσ  = 1.0
+  return real(inner(ρ′,σ′)/(Kρ*Kσ))
+end
+
+function fidelity_bound(ρ0::LPDO, σ0::MPO)
+  # Normalize the LPDO to 1
+  ρ = copy(ρ0)
+  lognormalize!(ρ)
+  ρ′ = MPO(ρ)
+  σ′ = σ0
+  # Get the MPO normalization
+  Kρ = 1.0
+  Kσ = tr(σ′)
+
+  return real(inner(ρ′,σ′)/(Kρ*Kσ))
+end
+
+function fidelity_bound(ρ0::MPO, σ0::LPDO)
+  # Normalize the LPDO to 1
+  σ = copy(σ0)
+  lognormalize!(σ)
+  σ′ = MPO(σ)
+  ρ′ = ρ0
+  # Get the MPO normalization
+  Kρ = tr(ρ′)
+  Kσ = 1.0
+
+  return real(inner(ρ′,σ′)/(Kρ*Kσ))
+end
+
+function fidelity_bound(ρ0::MPO, σ0::MPO)
+  ρ′ = ρ0
+  σ′ = σ0
+  Kρ = tr(ρ′)
+  Kσ = tr(σ′)
+  bound = inner(ρ′,σ′)/(Kρ*Kσ)
+  return real(bound)
+end
+
+"""
+    fullfidelity(ρ::MPO,σ::MPO;choi::Bool=false)
 
 Compute the full quantum fidelity between two density operators
 by full enumeration.

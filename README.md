@@ -87,5 +87,54 @@ gates = randomcircuit(N,depth)
 ψ = runcircuit(N,gates)
 
 # Generate the MPO for the unitary circuit:
-U = runcircuit(N,gates;process=true)
+U = runcircuit(N,gates; process=true)
 ```
+
+If a noise model is provided, a local noise channel is applied after each quantum
+gate. A noise model is described by a string `noisename` identifying a set of
+Kraus operators, which can depend on a set of additional parameters `params`.
+
+```julia
+using PastaQ
+
+# Example 1b: noisy quantum circuit
+
+N = 4   # Number of qubits
+depth=4 # Depth of the quantum circuit
+gates = randomcircuit(N,depth) # random circuit
+
+# Run the circuit using an amplitude damping channel with decay rate `γ=0.01`.
+# Returns the MPO for the mixed density operator `ρ = ε(|0,0,…⟩⟨0,0,̇…|), where
+# `ε` is the quantum channel.
+ρ = runcircuit(N,gates; noise="AD", γ=0.01)
+```
+
+#### Choi matrix
+
+The Choi matrix provides a complete description of an arbitrary quantum channel.
+It is obtained by applying a given channel `ε` to half of N pairs of entangled states.
+If the channel `ε` is unitary, the Choi matrix has rank 1 `Λ = |U⟩⟩⟨⟨U|`, where
+`U` is the unitary circuit and `|U⟩⟩` is an MPS obtained by bending the inpupt wires
+of the circuit MPO. If the channel is noisy, the Choi matrix is described by a MPO.
+
+```julia
+using PastaQ
+
+# Example 1c: choi matrix
+
+N = 4   # Number of qubits
+depth=4 # Depth of the quantum circuit
+gates = randomcircuit(N,depth) # random circuit
+
+# Compute MPS for rank-1 Choi matrix of a unitary channel
+|U⟩⟩ = choimatrix(N,gates)
+
+# Compute the MPO for Choi matrix of a noisy channel
+Λ = choimatrix(N,gates; noise="AD", γ=0.01)
+
+```
+
+#### Data generation
+
+
+### Quantum tomography
