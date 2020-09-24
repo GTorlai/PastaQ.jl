@@ -87,7 +87,9 @@ end
 """
     fullmatrix(M::MPO; reverse::Bool = true)
 
-Extract the full matrix from an MPO
+    fullmatrix(L::LPDO; reverse::Bool = true)
+
+Extract the full matrix from an MPO or LPDO, returning a Julia Matrix.
 """
 function fullmatrix(M::MPO; reverse::Bool = true)
   s = firstsiteinds(M; plev = 0)
@@ -99,4 +101,6 @@ function fullmatrix(M::MPO; reverse::Bool = true)
   c = combinedind(C)
   return array(permute(Mmat, c', c))
 end
+
+fullmatrix(L::LPDO; kwargs...) = fullmatrix(MPO(L); kwargs...)
 

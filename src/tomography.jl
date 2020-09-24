@@ -47,7 +47,7 @@ end
 #initializetomography(ψ::MPS; kwargs...) = initializetomography(LPDO(ψ); kwargs...)
 
 """
-    function initializetomography(sites::Vector{<:Index},χ::Int64;σ::Float64=0.1)
+    initializetomography(sites::Vector{<:Index},χ::Int64;σ::Float64=0.1)
 
 Initialize a variational MPS for quantum tomography.
 
@@ -87,8 +87,8 @@ function initializetomography(sites::Vector{<:Index},χ::Int64;σ::Float64=0.1)
 end
 
 """
-    function initializetomography(sites::Vector{<:Index},χ::Int64,ξ::Int64;
-                                  σ::Float64=0.1,purifier_tag = ts"Purifier")
+    initializetomography(sites::Vector{<:Index},χ::Int64,ξ::Int64;
+                         σ::Float64=0.1,purifier_tag = ts"Purifier")
 
 Initialize a variational LPDO for quantum tomography.
 
@@ -133,47 +133,6 @@ function initializetomography(sites::Vector{<:Index},χ::Int64,ξ::Int64;σ::Flo
 end
 
 """
-    lognormalize!(L::LPDO)
-    lognormalize!(M::MPS)
-
-Normalize the MPS/LPDO and returns the log of the norm and a vector of the local norms of each site.
-"""
-function lognormalize!(L::LPDO)
-  N = length(L)
-  localnorms = []
-  # TODO: replace with:
-  # noprime(ket(L, 1), siteind(L, 1))
-  blob = noprime(ket(L, 1), "Site") * bra(L, 1)
-  localZ = norm(blob)
-  logZ = 0.5 * log(localZ)
-  blob /= sqrt(localZ)
-  L.X[1] /= (localZ^0.25)
-  push!(localnorms, localZ^0.25)
-  for j in 2:length(L)-1
-    # TODO: replace with:
-    # noprime(ket(L, j), siteind(L, j))
-    blob = blob * noprime(ket(L, j), "Site")
-    blob = blob * bra(L, j)
-    localZ = norm(blob)
-    logZ += 0.5*log(localZ)
-    blob /= sqrt(localZ)
-    L.X[j] /= (localZ^0.25)
-    push!(localnorms, localZ^0.25)  
-  end
-  # TODO: replace with:
-  # noprime(ket(L, N), siteind(L, N))
-  blob = blob * noprime(ket(L, N), "Site")
-  blob = blob * bra(L, N)
-  localZ = norm(blob)
-  L.X[length(L)] /= sqrt(localZ)
-  push!(localnorms, sqrt(localZ))
-  logZ += log(real(blob[]))
-  return logZ, localnorms
-end
-
-lognormalize!(ψ::MPS) = lognormalize!(LPDO(ψ))
-
-"""
     gradlogZ(L::LPDO;localnorm=nothing)
     gradlogZ(ψ::MPS; kwargs...)
 
@@ -186,8 +145,8 @@ to each LPDO tensor component:
 If `localnorm=true`, rescale each gradient by the corresponding
 local normalization.
 """
-function gradlogZ(L::LPDO; localnorm = nothing)
-  M = L.X
+function gradlogZ(lpdo::LPDO; localnorm = nothing)
+  M = lpdo.X
   N = length(M)
   L = Vector{ITensor}(undef, N-1)
   R = Vector{ITensor}(undef, N)
@@ -195,6 +154,7 @@ function gradlogZ(L::LPDO; localnorm = nothing)
   if isnothing(localnorm)
     localnorm = ones(N)
   end
+
   # Sweep right to get L
   L[1] = dag(M[1]) * prime(M[1],"Link")
   for j in 2:N-1
@@ -670,11 +630,13 @@ function tomography(L::LPDO,
       # Local normalization
       if localnorm
         modelcopy = copy(model)
-        logZ,localnorms = lognormalize!(modelcopy)
+        localnorms = []
+        #logZ,localnorms = normalize!(modelcopy)
+        normalize!(modelcopy; norm_per_site! = localnorms)
         grads,loss = gradients(modelcopy,batch,localnorm=localnorms,choi=choi)
       # Global normalization
       elseif globalnorm
-        lognormalize!(model)
+        normalize!(model)
         grads,loss = gradients(model,batch,choi=choi)
       # Unnormalized
       else
@@ -720,7 +682,7 @@ function tomography(L::LPDO,
     tot_time += ep_time
   end
   @printf("Total Time = %.3f sec\n",tot_time)
-  lognormalize!(model)
+  normalize!(model)
   
   return (isnothing(observer) ? model : (model,observer))  
 end
@@ -863,8 +825,8 @@ function frobenius_distance(ρ0::LPDO, σ0::LPDO)
   ρ = copy(ρ0)
   σ = copy(σ0)
   # Normalize both LPDO to 1
-  lognormalize!(ρ)
-  lognormalize!(σ)
+  normalize!(ρ)
+  normalize!(σ)
   # Extract density operators MPO
   ρ′ = MPO(ρ)
   σ′ = MPO(σ)
@@ -881,7 +843,7 @@ end
 function frobenius_distance(ρ0::LPDO, σ0::MPO)
   # Normalize the LPDO to 1
   ρ = copy(ρ0)
-  lognormalize!(ρ)
+  normalize!(ρ)
   ρ′ = MPO(ρ)
   σ′ = σ0
   # Get the MPO normalization
@@ -898,7 +860,7 @@ end
 function frobenius_distance(ρ0::MPO, σ0::LPDO)
   # Normalize the LPDO to 1
   σ = copy(σ0)
-  lognormalize!(σ)
+  normalize!(σ)
   σ′ = MPO(σ)
   ρ′ = ρ0
   # Get the MPO normalization
@@ -926,20 +888,22 @@ function frobenius_distance(ρ0::MPO, σ0::MPO)
 end
 
 """
-    fullfidelity(ρ::MPO,σ::MPO;choi::Bool=false)
+    fullfidelity(ρ::Union{MPO, LPDO}, σ::Union{LPDO, MPO})
 
-Compute the full quantum fidelity between two density operatos
+Compute the full quantum fidelity between two density operators
 by full enumeration.
+
+The MPOs should be Hermitian and non-negative.
 """
-function fullfidelity(L::LPDO,σ::MPO)
+function fullfidelity(L::Union{MPO, LPDO}, σ::Union{LPDO, MPO})
   @assert length(L) < 12
-  ρ_mat = fullmatrix(MPO(L))
+  ρ_mat = fullmatrix(L)
   σ_mat = fullmatrix(σ)
   
   ρ_mat ./= tr(ρ_mat)
   σ_mat ./= tr(σ_mat)
   
-  F = sqrt(ρ_mat) * (σ_mat * sqrt(ρ_mat))
+  F = sqrt(ρ_mat) * σ_mat * sqrt(ρ_mat)
   F = real(tr(sqrt(F)))
   return F
 end
