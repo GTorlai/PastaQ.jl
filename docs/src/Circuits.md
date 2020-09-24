@@ -1,4 +1,4 @@
-# Circuit Simulation
+# Circuit Simulator 
 
 ## Initialization
 

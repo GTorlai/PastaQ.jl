@@ -114,17 +114,6 @@ function applygate!(M::Union{MPS,MPO},
   return M
 end
 
-## Retrieve the qubit number from a site index
-#function getsitenumber(i::Index)
-#  for n in 1:length(tags(i))
-#    str_n = String(tags(i)[n])
-#    if startswith(str_n, "n=")
-#      return parse(Int64, replace(str_n, "n="=>""))
-#    end
-#  end
-#  return nothing
-#end
-
 """
     compilecircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple};
                  noise=nothing, kwargs...)

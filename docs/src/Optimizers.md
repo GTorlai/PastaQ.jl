@@ -2,25 +2,25 @@
 
 ### Stochastic gradient descent
 ```@docs
-Sgd
+SGD
+update!(::LPDO,::Array,::SGD; kwargs...)
 ```
 
 ### Adagrad 
 ```@docs
-Adagrad
+AdaGrad
+update!(::LPDO,::Array,::AdaGrad; kwargs...)
 ```
 
 ### Adadelta 
 ```@docs
-Adadelta
+AdaDelta
+update!(::LPDO,::Array,::AdaDelta; kwargs...)
 ```
+
 ### Adam 
 ```@docs
 Adam
-```
-
-## Update
-```@docs
-update!
+update!(::LPDO,::Array,::Adam; kwargs...)
 ```
 

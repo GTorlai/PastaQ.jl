@@ -9,7 +9,7 @@ depth=4 # Depth of the quantum circuit
 
 # Generate random quantum circuit built out of
 # layers of single-qubit random rotations + `CX` 
-# gates, alternating between even and of layers.
+# gates, alternating between even and of odd layers.
 gates = randomcircuit(N,depth)
 
 # 1. Unitary quantum circuit
