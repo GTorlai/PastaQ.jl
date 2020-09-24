@@ -1,4 +1,4 @@
-![alt text](assets/logo.png)
+![alt text](https://github.com/GTorlai/PastaQ.jl/blob/master/docs/src/assets/logo.png?raw=true)
 [![Tests](https://github.com/GTorlai/PastaQ.jl/workflows/Tests/badge.svg)](https://github.com/GTorlai/PastaQ.jl/actions?query=workflow%3ATests)
 [![codecov](https://codecov.io/gh/GTorlai/PastaQ.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/GTorlai/PastaQ.jl)
 [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://gtorlai.github.io/PastaQ.jl/stable/)
