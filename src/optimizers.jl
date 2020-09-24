@@ -1,15 +1,5 @@
 abstract type Optimizer end
 
-"""
-    Sgd
-
-Stochastic gradient descent with momentum.
-
-# Parameters
-  - `η`: learning rate
-  - `γ`: friction coefficient
-  - `v`: "velocity"
-"""
 struct Sgd <: Optimizer 
   η::Float64
   γ::Float64
@@ -17,9 +7,14 @@ struct Sgd <: Optimizer
 end
 
 """ 
-    Sgd(M::Union{MPS,MPO};η::Float64=0.01,γ::Float64=0.0)
+    Sgd(L::LPDO;η::Float64=0.01,γ::Float64=0.0)
 
-Initialize Sgd
+Stochastic gradient descent with momentum.
+
+# Parameters
+  - `η`: learning rate
+  - `γ`: friction coefficient
+  - `v`: "velocity"
 """
 function Sgd(L::LPDO;η::Float64=0.01,γ::Float64=0.0)
   M = L.X
@@ -33,7 +28,7 @@ end
 Sgd(ψ::MPS;η::Float64=0.01,γ::Float64=0.0) = Sgd(LPDO(ψ);η=η,γ=γ)
 
 """
-    update!(M::Union{MPS,MPO},∇::Array,opt::Sgd; kwargs...)
+    update!(L::LPDO,∇::Array,opt::Sgd; kwargs...)
 
 Update parameters with Sgd.
 
@@ -49,14 +44,9 @@ function update!(L::LPDO,∇::Array,opt::Sgd; kwargs...)
 end
 
 update!(ψ::MPS,∇::Array,opt::Sgd; kwargs...) = update!(LPDO(ψ),∇,opt;kwargs...)
-"""
-    Adagrad
 
-# Parameters
-  - `η`: learning rate
-  - `ϵ`: shift 
-  - `∇²`: square gradients (running sums)
-"""
+
+
 struct Adagrad <: Optimizer 
   η::Float64
   ϵ::Float64
@@ -64,9 +54,13 @@ struct Adagrad <: Optimizer
 end
 
 """
-    Adagrad(M::Union{MPS,MPO};η::Float64=0.01,ϵ::Float64=1E-8)
+    Adagrad(L::LPDO;η::Float64=0.01,ϵ::Float64=1E-8)
 
-Initialize Adagrad
+
+# Parameters
+  - `η`: learning rate
+  - `ϵ`: shift 
+  - `∇²`: square gradients (running sums)
 """
 function Adagrad(L::LPDO;η::Float64=0.01,ϵ::Float64=1E-8)
   M = L.X
@@ -80,7 +74,9 @@ end
 Adagrad(ψ::MPS;η::Float64=0.01,ϵ::Float64=1E-8) = Adagrad(LPDO(ψ);η=η,ϵ=ϵ)
 
 """
-    update!(M::Union{MPS,MPO},∇::Array,opt::Adagrad)
+    update!(L::LPDO,∇::Array,opt::Adagrad; kwargs...)
+
+    update!(ψ::MPS,∇::Array,opt::Adagrad; kwargs...)
 
 Update parameters with Adagrad.
 
@@ -102,15 +98,10 @@ end
 
 update!(ψ::MPS,∇::Array,opt::Adagrad; kwargs...) = update!(LPDO(ψ),∇,opt; kwargs...)
 
-"""
-    Adadelta
 
-# Parameters
-  - `γ`: friction coefficient
-  - `ϵ`: shift 
-  - `∇²`: square gradients (decaying average)
-  - `Δθ²`: square updates (decaying average)
-"""
+
+
+
 struct Adadelta <: Optimizer 
   γ::Float64
   ϵ::Float64
@@ -119,9 +110,13 @@ struct Adadelta <: Optimizer
 end
 
 """
-    Adadelta(M::Union{MPS,MPO};γ::Float64=0.9,ϵ::Float64=1E-8)
+    Adadelta(L::LPDO;γ::Float64=0.9,ϵ::Float64=1E-8)
 
-Initialize Adadelta
+# Parameters
+  - `γ`: friction coefficient
+  - `ϵ`: shift 
+  - `∇²`: square gradients (decaying average)
+  - `Δθ²`: square updates (decaying average)
 """
 function Adadelta(L::LPDO;γ::Float64=0.9,ϵ::Float64=1E-8)
   M = L.X
@@ -137,7 +132,9 @@ end
 Adadelta(ψ::MPS;γ::Float64=0.9,ϵ::Float64=1E-8) = Adadelta(LPDO(ψ);γ=γ,ϵ=ϵ) 
 
 """
-    update!(M::Union{MPS,MPO},∇::Array,opt::Adadelta; kwargs...)
+    update!(L::LPDO,∇::Array,opt::Adadelta; kwargs...)
+    
+    update!(ψ::MPS,∇::Array,opt::Adadelta; kwargs...)
 
 Update parameters with Adadelta
 
@@ -176,17 +173,6 @@ function update!(L::LPDO,∇::Array,opt::Adadelta; kwargs...)
 end
 
 update!(ψ::MPS,∇::Array,opt::Adadelta; kwargs...) = update!(LPDO(ψ),∇,opt; kwargs...)
-"""
-    Adam
-
-# Parameters
-  - `η`: learning rate
-  - `β₁`: decay rate 1 
-  - `β₂`: decay rate 2
-  - `ϵ`: shift 
-  - `∇`: gradients (decaying average)
-  - `∇²`: square gradients (decaying average)
-"""
 
 struct Adam <: Optimizer 
   η::Float64
@@ -198,10 +184,19 @@ struct Adam <: Optimizer
 end
 
 """
-    Adam(M::Union{MPS,MPO};η::Float64=0.001,
+    Adam(L::LPDO;η::Float64=0.001,
          β₁::Float64=0.9,β₂::Float64=0.999,ϵ::Float64=1E-7)
 
-Initialize Adam
+    Adam(ψ::MPS;η::Float64=0.001,
+         β₁::Float64=0.9,β₂::Float64=0.999,ϵ::Float64=1E-7)
+
+# Parameters
+  - `η`: learning rate
+  - `β₁`: decay rate 1 
+  - `β₂`: decay rate 2
+  - `ϵ`: shift 
+  - `∇`: gradients (decaying average)
+  - `∇²`: square gradients (decaying average)
 """
 function Adam(L::LPDO;η::Float64=0.001,
               β₁::Float64=0.9,β₂::Float64=0.999,ϵ::Float64=1E-7)
@@ -218,7 +213,9 @@ end
 Adam(ψ::MPS;η::Float64=0.001,β₁::Float64=0.9,β₂::Float64=0.999,ϵ::Float64=1E-7) = Adam(LPDO(ψ);η=η,β₁=β₁,β₂=β₂,ϵ=ϵ)
 
 """
-    update!(M::Union{MPS,MPO},∇::Array,opt::Adam; kwargs...)
+    update!(L::LPDO,∇::Array,opt::Adam; kwargs...)
+
+    update!(ψ::MPS,∇::A0rray,opt::Adam; kwargs...)
 
 Update parameters with Adam
 """

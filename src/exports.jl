@@ -51,12 +51,10 @@ export
   gradlogZ,
   gradnll,
   gradients,
-  statetomography,
-  processtomography,
+  tomography,
   fidelity,
   fullfidelity,
   frobenius_distance,
-  getdensityoperator,
   
 # optimizers/
   Optimizer,

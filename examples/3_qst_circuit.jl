@@ -14,11 +14,11 @@ N = length(Ψ)
 opt = Sgd(ψ0;η = 0.005)
 
 println("Training...")
-ψ = statetomography(ψ0,data,opt;
-                    batchsize=1000,
-                    epochs=10,
-                    target=Ψ,
-                    localnorm=true)
+ψ = tomography(ψ0,data,opt;
+               batchsize=1000,
+               epochs=10,
+               target=Ψ,
+               localnorm=true)
 @show ψ
 
 # Noisy circuit
@@ -31,9 +31,9 @@ N = length(ϱ)
 ρ0 = initializetomography(N;χ=χ,ξ=ξ,σ=0.1)
 opt = Sgd(ρ0;η = 0.01)
 println("Training...")
-ρ = statetomography(ρ0,data,opt;
-                    batchsize=1000,
-                    epochs=10,
-                    target=ϱ,
-                    localnorm=true)
+ρ = tomography(ρ0,data,opt;
+               batchsize=1000,
+               epochs=10,
+               target=ϱ,
+               localnorm=true)
 @show ρ

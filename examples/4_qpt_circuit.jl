@@ -13,11 +13,11 @@ N = length(Φ)
 opt = Sgd(Γ0;η = 0.1)
 
 println("Training...")
-Γ = processtomography(Γ0,data_in,data_out,opt;
-                      batchsize=500,
-                      epochs=20,
-                      target=Φ,
-                      localnorm=true)
+Γ = tomography(Γ0,data_in,data_out,opt;
+               batchsize=500,
+               epochs=20,
+               target=Φ,
+               localnorm=true)
 @show Γ
 
 # Noisy circuit
@@ -31,9 +31,9 @@ N = length(ϱ)
 opt = Sgd(Λ0;η = 0.1)
 
 println("Training...")
-Λ = processtomography(Λ0,data_in,data_out,opt;
-                      batchsize=500,
-                      epochs=20,
-                      target=ϱ,
-                      localnorm=true)
+Λ = tomography(Λ0,data_in,data_out,opt;
+               batchsize=500,
+               epochs=20,
+               target=ϱ,
+               localnorm=true)
 @show Λ

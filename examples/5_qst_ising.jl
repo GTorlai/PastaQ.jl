@@ -41,9 +41,9 @@ data = generatedata(Ψ,bases)
 # Optimizer
 opt = Sgd(ψ0;η = 0.005,γ=0.0)
 # Run tomography
-ψ = statetomography(ψ0,data,opt;
-                          batchsize=500,
-                          epochs=20,
-                          target=Ψ,
-                          localnorm=true)
+ψ = tomography(ψ0,data,opt;
+               batchsize=500,
+               epochs=20,
+               target=Ψ,
+               localnorm=true)
 @show ψ

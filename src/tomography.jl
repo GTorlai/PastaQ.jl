@@ -1,4 +1,15 @@
 """
+    initializetomography(N::Int64;kwargs...)
+
+Initialize quantum tomography given a number of qubits
+"""
+function initializetomography(N::Int64;kwargs...)
+  d = 2 # Dimension of the local Hilbert space
+  sites = siteinds("Qubit", N)
+  return initializetomography(sites; kwargs...)
+end
+
+"""
     initializetomography(sites::Vector{<:Index}; kwargs...)
 
 Initialize quantum tomography for a set of indices. 
@@ -16,18 +27,7 @@ function initializetomography(sites::Vector{<:Index}; kwargs...)
 end
 
 """
-    initializetomography(N::Int64;kwargs...)
-
-Initialize quantum tomography given a number of qubits
-"""
-function initializetomography(N::Int64;kwargs...)
-  d = 2 # Dimension of the local Hilbert space
-  sites = siteinds("Qubit", N)
-  return initializetomography(sites; kwargs...)
-end
-
-"""
-    initializetomography(M::Union{MPS,MPO}; kwargs...)
+    initializetomography(L::LPDO; kwargs...)
 
 
 Initialize quantum tomography, given a reference state,
@@ -47,7 +47,7 @@ end
 #initializetomography(ψ::MPS; kwargs...) = initializetomography(LPDO(ψ); kwargs...)
 
 """
-    function initializetomography(N::Int64,χ::Int64;σ::Float64=0.1)
+    function initializetomography(sites::Vector{<:Index},χ::Int64;σ::Float64=0.1)
 
 Initialize a variational MPS for quantum tomography.
 
@@ -56,7 +56,6 @@ Initialize a variational MPS for quantum tomography.
   - `χ`: bond dimension of the MPS
   - `σ`: width of initial box distribution
 """
-
 function initializetomography(sites::Vector{<:Index},χ::Int64;σ::Float64=0.1)
   d = 2 # Dimension of the local Hilbert space
   N = length(sites)
@@ -88,7 +87,7 @@ function initializetomography(sites::Vector{<:Index},χ::Int64;σ::Float64=0.1)
 end
 
 """
-    function initializetomography(N::Int64,χ::Int64,ξ::Int64;
+    function initializetomography(sites::Vector{<:Index},χ::Int64,ξ::Int64;
                                   σ::Float64=0.1,purifier_tag = ts"Purifier")
 
 Initialize a variational LPDO for quantum tomography.
@@ -175,10 +174,11 @@ end
 lognormalize!(ψ::MPS) = lognormalize!(LPDO(ψ))
 
 """
-    function gradlogZ(M::Union{MPS,LPDO};localnorm=nothing)
+    gradlogZ(L::LPDO;localnorm=nothing)
+    gradlogZ(ψ::MPS; kwargs...)
 
 Compute the gradients of the log-normalization with respect
-to each MPS/MPO tensor component:
+to each LPDO tensor component:
 
 - `∇ᵢ = ∂ᵢlog⟨ψ|ψ⟩` for `ψ = M = MPS`
 - `∇ᵢ = ∂ᵢlogTr(ρ)` for `ρ = M M†` , `M = LPDO`
@@ -572,7 +572,8 @@ end
 
 
 """
-    gradients(M::Union{MPS,LPDO}, data::Array; localnorm = nothing, choi::Bool = false)
+    gradients(L::LPDO, data::Array; localnorm = nothing, choi::Bool = false)
+    gradients(ψ::MPS, args...; kwargs...)
 
 Compute the gradients of the cost function:
 `C = log(Z) - ⟨log P(σ)⟩_data`
@@ -594,12 +595,13 @@ gradients(ψ::MPS, args...; kwargs...) =
   gradients(LPDO(ψ), args...; kwargs...)
 
 """
-    statetomography(model::Union{MPS,LPDO}, data::Array, opt::Optimizer; kwargs...)
+    tomography(L::LPDO, data::Array, opt::Optimizer; kwargs...)
+    tomography(ψ::MPS, data::Array,opt::Optimizer; kwargs...)
 
 Run quantum state tomography using a the starting state `model` on `data`.
 
 # Arguments:
-  - `model`: starting MPS/LPDO state.
+  - `model`: starting LPDO state.
   - `data`: training data set of projective measurements.
   - `batchsize`: number of data-points used to compute one gradient iteration.
   - `epochs`: total number of full sweeps over the dataset.
@@ -608,17 +610,10 @@ Run quantum state tomography using a the starting state `model` on `data`.
   - `observer`: keep track of measurements and fidelities.
   - `outputpath`: write observer on file 
 """
-function statetomography(L::LPDO,
-                         data::Array,
-                         opt::Optimizer;
-                         kwargs...)
-  #if L.X isa MPS
-  #  model = L.X
-  #else
-  #  model = L.X
-  #end
-    
-  #model = L.X
+function tomography(L::LPDO,
+                    data::Array,
+                    opt::Optimizer;
+                    kwargs...)
   model = L
   
   # Read arguments
@@ -646,14 +641,11 @@ function statetomography(L::LPDO,
     if typeof(target)==MPS
       for j in 1:length(model)
         replaceind!(target[j],firstind(target[j],"Site"),firstind(model.X[j],"Site"))
-        #replaceind!(target[j],firstind(target[j],"Site"),firstind(model[j],"Site"))
       end
     else
       for j in 1:length(model)
         replaceind!(target[j],inds(target[j],"Site")[1],firstind(model.X[j],"Site"))
         replaceind!(target[j],inds(target[j],"Site")[2],prime(firstind(model.X[j],"Site")))
-        #replaceind!(target[j],inds(target[j],"Site")[1],firstind(model[j],"Site"))
-        #replaceind!(target[j],inds(target[j],"Site")[2],prime(firstind(model[j],"Site")))
       end
     end
   end
@@ -733,8 +725,8 @@ function statetomography(L::LPDO,
   return (isnothing(observer) ? model : (model,observer))  
 end
 
-statetomography(ψ::MPS, args...; kwargs...) =
-  statetomography(LPDO(ψ), args...; kwargs...)
+tomography(ψ::MPS, data::Array,opt::Optimizer; kwargs...) =
+  tomography(LPDO(ψ),data,opt; kwargs...)
 
 """
     processtomography(M::Union{MPS,LPDO},data_in::Array,data_out::Array,opt::Optimizer; kwargs...)
@@ -743,11 +735,11 @@ Run quantum process tomography on `(data_in,data_out)` using `model` as variatio
 
 The data is reshuffled so it takes the format: `(input1,output1,input2,output2,…)`.
 """
-function processtomography(L::LPDO,
-                           data_in::Array,
-                           data_out::Array,
-                           opt::Optimizer;
-                           kwargs...)
+function tomography(L::LPDO,
+                    data_in::Array,
+                    data_out::Array,
+                    opt::Optimizer;
+                    kwargs...)
   N = size(data_in)[2]
   @assert size(data_in) == size(data_out)
   
@@ -759,11 +751,13 @@ function processtomography(L::LPDO,
       data[n,2*j]   = data_out[n,j]
     end
   end
-  return statetomography(L,data,opt; choi=true,kwargs...)
+  return tomography(L,data,opt; choi=true,kwargs...)
 end
 
-processtomography(ψ::MPS, args...; kwargs...) =
-  processtomography(LPDO(ψ), args...; kwargs...)
+tomography(ψ::MPS, args...; kwargs...) =
+  tomography(LPDO(ψ), args...; kwargs...)
+tomography(ψ::MPS,    data_in::Array, data_out::Array,opt::Optimizer; kwargs...) =
+  tomography(LPDO(ψ),data_in,data_out,opt; kwargs...)
 
 """
     MPO(L::LPDO)

@@ -1,17 +1,19 @@
 """
+    qubits(N::Int; mixed::Bool=false)
+    
     qubits(sites::Vector{<:Index}; mixed::Bool=false)
 
-    qubits(N::Int; mixed::Bool=false)
 
 Initialize qubits to:
 - An MPS wavefunction `|ψ⟩` if `mixed=false`
 - An MPO density matrix `ρ` if `mixed=true`
 """
+qubits(N::Int; mixed::Bool=false) =
+  qubits(siteinds("Qubit", N); mixed=mixed)
+
 qubits(sites::Vector{<:Index}; mixed::Bool=false) = 
   mixed ? MPO(productMPS(sites, "0")) : productMPS(sites, "0") 
 
-qubits(N::Int; mixed::Bool=false) =
-  qubits(siteinds("Qubit", N); mixed=mixed)
 
 
 """ 
@@ -151,24 +153,6 @@ function compilecircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple};
 end
 
 """
-  runcircuit(M::ITensor,gate_tensors::Vector{ <: ITensor};kwargs...)
-
-Apply the circuit to a ITensor from a list of tensors.
-"""
-runcircuit(M::ITensor,gate_tensors::Vector{ <: ITensor};kwargs...) =
-  apply(gate_tensors, M; kwargs...)
-
-"""
-    runcircuit(M::ITensor,gates::Vector{<:Tuple}; cutoff=1e-15,maxdim=10000,kwargs...)
-
-Apply the circuit to a ITensor from a list of gates.
-"""
-function runcircuit(M::ITensor,gates::Vector{<:Tuple}; cutoff=1e-15,maxdim=10000,kwargs...)
-  gate_tensors = compilecircuit(M,gates)
-  return runcircuit(M,gate_tensors;cutoff=1e-15,maxdim=10000,kwargs...)
-end
-
-"""
     runcircuit(M::Union{MPS,MPO},gate_tensors::Vector{<:ITensor}; kwargs...)
 
 Apply the circuit to a state (wavefunction/densitymatrix) from a list of tensors.
@@ -283,6 +267,24 @@ function runcircuit(N::Int,gates::Vector{<:Tuple}; process=false,noise=nothing,
     end
   end
     
+end
+
+"""
+    runcircuit(M::ITensor,gate_tensors::Vector{ <: ITensor};kwargs...)
+
+Apply the circuit to a ITensor from a list of tensors.
+"""
+runcircuit(M::ITensor,gate_tensors::Vector{ <: ITensor};kwargs...) =
+  apply(gate_tensors, M; kwargs...)
+
+"""
+    runcircuit(M::ITensor,gates::Vector{<:Tuple}; cutoff=1e-15,maxdim=10000,kwargs...)
+
+Apply the circuit to a ITensor from a list of gates.
+"""
+function runcircuit(M::ITensor,gates::Vector{<:Tuple}; cutoff=1e-15,maxdim=10000,kwargs...)
+  gate_tensors = compilecircuit(M,gates)
+  return runcircuit(M,gate_tensors;cutoff=1e-15,maxdim=10000,kwargs...)
 end
 
 """
