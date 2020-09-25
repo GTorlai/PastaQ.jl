@@ -112,6 +112,8 @@ end
 
 
 
+
+
 """
     generatedata!(M::Union{MPS,MPO},nshots::Int)
 
@@ -122,10 +124,14 @@ distribution:
 - P(σ) = |⟨σ|ψ⟩|² : if `M = ψ is MPS`
 - P(σ) = ⟨σ|ρ|σ⟩  : if `M = ρ is MPO`
 """
-function generatedata!(M::Union{MPS,MPO})
+function generatedata!(M::Union{MPS,MPO};kwargs...)
+  readout_probs = get(kwargs,:readout_probs,nothing) 
   orthogonalize!(M,1)
   measurement = sample(M)
   measurement .-= 1
+  if !isnothing(readout_probs)
+    readouterror!(measurement;probs=readout_probs)
+  end
   return measurement
 end
 
@@ -136,14 +142,37 @@ end
 Perform `nshots` projective measurements on a wavefunction 
 `|ψ⟩` or density operator `ρ`. 
 """
-function generatedata!(M::Union{MPS,MPO},nshots::Int)
+function generatedata!(M::Union{MPS,MPO},nshots::Int; kwargs...)
   measurements = Matrix{Int64}(undef, nshots, length(M))
   for n in 1:nshots
-    measurements[n,:] = generatedata!(M)
+    measurements[n,:] = generatedata!(M;kwargs...)
   end
   return measurements
 end
 
+"""
+    readouterror!(measurement::Array;probs::Array=[0.0,0.0])
+
+Add readout error to a single measurement
+
+# Arguments:
+  - `measurement`: bit string of projective measurement outcome
+  - `readout_probs`: readout error probabilities:
+      `probs[1]` = probability to observe `1` given outcome `0`
+      `probs[2]` = probability to observe `0` given outcome `1`
+"""
+function readouterror!(measurement::Array;probs::Array=[0.0,0.0])
+  p10 = probs[1]
+  p01 = probs[2]
+  for j in 1:size(measurement)[1]
+    if measurement[j] == 0
+      measurement[j] = StatsBase.sample([0,1],Weights([1-p10,p10]))
+    else
+      measurement[j] = StatsBase.sample([0,1],Weights([p01,1-p01]))
+    end
+  end
+  return measurement
+end
 
 """
 MEASUREMENT IN MULTIPLE BASES

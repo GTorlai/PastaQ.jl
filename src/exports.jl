@@ -42,6 +42,7 @@ export
   generatedata,
   projectchoi,
   convertdatapoint,
+  readouterror!,
 
 # quantumtomography,jl
   # Methods
