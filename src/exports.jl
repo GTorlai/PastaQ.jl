@@ -53,6 +53,9 @@ export
   gradnll,
   gradients,
   tomography,
+
+# distances.jl
+  # Methods
   fidelity,
   fullfidelity,
   frobenius_distance,

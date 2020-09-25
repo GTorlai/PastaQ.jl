@@ -15,7 +15,7 @@ jobs:
           - '1.4'
         os:
           - ubuntu-latest
-          - macOS-latest
+          #- macOS-latest
         arch:
           - x64
         exclude:
