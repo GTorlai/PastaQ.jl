@@ -21,6 +21,9 @@ export
   logtr,
   tr,
 
+# choi.jl,
+  Choi,
+
 # quantumcircuit.jl
   # Methods
   qubits,
@@ -42,6 +45,7 @@ export
   generatedata!,
   generatedata,
   projectchoi,
+  projectunitary,
   convertdatapoint,
   readouterror!,
 
