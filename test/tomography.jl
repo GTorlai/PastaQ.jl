@@ -179,9 +179,10 @@ numgradsnll(M::MPS, args...; kwargs...) =
   χ = 4
   ψ = initializetomography(N;χ=χ)
   @test length(ψ) == N
-  logZ1 = 2.0*lognorm(ψ)
-  logZ2,_ = lognormalize!(ψ)
-  @test logZ1 ≈ logZ2
+  logZ = lognorm(ψ)
+  localZ = []
+  normalize!(ψ; localnorms! = localZ)
+  @test logZ ≈ sum(log.(localZ))
   @test norm(ψ) ≈ 1
 end
 
@@ -199,7 +200,7 @@ end
   
   # 2. Globally normalized
   ψ = initializetomography(N;χ=χ)
-  lognormalize!(ψ)
+  normalize!(ψ)
   @test norm(ψ)^2 ≈ 1
   alg_grad,_ = gradlogZ(ψ)
   num_grad = numgradslogZ(ψ)
@@ -211,9 +212,10 @@ end
   ψ = initializetomography(N;χ=χ)
   num_grad = numgradslogZ(ψ)
 
-  logZ,localnorms = lognormalize!(ψ)
-  @test norm(ψ)^2 ≈ 1
-  alg_grad,_ = gradlogZ(ψ,localnorm=localnorms)
+  localnorms = []
+  normalize!(ψ; localnorms! = localnorms)
+  @test norm(ψ) ≈ 1
+  alg_grad,_ = gradlogZ(ψ; localnorms = localnorms)
   for j in 1:N
     @test array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
   end
@@ -241,7 +243,7 @@ end
   
   # 2. Globally normalized
   ψ = initializetomography(N;χ=χ)
-  lognormalize!(ψ)
+  normalize!(ψ)
   num_grad = numgradsnll(ψ,data)
   alg_grad,loss = gradnll(ψ,data)
   for j in 1:N
@@ -251,9 +253,10 @@ end
   # 3. Locally normalized
   ψ = initializetomography(N;χ=χ)
   num_grad = numgradsnll(ψ,data)
-  logZ,localnorms = lognormalize!(ψ)
-  @test norm(ψ)^2 ≈ 1
-  alg_grad_localnorm,loss = gradnll(ψ,data,localnorm=localnorms)
+  localnorms = []
+  normalize!(ψ; localnorms! = localnorms)
+  @test norm(ψ) ≈ 1
+  alg_grad_localnorm, loss = gradnll(ψ, data; localnorms = localnorms)
   for j in 1:N
     @test array(alg_grad_localnorm[j]) ≈ num_grad[j] rtol=1e-3
   end
@@ -288,7 +291,7 @@ end
 
   # 2. Globally normalized
   ψ = initializetomography(N;χ=χ)
-  lognormalize!(ψ)
+  normalize!(ψ)
   num_gradZ = numgradslogZ(ψ)
   num_gradNLL = numgradsnll(ψ,data)
   num_grads = num_gradZ + num_gradNLL
@@ -308,12 +311,13 @@ end
   num_gradNLL = numgradsnll(ψ,data)
   num_grads = num_gradZ + num_gradNLL
   
-  logZ,localnorms = lognormalize!(ψ)
+  localnorms = []
+  normalize!(ψ; localnorms! = localnorms)
   NLL  = nll(ψ,data)
   ex_loss = NLL
   @test norm(ψ)^2 ≈ 1
   
-  alg_grads,loss = gradients(ψ,data,localnorm=localnorms)
+  alg_grads,loss = gradients(ψ, data; localnorms = localnorms)
   @test ex_loss ≈ loss
   for j in 1:N
     @test array(alg_grads[j]) ≈ num_grads[j] rtol=1e-3
@@ -338,7 +342,7 @@ end
 
   # 2. Globally normalized
   ψ = initializetomography(N;χ=χ)
-  logZ,_ = lognormalize!(ψ)
+  normalize!(ψ)
   #@test norm(ψ)^2 ≈ 2^(0.5*N)
   alg_grad,_ = gradlogZ(ψ)
   num_grad = numgradslogZ(ψ)
@@ -350,9 +354,10 @@ end
   ψ = initializetomography(N;χ=χ)
   num_grad = numgradslogZ(ψ)
 
-  logZ,localnorms = lognormalize!(ψ)
+  localnorms = []
+  normalize!(ψ; localnorms! = localnorms)
   #@test norm(ψ)^2 ≈ 2^(0.5*N)
-  alg_grad,_ = gradlogZ(ψ,localnorm=localnorms)
+  alg_grad,_ = gradlogZ(ψ; localnorms = localnorms)
   for j in 1:N
     @test array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
   end
@@ -381,7 +386,7 @@ end
   
   # 2. Globally normalized
   ψ = initializetomography(N;χ=χ)
-  lognormalize!(ψ)
+  normalize!(ψ)
   num_grad = numgradsnll(ψ,data,choi=true)
   #@test norm(ψ)^2 ≈ 2^(Nphysical)
   alg_grad,loss = gradnll(ψ,data;choi=true)
@@ -392,9 +397,10 @@ end
   # 3. Locally normalized
   ψ = initializetomography(N;χ=χ)
   num_grad = numgradsnll(ψ,data,choi=true)
-  logZ,localnorms = lognormalize!(ψ)
+  localnorms = []
+  normalize!(ψ; localnorms! = localnorms)
   #@test norm(ψ)^2 ≈ 2^(Nphysical)
-  alg_grad,loss = gradnll(ψ,data,localnorm=localnorms,choi=true)
+  alg_grad,loss = gradnll(ψ, data, localnorms = localnorms, choi = true)
   for j in 1:N
     @test array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
   end
@@ -431,7 +437,7 @@ end
 
   # 2. Globally normalized
   ψ = initializetomography(N;χ=χ)
-  lognormalize!(ψ)
+  normalize!(ψ)
   num_gradZ = numgradslogZ(ψ)
   num_gradNLL = numgradsnll(ψ,data;choi=true)
   num_grads = num_gradZ + num_gradNLL
@@ -451,11 +457,12 @@ end
   num_gradNLL = numgradsnll(ψ,data;choi=true)
   num_grads = num_gradZ + num_gradNLL
   
-  logZ,localnorms = lognormalize!(ψ)
+  localnorms = []
+  normalize!(ψ; localnorms! = localnorms)
   NLL  = nll(ψ,data;choi=true)
   ex_loss = NLL - 0.5*N*log(2)
   
-  alg_grads,loss = gradients(ψ,data,localnorm=localnorms,choi=true)
+  alg_grads,loss = gradients(ψ, data; localnorms = localnorms, choi = true)
   @test ex_loss ≈ loss
   for j in 1:N
     @test array(alg_grads[j]) ≈ num_grads[j] rtol=1e-3
@@ -471,11 +478,12 @@ end
   ξ = 2
   ρ = initializetomography(N;χ=χ,ξ=ξ)
   @test length(ρ) == N
-  logZ1 = logtr(ρ)
-  logZ2,_ = lognormalize!(ρ)
-  @test logZ1 ≈ logZ2
+  logZ = logtr(ρ)
+  sqrt_localZ = []
+  normalize!(ρ; sqrt_localnorms! = sqrt_localZ)
+  @test logZ ≈ 2 * sum(log.(sqrt_localZ))
   ρ = initializetomography(N;χ=χ,ξ=ξ)
-  lognormalize!(ρ)
+  normalize!(ρ)
   @test tr(ρ) ≈ 1
 end
 
@@ -485,7 +493,7 @@ end
   ξ = 3
   ρ = initializetomography(N;χ=χ,ξ=ξ)
   @test length(ρ) == N
-  lognormalize!(ρ)
+  normalize!(ρ)
   rho = MPO(ρ)
   rho_mat = fullmatrix(rho)
   @test sum(abs.(imag(diag(rho_mat)))) ≈ 0.0 atol=1e-10
@@ -513,7 +521,7 @@ end
   
   # 2. Globally normalizeid
   ρ = initializetomography(N;χ=χ,ξ=ξ)
-  lognormalize!(ρ)
+  normalize!(ρ)
   @test tr(ρ) ≈ 1
   alg_grad,_ = gradlogZ(ρ)
   num_grad = numgradslogZ(ρ)
@@ -531,9 +539,10 @@ end
   ρ = initializetomography(N;χ=χ,ξ=ξ)
   num_grad = numgradslogZ(ρ)
 
-  logZ,localnorms = lognormalize!(ρ)
+  sqrt_localnorms = []
+  normalize!(ρ; sqrt_localnorms! = sqrt_localnorms)
   @test tr(ρ) ≈ 1
-  alg_grad,_ = gradlogZ(ρ,localnorm=localnorms)
+  alg_grad,_ = gradlogZ(ρ, sqrt_localnorms = sqrt_localnorms)
 
   alg_gradient = permutedims(array(alg_grad[1]),[1,3,2])
   @test alg_gradient ≈ num_grad[1] rtol=1e-3
@@ -578,7 +587,7 @@ end
   
   # 2. Globally normalized
   ρ = initializetomography(N;χ=χ,ξ=ξ)
-  lognormalize!(ρ)
+  normalize!(ρ)
   @test tr(ρ) ≈ 1
   num_grad = numgradsnll(ρ,data)
   alg_grad,loss = gradnll(ρ,data)
@@ -596,9 +605,10 @@ end
   # 3. Locally normalized
   ρ = initializetomography(N;χ=χ,ξ=ξ)
   num_grad = numgradsnll(ρ,data)
-  logZ,localnorms = lognormalize!(ρ)
+  sqrt_localnorms = []
+  normalize!(ρ; sqrt_localnorms! = sqrt_localnorms)
   @test tr(ρ) ≈ 1
-  alg_grad,loss = gradnll(ρ,data,localnorm=localnorms)
+  alg_grad,loss = gradnll(ρ, data; sqrt_localnorms = sqrt_localnorms)
   ex_loss = nll(ρ,data)
   @test ex_loss ≈ loss
   alg_gradient = permutedims(array(alg_grad[1]),[3,1,2])
@@ -649,7 +659,7 @@ PROCESS TOMOGRAPHY WITH LPDO
   
   # 2. Globally normalized
   Λ = initializetomography(N;χ=χ,ξ=ξ) 
-  lognormalize!(Λ)
+  normalize!(Λ)
   num_grad = numgradsnll(Λ,data,choi=true)
   ex_loss = nll(Λ,data,choi=true) 
   alg_grad,loss = gradnll(Λ,data,choi=true)
@@ -666,9 +676,10 @@ PROCESS TOMOGRAPHY WITH LPDO
   # 3. Locally normalized
   Λ = initializetomography(N;χ=χ,ξ=ξ)
   num_grad = numgradsnll(Λ,data,choi=true)
-  logZ,localnorms = lognormalize!(Λ)
-  ex_loss = nll(Λ,data,choi=true) 
-  alg_grad,loss = gradnll(Λ,data,localnorm=localnorms,choi=true)
+  sqrt_localnorms = []
+  normalize!(Λ; sqrt_localnorms! = sqrt_localnorms)
+  ex_loss = nll(Λ, data; choi = true) 
+  alg_grad,loss = gradnll(Λ, data; sqrt_localnorms = sqrt_localnorms, choi = true)
   @test ex_loss ≈ loss
   alg_gradient = permutedims(array(alg_grad[1]),[3,1,2])
   @test alg_gradient ≈ num_grad[1] rtol=1e-3
@@ -680,204 +691,4 @@ PROCESS TOMOGRAPHY WITH LPDO
   @test alg_gradient ≈ num_grad[N] rtol=1e-3
   
 end
-
-@testset "fidelity" begin
-  """ F = |<PSI1|PSI2>|^2 """
-  
-  N = 3
-  χ = 4
-  Random.seed!(1111)
-  ψ1 = initializetomography(N;χ=χ)
-  ψ2 = copy(ψ1)
-  ψ2[1] = ITensor(ones(2,4),inds(ψ2[1])[1],inds(ψ2[1])[2])
-  
-  ψ1_vec = fullvector(ψ1)
-  ψ2_vec = fullvector(ψ2)
- 
-  K1 = sum(ψ1_vec .* conj(ψ1_vec)) 
-  ψ1_vec ./= sqrt(K1)
-  K2 = sum(ψ2_vec .* conj(ψ2_vec)) 
-  ψ2_vec ./= sqrt(K2)
-  
-  ex_F = abs2(dot(ψ1_vec ,ψ2_vec))
-  F = fidelity(ψ1,ψ2)
-  
-  @test ex_F ≈ F
-  
-  gates = randomcircuit(N,2)
-  Φ1 = choimatrix(N,gates)
-  F = fidelity(Φ1,Φ1)
-  @test F ≈ 1.0
-
-  """ F = <PSI|RHO|PSI> """
-  N = 3
-  χ = 2
-  ψ = initializetomography(N;χ=χ)
-  ψ_vec = fullvector(ψ)   
-  
-  K = sum(ψ_vec .* conj(ψ_vec))
-  ψ_vec ./= sqrt(K)
-  
-  ξ = 2
-  ρ = initializetomography(ψ;χ=χ,ξ=ξ)
-  
-  ρ_mat = fullmatrix(MPO(ρ))
-  J = tr(ρ_mat)
-  ρ_mat ./= J
-
-  ex_F = dot(ψ_vec, ρ_mat * ψ_vec)
-  F = fidelity(ρ, ψ)
-  @test F ≈ ex_F
-end
-
-@testset "frobenius distance" begin 
-
-  N = 4
-  Random.seed!(1111)
-  ψ1 = initializetomography(N;χ=2)
-  Random.seed!(2222)
-  ψ2 = initializetomography(ψ1;χ=2)
-  
-  ρ_mpo = MPO(ψ1)
-  σ_mpo = MPO(ψ2)
-
-  ρ_mat = fullmatrix(ρ_mpo)
-  σ_mat = fullmatrix(σ_mpo)
-  Kρ = tr(ρ_mat) 
-  Kσ = tr(σ_mat) 
-  
-  δ = ρ_mat/Kρ - σ_mat/Kσ
-
-  T = sqrt(tr(conj(transpose(δ)) * δ))
-
-  F = frobenius_distance(ρ_mpo,σ_mpo)
-  @test T ≈ F
-    
-  Random.seed!(1111)
-  ρ = initializetomography(ψ1;χ=2,ξ=2)
-  
-  ρ_mpo = MPO(ρ)
-  σ_mpo = MPO(ψ2)
-
-  ρ_mat = fullmatrix(ρ_mpo)
-  σ_mat = fullmatrix(σ_mpo)
-  Kρ = tr(ρ_mat) 
-  Kσ = tr(σ_mat) 
-  
-  δ = ρ_mat/Kρ - σ_mat/Kσ
-
-  T = sqrt(tr(conj(transpose(δ)) * δ))
-
-  F = frobenius_distance(ρ, σ_mpo)
-  @test T ≈ F
-
-
-  Random.seed!(1111)
-  σ = initializetomography(ψ1;χ=2,ξ=2)
-  
-  ρ_mpo = MPO(ψ1)
-  σ_mpo = MPO(σ)
-
-  ρ_mat = fullmatrix(ρ_mpo)
-  σ_mat = fullmatrix(σ_mpo)
-  Kρ = tr(ρ_mat) 
-  Kσ = tr(σ_mat) 
-  
-  δ = ρ_mat/Kρ - σ_mat/Kσ
-
-  T = sqrt(tr(conj(transpose(δ)) * δ))
-
-  F = frobenius_distance(ρ_mpo,σ)
-  @test T ≈ F
-  
-  Random.seed!(1111)
-  ρ = initializetomography(N;χ=2,ξ=2)
-  Random.seed!(1111)
-  σ = initializetomography(ρ;χ=2,ξ=2)
-  
-  ρ_mpo = MPO(ρ)
-  σ_mpo = MPO(σ)
-
-  ρ_mat = fullmatrix(ρ_mpo)
-  σ_mat = fullmatrix(σ_mpo)
-  Kρ = tr(ρ_mat) 
-  Kσ = tr(σ_mat) 
-  
-  δ = ρ_mat/Kρ - σ_mat/Kσ
-
-  T = sqrt(tr(conj(transpose(δ)) * δ))
-
-  F = frobenius_distance(ρ,σ)
-  @test T ≈ F
-end
-
-@testset "fidelity bound" begin 
-
-  N = 4
-  Random.seed!(1111)
-  ψ1 = initializetomography(N;χ=2)
-  Random.seed!(2222)
-  ψ2 = initializetomography(ψ1;χ=2)
-  
-  ρ_mpo = MPO(ψ1)
-  σ_mpo = MPO(ψ2)
-
-  ρ_mat = fullmatrix(ρ_mpo)
-  σ_mat = fullmatrix(σ_mpo)
-  Kρ = tr(ρ_mat) 
-  Kσ = tr(σ_mat) 
-  
-  f = tr(conj(transpose(ρ_mat/Kρ)) * (σ_mat/Kσ))
-  F̃ = fidelity_bound(ρ_mpo,σ_mpo)
-  @test f ≈ F̃
-    
-  Random.seed!(1111)
-  ρ = initializetomography(ψ1;χ=2,ξ=2)
-  
-  ρ_mpo = MPO(ρ)
-  σ_mpo = MPO(ψ2)
-
-  ρ_mat = fullmatrix(ρ_mpo)
-  σ_mat = fullmatrix(σ_mpo)
-  Kρ = tr(ρ_mat) 
-  Kσ = tr(σ_mat) 
-
-  f = tr(conj(transpose(ρ_mat/Kρ)) * (σ_mat/Kσ))
-  F̃ = fidelity_bound(ρ,σ_mpo)
-  @test f ≈ F̃
-
-
-  Random.seed!(1111)
-  σ = initializetomography(ψ1;χ=2,ξ=2)
-  
-  ρ_mpo = MPO(ψ1)
-  σ_mpo = MPO(σ)
-
-  ρ_mat = fullmatrix(ρ_mpo)
-  σ_mat = fullmatrix(σ_mpo)
-  Kρ = tr(ρ_mat) 
-  Kσ = tr(σ_mat) 
-  f = tr(conj(transpose(ρ_mat/Kρ)) * (σ_mat/Kσ))
-  F̃ = fidelity_bound(ρ_mpo,σ)
-  @test f ≈ F̃
-  
-  Random.seed!(1111)
-  ρ = initializetomography(N;χ=2,ξ=2)
-  Random.seed!(1111)
-  σ = initializetomography(ρ;χ=2,ξ=2)
-  
-  ρ_mpo = MPO(ρ)
-  σ_mpo = MPO(σ)
-
-  ρ_mat = fullmatrix(ρ_mpo)
-  σ_mat = fullmatrix(σ_mpo)
-  Kρ = tr(ρ_mat) 
-  Kσ = tr(σ_mat) 
-  
-  f = tr(conj(transpose(ρ_mat/Kρ)) * (σ_mat/Kσ))
-  F̃ = fidelity_bound(ρ,σ)
-  @test f ≈ F̃
-  
-end
-
 
