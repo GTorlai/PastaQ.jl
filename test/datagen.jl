@@ -380,3 +380,53 @@ end
   (Λ,data_in,data_out) = generatedata(N,gates,nshots;process=true,choi=true,return_state=true,noise="AD",γ=0.1)
 
 end
+
+@testset "readout errors" begin
+  
+  N = 4
+  nshots = 100
+  gates = randomcircuit(N,4)
+  ψ = runcircuit(N,gates)
+  ρ = runcircuit(N,gates;noise="AD",γ=0.1)
+  
+  # 1a) Generate data with a MPS on the reference basis
+  data = generatedata!(ψ,nshots;readout_errors = [0.01,0.04])
+  @test size(data) == (nshots,N)
+  # 1b) Generate data with a MPO on the reference basis
+  data = generatedata!(ρ,nshots;readout_errors = [0.01,0.04])
+  @test size(data) == (nshots,N)
+  
+  # 2a) Generate data with a MPS on multiple bases
+  bases = randombases(N,nshots;localbasis=["X","Y","Z"])
+  data = generatedata(ψ,bases;readout_errors = [0.01,0.04])
+  @test size(data) == (nshots,N)
+  # 2b) Generate data with a MPO on multiple bases
+  bases = randombases(N,nshots;localbasis=["X","Y","Z"])
+  data = generatedata(ρ,bases;readout_errors = [0.01,0.04])
+  @test size(data) == (nshots,N)
+
+  # 3) Measure MPS at the output of a circuit
+  data = generatedata(N,gates,nshots;readout_errors = [0.01,0.04])
+  @test size(data) == (nshots,N)
+  data = generatedata(N,gates,nshots;noise="AD",γ=0.1,readout_errors = [0.01,0.04])
+  @test size(data) == (nshots,N)
+  data = generatedata(N,gates,nshots;localbasis=["X","Y","Z"],readout_errors = [0.01,0.04])
+  @test size(data) == (nshots,N)
+  data = generatedata(N,gates,nshots;noise="AD",γ=0.1,localbasis=["X","Y","Z"],readout_errors = [0.01,0.04])
+  @test size(data) == (nshots,N)
+  M,data = generatedata(N,gates,nshots;return_state=true,readout_errors = [0.01,0.04])
+  M,data = generatedata(N,gates,nshots;return_state=true,noise="AD",γ=0.1,readout_errors = [0.01,0.04])
+  M,data = generatedata(N,gates,nshots;return_state=true,localbasis=["X","Y","Z"],readout_errors = [0.01,0.04])
+  M,data = generatedata(N,gates,nshots;return_state=true,noise="AD",γ=0.1,localbasis=["X","Y","Z"],readout_errors = [0.01,0.04])
+  
+  # 4) Process tomography
+  (data_in,data_out) = generatedata(N,gates,nshots;process=true,choi=false,readout_errors = [0.01,0.04])
+  @test size(data_in) == (nshots,N)
+  @test size(data_out) == (nshots,N)
+  (data_in,data_out) = generatedata(N,gates,nshots;process=true,choi=false,noise="AD",γ=0.1,readout_errors = [0.01,0.04])
+  @test size(data_in) == (nshots,N)
+  @test size(data_out) == (nshots,N)
+  (Λ,data_in,data_out) = generatedata(N,gates,nshots;process=true,choi=true,return_state=true,readout_errors = [0.01,0.04])
+  (Λ,data_in,data_out) = generatedata(N,gates,nshots;process=true,choi=true,return_state=true,noise="AD",γ=0.1,readout_errors = [0.01,0.04])
+
+end

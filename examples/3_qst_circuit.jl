@@ -18,16 +18,15 @@ N = length(Ψ)     # Number of qubits
 ψ0 = initializetomography(N;χ=χ,σ=0.1)
 
 # Initialize stochastic gradient descent optimizer
-opt = SGD(ψ0;η = 0.005)
+opt = SGD(ψ0;η = 0.01)
 
 # Run quantum state tomography, where a variational MPS `|ψ(θ)⟩`
 # is optimized to mimimize the cross entropy between the data and 
 # the tensor-network distribution `P(x) = |⟨x|ψ(θ)⟩|²`.
 ψ = tomography(ψ0,data,opt;
                batchsize=1000,
-               epochs=10,
-               target=Ψ,
-               localnorm=true)
+               epochs=5,
+               target=Ψ)
 @show ψ
 
 
@@ -54,7 +53,6 @@ opt = SGD(ρ0;η = 0.01)
 # `ρ = ΓΓ†` is the corresponding density operator..
 ρ = tomography(ρ0,data,opt;
                batchsize=1000,
-               epochs=10,
-               target=ϱ,
-               localnorm=true)
+               epochs=5,
+               target=ϱ)
 @show ρ

@@ -112,6 +112,8 @@ end
 
 
 
+
+
 """
     generatedata!(M::Union{MPS,MPO},nshots::Int)
 
@@ -122,10 +124,14 @@ distribution:
 - P(σ) = |⟨σ|ψ⟩|² : if `M = ψ is MPS`
 - P(σ) = ⟨σ|ρ|σ⟩  : if `M = ρ is MPO`
 """
-function generatedata!(M::Union{MPS,MPO})
+function generatedata!(M::Union{MPS,MPO};kwargs...)
+  readout_errors = get(kwargs,:readout_errors,nothing) 
   orthogonalize!(M,1)
   measurement = sample(M)
   measurement .-= 1
+  if !isnothing(readout_errors)
+    readouterror!(measurement;probs=readout_errors)
+  end
   return measurement
 end
 
@@ -136,14 +142,37 @@ end
 Perform `nshots` projective measurements on a wavefunction 
 `|ψ⟩` or density operator `ρ`. 
 """
-function generatedata!(M::Union{MPS,MPO},nshots::Int)
+function generatedata!(M::Union{MPS,MPO},nshots::Int; kwargs...)
   measurements = Matrix{Int64}(undef, nshots, length(M))
   for n in 1:nshots
-    measurements[n,:] = generatedata!(M)
+    measurements[n,:] = generatedata!(M;kwargs...)
   end
   return measurements
 end
 
+"""
+    readouterror!(measurement::Array;probs::Array=[0.0,0.0])
+
+Add readout error to a single measurement
+
+# Arguments:
+  - `measurement`: bit string of projective measurement outcome
+  - `readout_probs`: readout error probabilities:
+      `probs[1]` = probability to observe `1` given outcome `0`
+      `probs[2]` = probability to observe `0` given outcome `1`
+"""
+function readouterror!(measurement::Array;probs::Array=[0.0,0.0])
+  p10 = probs[1]
+  p01 = probs[2]
+  for j in 1:size(measurement)[1]
+    if measurement[j] == 0
+      measurement[j] = StatsBase.sample([0,1],Weights([1-p10,p10]))
+    else
+      measurement[j] = StatsBase.sample([0,1],Weights([p01,1-p01]))
+    end
+  end
+  return measurement
+end
 
 """
 MEASUREMENT IN MULTIPLE BASES
@@ -158,13 +187,13 @@ is drawn from the probability distribution:
 - P(σ) = |⟨σ|Û|ψ⟩|²   : if M = ψ is MPS
 - P(σ) = <σ|Û ρ Û†|σ⟩ : if M = ρ is MPO   
 """
-function generatedata(M0::Union{MPS,MPO},bases::Array)
+function generatedata(M0::Union{MPS,MPO},bases::Array; kwargs...)
   @assert length(M0) == size(bases)[2]
   data = Matrix{String}(undef, size(bases)[1],length(M0))
   for n in 1:size(bases)[1]
     meas_gates = measurementgates(bases[n,:])
     M = runcircuit(M0,meas_gates)
-    measurement = generatedata!(M)
+    measurement = generatedata!(M;kwargs...)
     data[n,:] = convertdatapoint(measurement,bases[n,:])
   end
   return data 
@@ -210,7 +239,7 @@ function generatedata(M0::Union{MPS,MPO},
   # Apply basis rotation
   M_meas = runcircuit(M_out,meas_gates)
   # Measure
-  measurement = generatedata!(M_meas)
+  measurement = generatedata!(M_meas;kwargs...)
   
   return convertdatapoint(measurement,basis)
 end
@@ -253,7 +282,7 @@ state measured after a given basis rotation is performed at the output
 of a quantum channel.
 
 """
-function generatedata(Λ0::Union{MPS,MPO},prep::Array,basis::Array)
+function generatedata(Λ0::Union{MPS,MPO},prep::Array,basis::Array; kwargs...)
   
   # Generate measurement gates
   meas_gates = measurementgates(basis)
@@ -262,7 +291,7 @@ function generatedata(Λ0::Union{MPS,MPO},prep::Array,basis::Array)
   # Apply basis rotation
   Φ_meas = runcircuit(Φ,meas_gates)
   # Measure
-  measurement = generatedata!(Φ_meas)
+  measurement = generatedata!(Φ_meas;kwargs...)
   return convertdatapoint(measurement,basis)
 end
 
@@ -296,14 +325,14 @@ function generatedata(N::Int64,gates::Vector{<:Tuple},nshots::Int64;
                       inputstates::Array=["X+","X-","Y+","Y-","Z+","Z-"],
                       n_distinctbases = nothing,n_distinctstates=nothing,
                       cutoff::Float64=1e-15,maxdim::Int64=10000,
-                      kwargs...)
+                      readout_errors=nothing,kwargs...)
   
   bases = randombases(N,nshots;localbasis=localbasis,n_distinctbases=n_distinctbases)
   if !process
     # Apply the quantum channel
     M = runcircuit(N,gates;process=false,noise=noise,
                    cutoff=cutoff,maxdim=maxdim,kwargs...)
-    data = generatedata(M,bases)
+    data = generatedata(M,bases;readout_errors=readout_errors)
     return (return_state ? (M,data) : data)
   else
     # Generate a set of prepared input state to the channel
@@ -317,7 +346,7 @@ function generatedata(N::Int64,gates::Vector{<:Tuple},nshots::Int64;
       # Generate data
       data = Matrix{String}(undef, nshots,length(Λ)÷2)
       for n in 1:nshots
-        data[n,:] = generatedata(Λ,preps[n,:],bases[n,:])
+        data[n,:] = generatedata(Λ,preps[n,:],bases[n,:];readout_errors=readout_errors)
       end
       
       return (return_state ? (Λ ,preps, data) : (preps,data))
@@ -331,7 +360,8 @@ function generatedata(N::Int64,gates::Vector{<:Tuple},nshots::Int64;
       for n in 1:nshots
         data[n,:] = generatedata(ψ0,gate_tensors,preps[n,:],bases[n,:];
                                 noise=noise,cutoff=cutoff,choi=false,
-                                maxdim=maxdim,kwargs...)
+                                maxdim=maxdim,readout_errors=readout_errors,
+                                kwargs...)
       end
       return (preps,data) 
     end

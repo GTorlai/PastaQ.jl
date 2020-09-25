@@ -44,6 +44,5 @@ opt = SGD(ψ0;η = 0.005,γ=0.0)
 ψ = tomography(ψ0,data,opt;
                batchsize=500,
                epochs=20,
-               target=Ψ,
-               localnorm=true)
+               target=Ψ)
 @show ψ

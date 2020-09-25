@@ -136,5 +136,41 @@ gates = randomcircuit(N,depth) # random circuit
 
 #### Data generation
 
+```julia
+using PastaQ
 
+# Example 2: generation of measurement data
+
+# Set parameters
+N = 4                          # Number of qubits
+depth = 4                      # Depth of random circuit
+nshots = 1000                  # Number of measurements
+gates = randomcircuit(N,depth) # Build gates
+
+
+# 2a) Output state of a noiseless circuit. By default, each projective measurement
+# is taken in basis randomly drawn from the the Pauli group. Also returns the output MPS.
+ψ,data = generatedata(N,gates,nshots; return_state=true)
+
+#  Note: the above is equivalent to:
+# > bases = randombases(N,nshots; localbasis=["X","Y","Z"])
+# > ψ = runcircuit(N,gates)
+# > data = generatedata(ψ,bases)
+
+# 2b) Output state of a noisy circuit. Also returns the output MPO
+ρ,data = generatedata(N,gates,nshots; noise="AD", γ=0.01, return_state=true)
+
+# 2c) Generate data for quantum process tomography, consisting of input states
+# (data_in) to a quantum channel, and the corresponding projective measurements
+# at the output. By defaul, the states prepared at the inputs are selected from
+# product states of eigenstates of Pauli operators, while measurements bases are
+# sampled from the Pauli group.
+
+# Unitary channel, returns the (rank-1) Choi matrix (as MPS)
+Γ,data_in,data_out=generatedata(N,gates,nshots; process=true, return_state=true)
+
+# Noisy channel, returns the Choi matrix as MPO
+Λ,data_in,data_out=generatedata(N,gates,nshots;process=true,noise="AD",γ=0.01,
+                                return_state=true)
+```
 ### Quantum tomography

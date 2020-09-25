@@ -23,9 +23,8 @@ opt = SGD(Γ0;η = 0.1)
 
 Γ = tomography(Γ0,data_in,data_out,opt;
                batchsize=500,
-               epochs=20,
-               target=Φ,
-               localnorm=true)
+               epochs=5,
+               target=Φ)
 @show Γ
 
 # Noisy circuit
@@ -41,7 +40,7 @@ opt = SGD(Λ0;η = 0.1)
 println("Training...")
 Λ = tomography(Λ0,data_in,data_out,opt;
                batchsize=500,
-               epochs=20,
+               epochs=5,
                target=ϱ,
                localnorm=true)
 @show Λ

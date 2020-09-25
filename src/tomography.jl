@@ -572,8 +572,8 @@ function tomography(L::LPDO,
                     opt::Optimizer;
                     kwargs...)
   # Read arguments
-  localnorm::Bool = get(kwargs,:localnorm,true)
-  globalnorm::Bool = get(kwargs,:globalnorm,false)
+  use_localnorm::Bool = get(kwargs,:use_localnorm,true)
+  use_globalnorm::Bool = get(kwargs,:use_globalnorm,false)
   batchsize::Int64 = get(kwargs,:batchsize,500)
   epochs::Int64 = get(kwargs,:epochs,1000)
   target = get(kwargs,:target,nothing)
@@ -584,7 +584,7 @@ function tomography(L::LPDO,
   # Convert data to projetors
   data = "state" .* data
   
-  if (localnorm && globalnorm)
+  if (use_localnorm && use_globalnorm)
     error("Both input norms are set to true")
   end
   
@@ -623,14 +623,13 @@ function tomography(L::LPDO,
       batch = data[(b-1)*batchsize+1:b*batchsize,:]
       
       # Local normalization
-      if localnorm
+      if use_localnorm
         modelcopy = copy(model)
         sqrt_localnorms = []
-        #logZ,localnorms = normalize!(modelcopy)
         normalize!(modelcopy; sqrt_localnorms! = sqrt_localnorms)
         grads,loss = gradients(modelcopy, batch, sqrt_localnorms = sqrt_localnorms, choi = choi)
       # Global normalization
-      elseif globalnorm
+      elseif use_globalnorm
         normalize!(model)
         grads,loss = gradients(model,batch,choi=choi)
       # Unnormalized
