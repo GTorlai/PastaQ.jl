@@ -190,6 +190,12 @@ version = "0.12.4"
 deps = ["LinearAlgebra", "SparseArrays"]
 uuid = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
+[[StatsBase]]
+deps = ["DataAPI", "DataStructures", "LinearAlgebra", "Missings", "Printf", "Random", "SortingAlgorithms", "SparseArrays", "Statistics"]
+git-tree-sha1 = "d72a47c47c522e283db774fc8c459dd5ed773710"
+uuid = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
+version = "0.33.1"
+
 [[Strided]]
 deps = ["LinearAlgebra", "TupleTools"]
 git-tree-sha1 = "3db8266fc732c8f997e75cf7a4027d4008f846c8"
