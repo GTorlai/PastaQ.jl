@@ -40,14 +40,14 @@ savedata(ρ,data,"../data/qst_circuit_noisy.h5")
 # state and an output projective measurement in a arbitrary
 # local basis. By default, the single-qubit input states are 
 # the 6 eigenstates of Pauli operators.
-Γ,data_in,data_out=generatedata(N,gates,nshots;
+U,data_in,data_out=generatedata(N,gates,nshots;
                                   process=true,
                                   return_state=true)
 # Returns the MPS `Γ`for a rank-1 Choi matrix  `Λ=ΓΓ^†`.  
 # The MPS has `2N` sites.
-@show maxlinkdim(Γ)
-@show Γ
-savedata(Γ,data_in,data_out,"../data/qpt_circuit.h5")
+@show maxlinkdim(U)
+@show U
+savedata(U,data_in,data_out,"../data/qpt_circuit.h5")
 
 Λ,data_in,data_out=generatedata(N,gates,nshots;
                                   process=true,

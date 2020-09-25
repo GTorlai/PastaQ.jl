@@ -212,16 +212,12 @@ end
   end
 end
 
-
-
-@testset "project choi" begin
+@testset "project unitary" begin
   N = 4
   ntrial=100
   gates = randomcircuit(N,4)
-  #gates = Tuple[("Rn",1,(θ=1.0,ϕ=2.0,λ=3.0))]
  
-  # 1: Noiseless
-  Ψ = choimatrix(N,gates)
+  U = runcircuit(N,gates;process=true)
   
   bases = randombases(N,ntrial)
   preps = randompreparations(N,ntrial)
@@ -232,7 +228,7 @@ end
     ψ_in  = runcircuit(N,pgates)
     ψ_out = runcircuit(ψ_in,gates)
     
-    Ψ_out = projectchoi(Ψ,preps[n,:])
+    Ψ_out = projectunitary(U,preps[n,:])
     @test fullvector(ψ_out) ≈ fullvector(Ψ_out) 
     
     ψ_m   = runcircuit(ψ_out,mgates)
@@ -240,7 +236,14 @@ end
     @test fullvector(ψ_m) ≈ fullvector(Ψ_m) 
   end
   
-  # 2: Noisy
+end
+
+
+@testset "project choi" begin
+  N = 4
+  ntrial=100
+  gates = randomcircuit(N,4)
+  
   Λ = choimatrix(N,gates;noise="AD",γ=0.1)
   
   bases = randombases(N,ntrial)
@@ -370,14 +373,14 @@ end
   M,data = generatedata(N,gates,nshots;return_state=true,noise="AD",γ=0.1,localbasis=["X","Y","Z"])
   
   # 4) Process tomography
-  (data_in,data_out) = generatedata(N,gates,nshots;process=true,choi=false)
+  (data_in,data_out) = generatedata(N,gates,nshots;process=true,build_process=false)
   @test size(data_in) == (nshots,N)
   @test size(data_out) == (nshots,N)
-  (data_in,data_out) = generatedata(N,gates,nshots;process=true,choi=false,noise="AD",γ=0.1)
+  (data_in,data_out) = generatedata(N,gates,nshots;process=true,build_process=false,noise="AD",γ=0.1)
   @test size(data_in) == (nshots,N)
   @test size(data_out) == (nshots,N)
-  (Λ,data_in,data_out) = generatedata(N,gates,nshots;process=true,choi=true,return_state=true)
-  (Λ,data_in,data_out) = generatedata(N,gates,nshots;process=true,choi=true,return_state=true,noise="AD",γ=0.1)
+  (Λ,data_in,data_out) = generatedata(N,gates,nshots;process=true,build_process=true,return_state=true)
+  (Λ,data_in,data_out) = generatedata(N,gates,nshots;process=true,build_process=true,return_state=true,noise="AD",γ=0.1)
 
 end
 
@@ -420,13 +423,13 @@ end
   M,data = generatedata(N,gates,nshots;return_state=true,noise="AD",γ=0.1,localbasis=["X","Y","Z"],readout_errors = [0.01,0.04])
   
   # 4) Process tomography
-  (data_in,data_out) = generatedata(N,gates,nshots;process=true,choi=false,readout_errors = [0.01,0.04])
+  (data_in,data_out) = generatedata(N,gates,nshots;process=true,build_process=false,readout_errors = [0.01,0.04])
   @test size(data_in) == (nshots,N)
   @test size(data_out) == (nshots,N)
-  (data_in,data_out) = generatedata(N,gates,nshots;process=true,choi=false,noise="AD",γ=0.1,readout_errors = [0.01,0.04])
+  (data_in,data_out) = generatedata(N,gates,nshots;process=true,build_process=false,noise="AD",γ=0.1,readout_errors = [0.01,0.04])
   @test size(data_in) == (nshots,N)
   @test size(data_out) == (nshots,N)
-  (Λ,data_in,data_out) = generatedata(N,gates,nshots;process=true,choi=true,return_state=true,readout_errors = [0.01,0.04])
-  (Λ,data_in,data_out) = generatedata(N,gates,nshots;process=true,choi=true,return_state=true,noise="AD",γ=0.1,readout_errors = [0.01,0.04])
+  (Λ,data_in,data_out) = generatedata(N,gates,nshots;process=true,build_process=true,return_state=true,readout_errors = [0.01,0.04])
+  (Λ,data_in,data_out) = generatedata(N,gates,nshots;process=true,build_process=true,return_state=true,noise="AD",γ=0.1,readout_errors = [0.01,0.04])
 
 end
