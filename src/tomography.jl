@@ -47,7 +47,7 @@ end
 #initializetomography(ψ::MPS; kwargs...) = initializetomography(LPDO(ψ); kwargs...)
 
 """
-    function initializetomography(sites::Vector{<:Index},χ::Int64;σ::Float64=0.1)
+    initializetomography(sites::Vector{<:Index},χ::Int64;σ::Float64=0.1)
 
 Initialize a variational MPS for quantum tomography.
 
@@ -87,8 +87,8 @@ function initializetomography(sites::Vector{<:Index},χ::Int64;σ::Float64=0.1)
 end
 
 """
-    function initializetomography(sites::Vector{<:Index},χ::Int64,ξ::Int64;
-                                  σ::Float64=0.1,purifier_tag = ts"Purifier")
+    initializetomography(sites::Vector{<:Index},χ::Int64,ξ::Int64;
+                         σ::Float64=0.1,purifier_tag = ts"Purifier")
 
 Initialize a variational LPDO for quantum tomography.
 
@@ -133,68 +133,25 @@ function initializetomography(sites::Vector{<:Index},χ::Int64,ξ::Int64;σ::Flo
 end
 
 """
-    lognormalize!(L::LPDO)
-    lognormalize!(M::MPS)
-
-Normalize the MPS/LPDO and returns the log of the norm and a vector of the local norms of each site.
-"""
-function lognormalize!(L::LPDO)
-  N = length(L)
-  localnorms = []
-  # TODO: replace with:
-  # noprime(ket(L, 1), siteind(L, 1))
-  blob = noprime(ket(L, 1), "Site") * bra(L, 1)
-  localZ = norm(blob)
-  logZ = 0.5 * log(localZ)
-  blob /= sqrt(localZ)
-  L.X[1] /= (localZ^0.25)
-  push!(localnorms, localZ^0.25)
-  for j in 2:length(L)-1
-    # TODO: replace with:
-    # noprime(ket(L, j), siteind(L, j))
-    blob = blob * noprime(ket(L, j), "Site")
-    blob = blob * bra(L, j)
-    localZ = norm(blob)
-    logZ += 0.5*log(localZ)
-    blob /= sqrt(localZ)
-    L.X[j] /= (localZ^0.25)
-    push!(localnorms, localZ^0.25)  
-  end
-  # TODO: replace with:
-  # noprime(ket(L, N), siteind(L, N))
-  blob = blob * noprime(ket(L, N), "Site")
-  blob = blob * bra(L, N)
-  localZ = norm(blob)
-  L.X[length(L)] /= sqrt(localZ)
-  push!(localnorms, sqrt(localZ))
-  logZ += log(real(blob[]))
-  return logZ, localnorms
-end
-
-lognormalize!(ψ::MPS) = lognormalize!(LPDO(ψ))
-
-"""
-    gradlogZ(L::LPDO;localnorm=nothing)
-    gradlogZ(ψ::MPS; kwargs...)
+    gradlogZ(L::LPDO; sqrt_localnorms = nothing)
+    gradlogZ(ψ::MPS; localnorms = nothing)
 
 Compute the gradients of the log-normalization with respect
 to each LPDO tensor component:
 
 - `∇ᵢ = ∂ᵢlog⟨ψ|ψ⟩` for `ψ = M = MPS`
 - `∇ᵢ = ∂ᵢlogTr(ρ)` for `ρ = M M†` , `M = LPDO`
-
-If `localnorm=true`, rescale each gradient by the corresponding
-local normalization.
 """
-function gradlogZ(L::LPDO; localnorm = nothing)
-  M = L.X
+function gradlogZ(lpdo::LPDO; sqrt_localnorms = nothing)
+  M = lpdo.X
   N = length(M)
   L = Vector{ITensor}(undef, N-1)
   R = Vector{ITensor}(undef, N)
   
-  if isnothing(localnorm)
-    localnorm = ones(N)
+  if isnothing(sqrt_localnorms)
+    sqrt_localnorms = ones(N)
   end
+
   # Sweep right to get L
   L[1] = dag(M[1]) * prime(M[1],"Link")
   for j in 2:N-1
@@ -212,20 +169,20 @@ function gradlogZ(L::LPDO; localnorm = nothing)
   end
   # Get the gradients of the normalization
   gradients = Vector{ITensor}(undef, N)
-  gradients[1] = prime(M[1],"Link") * R[2]/(localnorm[1]*Z)
+  gradients[1] = prime(M[1],"Link") * R[2]/(sqrt_localnorms[1]*Z)
   for j in 2:N-1
-    gradients[j] = (L[j-1] * prime(M[j],"Link") * R[j+1])/(localnorm[j]*Z)
+    gradients[j] = (L[j-1] * prime(M[j],"Link") * R[j+1])/(sqrt_localnorms[j]*Z)
   end
-  gradients[N] = (L[N-1] * prime(M[N],"Link"))/(localnorm[N]*Z)
+  gradients[N] = (L[N-1] * prime(M[N],"Link"))/(sqrt_localnorms[N]*Z)
   
   return 2*gradients,log(Z)
 end
 
-gradlogZ(ψ::MPS; kwargs...) = gradlogZ(LPDO(ψ); kwargs...)
+gradlogZ(ψ::MPS; localnorms = nothing) = gradlogZ(LPDO(ψ); sqrt_localnorms = localnorms)
 
 """
-    gradnll(L::LPDO{MPS}, data::Array; localnorm=nothing, choi::Bool=false)
-    gradnll(ψ::MPS,data::Array;localnorm=nothing,choi::Bool=false)
+    gradnll(L::LPDO{MPS}, data::Array; sqrt_localnorms = nothing, choi::Bool = false)
+    gradnll(ψ::MPS, data::Array; localnorms = nothing, choi::Bool = false)
 
 Compute the gradients of the cross-entropy between the MPS probability
 distribution of the empirical data distribution for a set of projective 
@@ -243,9 +200,6 @@ where `∑ᵢ` runs over the measurement data. Returns the gradients:
 
 `∇ᵢ = - ∂ᵢ⟨log P(σ))⟩_data`
 
-If `localnorm=true`, rescale each gradient by the corresponding
-local normalization.
-
 If `choi=true`, `ψ` correspodns to a Choi matrix `Λ=|ψ⟩⟨ψ|`.
 The probability is then obtaining by transposing the input state, which 
 is equivalent to take the conjugate of the eigenstate projector.
@@ -253,8 +207,8 @@ is equivalent to take the conjugate of the eigenstate projector.
 #function gradnll(ψ::MPS,
 function gradnll(L::LPDO{MPS},
                  data::Array;
-                 localnorm=nothing,
-                 choi::Bool=false)
+                 sqrt_localnorms = nothing,
+                 choi::Bool = false)
   ψ = L.X
   N = length(ψ)
 
@@ -286,8 +240,8 @@ function gradnll(L::LPDO{MPS},
     Rpsi[nthread][1] = ITensor(ElT, undef, s[1])
   end
 
-  if isnothing(localnorm)
-    localnorm = ones(N)
+  if isnothing(sqrt_localnorms)
+    sqrt_localnorms = ones(N)
   end
 
   ψdag = dag(ψ)
@@ -341,7 +295,7 @@ function gradnll(L::LPDO{MPS},
     else
       grads[nthread][1] .= gate(x[1],s[1]) .* R[nthread][2]
     end
-    gradients[nthread][1] .+= (1 / (localnorm[1] * ψx)) .* grads[nthread][1]
+    gradients[nthread][1] .+= (1 / (sqrt_localnorms[1] * ψx)) .* grads[nthread][1]
     for j in 2:N-1
       if isodd(j) & choi
         Rpsi[nthread][j] .= L[nthread][j-1] .* dag(gate(x[j],s[j]))
@@ -351,10 +305,10 @@ function gradnll(L::LPDO{MPS},
         
       # TODO: fuse into one call to mul!
       grads[nthread][j] .= Rpsi[nthread][j] .* R[nthread][j+1]
-      gradients[nthread][j] .+= (1 / (localnorm[j] * ψx)) .* grads[nthread][j]
+      gradients[nthread][j] .+= (1 / (sqrt_localnorms[j] * ψx)) .* grads[nthread][j]
     end
     grads[nthread][N] .= L[nthread][N-1] .* gate(x[N], s[N])
-    gradients[nthread][N] .+= (1 / (localnorm[N] * ψx)) .* grads[nthread][N]
+    gradients[nthread][N] .+= (1 / (sqrt_localnorms[N] * ψx)) .* grads[nthread][N]
   end
   
   for nthread in 1:nthreads
@@ -373,11 +327,11 @@ function gradnll(L::LPDO{MPS},
   return gradients_tot, loss_tot
 end
 
-gradnll(ψ::MPS,data::Array;localnorm=nothing,choi::Bool=false) = 
-  gradnll(LPDO(ψ),data;localnorm=localnorm,choi=choi)
+gradnll(ψ::MPS, data::Array; localnorms = nothing, choi::Bool = false) = 
+  gradnll(LPDO(ψ), data; sqrt_localnorms = localnorms, choi = choi)
 
 """
-    gradnll(lpdo::LPDO{MPO}, data::Array; localnorm=nothing, choi::Bool=false)
+    gradnll(lpdo::LPDO{MPO}, data::Array; sqrt_localnorms = nothing, choi::Bool=false)
 
 Compute the gradients of the cross-entropy between the LPDO probability 
 distribution of the empirical data distribution for a set of projective 
@@ -395,14 +349,11 @@ where `∑ᵢ` runs over the measurement data. Returns the gradients:
 
 `∇ᵢ = - ∂ᵢ⟨log P(σ))⟩_data`
 
-If `localnorm=true`, rescale each gradient by the corresponding
-local normalization.
-
 If `choi=true`, the probability is then obtaining by transposing the 
 input state, which is equivalent to take the conjugate of the eigenstate projector.
 """
 function gradnll(L::LPDO{MPO}, data::Array;
-                 localnorm = nothing, choi::Bool = false)
+                 sqrt_localnorms = nothing, choi::Bool = false)
   lpdo = L.X
   N = length(lpdo)
 
@@ -478,8 +429,8 @@ function gradnll(L::LPDO{MPO}, data::Array;
     gradients[nthread][N] = ITensor(ElT, links[N-1],kraus[N],s[N])
   end
   
-  if isnothing(localnorm)
-    localnorm = ones(N)
+  if isnothing(sqrt_localnorms)
+    sqrt_localnorms = ones(N)
   end
   
   loss = zeros(nthreads)
@@ -529,7 +480,7 @@ function gradnll(L::LPDO{MPO}, data::Array;
       Agrad[nthread][1] .=  Tp[nthread][1] .* gate(x[1],s[1])
     end
     grads[nthread][1] .= R[nthread][2] .* Agrad[nthread][1]
-    gradients[nthread][1] .+= (1 / (localnorm[1] * prob)) .* grads[nthread][1]
+    gradients[nthread][1] .+= (1 / (sqrt_localnorms[1] * prob)) .* grads[nthread][1]
     for j in 2:N-1
       if isodd(j) & choi
         Tp[nthread][j] .= prime(lpdo[j],"Link") .* gate(x[j],s[j])
@@ -541,12 +492,12 @@ function gradnll(L::LPDO{MPO}, data::Array;
         Agrad[nthread][j] .= Lgrad[nthread][j-1] .* gate(x[j],s[j])
       end
       grads[nthread][j] .= R[nthread][j+1] .* Agrad[nthread][j] 
-      gradients[nthread][j] .+= (1 / (localnorm[j] * prob)) .* grads[nthread][j]
+      gradients[nthread][j] .+= (1 / (sqrt_localnorms[j] * prob)) .* grads[nthread][j]
     end
     Tp[nthread][N] .= prime(lpdo[N],"Link") .* dag(gate(x[N],s[N]))
     Lgrad[nthread][N-1] .= L[nthread][N-1] .* Tp[nthread][N]
     grads[nthread][N] .= Lgrad[nthread][N-1] .* gate(x[N],s[N])
-    gradients[nthread][N] .+= (1 / (localnorm[N] * prob)) .* grads[nthread][N]
+    gradients[nthread][N] .+= (1 / (sqrt_localnorms[N] * prob)) .* grads[nthread][N]
   end
   
   for nthread in 1:nthreads
@@ -573,8 +524,8 @@ end
 
 
 """
-    gradients(L::LPDO, data::Array; localnorm = nothing, choi::Bool = false)
-    gradients(ψ::MPS, data::Array;localnorm = nothing, choi::Bool = false)
+    gradients(L::LPDO, data::Array; sqrt_localnorms = nothing, choi::Bool = false)
+    gradients(ψ::MPS, data::Array; localnorms = nothing, choi::Bool = false)
 
 Compute the gradients of the cost function:
 `C = log(Z) - ⟨log P(σ)⟩_data`
@@ -582,9 +533,9 @@ Compute the gradients of the cost function:
 If `choi=true`, add the Choi normalization `trace(Λ)=d^N` to the cost function.
 """
 function gradients(L::LPDO, data::Array;
-                   localnorm = nothing, choi::Bool = false)
-  g_logZ,logZ = gradlogZ(L,localnorm=localnorm)
-  g_nll, nll  = gradnll(L,data,localnorm=localnorm,choi=choi)
+                   sqrt_localnorms = nothing, choi::Bool = false)
+  g_logZ,logZ = gradlogZ(L; sqrt_localnorms = sqrt_localnorms)
+  g_nll, nll  = gradnll(L, data; sqrt_localnorms = sqrt_localnorms, choi = choi)
   
   grads = g_logZ + g_nll
   loss = logZ + nll
@@ -592,12 +543,12 @@ function gradients(L::LPDO, data::Array;
   return grads,loss
 end
 
-gradients(ψ::MPS, data::Array;localnorm = nothing, choi::Bool = false) = 
-  gradients(LPDO(ψ),data;localnorm=localnorm,choi=choi)
+gradients(ψ::MPS, data::Array; localnorms = nothing, choi::Bool = false) = 
+  gradients(LPDO(ψ), data; sqrt_localnorms = localnorms, choi = choi)
 
 """
     tomography(L::LPDO, data::Array, opt::Optimizer; kwargs...)
-    tomography(ψ::MPS, data::Array,opt::Optimizer; kwargs...)
+    tomography(ψ::MPS, data::Array, opt::Optimizer; kwargs...)
 
 Run quantum state tomography using a the starting state `model` on `data`.
 
@@ -615,7 +566,6 @@ function tomography(L::LPDO,
                     data::Array,
                     opt::Optimizer;
                     kwargs...)
-  
   # Read arguments
   localnorm::Bool = get(kwargs,:localnorm,true)
   globalnorm::Bool = get(kwargs,:globalnorm,false)
@@ -670,11 +620,13 @@ function tomography(L::LPDO,
       # Local normalization
       if localnorm
         modelcopy = copy(model)
-        logZ,localnorms = lognormalize!(modelcopy)
-        grads,loss = gradients(modelcopy,batch,localnorm=localnorms,choi=choi)
+        sqrt_localnorms = []
+        #logZ,localnorms = normalize!(modelcopy)
+        normalize!(modelcopy; sqrt_localnorms! = sqrt_localnorms)
+        grads,loss = gradients(modelcopy, batch, sqrt_localnorms = sqrt_localnorms, choi = choi)
       # Global normalization
       elseif globalnorm
-        lognormalize!(model)
+        normalize!(model)
         grads,loss = gradients(model,batch,choi=choi)
       # Unnormalized
       else
@@ -722,7 +674,7 @@ function tomography(L::LPDO,
     tot_time += ep_time
   end
   @printf("Total Time = %.3f sec\n",tot_time)
-  lognormalize!(model)
+  normalize!(model)
   
   return (isnothing(observer) ? model : (model,observer))  
 end
@@ -865,8 +817,8 @@ function frobenius_distance(ρ0::LPDO, σ0::LPDO)
   ρ = copy(ρ0)
   σ = copy(σ0)
   # Normalize both LPDO to 1
-  lognormalize!(ρ)
-  lognormalize!(σ)
+  normalize!(ρ)
+  normalize!(σ)
   # Extract density operators MPO
   ρ′ = MPO(ρ)
   σ′ = MPO(σ)
@@ -883,7 +835,7 @@ end
 function frobenius_distance(ρ0::LPDO, σ0::MPO)
   # Normalize the LPDO to 1
   ρ = copy(ρ0)
-  lognormalize!(ρ)
+  normalize!(ρ)
   ρ′ = MPO(ρ)
   σ′ = σ0
   # Get the MPO normalization
@@ -900,7 +852,7 @@ end
 function frobenius_distance(ρ0::MPO, σ0::LPDO)
   # Normalize the LPDO to 1
   σ = copy(σ0)
-  lognormalize!(σ)
+  normalize!(σ)
   σ′ = MPO(σ)
   ρ′ = ρ0
   # Get the MPO normalization
@@ -943,8 +895,8 @@ function fidelity_bound(ρ0::LPDO, σ0::LPDO)
   ρ = copy(ρ0)
   σ = copy(σ0)
   # Normalize both LPDO to 1
-  lognormalize!(ρ)
-  lognormalize!(σ)
+  normalize!(ρ)
+  normalize!(σ)
   # Extract density operators MPO
   ρ′ = MPO(ρ)
   σ′ = MPO(σ)
@@ -956,7 +908,7 @@ end
 function fidelity_bound(ρ0::LPDO, σ0::MPO)
   # Normalize the LPDO to 1
   ρ = copy(ρ0)
-  lognormalize!(ρ)
+  normalize!(ρ)
   ρ′ = MPO(ρ)
   σ′ = σ0
   # Get the MPO normalization
@@ -969,7 +921,7 @@ end
 function fidelity_bound(ρ0::MPO, σ0::LPDO)
   # Normalize the LPDO to 1
   σ = copy(σ0)
-  lognormalize!(σ)
+  normalize!(σ)
   σ′ = MPO(σ)
   ρ′ = ρ0
   # Get the MPO normalization
@@ -991,18 +943,20 @@ end
 """
     fullfidelity(ρ::MPO,σ::MPO;choi::Bool=false)
 
-Compute the full quantum fidelity between two density operatos
+Compute the full quantum fidelity between two density operators
 by full enumeration.
+
+The MPOs should be Hermitian and non-negative.
 """
-function fullfidelity(L::LPDO,σ::MPO)
+function fullfidelity(L::Union{MPO, LPDO}, σ::Union{LPDO, MPO})
   @assert length(L) < 12
-  ρ_mat = fullmatrix(MPO(L))
+  ρ_mat = fullmatrix(L)
   σ_mat = fullmatrix(σ)
   
   ρ_mat ./= tr(ρ_mat)
   σ_mat ./= tr(σ_mat)
   
-  F = sqrt(ρ_mat) * (σ_mat * sqrt(ρ_mat))
+  F = sqrt(ρ_mat) * σ_mat * sqrt(ρ_mat)
   F = real(tr(sqrt(F)))
   return F
 end

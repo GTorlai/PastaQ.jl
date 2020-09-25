@@ -19,6 +19,7 @@ export
 # lpdo.jl
   LPDO,
   logtr,
+  tr,
 
 # quantumcircuit.jl
   # Methods
@@ -46,7 +47,7 @@ export
 # quantumtomography,jl
   # Methods
   initializetomography,
-  lognormalize!,
+  normalize!,
   nll,
   gradlogZ,
   gradnll,
