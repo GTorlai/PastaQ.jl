@@ -83,3 +83,39 @@ function LinearAlgebra.normalize!(ψ::MPS; localnorms! = [])
   return ψ
 end
 
+"""
+    MPO(L::LPDO)
+
+Contract the purifier indices to get the MPO
+`ρ = L.X L.X†`. This contraction is performed exactly,
+in the future we will support approximate contraction.
+"""
+function ITensors.MPO(lpdo0::LPDO)
+  lpdo = copy(lpdo0.X)
+  noprime!(lpdo)
+  N = length(lpdo)
+  M = ITensor[]
+  prime!(lpdo[1]; tags = "Site")
+  prime!(lpdo[1]; tags = "Link")
+  tmp = dag(lpdo[1]) * noprime(lpdo[1])
+  Cdn = combiner(inds(tmp, tags = "Link"), tags = "Link,l=1")
+  push!(M, tmp * Cdn)
+
+  for j in 2:N-1
+    prime!(lpdo[j]; tags = "Site")
+    prime!(lpdo[j]; tags = "Link")
+    tmp = dag(lpdo[j]) * noprime(lpdo[j])
+    Cup = Cdn
+    Cdn = combiner(inds(tmp,tags="Link,l=$j"),tags="Link,l=$j")
+    push!(M, tmp * Cup * Cdn)
+  end
+  prime!(lpdo[N]; tags = "Site")
+  prime!(lpdo[N]; tags = "Link")
+  tmp = dag(lpdo[N]) * noprime(lpdo[N])
+  Cup = Cdn
+  push!(M, tmp * Cdn)
+  rho = MPO(M)
+  noprime!(lpdo)
+  return rho
+end
+
