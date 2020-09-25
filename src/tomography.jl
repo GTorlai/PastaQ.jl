@@ -56,7 +56,9 @@ Initialize a variational MPS for quantum tomography.
   - `χ`: bond dimension of the MPS
   - `σ`: width of initial box distribution
 """
-function initializetomography(sites::Vector{<:Index},χ::Int64;σ::Float64=0.1)
+function initializetomography(sites::Vector{<: Index},
+                              χ::Int64;
+                              σ::Float64 = 0.1)
   d = 2 # Dimension of the local Hilbert space
   N = length(sites)
   links = [Index(χ; tags="Link, l=$l") for l in 1:N-1]
@@ -98,7 +100,10 @@ Initialize a variational LPDO for quantum tomography.
   - `ξ`: local purification dimension of the LPDO
   - `σ`: width of initial box distribution
 """
-function initializetomography(sites::Vector{<:Index},χ::Int64,ξ::Int64;σ::Float64=0.1,purifier_tag = ts"Purifier")
+function initializetomography(sites::Vector{<: Index},
+                              χ::Int64, ξ::Int64;
+                              σ::Float64 = 0.1,
+                              purifier_tag = ts"Purifier")
   d = 2 # Dimension of the local Hilbert space
   N = length(sites)
 
