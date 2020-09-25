@@ -895,8 +895,8 @@ function fidelity_bound(ρ0::LPDO, σ0::LPDO)
   ρ = copy(ρ0)
   σ = copy(σ0)
   # Normalize both LPDO to 1
-  lognormalize!(ρ)
-  lognormalize!(σ)
+  normalize!(ρ)
+  normalize!(σ)
   # Extract density operators MPO
   ρ′ = MPO(ρ)
   σ′ = MPO(σ)
@@ -908,7 +908,7 @@ end
 function fidelity_bound(ρ0::LPDO, σ0::MPO)
   # Normalize the LPDO to 1
   ρ = copy(ρ0)
-  lognormalize!(ρ)
+  normalize!(ρ)
   ρ′ = MPO(ρ)
   σ′ = σ0
   # Get the MPO normalization
@@ -921,7 +921,7 @@ end
 function fidelity_bound(ρ0::MPO, σ0::LPDO)
   # Normalize the LPDO to 1
   σ = copy(σ0)
-  lognormalize!(σ)
+  normalize!(σ)
   σ′ = MPO(σ)
   ρ′ = ρ0
   # Get the MPO normalization
