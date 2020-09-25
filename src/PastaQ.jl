@@ -6,6 +6,7 @@ using LinearAlgebra
 using JLD
 using HDF5
 using Printf
+import StatsBase
 import StatsBase: Weights
 
 include("exports.jl")
