@@ -174,7 +174,7 @@ numgradsnll(M::MPS, args...; kwargs...) =
 
 """ MPS STATE TOMOGRAPHY TESTS """
 
-@testset "mps-qst: lognormalization" begin
+@testset "mps-qst: normalization" begin
   N = 10
   χ = 4
   ψ = initializetomography(N;χ=χ)
@@ -472,18 +472,27 @@ end
 
 """ LPDO STATE TOMOGRAPHY TESTS """
 
-@testset "lpdo-qst: lognormalization" begin
+@testset "lpdo-qst: normalization" begin
   N = 10
   χ = 4
   ξ = 2
+
   ρ = initializetomography(N;χ=χ,ξ=ξ)
   @test length(ρ) == N
   logZ = logtr(ρ)
   sqrt_localZ = []
   normalize!(ρ; sqrt_localnorms! = sqrt_localZ)
   @test logZ ≈ 2 * sum(log.(sqrt_localZ))
+
   ρ = initializetomography(N;χ=χ,ξ=ξ)
   normalize!(ρ)
+  @test tr(ρ) ≈ 1
+
+  ρ = MPO(initializetomography(N;χ=χ,ξ=ξ))
+  trρ = tr(ρ)
+  localtrρ = []
+  normalize!(ρ; localnorms! = localtrρ)
+  @test trρ ≈ prod(localtrρ)
   @test tr(ρ) ≈ 1
 end
 

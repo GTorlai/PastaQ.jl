@@ -8,7 +8,7 @@ Random.seed!(1234)
 # as the output of a unitary quantum circuit
 
 # Load target state and measurement data
-Ψ,data = loaddata("../data/qst_circuit.h5")
+Ψ,data = loaddata("data/qst_circuit.h5")
 
 # Set parameters 
 N = length(Ψ)     # Number of qubits
@@ -34,7 +34,7 @@ opt = SGD(ψ0;η = 0.01)
 # as the output of a noisy quantum circuit
 
 # Load target state and measurement data
-ϱ,data = loaddata("../data/qst_circuit_noisy.h5")
+ϱ,data = loaddata("data/qst_circuit_noisy.h5")
 
 # Set parameters
 N = length(ϱ)     # Number of qubits

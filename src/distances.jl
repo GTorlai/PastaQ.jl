@@ -1,201 +1,119 @@
+
+# TODO: make a faster custom version that doesn't convert to MPO first
+ITensors.inner(ρ::LPDO{MPO}, σ::LPDO{MPO}) =
+  inner(MPO(ρ), MPO(σ))
+
+ITensors.inner(ρ::LPDO{MPS}, σ::LPDO{MPS}) =
+  abs(inner(ρ.X, σ.X))^2
+
+ITensors.inner(ρ::LPDO{MPO}, σ::MPO) =
+  inner(MPO(ρ), σ)
+
+ITensors.inner(ρ::LPDO{MPS}, σ::MPO) =
+  inner(ρ.X, σ, ρ.X)
+
+ITensors.inner(ρ::MPO, σ::LPDO{MPO}) =
+  inner(ρ, MPO(σ))
+
+ITensors.inner(ρ::MPO, σ::LPDO{MPS}) =
+  inner(σ.X, ρ, σ.X)
+
 """
-    fidelity(ψ::MPS,ϕ::MPS)
+    fidelity(ψ::MPS, ϕ::MPS)
 
 Compute the fidelity between two MPS:
 
-`F = |⟨ψ|ϕ⟩|²`
+`F = |⟨ψ̃|ϕ̃⟩|²`
+
+where `ψ̃` and `ϕ̃` are the normalized MPS.
 """
-function fidelity(ψ::MPS,ϕ::MPS)
-  log_F̃ = 2.0*real(loginner(ψ,ϕ))
+function fidelity(ψ::MPS, ϕ::MPS)
+  log_F̃ = 2.0 * real(loginner(ψ, ϕ))
   log_K = 2.0 * (lognorm(ψ) + lognorm(ϕ))
   fidelity = exp(log_F̃ - log_K)
   return fidelity
 end
 
 """
-    fidelity(ψ::MPS, ρ::LPDO)
+    fidelity(ψ::MPS, ρ::Union{MPO, LPDO})
+    fidelity(ρ::Union{MPO, LPDO}, ψ::MPS)
 
-    fidelity(ρ::LPDO, ψ::MPS)
+Compute the fidelity between an MPS and MPO/LPDO:
 
-Compute the fidelity between an MPS and LPDO.
+`F = ⟨ψ̃|ρ̃|ψ̃⟩`
 
-`F = ⟨ψ|ρ|ψ⟩`
-"""
-function fidelity(ψ::MPS, L::LPDO)
-  if L.X isa MPS
-    return fidelity(ψ,L.X)
-  else
-    ρ = L.X
-    A = *(ρ,ψ,method="densitymatrix",cutoff=1e-10)
-    log_F̃ = log(abs(inner(A,A)))
-    #log_F̃ = log(abs(inner(ρ,ψ,ρ,ψ)))
-    log_K = 2.0*(lognorm(ψ) + lognorm(ρ))
-    return exp(log_F̃ - log_K)#fidelity
-  end
-end
-
-fidelity(ρ::LPDO, ψ::MPS) = fidelity(ψ, ρ)
-
-"""
-    fidelity(ψ::MPS,ρ::MPO)
-
-    fidelity(ρ::MPO,ψ::MPS)
-
-Compute the fidelity between an MPS and MPO.
-
-`F = ⟨ψ|ρ|ψ⟩`
+where `ψ̃` and `ρ̃` are the normalized MPS and MPO/LDPO.
 """
 function fidelity(ψ::MPS, ρ::MPO)
-  log_F̃ = log(abs(inner(ψ,ρ,ψ)))
-  log_K = 2.0*lognorm(ψ) + log(tr(ρ)) 
+  # TODO: replace with:
+  # log_F̃ = loginner(ψ, ρ, ψ)
+  # log_K = 2 * lognorm(ψ) + logtr(ρ) 
+  log_F̃ = log(abs(inner(ψ, ρ, ψ)))
+  log_K = 2 * lognorm(ψ) + log(tr(ρ)) 
   fidelity = exp(log_F̃ - log_K)
   return fidelity
 end
 
+# TODO: replace with:
+# X = L.X
+# log_F̃ = lognorm(X, ψ) # = loginner(X, ψ, X, ψ)
+# log_K = 2.0 * (lognorm(ψ) + lognorm(L))
+# return exp(log_F̃ - log_K)
+fidelity(ψ::MPS, L::LPDO{MPO}) =
+  fidelity(ψ, MPO(L))
+
+fidelity(ψ::MPS, L::LPDO{MPS}) = fidelity(ψ, L.X)
+
+fidelity(ρ::LPDO, ψ::MPS) = fidelity(ψ, ρ)
+
 fidelity(ρ::MPO, ψ::MPS) = fidelity(ψ, ρ)
 
 """
-    frobenius_distance(ρ0::LPDO, σ0::LPDO)
-    frobenius_distance(ρ0::LPDO, σ0::MPO)
-    frobenius_distance(ρ0::MPO,  σ0::LPDO)
-    frobenius_distance(ρ0::MPO,  σ0::MPO)
+    frobenius_distance(ρ::Union{MPO, LPDO}, σ::Union{MPO, LPDO})
 
-Compute the trace norm of the difference between two LPDOs and MPOs.
+Compute the trace norm of the difference between two LPDOs and MPOs:
 
-`T(ρ,σ) = sqrt(trace[(ρ-σ)†(ρ-σ)])`
+`T(ρ,σ) = sqrt(trace[(ρ̃-σ̃)†(ρ̃-σ̃)])`
+
+where `ρ̃` and `σ̃` are the trace normalized density matrices.
 """
-function frobenius_distance(ρ0::LPDO, σ0::LPDO)
-  ρ = copy(ρ0)
-  σ = copy(σ0)
-  # Normalize both LPDO to 1
-  normalize!(ρ)
-  normalize!(σ)
-  # Extract density operators MPO
-  ρ′ = MPO(ρ)
-  σ′ = MPO(σ)
-  Kρ  = 1.0
-  Kσ  = 1.0
-
-  distance  = inner(ρ′,ρ′)/Kρ^2
-  distance += inner(σ′,σ′)/Kσ^2
-  distance -= 2.0*inner(ρ′,σ′)/(Kρ*Kσ)
-  
-  return real(sqrt(distance))
-end
-
-function frobenius_distance(ρ0::LPDO, σ0::MPO)
-  # Normalize the LPDO to 1
-  ρ = copy(ρ0)
-  normalize!(ρ)
-  ρ′ = MPO(ρ)
-  σ′ = σ0
-  # Get the MPO normalization
-  Kρ = 1.0
-  Kσ = tr(σ′)
-
-  distance  = inner(ρ′,ρ′)/Kρ^2
-  distance += inner(σ′,σ′)/Kσ^2
-  distance -= 2.0*inner(ρ′,σ′)/(Kρ*Kσ)
-  
-  return real(sqrt(distance))
-end
-
-function frobenius_distance(ρ0::MPO, σ0::LPDO)
-  # Normalize the LPDO to 1
-  σ = copy(σ0)
-  normalize!(σ)
-  σ′ = MPO(σ)
-  ρ′ = ρ0
-  # Get the MPO normalization
-  Kρ = tr(ρ′)
-  Kσ = 1.0
-
-  distance  = inner(ρ′,ρ′)/Kρ^2
-  distance += inner(σ′,σ′)/Kσ^2
-  distance -= 2.0*inner(ρ′,σ′)/(Kρ*Kσ)
-  
-  return real(sqrt(distance))
-end
-
-function frobenius_distance(ρ0::MPO, σ0::MPO)
-  ρ′ = ρ0
-  σ′ = σ0
-  Kρ = tr(ρ′)
-  Kσ = tr(σ′)
-  
-  distance  = inner(ρ′,ρ′)/Kρ^2
-  distance += inner(σ′,σ′)/Kσ^2
-  distance -= 2.0*inner(ρ′,σ′)/(Kρ*Kσ)
-  
-  return real(sqrt(distance))
+function frobenius_distance(ρ::Union{MPO, LPDO},
+                            σ::Union{MPO, LPDO})
+  ρ̃ = copy(ρ)
+  σ̃ = copy(σ)
+  normalize!(ρ̃)
+  normalize!(σ̃)
+  distance  = real(inner(ρ̃, ρ̃))
+  distance += real(inner(σ̃, σ̃))
+  distance -= 2 * real(inner(ρ̃, σ̃))
+  return sqrt(distance)
 end
 
 """
-    fidelity_bound(ρ0::LPDO, σ0::LPDO)
-    fidelity_bound(ρ0::LPDO, σ0::MPO)
-    fidelity_bound(ρ0::MPO,  σ0::LPDO)
-    fidelity_bound(ρ0::MPO,  σ0::MPO)
+    fidelity_bound(ρ::Union{MPO, LPDO}, σ::Union{MPO, LPDO})
 
-Compute the the following fidelity bound
+Compute the the following lower bound of the fidelity:
 
-`F̃(ρ,σ) = trace[ρ† σ)]`
+`F̃(ρ,σ) = trace[ρ̃† σ̃)]`
+
+where `ρ̃` and `σ̃` are the normalized density matrices.
 
 The bound becomes tight when the target state is nearly pure.
 """
-function fidelity_bound(ρ0::LPDO, σ0::LPDO)
-  ρ = copy(ρ0)
-  σ = copy(σ0)
-  # Normalize both LPDO to 1
-  normalize!(ρ)
-  normalize!(σ)
-  # Extract density operators MPO
-  ρ′ = MPO(ρ)
-  σ′ = MPO(σ)
-  Kρ  = 1.0
-  Kσ  = 1.0
-  return real(inner(ρ′,σ′)/(Kρ*Kσ))
-end
-
-function fidelity_bound(ρ0::LPDO, σ0::MPO)
-  # Normalize the LPDO to 1
-  ρ = copy(ρ0)
-  normalize!(ρ)
-  ρ′ = MPO(ρ)
-  σ′ = σ0
-  # Get the MPO normalization
-  Kρ = 1.0
-  Kσ = tr(σ′)
-
-  return real(inner(ρ′,σ′)/(Kρ*Kσ))
-end
-
-function fidelity_bound(ρ0::MPO, σ0::LPDO)
-  # Normalize the LPDO to 1
-  σ = copy(σ0)
-  normalize!(σ)
-  σ′ = MPO(σ)
-  ρ′ = ρ0
-  # Get the MPO normalization
-  Kρ = tr(ρ′)
-  Kσ = 1.0
-
-  return real(inner(ρ′,σ′)/(Kρ*Kσ))
-end
-
-function fidelity_bound(ρ0::MPO, σ0::MPO)
-  ρ′ = ρ0
-  σ′ = σ0
-  Kρ = tr(ρ′)
-  Kσ = tr(σ′)
-  bound = inner(ρ′,σ′)/(Kρ*Kσ)
-  return real(bound)
+function fidelity_bound(ρ::Union{MPO, LPDO},
+                        σ::Union{MPO, LPDO})
+  ρ̃ = copy(ρ)
+  σ̃ = copy(σ)
+  normalize!(ρ̃)
+  normalize!(σ̃)
+  return real(inner(ρ̃, σ̃))
 end
 
 """
-    fullfidelity(ρ::MPO,σ::MPO;choi::Bool=false)
+    fullfidelity(ρ::Union{MPO, LPDO}, σ::Union{MPO, LPDO})
 
 Compute the full quantum fidelity between two density operators
-by full enumeration.
+by full enumeration. This scales exponentially in the number of sites in the MPO/LPDO.
 
 The MPOs should be Hermitian and non-negative.
 """

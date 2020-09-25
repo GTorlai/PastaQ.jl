@@ -37,17 +37,42 @@ logtr(L::LPDO) = loginner(L.X, L.X)
 # TODO: define siteinds, firstsiteind, allsiteind, etc.
 
 """
-    normalize!(L::LPDO; sqrt_localnorms! = [])
     normalize!(ψ::MPS; localnorms! = [])
+    normalize!(M::MPO; localnorms! = [])
+    normalize!(L::LPDO; sqrt_localnorms! = [])
 
-Normalize the MPS/LPDO and returns the log of the norm and a vector of the local norms of each site.
+Normalize the MPS/MPO/LPDO and returns the log of the norm and a vector of the local norms of each site.
 
 An MPS `|ψ⟩` is normalized by `√⟨ψ|ψ⟩`, and the resulting MPS will have the property `norm(ψ) ≈ 1`.
 
+An MPO `M` is normalized by `tr(M)`, and the resulting MPO will have the property `tr(M) ≈ 1`.
+
 An LPDO `L = X X†` is normalized by `tr(L) = tr(X X†)`, so each `X` is normalized by `√tr(L) = √tr(X X†)`. The resulting LPDO will have the property `tr(L) ≈ 1`.
 
-Passing a vector `v` as the keyword arguments `localnorms!` (`sqrt_localnorms!`) will fill the vector with the (square root) of the normalization factor per site. For an MPS `ψ`, `prod(v) ≈ norm(ψ)`, while for an LPDO `L`, `prod(v)^2 ≈ tr(L)`.
+Passing a vector `v` as the keyword arguments `localnorms!` (`sqrt_localnorms!`) will fill the vector with the (square root) of the normalization factor per site. For an MPS `ψ`, `prod(v) ≈ norm(ψ)`. For an MPO `M`, `prod(v) ≈ tr(M). For an LPDO `L`, `prod(v)^2 ≈ tr(L)`.
 """
+function LinearAlgebra.normalize!(M::MPO; localnorms! = [])
+  N = length(M)
+  resize!(localnorms!, N)
+  blob = M[1] * δ(dag(siteinds(M, 1)))
+  localZ = norm(blob)
+  blob /= localZ
+  M[1] /= localZ
+  localnorms![1] = localZ
+  for j in 2:N-1
+    blob *= (M[j] * δ(dag(siteinds(M, j))))
+    localZ = norm(blob)
+    blob /= localZ
+    M[j] /= localZ
+    localnorms![j] = localZ
+  end
+  blob *= (M[N] * δ(dag(siteinds(M, N))))
+  localZ = blob[]
+  M[N] /= localZ
+  localnorms![N] = localZ
+  return M
+end
+
 function LinearAlgebra.normalize!(L::LPDO; sqrt_localnorms! = [])
   N = length(L)
   resize!(sqrt_localnorms!, N)
