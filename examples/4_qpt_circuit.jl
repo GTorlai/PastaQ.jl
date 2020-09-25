@@ -9,7 +9,7 @@ Random.seed!(1234)
 # Load target state and measurements. Each samples is built out
 # of a input state (`data_in`) to the quantum channel, and the
 # measurement output (`data_out`) after a local basis rotation.
-Φ,data_in,data_out = loaddata("../data/qpt_circuit.h5";process=true)
+Φ,data_in,data_out = loaddata("data/qpt_circuit.h5";process=true)
 
 # Set parameters
 N = length(Φ)     # Number of qubits
@@ -29,7 +29,7 @@ opt = SGD(Γ0;η = 0.1)
 
 # Noisy circuit
 Random.seed!(1234)
-ϱ,data_in,data_out = loaddata("../data/qpt_circuit_noisy.h5";process=true)
+ϱ,data_in,data_out = loaddata("data/qpt_circuit_noisy.h5";process=true)
 N = length(ϱ)
 χ = 8
 ξ = 2
