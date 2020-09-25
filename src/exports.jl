@@ -23,6 +23,7 @@ export
 
 # choi.jl,
   Choi,
+  choimatrix,
 
 # quantumcircuit.jl
   # Methods
@@ -34,7 +35,6 @@ export
   compilecircuit,
   compilecircuit!,
   runcircuit,
-  choimatrix,
 
 # datagen.jl
   # Methhods
@@ -51,7 +51,8 @@ export
 
 # quantumtomography,jl
   # Methods
-  initializetomography,
+  randomstate,
+  randomprocess,
   normalize!,
   nll,
   gradlogZ,

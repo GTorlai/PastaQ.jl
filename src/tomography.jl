@@ -1,72 +1,57 @@
-"""
-    initializetomography(N::Int64;kwargs...)
-
-Initialize quantum tomography given a number of qubits
-"""
-function initializetomography(N::Int64;kwargs...)
-  d = 2 # Dimension of the local Hilbert space
+function randomstate(N::Int64,T::Type; kwargs...)
   sites = siteinds("Qubit", N)
-  return initializetomography(sites; kwargs...)
+  return randomstate(sites,T; kwargs...)
 end
 
-"""
-    initializetomography(sites::Vector{<:Index}; kwargs...)
-
-Initialize quantum tomography for a set of indices. 
-By default, inintializes MPS, unless `ξ` is non-trivial, 
-in which case it initializes a LPDO.
-"""
-function initializetomography(sites::Vector{<:Index}; kwargs...)
-  χ = get(kwargs,:χ,2)
-  ξ = get(kwargs,:ξ,nothing)
-  σ = get(kwargs,:σ,0.1)
+function randomstate(sites::Vector{<:Index},T::Type; kwargs...)
+  χ::Int64 = get(kwargs,:χ,2)
+  ξ::Int64 = get(kwargs,:ξ,2)
+  σ::Float64 = get(kwargs,:σ,0.1)
   purifier_tag = get(kwargs,:purifier_tag,ts"Purifier")
 
-  return (isnothing(ξ) ? initializetomography(sites,χ;σ=σ) :
-                         initializetomography(sites,χ,ξ;σ=σ,purifier_tag=purifier_tag))
+  if T == MPS
+    return randomstate(sites,χ;σ=σ)
+  elseif T == LPDO
+    return randomstate(sites,χ,ξ;σ=σ,purifier_tag=purifier_tag)
+  else
+    error("ansatz type not recognized")
+  end
 end
 
-"""
-    initializetomography(L::LPDO; kwargs...)
-
-
-Initialize quantum tomography, given a reference state,
-either in MPS or MPO (LPDO) form
-"""
-function initializetomography(L::LPDO; kwargs...)
+function randomstate(L::LPDO,T::Type; kwargs...)
   sites = firstsiteinds(L.X)
-  return initializetomography(sites; kwargs...)
+  return randomstate(sites,T; kwargs...)
 end
 
-# TEMPORARY FUNCTION
-function initializetomography(ψ::MPS; kwargs...)
+randomstate(M::MPO,T::Type, kwargs...) = randomstate(LPDO(M),T; kwargs...)
+
+# TODO: update when `firstsiteinds(ψ::MPS)` is implemented 
+function randomstate(ψ::MPS,T::Type; kwargs...)
   sites = siteinds(ψ)
-  return initializetomography(sites; kwargs...)
+  return randomstate(sites,T; kwargs...)
 end
-# Update with the above after `firstsiteinds(ψ::MPS)` is implemented
-#initializetomography(ψ::MPS; kwargs...) = initializetomography(LPDO(ψ); kwargs...)
+#randomstate(ψ::MPS; kwargs...) = randomstate(LPDO(ψ); kwargs...)
+
 
 """
-    initializetomography(sites::Vector{<:Index},χ::Int64;σ::Float64=0.1)
+    randomstate(sites::Vector{<:Index},T::Type;χ::Int64=2,σ::Float64=0.1)
 
-Initialize a variational MPS for quantum tomography.
+Initialize a variational MPS/MPO for quantum tomography.
 
 # Arguments:
-  - `N`: number of qubits
-  - `χ`: bond dimension of the MPS
+  - `sites`: a set of site indices (local Hilbert spaces)
+  - `T`: state type (MPS or LPDO)
+  - `χ`: bond dimension of the MPS/MPO
   - `σ`: width of initial box distribution
 """
-function initializetomography(sites::Vector{<: Index},
-                              χ::Int64;
-                              σ::Float64 = 0.1)
+function randomstate(sites::Vector{<: Index},χ::Int64;σ::Float64 = 0.1)
   d = 2 # Dimension of the local Hilbert space
   N = length(sites)
   links = [Index(χ; tags="Link, l=$l") for l in 1:N-1]
-
   M = ITensor[]
   if N == 1
-    rand_mat = σ * (ones(d) - 2 * rand(rng,d))
-    rand_mat += im * σ * (ones(d) - 2 * rand(rng,d))
+    rand_mat = σ * (ones(d) - 2 * rand(d))
+    rand_mat += im * σ * (ones(d) - 2 * rand(d))
     push!(M, ITensor(rand_mat, sites[1]))
     return MPS(M)
   end
@@ -84,30 +69,14 @@ function initializetomography(sites::Vector{<: Index},
   rand_mat = σ * (ones(χ,d) - 2*rand(χ,d))
   rand_mat += im * σ * (ones(χ,d) - 2*rand(χ,d))
   push!(M,ITensor(rand_mat,links[N-1],sites[N]))
-  
   return MPS(M)
 end
 
-"""
-    initializetomography(sites::Vector{<:Index},χ::Int64,ξ::Int64;
-                         σ::Float64=0.1,purifier_tag = ts"Purifier")
-
-Initialize a variational LPDO for quantum tomography.
-
-# Arguments:
-  - `N`: number of qubits
-  - `χ`: bond dimension of the LPDO
-  - `ξ`: local purification dimension of the LPDO
-  - `σ`: width of initial box distribution
-"""
-function initializetomography(sites::Vector{<: Index},
-                              χ::Int64, ξ::Int64;
-                              σ::Float64 = 0.1,
-                              purifier_tag = ts"Purifier")
+function randomstate(sites::Vector{<: Index},χ::Int64,ξ::Int64;
+                     σ::Float64 = 0.1,purifier_tag = ts"Purifier")
   d = 2 # Dimension of the local Hilbert space
   N = length(sites)
-
-  links = [Index(χ; tags="Link,l=$l") for l in 1:N-1]
+  links = [Index(χ; tags="Link, l=$l") for l in 1:N-1]
   kraus = [Index(ξ; tags=addtags(purifier_tag, "k=$s")) for s in 1:N]
 
   M = ITensor[]
@@ -136,6 +105,83 @@ function initializetomography(sites::Vector{<: Index},
   
   return LPDO(MPO(M), purifier_tag)
 end
+
+function randomprocess(N::Int64,T::Type; kwargs...)
+  sites = siteinds("Qubit", N)
+  return randomprocess(sites,T; kwargs...)
+end
+
+function randomprocess(sites::Vector{<:Index},T::Type; kwargs...)
+  χ::Int64 = get(kwargs,:χ,2)
+  ξ::Int64 = get(kwargs,:ξ,2)
+  σ::Float64 = get(kwargs,:σ,0.1)
+  purifier_tag = get(kwargs,:purifier_tag,ts"Purifier")
+  if T == MPO
+    return randomprocess(sites,χ;σ=σ)
+  elseif T == LPDO
+    return randomstate(sites,χ,ξ;σ=σ,purifier_tag=purifier_tag)
+  else
+    error("ansatz type not recognized")
+  end
+  #return (T == MPO ? randomprocess(sites,χ;σ=σ) :
+  #                   randomstate(sites,χ,ξ;σ=σ,purifier_tag=purifier_tag))
+end
+
+function randomprocess(M::Union{MPO,LPDO},T::Type; kwargs...)
+  sites = firstsiteinds(L.X)
+  return randomprocess(sites,T; kwargs...)
+end
+
+# TODO: update when `firstsiteinds(ψ::MPS)` is implemented 
+function randomprocess(ψ::MPS,T::Type; kwargs...)
+  sites = siteinds(ψ)
+  return randomprocess(sites,T; kwargs...)
+end
+#randomstate(ψ::MPS; kwargs...) = randomstate(LPDO(ψ); kwargs...)
+
+
+"""
+    randomstate(sites::Vector{<:Index},T::Type;χ::Int64=2,σ::Float64=0.1)
+
+Initialize a variational MPS/MPO for quantum tomography.
+
+# Arguments:
+  - `sites`: a set of site indices (local Hilbert spaces)
+  - `T`: state type (MPS or LPDO)
+  - `χ`: bond dimension of the MPS/MPO
+  - `σ`: width of initial box distribution
+"""
+function randomprocess(sites::Vector{<: Index},χ::Int64;σ::Float64 = 0.1)
+  d = 2 # Dimension of the local Hilbert space
+  N = length(sites)
+  links = [Index(χ; tags="Link, l=$l") for l in 1:N-1]
+  
+  M = ITensor[]
+  if N == 1
+    rand_mat = σ * (ones(d,d) - 2 * rand(d,d))
+    rand_mat += im * σ * (ones(d,d) - 2 * rand(d,d))
+    push!(M, ITensor(rand_mat, sites[1]',sites[1]))
+    return MPO(M)
+  end
+
+  # Site 1 
+  rand_mat = σ * (ones(d,χ,d) - 2*rand(d,χ,d))
+  rand_mat += im * σ * (ones(d,χ,d) - 2*rand(d,χ,d))
+  push!(M,ITensor(rand_mat,sites[1]',links[1],sites[1]))
+  for j in 2:N-1
+    rand_mat = σ * (ones(d,χ,d,χ) - 2*rand(d,χ,d,χ))
+    rand_mat += im * σ * (ones(d,χ,d,χ) - 2*rand(d,χ,d,χ))
+    push!(M,ITensor(rand_mat,sites[j]',links[j-1],sites[j],links[j]))
+  end
+  # Site N
+  rand_mat = σ * (ones(d,χ,d) - 2*rand(d,χ,d))
+  rand_mat += im * σ * (ones(d,χ,d) - 2*rand(d,χ,d))
+  push!(M,ITensor(rand_mat,sites[N]',links[N-1],sites[N]))
+  
+  return MPO(M)
+end
+
+
 
 """
     gradlogZ(L::LPDO; sqrt_localnorms = nothing)

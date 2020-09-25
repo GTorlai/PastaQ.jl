@@ -16,7 +16,7 @@ N = length(Φ)     # Number of qubits
 χ = maxlinkdim(Φ) # Bond dimension of variational MPS
 
 # Initialize a variational MPS
-Γ0 = initializetomography(N;χ=χ,σ=0.1)
+Γ0 = randomprocess(N,MPS;χ=χ,σ=0.1)
 
 # Initialize stochastic gradient descent optimizer
 opt = SGD(Γ0;η = 0.1)
@@ -34,7 +34,7 @@ N = length(ϱ)
 χ = 8
 ξ = 2
 
-Λ0 = initializetomography(N;χ=χ,ξ=ξ,σ=0.1)
+Λ0 = randomprocess(N,LPDO;χ=χ,ξ=ξ,σ=0.1)
 opt = SGD(Λ0;η = 0.1)
 
 println("Training...")
