@@ -699,7 +699,6 @@ function tomography(L::LPDO,
     target = copy(target)
     if typeof(target)==MPS
       for j in 1:length(model)
-        @show firstind(target[j],"Site")
         replaceind!(target[j],firstind(target[j],"Site"),firstind(model.X[j],"Site"))
       end
     else

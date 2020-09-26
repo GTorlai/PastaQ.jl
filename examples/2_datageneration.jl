@@ -19,7 +19,7 @@ gates = randomcircuit(N,depth)
 # Returns output state as MPS
 @show maxlinkdim(ψ)
 @show ψ 
-savedata(ψ,data,"../data/qst_circuit.h5")
+savedata(ψ,data,"data/qst_circuit.h5")
 
 # Note: the above is equivalent to:
 #> bases = randombases(N,nshots,localbasis=["X","Y","Z"])
@@ -33,7 +33,7 @@ savedata(ψ,data,"../data/qst_circuit.h5")
 # Return the mixed density operator as MPO
 @show maxlinkdim(ρ)
 @show ρ
-savedata(ρ,data,"../data/qst_circuit_noisy.h5")
+savedata(ρ,data,"data/qst_circuit_noisy.h5")
 
 # 2. Generation of measurerment data for quantum process
 # tomography. Each measurement consist of a input product 
@@ -47,7 +47,7 @@ U,data_in,data_out=generatedata(N,gates,nshots;
 # The MPS has `2N` sites.
 @show maxlinkdim(U)
 @show U
-savedata(U,data_in,data_out,"../data/qpt_circuit.h5")
+savedata(U,data_in,data_out,"data/qpt_circuit.h5")
 
 Λ,data_in,data_out=generatedata(N,gates,nshots;
                                   process=true,
@@ -56,5 +56,5 @@ savedata(U,data_in,data_out,"../data/qpt_circuit.h5")
 # Return the Choi matrix `Λ` as MPO wiith `2N` sites
 @show maxlinkdim(Λ)
 @show Λ
-savedata(Λ,data_in,data_out,"../data/qpt_circuit_noisy.h5")
+savedata(Λ,data_in,data_out,"data/qpt_circuit_noisy.h5")
 

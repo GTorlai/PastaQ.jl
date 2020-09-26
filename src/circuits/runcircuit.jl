@@ -361,15 +361,7 @@ function splitunitary(U0::MPO;cutoff=1e-15,maxdim=1000)
   return MPS(T)
 end
 
-
-"""
-  splitchoi(Λ::MPO;cutoff=1e-15,maxdim=1000)
-
-Map a Choi matrix (MPO) from `N` sites to `2N` sites, arranged as
-(input1,output1,input2,output2,…)
-"""
-function splitchoi(Λ::MPO;cutoff=1e-15,maxdim=1000)
-  
+function splitchoi(Λ::MPO;cutoff=1e-15,maxdim=10000)
   choitag = any(x -> hastags(x,"Input") , Λ)
   if !choitag
     # Choi indices 
@@ -377,20 +369,18 @@ function splitchoi(Λ::MPO;cutoff=1e-15,maxdim=1000)
     addtags!(Λ, "Output", plev = 1, tags = "Qubit")
     noprime!(Λ)
   end
-
   T = ITensor[]
-  u,S,v = svd(Λ[1],inds(Λ[1],tags="Input"), 
+  u,S,v = svd(Λ[1],inds(Λ[1],tags="Input"),
               cutoff=cutoff, maxdim=maxdim)
   push!(T,u*S)
   push!(T,v)
-  
+
   for j in 2:length(Λ)
     u,S,v = svd(Λ[j],inds(Λ[j],tags="Input")[1],inds(Λ[j],tags="Input")[2],
-                commonind(Λ[j-1],Λ[j]),cutoff=cutoff,maxdim=maxdim) 
+                commonind(Λ[j-1],Λ[j]),cutoff=cutoff,maxdim=maxdim)
     push!(T,u*S)
     push!(T,v)
   end
-  return MPO(T)
+  Λ_split = MPO(T)
+  return Λ_split
 end
-
-
