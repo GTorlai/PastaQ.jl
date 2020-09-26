@@ -1,13 +1,14 @@
 module PastaQ
 
-using ITensors
+using Reexport
+@reexport using ITensors
 using Random
 using LinearAlgebra
 using JLD
 using HDF5
 using Printf
 import StatsBase
-import StatsBase: Weights
+using StatsBase: Weights
 
 include("exports.jl")
 

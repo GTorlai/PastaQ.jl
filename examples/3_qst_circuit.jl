@@ -15,7 +15,7 @@ N = length(Ψ)     # Number of qubits
 χ = maxlinkdim(Ψ) # Bond dimension of variational MPS
 
 # Initialize the variational MPS
-ψ0 = randomstate(N,MPS;χ=χ,σ=0.1)
+ψ0 = randomstate(N;χ=χ,σ=0.1)
 
 # Initialize stochastic gradient descent optimizer
 opt = SGD(ψ0;η = 0.01)
@@ -42,7 +42,7 @@ N = length(ϱ)     # Number of qubits
 ξ = 2             # Kraus dimension of variational LPDO
 
 # Initialize the LPDO
-ρ0 = randomstate(N,LPDO;χ=χ,ξ=ξ,σ=0.1)
+ρ0 = randomstate(N; mixed=true, χ=χ, ξ=ξ, σ=0.1)
 
 # Initialize stochastic gradient descent optimizer
 opt = SGD(ρ0;η = 0.01)

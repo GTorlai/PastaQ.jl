@@ -16,7 +16,7 @@ N = length(U)     # Number of qubits
 χ = maxlinkdim(U) # Bond dimension of variational MPS
 
 # Initialize a variational MPS
-V0 = randomprocess(N,MPO;χ=χ,σ=0.1)
+V0 = randomprocess(N;χ=χ,σ=0.1)
 # Initialize stochastic gradient descent optimizer
 opt = SGD(V0;η = 0.1)
 
@@ -24,7 +24,6 @@ V = tomography(V0,data_in,data_out,opt;
                batchsize=500,
                epochs=5,
                target=U)
-@show V
 
 # Noisy circuit
 Random.seed!(1234)
@@ -32,10 +31,9 @@ Random.seed!(1234)
 N = length(ϱ)
 χ = 8
 ξ = 2
-Λ0 = randomprocess(N÷2,LPDO;χ=χ,ξ=ξ,σ=0.1)
+Λ0 = randomprocess(N; mixed=true, χ=χ, ξ=ξ, σ=0.1)
 opt = SGD(Λ0;η = 0.1)
-@show Λ0
-println("Training...")
+
 Λ = tomography(Λ0,data_in,data_out,opt;
                batchsize=500,
                epochs=5,

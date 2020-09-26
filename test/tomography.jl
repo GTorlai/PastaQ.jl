@@ -174,7 +174,7 @@ numgradsnll(M::MPS, args...; kwargs...) =
 
 """ MPS STATE TOMOGRAPHY TESTS """
 
-@testset "mps-qst: lognormalization" begin
+@testset "mps-qst: normalization" begin
   N = 10
   χ = 4
   ψ = randomstate(N,MPS;χ=χ)
@@ -435,7 +435,7 @@ end
 
 """ LPDO STATE TOMOGRAPHY TESTS """
 
-@testset "lpdo-qst: lognormalization" begin
+@testset "lpdo-qst: normalization" begin
   N = 10
   χ = 4
   ξ = 2
@@ -449,6 +449,13 @@ end
   ρ = randomprocess(N,LPDO;χ=χ,ξ=ξ)
   normalize!(ρ)
   @test tr(ρ) ≈ 1
+
+  ρ = MPO(randomprocess(N,LPDO;χ=χ,ξ=ξ))
+  trρ = tr(ρ)
+  localtrρ = []
+  normalize!(ρ; localnorms! = localtrρ)
+  @test trρ ≈ prod(localtrρ)
+  @test tr(ρ) ≈ 1
 end
 
 @testset "lpdo-qst: density matrix properties" begin
@@ -461,9 +468,9 @@ end
   normalize!(ρ)
   rho = MPO(ρ)
   rho_mat = fullmatrix(rho)
-  #@test sum(abs.(imag(diag(rho_mat)))) ≈ 0.0 atol=1e-10
-  #@test real(tr(rho_mat)) ≈ 1.0 atol=1e-10
-  #@test all(real(eigvals(rho_mat)) .≥ 0) 
+  @test sum(abs.(imag(diag(rho_mat)))) ≈ 0.0 atol=1e-10
+  @test real(tr(rho_mat)) ≈ 1.0 atol=1e-10
+  @test all(real(eigvals(rho_mat)) .≥ 0) 
 end
 
 @testset "lpdo-qst: grad logZ" begin

@@ -10,7 +10,10 @@ Save data and model on file:
   - `output_path`: path to file
 """
 function savedata(model::Union{MPS,MPO},
-                  data::Array,output_path::String)
+                  data::Array,
+                  output_path::String)
+  # Make the path the file will sit in, if it doesn't exist
+  mkpath(dirname(output_path))
   h5rewrite(output_path) do fout
     write(fout,"data",data)
     write(fout,"model",model)
@@ -30,8 +33,11 @@ Save data and model on file:
   - `output_path`: path to file
 """
 function savedata(model::Union{MPS,MPO},
-                  data_in::Array,data_out::Array,
+                  data_in::Array,
+                  data_out::Array,
                   output_path::String)
+  # Make the path the file will sit in, if it doesn't exist
+  mkpath(dirname(output_path))
   h5rewrite(output_path) do fout
     write(fout,"data_in",data_in)
     write(fout,"data_out",data_out)

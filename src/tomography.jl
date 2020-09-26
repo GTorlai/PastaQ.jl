@@ -1,3 +1,13 @@
+"""
+    randomstate(N::Int64; mixed::Bool=false, kwargs...)
+
+Generate MPS (`mixed=false`) or LPDO ('mixed=true`) with 
+random parameters
+"""
+function randomstate(N::Int64; mixed::Bool=false, kwargs...)
+  return (mixed ? randomstate(N,LPDO; kwargs...) : randomstate(N,MPS; kwargs...)) 
+end
+
 function randomstate(N::Int64,T::Type; kwargs...)
   sites = siteinds("Qubit", N)
   return randomstate(sites,T; kwargs...)
@@ -25,23 +35,22 @@ end
 
 randomstate(M::MPO,T::Type, kwargs...) = randomstate(LPDO(M),T; kwargs...)
 
-# TODO: update when `firstsiteinds(ψ::MPS)` is implemented 
+#randomstate(ψ::MPS; kwargs...) = randomstate(LPDO(ψ); kwargs...)
+# TODO: remove when `firstsiteinds(ψ::MPS)` is implemented 
 function randomstate(ψ::MPS,T::Type; kwargs...)
   sites = siteinds(ψ)
   return randomstate(sites,T; kwargs...)
 end
-#randomstate(ψ::MPS; kwargs...) = randomstate(LPDO(ψ); kwargs...)
 
 
 """
-    randomstate(sites::Vector{<:Index},T::Type;χ::Int64=2,σ::Float64=0.1)
+    randomstate(sites::Vector{<:Index},χ::Int64;σ::Float64=0.1)
 
-Initialize a variational MPS/MPO for quantum tomography.
+Generates an MPS with random parameters
 
 # Arguments:
   - `sites`: a set of site indices (local Hilbert spaces)
-  - `T`: state type (MPS or LPDO)
-  - `χ`: bond dimension of the MPS/MPO
+  - `χ`: bond dimension of the MPS
   - `σ`: width of initial box distribution
 """
 function randomstate(sites::Vector{<: Index},χ::Int64;σ::Float64 = 0.1)
@@ -72,6 +81,18 @@ function randomstate(sites::Vector{<: Index},χ::Int64;σ::Float64 = 0.1)
   return MPS(M)
 end
 
+"""
+    randomstate(sites::Vector{<: Index},χ::Int64,ξ::Int64;
+                σ::Float64 = 0.1,purifier_tag = ts"Purifier")
+
+Generates an LPDO for a density operator with random parameters
+
+# Arguments:
+  - `sites`: a set of site indices (local Hilbert spaces)
+  - `ξ`: kraus dimension of the LPDO 
+  - `χ`: bond dimension of the LPDO
+  - `σ`: width of initial box distribution
+"""
 function randomstate(sites::Vector{<: Index},χ::Int64,ξ::Int64;
                      σ::Float64 = 0.1,purifier_tag = ts"Purifier")
   d = 2 # Dimension of the local Hilbert space
@@ -105,6 +126,18 @@ function randomstate(sites::Vector{<: Index},χ::Int64,ξ::Int64;
   
   return LPDO(MPO(M), purifier_tag)
 end
+
+
+"""
+    randomprocess(N::Int64; mixed::Bool=false, kwargs...)
+
+Generate MPO (`mixed=false`) or LPDO ('mixed=true`) with 
+random parameters.
+"""
+function randomprocess(N::Int64;mixed::Bool=false, kwargs...)
+  return (mixed ? randomprocess(N,LPDO; kwargs...) : randomprocess(N,MPO; kwargs...))
+end
+
 
 function randomprocess(N::Int64,T::Type; kwargs...)
   split = get(kwargs,:split,true)
