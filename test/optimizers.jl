@@ -46,7 +46,7 @@ end
   
   η = 0.1
   γ = 0.9
-  opt = SGD(ψ;η=η,γ=γ)
+  opt = SGD(;η=η,γ=γ)
   
   for n in 1:100
     ∇ = generategradients(sites,links,χ,d)
@@ -79,7 +79,7 @@ end
   ∇²_flat = zeros(size(ψ_flat))
   η = 0.1
   ϵ = 1E-8
-  opt = AdaGrad(ψ;η=η,ϵ=ϵ)
+  opt = AdaGrad(;η=η,ϵ=ϵ)
   
   for n in 1:2
     ∇ = generategradients(sites,links,χ,d)
@@ -113,7 +113,7 @@ end
   Δθ²_flat = zeros(size(ψ_flat))
   γ = 0.9
   ϵ = 1E-8
-  opt = AdaDelta(ψ;γ=γ,ϵ=ϵ)
+  opt = AdaDelta(;γ=γ,ϵ=ϵ)
   
   for n in 1:100
     ∇ = generategradients(sites,links,χ,d)
@@ -158,7 +158,7 @@ end
   β₂ = 0.999
   η  = 0.01
   ϵ  = 1E-8
-  opt = Adam(ψ;η=η,β₁=β₁,β₂=β₂,ϵ=ϵ)
+  opt = Adam(;η=η,β₁=β₁,β₂=β₂,ϵ=ϵ)
   
   for n in 1:100
     ∇ = generategradients(sites,links,χ,d)

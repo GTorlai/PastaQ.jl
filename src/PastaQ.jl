@@ -23,6 +23,7 @@ include("circuits/datagen.jl")
 include("optimizers.jl")
 include("observer.jl")
 include("distances.jl")
+include("randomstates.jl")
 include("tomography.jl")
 include("utils.jl")
 

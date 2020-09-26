@@ -15,12 +15,9 @@ U,data_in,data_out = loaddata("data/qpt_circuit.h5";process=true)
 N = length(U)     # Number of qubits
 χ = maxlinkdim(U) # Bond dimension of variational MPS
 
-# Initialize a variational MPS
-V0 = randomprocess(N;χ=χ,σ=0.1)
 # Initialize stochastic gradient descent optimizer
-opt = SGD(V0;η = 0.1)
-
-V = tomography(V0,data_in,data_out,opt;
+opt = SGD(η = 0.1)
+V = tomography(data_in,data_out,opt;
                batchsize=500,
                epochs=5,
                target=U)
@@ -31,10 +28,9 @@ Random.seed!(1234)
 N = length(ϱ)
 χ = 8
 ξ = 2
-Λ0 = randomprocess(N; mixed=true, χ=χ, ξ=ξ, σ=0.1)
-opt = SGD(Λ0;η = 0.1)
+opt = SGD(η = 0.1)
 
-Λ = tomography(Λ0,data_in,data_out,opt;
+Λ = tomography(data_in,data_out,opt;
                batchsize=500,
                epochs=5,
                target=ϱ,

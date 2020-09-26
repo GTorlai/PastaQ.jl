@@ -18,7 +18,7 @@ N = length(Ψ)     # Number of qubits
 ψ0 = randomstate(N;χ=χ,σ=0.1)
 
 # Initialize stochastic gradient descent optimizer
-opt = SGD(ψ0;η = 0.01)
+opt = SGD(η = 0.01)
 
 # Run quantum state tomography, where a variational MPS `|ψ(θ)⟩`
 # is optimized to mimimize the cross entropy between the data and 
@@ -45,7 +45,7 @@ N = length(ϱ)     # Number of qubits
 ρ0 = randomstate(N; mixed=true, χ=χ, ξ=ξ, σ=0.1)
 
 # Initialize stochastic gradient descent optimizer
-opt = SGD(ρ0;η = 0.01)
+opt = SGD(η = 0.01)
 
 # Run quantum state tomography, where a variational LPDO `Γ(θ)`
 # is optimized to mimimize the cross entropy between the data and 

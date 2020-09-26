@@ -51,6 +51,11 @@ export
   convertdatapoint,
   readouterror!,
 
+# randomstates,jl
+  # Methods
+  randomstate,
+  randomprocess,
+
 # quantumtomography,jl
   # Methods
   randomstate,
