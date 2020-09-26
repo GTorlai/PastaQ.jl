@@ -27,11 +27,6 @@ using Random
   
   @test ex_F ≈ F
   
-  gates = randomcircuit(N,2)
-  Φ1 = choimatrix(N,gates)
-  F = fidelity(Φ1,Φ1)
-  @test F ≈ 1.0
-
   """ F = <PSI|RHO|PSI> """
   N = 3
   χ = 2

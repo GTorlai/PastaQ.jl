@@ -37,7 +37,7 @@ end
   N = 3
   χ = 4
   d = 2
-  ψ = initializetomography(N;χ=χ,σ=1.0)
+  ψ = randomstate(N,MPS;χ=χ,σ=1.0)
   sites = siteinds(ψ) 
   links = linkinds(ψ)
 
@@ -71,7 +71,7 @@ end
   N = 3
   χ = 4
   d = 2
-  ψ = initializetomography(N;χ=χ)
+  ψ = randomstate(N,MPS;χ=χ,σ=1.0)
   sites = siteinds(ψ) 
   links = linkinds(ψ)
 
@@ -104,7 +104,7 @@ end
   N = 3
   χ = 4
   d = 2
-  ψ = initializetomography(N;χ=χ)
+  ψ = randomstate(N,MPS;χ=χ,σ=1.0)
   sites = siteinds(ψ) 
   links = linkinds(ψ)
   
@@ -147,7 +147,7 @@ end
   N = 3
   χ = 4
   d = 2
-  ψ = initializetomography(N;χ=χ)
+  ψ = randomstate(N,MPS;χ=χ,σ=1.0)
   sites = siteinds(ψ) 
   links = linkinds(ψ)
   

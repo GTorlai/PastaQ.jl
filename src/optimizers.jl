@@ -25,7 +25,7 @@ function SGD(L::LPDO;η::Float64=0.01,γ::Float64=0.0)
   return SGD(η,γ,v)
 end
 
-SGD(ψ::MPS;η::Float64=0.01,γ::Float64=0.0) = SGD(LPDO(ψ);η=η,γ=γ)
+SGD(M::Union{MPS,MPO};η::Float64=0.01,γ::Float64=0.0) = SGD(LPDO(M);η=η,γ=γ)
 
 """
     update!(L::LPDO,∇::Array,opt::SGD; kwargs...)
@@ -44,6 +44,14 @@ function update!(L::LPDO,∇::Array,opt::SGD; kwargs...)
 end
 
 update!(ψ::MPS,∇::Array,opt::SGD; kwargs...) = update!(LPDO(ψ),∇,opt;kwargs...)
+
+# TODO: remove after converting tomography to unsplit version
+function resetoptimizer(opt::SGD,L::LPDO)
+  return SGD(L;η=opt.η,γ=opt.γ)
+end
+resetoptimizer(opt::SGD,M::Union{MPS,MPO}) = resetoptimizer(opt,LPDO(M))
+
+
 
 
 
@@ -71,7 +79,7 @@ function AdaGrad(L::LPDO;η::Float64=0.01,ϵ::Float64=1E-8)
   return AdaGrad(η,ϵ,∇²)
 end
 
-AdaGrad(ψ::MPS;η::Float64=0.01,ϵ::Float64=1E-8) = AdaGrad(LPDO(ψ);η=η,ϵ=ϵ)
+AdaGrad(ψ::Union{MPS,MPO};η::Float64=0.01,ϵ::Float64=1E-8) = AdaGrad(LPDO(ψ);η=η,ϵ=ϵ)
 
 """
     update!(L::LPDO,∇::Array,opt::AdaGrad; kwargs...)
@@ -129,7 +137,7 @@ function AdaDelta(L::LPDO;γ::Float64=0.9,ϵ::Float64=1E-8)
   return AdaDelta(γ,ϵ,∇²,Δθ²)
 end
 
-AdaDelta(ψ::MPS;γ::Float64=0.9,ϵ::Float64=1E-8) = AdaDelta(LPDO(ψ);γ=γ,ϵ=ϵ) 
+AdaDelta(ψ::Union{MPS,MPO};γ::Float64=0.9,ϵ::Float64=1E-8) = AdaDelta(LPDO(ψ);γ=γ,ϵ=ϵ) 
 
 """
     update!(L::LPDO,∇::Array,opt::AdaDelta; kwargs...)
@@ -210,7 +218,7 @@ function Adam(L::LPDO;η::Float64=0.001,
   return Adam(η,β₁,β₂,ϵ,∇,∇²)
 end
 
-Adam(ψ::MPS;η::Float64=0.001,β₁::Float64=0.9,β₂::Float64=0.999,ϵ::Float64=1E-7) = Adam(LPDO(ψ);η=η,β₁=β₁,β₂=β₂,ϵ=ϵ)
+Adam(ψ::Union{MPS,MPO};η::Float64=0.001,β₁::Float64=0.9,β₂::Float64=0.999,ϵ::Float64=1E-7) = Adam(LPDO(ψ);η=η,β₁=β₁,β₂=β₂,ϵ=ϵ)
 
 """
     update!(L::LPDO,∇::Array,opt::Adam; kwargs...)

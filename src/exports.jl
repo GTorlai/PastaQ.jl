@@ -23,7 +23,6 @@ export
 
 # choi.jl,
   Choi,
-  choimatrix,
 
 # quantumcircuit.jl
   # Methods
@@ -35,6 +34,9 @@ export
   compilecircuit,
   compilecircuit!,
   runcircuit,
+  choimatrix,
+  splitchoi,       
+  splitunitary,
 
 # datagen.jl
   # Methhods
@@ -59,6 +61,8 @@ export
   gradnll,
   gradients,
   tomography,
+  unsplitchoi,     # Temporary
+  unsplitunitary,  # Temporary
 
 # distances.jl
   # Methods
@@ -76,6 +80,7 @@ export
   AdaMax,
   # Methods
   update!,
+  resetoptimizer,
 
 # observer.jl
   TomographyObserver,

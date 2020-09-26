@@ -257,13 +257,13 @@ function projectchoi(Λ0::MPO,prep::Array)
   state = "state" .* copy(prep) 
   
   M = ITensor[]
-  s = firstsiteinds(Λ)
+  s = firstsiteinds(Λ,tags="Input")
   
-  for j in 1:2:length(Λ)
+  for j in 1:length(Λ)
     # No conjugate on the gate (transpose input)
-    Λ[j] = Λ[j] * dag(gate(state[(j+1)÷2],s[j]))
-    Λ[j] = Λ[j] * prime(gate(state[(j+1)÷2],s[j]))
-    push!(M,Λ[j]*Λ[j+1])
+    Λ[j] = Λ[j] * dag(gate(state[j],s[j]))
+    Λ[j] = Λ[j] * prime(gate(state[j],s[j]))
+    push!(M,Λ[j])
   end
   return MPO(M)
 end
