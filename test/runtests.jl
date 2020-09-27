@@ -10,6 +10,7 @@ using Test
     "datagen.jl",
     "optimizers.jl",
     "distances.jl",
+    "randomstates.jl",
     "tomography.jl",
     "examples.jl", 
     #"benchmark_qiskit.jl"

@@ -110,3 +110,60 @@ end
 
 fullmatrix(L::LPDO; kwargs...) = fullmatrix(MPO(L); kwargs...)
 
+
+
+function hilbertspace(L::LPDO)
+  return  (L.X isa MPS ? siteinds(L.X) : firstsiteinds(L.X))
+end
+
+hilbertspace(M::Union{MPS,MPO}) = hilbertspace(LPDO(M))
+
+  
+function replacehilbertspace!(A::LPDO,B::LPDO)
+  M = A.X
+  hA = hilbertspace(A)
+  hB = hilbertspace(B)
+  # Check if there are purification indices
+  purification_tag = any(x -> hastags(x,"Purifier") , M)
+  
+  @assert length(A)==length(B)
+  for j in 1:length(M)
+    # Object to be modified is MPS
+    if M isa MPS
+      replaceind!(M[j],hA[j],hB[j])
+    # Object be modified is MPO
+    elseif M isa MPO
+      # TODO make it general for tagsets
+      # Object is MPO with purification indices
+      if purification_tag
+      #  # Object has rank-4 bulk tensors (it's state X, ρ=XX\dagger)
+        if length(size(M[2]))==4
+          replaceind!(M[j],hA[j],hB[j])
+        # Object has rank-5 bulk tensors (it.s a process)
+        elseif length(size(M[2]))==5
+          replaceind!(M[j],siteinds(M)[j][1],siteinds(B.X)[j][1])
+          replaceind!(M[j],siteinds(M)[j][2],siteinds(B.X)[j][2])
+        end
+      ## Object is a regular MPO
+      else
+        if B.X isa MPS
+          replaceind!(M[j],siteinds(M)[j][1],hB[j])
+          replaceind!(M[j],siteinds(M)[j][2],hB[j]')
+        else
+          replaceind!(M[j],siteinds(M)[j][1],siteinds(B.X)[j][1])
+          replaceind!(M[j],siteinds(M)[j][2],siteinds(B.X)[j][2])
+        end
+      end
+    end
+  end
+end
+
+replacehilbertspace!(A::Union{MPS,MPO},B::LPDO) = 
+  replacehilbertspace!(LPDO(A),B)
+
+replacehilbertspace!(A::LPDO,B::Union{MPS,MPO}) = 
+  replacehilbertspace!(A,LPDO(B))
+
+replacehilbertspace!(A::Union{MPS,MPO},B::Union{MPS,MPO}) = 
+  replacehilbertspace!(LPDO(A),LPDO(B))
+

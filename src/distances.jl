@@ -124,9 +124,8 @@ function fullfidelity(L::Union{MPO, LPDO}, σ::Union{LPDO, MPO})
   
   ρ_mat ./= tr(ρ_mat)
   σ_mat ./= tr(σ_mat)
-  
   F = sqrt(ρ_mat) * σ_mat * sqrt(ρ_mat)
-  F = real(tr(sqrt(F)))
+  F = real(tr(sqrt(F)))^2
   return F
 end
 

@@ -1,100 +1,88 @@
-"""
-    randomstate(N::Int64; mixed::Bool=false, kwargs...)
-
-Generate MPS (`mixed=false`) or LPDO ('mixed=true`) with 
-random parameters
-"""
-function randomstate(N::Int64; mixed::Bool=false, kwargs...)
-  return (mixed ? randomstate(N,LPDO; kwargs...) : randomstate(N,MPS; kwargs...)) 
-end
-
-function randomstate(N::Int64,T::Type; kwargs...)
-  sites = siteinds("Qubit", N)
-  return randomstate(sites,T; kwargs...)
-end
-
-function randomstate(sites::Vector{<:Index},T::Type; kwargs...)
-  χ::Int64 = get(kwargs,:χ,2)
-  ξ::Int64 = get(kwargs,:ξ,2)
-  σ::Float64 = get(kwargs,:σ,0.1)
-  purifier_tag = get(kwargs,:purifier_tag,ts"Purifier")
-
-  if T == MPS
-    return randomstate(sites,χ;σ=σ)
-  elseif T == LPDO
-    return randomstate(sites,χ,ξ;σ=σ,purifier_tag=purifier_tag)
-  else
-    error("ansatz type not recognized")
-  end
-end
-
-function randomstate(L::LPDO,T::Type; kwargs...)
-  sites = firstsiteinds(L.X)
-  return randomstate(sites,T; kwargs...)
-end
-
-randomstate(M::MPO,T::Type, kwargs...) = randomstate(LPDO(M),T; kwargs...)
-
-#randomstate(ψ::MPS; kwargs...) = randomstate(LPDO(ψ); kwargs...)
-# TODO: remove when `firstsiteinds(ψ::MPS)` is implemented 
-function randomstate(ψ::MPS,T::Type; kwargs...)
-  sites = siteinds(ψ)
-  return randomstate(sites,T; kwargs...)
-end
-
-
-"""
-    randomstate(sites::Vector{<:Index},χ::Int64;σ::Float64=0.1)
-
-Generates an MPS with random parameters
-
-# Arguments:
-  - `sites`: a set of site indices (local Hilbert spaces)
-  - `χ`: bond dimension of the MPS
-  - `σ`: width of initial box distribution
-"""
-function randomstate(sites::Vector{<: Index},χ::Int64;σ::Float64 = 0.1)
+function random_mps(ElT::Type{<:Number},sites::Vector{<: Index},χ::Int64,σ::Float64) 
   d = 2 # Dimension of the local Hilbert space
   N = length(sites)
   links = [Index(χ; tags="Link, l=$l") for l in 1:N-1]
   M = ITensor[]
   if N == 1
     rand_mat = σ * (ones(d) - 2 * rand(d))
-    rand_mat += im * σ * (ones(d) - 2 * rand(d))
+    if (ElT == Complex{Float64})
+      rand_mat += im * σ * (ones(d) - 2 * rand(d))
+    end
     push!(M, ITensor(rand_mat, sites[1]))
     return MPS(M)
   end
-
   # Site 1 
   rand_mat = σ * (ones(d,χ) - 2*rand(d,χ))
-  rand_mat += im * σ * (ones(d,χ) - 2*rand(d,χ))
+  if (ElT == Complex{Float64})
+    rand_mat += im * σ * (ones(d,χ) - 2*rand(d,χ)) 
+  end
   push!(M,ITensor(rand_mat,sites[1],links[1]))
   for j in 2:N-1
     rand_mat = σ * (ones(χ,d,χ) - 2*rand(χ,d,χ))
-    rand_mat += im * σ * (ones(χ,d,χ) - 2*rand(χ,d,χ))
+    if (ElT == Complex{Float64})
+      rand_mat += im * σ * (ones(χ,d,χ) - 2*rand(χ,d,χ))
+    end
     push!(M,ITensor(rand_mat,links[j-1],sites[j],links[j]))
   end
   # Site N
   rand_mat = σ * (ones(χ,d) - 2*rand(χ,d))
-  rand_mat += im * σ * (ones(χ,d) - 2*rand(χ,d))
+  if (ElT == Complex{Float64})
+    rand_mat += im * σ * (ones(χ,d) - 2*rand(χ,d))
+  end
   push!(M,ITensor(rand_mat,links[N-1],sites[N]))
   return MPS(M)
 end
 
-"""
-    randomstate(sites::Vector{<: Index},χ::Int64,ξ::Int64;
-                σ::Float64 = 0.1,purifier_tag = ts"Purifier")
 
-Generates an LPDO for a density operator with random parameters
+function random_mpo(ElT::Type{<:Number},sites::Vector{<: Index},χ::Int64,σ::Float64;processtags::Bool=false)
+  d = 2 # Dimension of the local Hilbert space
+  #@show sites
+  N = length(sites)
+  links = [Index(χ; tags="Link, l=$l") for l in 1:N-1]
+  
+  M = ITensor[]
+  if N == 1
+    rand_mat = σ * (ones(d,d) - 2 * rand(d,d))
+    if (ElT == Complex{Float64})
+      rand_mat += im * σ * (ones(d,d) - 2 * rand(d,d))
+    end
+    push!(M, ITensor(rand_mat, sites[1]',sites[1]))
+    return MPO(M)
+  end
 
-# Arguments:
-  - `sites`: a set of site indices (local Hilbert spaces)
-  - `ξ`: kraus dimension of the LPDO 
-  - `χ`: bond dimension of the LPDO
-  - `σ`: width of initial box distribution
-"""
-function randomstate(sites::Vector{<: Index},χ::Int64,ξ::Int64;
-                     σ::Float64 = 0.1,purifier_tag = ts"Purifier")
+  # Site 1 
+  rand_mat = σ * (ones(d,χ,d) - 2*rand(d,χ,d))
+  if (ElT == Complex{Float64})
+    rand_mat += im * σ * (ones(d,χ,d) - 2*rand(d,χ,d))
+  end
+  push!(M,ITensor(rand_mat,sites[1]',links[1],sites[1]))
+  for j in 2:N-1
+    rand_mat = σ * (ones(d,χ,d,χ) - 2*rand(d,χ,d,χ))
+    if (ElT == Complex{Float64})
+      rand_mat += im * σ * (ones(d,χ,d,χ) - 2*rand(d,χ,d,χ))
+    end
+    push!(M,ITensor(rand_mat,sites[j]',links[j-1],sites[j],links[j]))
+  end
+  # Site N
+  rand_mat = σ * (ones(d,χ,d) - 2*rand(d,χ,d))
+  if (ElT == Complex{Float64})
+    rand_mat += im * σ * (ones(d,χ,d) - 2*rand(d,χ,d))
+  end
+  push!(M,ITensor(rand_mat,sites[N]',links[N-1],sites[N]))
+ 
+  proc_tagcheck = (any(x -> hastags(x,"Input") , sites))
+  if processtags & !proc_tagcheck
+    U = MPO(M)
+    addtags!(U, "Input", plev = 0, tags = "Qubit")
+    addtags!(U, "Output", plev = 1, tags = "Qubit")
+    return U
+  else
+    return MPO(M)
+  end
+end
+
+function random_lpdo(ElT::Type{<:Number},sites::Vector{<: Index},χ::Int64,ξ::Int64,σ::Float64;
+                    purifier_tag = ts"Purifier")
   d = 2 # Dimension of the local Hilbert space
   N = length(sites)
   links = [Index(χ; tags="Link, l=$l") for l in 1:N-1]
@@ -104,120 +92,39 @@ function randomstate(sites::Vector{<: Index},χ::Int64,ξ::Int64;
   if N == 1
     # Site 1 
     rand_mat = σ * (ones(d,ξ) - 2*rand(rng,d,ξ))
-    rand_mat += im * σ * (ones(d,ξ) - 2*rand(rng,d,ξ))
+    if (ElT == Complex{Float64})
+      rand_mat += im * σ * (ones(d,ξ) - 2*rand(rng,d,ξ))
+    end
     push!(M,ITensor(rand_mat,sites[1],kraus[1]))
     return LPDO(MPO(M))
   end
 
   # Site 1 
   rand_mat = σ * (ones(d,χ,ξ) - 2*rand(d,χ,ξ))
-  rand_mat += im * σ * (ones(d,χ,ξ) - 2*rand(d,χ,ξ))
+  if (ElT == Complex{Float64})
+    rand_mat += im * σ * (ones(d,χ,ξ) - 2*rand(d,χ,ξ))
+  end
   push!(M,ITensor(rand_mat,sites[1],links[1],kraus[1]))
   # Site 2..N-1
   for j in 2:N-1
     rand_mat = σ * (ones(d,χ,ξ,χ) - 2*rand(d,χ,ξ,χ))
-    rand_mat += im * σ * (ones(d,χ,ξ,χ) - 2*rand(d,χ,ξ,χ))
+    if (ElT == Complex{Float64})
+      rand_mat += im * σ * (ones(d,χ,ξ,χ) - 2*rand(d,χ,ξ,χ))
+    end
     push!(M,ITensor(rand_mat,sites[j],links[j-1],kraus[j],links[j]))
   end
   # Site N
   rand_mat = σ * (ones(d,χ,ξ) - 2*rand(d,χ,ξ))
-  rand_mat += im * σ * (ones(d,χ,ξ) - 2*rand(d,χ,ξ))
+  if (ElT == Complex{Float64})
+    rand_mat += im * σ * (ones(d,χ,ξ) - 2*rand(d,χ,ξ))
+  end
   push!(M,ITensor(rand_mat,sites[N],links[N-1],kraus[N]))
   
   return LPDO(MPO(M), purifier_tag)
 end
 
-
-
-
-
-
-
-"""
-    randomprocess(N::Int64; mixed::Bool=false, kwargs...)
-
-Generate MPO (`mixed=false`) or LPDO ('mixed=true`) with 
-random parameters.
-"""
-function randomprocess(N::Int64;mixed::Bool=false, kwargs...)
-  return (mixed ? randomprocess(N,LPDO; kwargs...) : randomprocess(N,MPO; kwargs...))
-end
-
-
-function randomprocess(N::Int64,T::Type; kwargs...)
-  sites = siteinds("Qubit", N)
-  return randomprocess(sites,T; kwargs...)
-end
-
-# TODO remove the split flag after implementing unsplit choi matrix
-function randomprocess(sites::Vector{<:Index},T::Type; kwargs...)
-  χ::Int64 = get(kwargs,:χ,2)
-  ξ::Int64 = get(kwargs,:ξ,2)
-  σ::Float64 = get(kwargs,:σ,0.1)
-  split = get(kwargs,:split,true)
-  purifier_tag = get(kwargs,:purifier_tag,ts"Purifier")
-  if T == MPO
-    return randomprocess(sites,χ;σ=σ)
-  elseif T == LPDO
-    if split
-      return randomstate(sites,χ,ξ;σ=σ,purifier_tag=purifier_tag)
-    else
-      return randomprocess(sites,χ,ξ;σ=σ,purifier_tag=purifier_tag)
-    end
-  else
-    error("ansatz type not recognized")
-  end
-end
-
-function randomprocess(M::Union{MPO,LPDO},T::Type; kwargs...)
-  sites = firstsiteinds(L.X)
-  return randomprocess(sites,T; kwargs...)
-end
-
-# TODO: update when `firstsiteinds(ψ::MPS)` is implemented 
-function randomprocess(ψ::MPS,T::Type; kwargs...)
-  sites = siteinds(ψ)
-  return randomprocess(sites,T; kwargs...)
-end
-#randomstate(ψ::MPS; kwargs...) = randomstate(LPDO(ψ); kwargs...)
-
-
-function randomprocess(sites::Vector{<: Index},χ::Int64;σ::Float64 = 0.1)
-  d = 2 # Dimension of the local Hilbert space
-  N = length(sites)
-  links = [Index(χ; tags="Link, l=$l") for l in 1:N-1]
-  
-  M = ITensor[]
-  if N == 1
-    rand_mat = σ * (ones(d,d) - 2 * rand(d,d))
-    rand_mat += im * σ * (ones(d,d) - 2 * rand(d,d))
-    push!(M, ITensor(rand_mat, sites[1]',sites[1]))
-    return MPO(M)
-  end
-
-  # Site 1 
-  rand_mat = σ * (ones(d,χ,d) - 2*rand(d,χ,d))
-  rand_mat += im * σ * (ones(d,χ,d) - 2*rand(d,χ,d))
-  push!(M,ITensor(rand_mat,sites[1]',links[1],sites[1]))
-  for j in 2:N-1
-    rand_mat = σ * (ones(d,χ,d,χ) - 2*rand(d,χ,d,χ))
-    rand_mat += im * σ * (ones(d,χ,d,χ) - 2*rand(d,χ,d,χ))
-    push!(M,ITensor(rand_mat,sites[j]',links[j-1],sites[j],links[j]))
-  end
-  # Site N
-  rand_mat = σ * (ones(d,χ,d) - 2*rand(d,χ,d))
-  rand_mat += im * σ * (ones(d,χ,d) - 2*rand(d,χ,d))
-  push!(M,ITensor(rand_mat,sites[N]',links[N-1],sites[N]))
-  
-  U = MPO(M)
-  addtags!(U, "Input", plev = 0, tags = "Qubit")
-  addtags!(U, "Output", plev = 1, tags = "Qubit")
-  
-  return U
-end
-  
-function randomprocess(sites::Vector{<: Index},χ::Int64,ξ::Int64;
-                     σ::Float64 = 0.1,purifier_tag = ts"Purifier")
+function random_choi(ElT::Type{<:Number},sites::Vector{<: Index},χ::Int64,ξ::Int64,σ::Float64;
+                    purifier_tag = ts"Purifier")
   d = 2 # Dimension of the local Hilbert space
   N = length(sites)
   links = [Index(χ; tags="Link, l=$l") for l in 1:N-1]
@@ -227,30 +134,148 @@ function randomprocess(sites::Vector{<: Index},χ::Int64,ξ::Int64;
   if N == 1
     # Site 1 
     rand_mat = σ * (ones(d,d,ξ) - 2*rand(d,d,ξ))
-    rand_mat += im * σ * (ones(d,ξ) - 2*rand(d,d,ξ))
+    if (ElT == Complex{Float64})
+      rand_mat += im * σ * (ones(d,ξ) - 2*rand(d,d,ξ))
+    end
     push!(M,ITensor(rand_mat,sites[1],sites[1]',kraus[1]))
     return LPDO(MPO(M))
   end
 
   # Site 1 
   rand_mat = σ * (ones(d,d,χ,ξ) - 2*rand(d,d,χ,ξ))
-  rand_mat += im * σ * (ones(d,d,χ,ξ) - 2*rand(d,d,χ,ξ))
+  if (ElT == Complex{Float64})
+    rand_mat += im * σ * (ones(d,d,χ,ξ) - 2*rand(d,d,χ,ξ))
+  end
   push!(M,ITensor(rand_mat,sites[1],sites[1]',links[1],kraus[1]))
   # Site 2..N-1
   for j in 2:N-1
     rand_mat = σ * (ones(d,d,χ,ξ,χ) - 2*rand(d,d,χ,ξ,χ))
-    rand_mat += im * σ * (ones(d,d,χ,ξ,χ) - 2*rand(d,d,χ,ξ,χ))
+    if (ElT == Complex{Float64})
+      rand_mat += im * σ * (ones(d,d,χ,ξ,χ) - 2*rand(d,d,χ,ξ,χ))
+    end
     push!(M,ITensor(rand_mat,sites[j],sites[j]',links[j-1],kraus[j],links[j]))
   end
   # Site N
   rand_mat = σ * (ones(d,d,χ,ξ) - 2*rand(d,d,χ,ξ))
-  rand_mat += im * σ * (ones(d,d,χ,ξ) - 2*rand(d,d,χ,ξ))
+  if (ElT == Complex{Float64})
+    rand_mat += im * σ * (ones(d,d,χ,ξ) - 2*rand(d,d,χ,ξ))
+  end
   push!(M,ITensor(rand_mat,sites[N],sites[N]',links[N-1],kraus[N]))
   
   Λ = MPO(M)
   addtags!(Λ, "Input", plev = 0, tags = "Qubit")
   addtags!(Λ, "Output", plev = 1, tags = "Qubit")
   return LPDO(MPO(M), purifier_tag)
+end
+
+
+
+
+
+function randomstate(N::Int64; kwargs...)
+  sites = siteinds("Qubit", N)
+  return randomstate(sites; kwargs...)
+end
+
+function randomstate(sites::Vector{<:Index}; kwargs...)
+  mixed::Bool = get(kwargs,:mixed,false)
+  lpdo::Bool  = get(kwargs,:lpdo,false)
+  if lpdo
+    return randomstate(sites,LPDO; kwargs...)
+  else
+    if !mixed
+      return randomstate(sites,MPS; kwargs...)
+    else
+      return randomstate(sites,MPO; kwargs...)
+    end
+  end
+end
+
+function randomstate(sites::Vector{<:Index},T::Type; kwargs...)
+  χ::Int64 = get(kwargs,:χ,2)
+  ξ::Int64 = get(kwargs,:ξ,2)
+  σ::Float64 = get(kwargs,:σ,0.1)
+  purifier_tag = get(kwargs,:purifier_tag,ts"Purifier")
+  init::String = get(kwargs,:init,"randpars")
+  cplx::Bool = get(kwargs,:complex,true)
+  normalize::Bool = get(kwargs,:normalize,false)
+
+  ElT = (cplx ? Complex{Float64} : Float64)
+
+  if T == MPS
+    # Build MPS by random parameter initialization
+    if init == "randpars"
+      M =  random_mps(ElT,sites,χ,σ)
+    # Build MPS using a quantum circuit
+    elseif init=="circuit"
+      M = randomMPS(ElT,sites,χ)
+    end
+  elseif T == MPO
+    if init == "randpars"
+      M = random_mpo(ElT,sites,χ,σ)
+    else
+      error("randomMPO with circuit initialization not implemented yet")
+    end
+  elseif T == LPDO
+    M = random_lpdo(ElT,sites,χ,ξ,σ;purifier_tag=purifier_tag)
+  else
+    error("ansatz type not recognized")
+  end
+  return (normalize ? normalize!(M) : M)
+end
+
+function randomstate(M::Union{MPS,MPO,LPDO}; kwargs...)
+  N = length(M)
+  state = randomstate(N;kwargs...)
+  replacehilbertspace!(state,M)
+  return state
+end
+
+
+
+
+
+
+function randomprocess(N::Int64; kwargs...)
+  sites = siteinds("Qubit", N)
+  return randomprocess(sites; kwargs...)
+end
+
+function randomprocess(sites::Vector{<:Index}; kwargs...)
+  mixed::Bool = get(kwargs,:mixed,false)
+  return (mixed ? randomprocess(sites,LPDO; kwargs...) : randomprocess(sites,MPO; kwargs...))
+end
+
+function randomprocess(sites::Vector{<:Index},T::Type; kwargs...)
+  χ::Int64 = get(kwargs,:χ,2)
+  ξ::Int64 = get(kwargs,:ξ,2)
+  σ::Float64 = get(kwargs,:σ,0.1)
+  purifier_tag = get(kwargs,:purifier_tag,ts"Purifier")
+  init::String = get(kwargs,:init,"randpars")
+  cplx::Bool = get(kwargs,:complex,true)
+  
+  ElT = (cplx ? Complex{Float64} : Float64)
+  
+  processtags = !(any(x -> hastags(x,"Input") , sites))
+  if T == MPO
+    if init == "randpars"
+      M = random_mpo(ElT,sites,χ,σ;processtags=processtags)
+    else
+      error("randomMPO with circuit initialization not implemented yet")
+    end
+  elseif T == LPDO
+    M = random_choi(ElT,sites,χ,ξ,σ;purifier_tag=purifier_tag)
+  else
+    error("ansatz type not recognized")
+  end
+  return M
+end
+
+function randomprocess(M::Union{MPS,MPO,LPDO}; kwargs...)
+  N = length(M)
+  proc = randomprocess(N;kwargs...)
+  replacehilbertspace!(proc,M)
+  return proc
 end
 
 

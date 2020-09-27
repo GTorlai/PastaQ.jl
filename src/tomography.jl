@@ -413,42 +413,8 @@ end
 gradients(ψ::MPS, data::Array; localnorms = nothing, choi::Bool = false) = 
   gradients(LPDO(ψ), data; sqrt_localnorms = localnorms, choi = choi)
 
-function tomography(data::Array,opt::Optimizer; kwargs...)
-  split::Bool = get(kwargs,:split,true)
-  target = get(kwargs,:target,nothing)
-  mixed::Bool = get(kwargs,:mixed,false)
-  M0 = randomstate(size(data)[2];mixed=mixed)
-  return tomography(M0,data,opt; kwargs...) 
-end
 
-function tomography(data_in::Array,data_out::Array,opt::Optimizer; kwargs...)
-  split::Bool = get(kwargs,:split,true)
-  target = get(kwargs,:target,nothing)
-  mixed::Bool = get(kwargs,:mixed,false)
-  observer = get(kwargs,:observer,nothing) 
-  # Unitary circuit
-  if !mixed
-    U = randomprocess(size(data_in)[2];mixed=false)
-    if split
-      model = LPDO(splitunitary(U))
-      target = splitunitary(target)
-    else
-      model = U
-    end
-    V = tomography(model,data_in,data_out,opt; kwargs...,target=target)
-    V_unsplit = unsplitunitary(V)
-  else
-    if split
-      target = splitchoi(target)
-      model = randomprocess(2*size(data_in)[2];mixed=true,split=true)
-    else
-      model = randomprocess(size(data_in)[2];mixed=true)
-    end
-    Λ = tomography(model,data_in,data_out,opt; kwargs...,target=target)
-    Λ_unsplit = unsplitchoi(Λ)
-    return Λ_unsplit
-  end
-end
+
 
 """
     tomography(L::LPDO, data::Array, opt::Optimizer; kwargs...)
@@ -466,10 +432,43 @@ Run quantum state tomography using a the starting state `model` on `data`.
   - `observer`: keep track of measurements and fidelities.
   - `outputpath`: write observer on file 
 """
-function tomography(L::LPDO,
-                    data::Array,
-                    opt::Optimizer;
-                    kwargs...)
+tomography(L::LPDO,data::Array,opt::Optimizer; kwargs...) = 
+  runtomography(L,data,opt; kwargs...)
+
+tomography(ψ::MPS,data::Array,opt::Optimizer; kwargs...) =
+  tomography(LPDO(ψ),data,opt; kwargs...)
+
+# Split MPO/LPDO for process tomography
+function tomography(L::LPDO,data_in::Array,data_out::Array,opt::Optimizer; kwargs...)
+  target = get(kwargs,:target,nothing)
+  mixed::Bool = get(kwargs,:mixed,false)
+  observer = get(kwargs,:observer,nothing) 
+  @show target
+  @show L.X
+  # Unitary circuit
+  if !mixed
+    U = L.X
+    model = LPDO(splitunitary(U))
+    target = splitunitary(target)
+    V = runtomography(model,data_in,data_out,opt; kwargs...,target=target)
+    V_unsplit = unsplitunitary(V.X)
+    return V_unsplit
+  else
+    target = splitchoi(target)
+    χ = maxlinkdim(L.X)
+    krausspace = [inds(L.X[j],tags="Purifier") for j in 1:length(L.X)]
+    ξ = maximum(dims(krausspace)) 
+    model = randomstate(2*size(data_in)[2];lpdo=true,χ=χ,ξ=ξ)
+    Λ = runtomography(model,data_in,data_out,opt; kwargs...,target=target)
+    Λ_unsplit = unsplitchoi(Λ)
+    return Λ_unsplit
+  end
+end
+
+tomography(U::MPO,data_in::Array,data_out::Array,opt::Optimizer; kwargs...) = 
+  tomography(LPDO(U),data_in,data_out,opt; kwargs...)
+
+function runtomography(L::LPDO,data::Array,opt::Optimizer;kwargs...)
  
   # Read arguments
   use_localnorm::Bool = get(kwargs,:use_localnorm,true)
@@ -503,7 +502,9 @@ function tomography(L::LPDO,
       end
     end
   end
-  
+  #replacehilbertspace!(target,model)
+  #replacehilbertspace!(model,target)
+
   # Number of training batches
   num_batches = Int(floor(size(data)[1]/batchsize))
   
@@ -582,8 +583,9 @@ function tomography(L::LPDO,
   return (isnothing(observer) ? model : (model,observer))
 end
 
-tomography(ψ::MPS, data::Array,opt::Optimizer; kwargs...) =
-  tomography(LPDO(ψ),data,opt; kwargs...)
+runtomography(ψ::MPS, data::Array,opt::Optimizer; kwargs...) =
+  runtomography(LPDO(ψ),data,opt; kwargs...)
+
 
 """
     tomography(L::LPDO,data_in::Array,data_out::Array,opt::Optimizer; kwargs...)
@@ -593,13 +595,12 @@ Run quantum process tomography on `(data_in,data_out)` using `model` as variatio
 
 The data is reshuffled so it takes the format: `(input1,output1,input2,output2,…)`.
 """
-function tomography(L::LPDO,
+function runtomography(L::LPDO,
                     data_in::Array,
                     data_out::Array,
                     opt::Optimizer;
                     kwargs...)
   target = get(kwargs,:target,nothing)
-  @show target
   N = size(data_in)[2]
   @assert size(data_in) == size(data_out)
   
@@ -611,11 +612,11 @@ function tomography(L::LPDO,
       data[n,2*j]   = data_out[n,j]
     end
   end
-  return tomography(L,data,opt; choi=true,kwargs...)
+  return runtomography(L,data,opt; choi=true,kwargs...)
 end
 
-tomography(U::MPO,data_in::Array, data_out::Array,opt::Optimizer; kwargs...) =
-  tomography(LPDO(U),data_in,data_out,opt; kwargs...)
+runtomography(U::MPO,data_in::Array, data_out::Array,opt::Optimizer; kwargs...) =
+  runtomography(LPDO(U),data_in,data_out,opt; kwargs...).X
 
 
 """
@@ -695,11 +696,89 @@ TEMPORARY FUNCTIONS
 
 
 """
-  splitchoi(Λ::MPO;cutoff=1e-15,maxdim=1000)
+  splitunitary(U::MPO;cutoff=1e-15,maxdim=1000)
 
-Map a Choi matrix (MPO) from `N` sites to `2N` sites, arranged as
-(input1,output1,input2,output2,…)
 """
+function splitunitary(U0::MPO;cutoff=1e-15,maxdim=1000)
+  T = ITensor[]
+  U = copy(U0)
+  
+  # Check if appropriate choi tags are present
+  choitag = any(x -> hastags(x,"Input") , U)
+  
+  if !choitag
+    # Choi indices 
+    addtags!(U, "Input", plev = 0, tags = "Qubit")
+    addtags!(U, "Output", plev = 1, tags = "Qubit")
+    noprime!(U)
+  end
+  u,S,v = svd(U[1],inds(U[1],tags="Input"), 
+              cutoff=cutoff, maxdim=maxdim)
+  push!(T,u*S)
+  push!(T,v)
+  for j in 2:length(U)
+    u,S,v = svd(U[j],inds(U[j],tags="Input")[1],
+                commonind(U[j-1],U[j]),cutoff=cutoff,maxdim=maxdim) 
+    push!(T,u*S)
+    push!(T,v)
+  end
+  return MPS(T)
+end
+
+function unsplitunitary(ψ0::MPS)
+  ψ = copy(ψ0)
+  # Check if appropriate choi tags are present
+  choitag = any(x -> hastags(x,"Input") , ψ)
+  if !choitag
+    for j in 1:1:length(ψ)
+      if isodd(j)
+        addtags!(ψ[j],"Input",tags = "Qubit")
+      else
+        addtags!(ψ[j],"Output",tags = "Qubit")
+      end
+    end
+  end
+  T = ITensor[ψ[j]*ψ[j+1] for j in 1:2:length(ψ)]
+  return MPO(T)
+end
+
+function splitchoi(Λ::MPO;cutoff=1e-15,maxdim=10000)
+  choitag = any(x -> hastags(x,"Input") , Λ)
+  if !choitag
+    # Choi indices 
+    addtags!(Λ, "Input", plev = 0, tags = "Qubit")
+    addtags!(Λ, "Output", plev = 1, tags = "Qubit")
+    noprime!(Λ)
+  end
+  T = ITensor[]
+  u,S,v = svd(Λ[1],inds(Λ[1],tags="Input"),
+              cutoff=cutoff, maxdim=maxdim)
+  push!(T,u*S)
+  push!(T,v)
+
+  for j in 2:length(Λ)
+    u,S,v = svd(Λ[j],inds(Λ[j],tags="Input")[1],inds(Λ[j],tags="Input")[2],
+                commonind(Λ[j-1],Λ[j]),cutoff=cutoff,maxdim=maxdim)
+    push!(T,u*S)
+    push!(T,v)
+  end
+  Λ_split = MPO(T)
+  return Λ_split
+end
+
+"""
+    unsplitchoi(Λ0::MPO)
+
+"""
+function unsplitchoi(L::LPDO)
+  Λ = L.X
+  @assert Λ isa MPO
+  T = ITensor[Λ[j]*Λ[j+1] for j in 1:2:length(Λ)]
+  return LPDO(MPO(T))
+end
+
+unsplitchoi(M::MPO) = unsplitchoi(LPDO(M))
+
 function splitchoi(L::LPDO;cutoff=1e-15,maxdim=1000)
   
   Λ = copy(L.X)
@@ -721,39 +800,5 @@ function splitchoi(L::LPDO;cutoff=1e-15,maxdim=1000)
   return MPO(T)
 end
 
-"""
-    unsplitchoi(Λ0::MPO)
-
-"""
-function unsplitchoi(L::LPDO)
-  Λ = L.X
-  @assert Λ isa MPO
-  T = ITensor[Λ[j]*Λ[j+1] for j in 1:2:length(Λ)]
-  return MPO(T)
-end
-
-
-"""
-    unsplitunitary(ψ0::MPS)
-
-"""
-function unsplitunitary(L::LPDO)
-  ψ = copy(L.X)
-  # Check if appropriate choi tags are present
-  choitag = any(x -> hastags(x,"Input") , ψ)
-  if !choitag
-    for j in 1:1:length(ψ)
-      if isodd(j)
-        addtags!(ψ[j],"Input",tags = "Qubit")
-      else
-        addtags!(ψ[j],"Output",tags = "Qubit")
-      end
-    end
-  end
-  T = ITensor[ψ[j]*ψ[j+1] for j in 1:2:length(ψ)]
-  return MPO(T)
-end
-
-unsplitunitary(ψ::MPS) = unsplitunitary(LPDO(ψ))
 
 

@@ -35,8 +35,6 @@ export
   compilecircuit!,
   runcircuit,
   choimatrix,
-  splitchoi,       
-  splitunitary,
 
 # datagen.jl
   # Methhods
@@ -53,6 +51,10 @@ export
 
 # randomstates,jl
   # Methods
+  random_mps,
+  random_mpo,
+  random_lpdo,
+  randomChoi,
   randomstate,
   randomprocess,
 
@@ -66,8 +68,11 @@ export
   gradnll,
   gradients,
   tomography,
+  runtomography,
   unsplitchoi,     # Temporary
   unsplitunitary,  # Temporary
+  splitchoi,       # Temporary 
+  splitunitary,    # Temporary
 
 # distances.jl
   # Methods
@@ -98,4 +103,8 @@ export
   savedata,
   loaddata,
   fullvector,
-  fullmatrix
+  fullmatrix,
+  hilbertspace,
+  replacehilbertspace!
+
+ 
