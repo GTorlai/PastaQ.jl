@@ -25,7 +25,7 @@ opt = SGD(η = 0.01)
 # the tensor-network distribution `P(x) = |⟨x|ψ(θ)⟩|²`.
 ψ = tomography(ψ0,data,opt;
                batchsize=1000,
-               epochs=10,
+               epochs=5,
                target=Ψ)
 @show ψ
 
@@ -53,6 +53,6 @@ opt = SGD(η = 0.01)
 # `ρ = ΓΓ†` is the corresponding density operator..
 ρ = tomography(ρ0,data,opt;
                batchsize=1000,
-               epochs=10,
+               epochs=5,
                target=ϱ)
 @show ρ

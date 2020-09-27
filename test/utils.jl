@@ -140,74 +140,161 @@ end
   N = 3
   χ = 3
   
-  # Check the tags
-  # 1. Given a MPS
-  Ψ0 = randomstate(N;χ=χ)
-
-  # to MPS
-  Ψ = randomstate(N;χ=χ)
-  replacehilbertspace!(Ψ,Ψ0)
+  # MPS <- MPS
+  Ψ = randomstate(N)
+  Φ = randomstate(N)
+  Φprod = prod(Φ)
+  replacehilbertspace!(Φ,Ψ)
+  @test array(Φprod) ≈ array(prod(Φ)) 
   for j in 1:length(N)
-    @test firstind(Ψ[j],tags="Site") == firstind(Ψ0[j],tags="Site")
+    @test firstind(Ψ[j],tags="Site") == firstind(Φ[j],tags="Site")
   end
-  # to MPO
-  ρ = randomstate(N;mixed=true,χ=χ)
-  replacehilbertspace!(ρ,Ψ0)
+  
+  # MPS <- regular MPO
+  Ψ = randomstate(N)
+  ρ = randomstate(N;mixed=true)
+  ρprod = prod(ρ) 
+  replacehilbertspace!(Ψ,ρ)
+  @test array(ρprod) ≈ array(prod(ρ))
+  #@show ρ0
+  #@show Ψ
   for j in 1:length(N)
-    @test firstind(ρ[j],tags="Site",plev=0) == firstind(Ψ0[j],tags="Site")
+    @test firstind(Ψ[j],tags="Site") == firstind(ρ[j],tags="Site",plev=0)
   end
-  # to LPDO
+  
+  # MPS <- purified MPO
+  Ψ = randomstate(N)
   ρ = randomstate(N;lpdo=true)
-  replacehilbertspace!(ρ,Ψ0)
+  ρ2 = copy(ρ)
+  replacehilbertspace!(Ψ,ρ)
+  #@show ρ0
+  #@show Ψ
   for j in 1:length(N)
-    @test firstind(ρ.X[j],tags="Site",plev=0) == firstind(Ψ0[j],tags="Site")
+    @test array(ρ.X[j]) ≈ array(ρ2.X[j])
+    @test firstind(Ψ[j],tags="Site") == firstind(ρ.X[j],tags="Site",plev=0)
   end
-  #
 
-  # 1. Given a MPO
-  ρ0 = randomstate(N;mixed=true,χ=χ)
-
-  # to MPS
-  Ψ = randomstate(N;χ=χ)
-  replacehilbertspace!(Ψ,ρ0)
+  
+  # regular MPO <- MPS
+  ρ = randomstate(N;mixed=true)
+  ψ = randomstate(N)
+  ρ2 = copy(ρ)
+  #@show ρ
+  #@show ψ
+  replacehilbertspace!(ρ,ψ)
   for j in 1:length(N)
-    @test firstind(Ψ[j],tags="Site") == firstind(ρ0[j],tags="Site",plev=0)
+    @test array(ρ[j]) ≈ array(ρ2[j])
+    @test firstind(ψ[j],tags="Site") == firstind(ρ[j],tags="Site",plev=0)
+    @test firstind(ψ[j],tags="Site")' == firstind(ρ[j],tags="Site",plev=1)
   end
   
-  ## to MPO
-  ρ = randomstate(N;mixed=true,χ=χ)
+  # regular MPO <- regular MPO
+  ρ = randomstate(N;mixed=true)
+  ρ0 = randomstate(N;mixed=true)
+  ρ2 = copy(ρ)
   replacehilbertspace!(ρ,ρ0)
   for j in 1:length(N)
-    @test firstind(ρ[j],tags="Site",plev=0) == firstind(ρ0[j],tags="Site",plev=0)
+    @test array(ρ[j]) ≈ array(ρ2[j])
+    @test firstind(ρ0[j],tags="Site",plev=0) == firstind(ρ[j],tags="Site",plev=0)
+    @test firstind(ρ0[j],tags="Site",plev=1) == firstind(ρ[j],tags="Site",plev=1)
   end
-  # to LPDO
-  ρ = randomstate(N;lpdo=true,χ=χ)
+
+  # regular MPO <- purified MPO
+  ρ = randomstate(N;mixed=true)
+  ρ0 = randomstate(N;lpdo=true)
+  ρ2 = copy(ρ)
   replacehilbertspace!(ρ,ρ0)
+  #@show ρ0
+  #@show ρ
   for j in 1:length(N)
-    @test firstind(ρ.X[j],tags="Site",plev=0) == firstind(ρ0[j],tags="Site",plev=0)
+    @test array(ρ[j]) ≈ array(ρ2[j])
+    @test firstind(ρ0.X[j],tags="Site",plev=0) == firstind(ρ[j],tags="Site",plev=0)
+    @test firstind(ρ0.X[j],tags="Site",plev=0)' == firstind(ρ[j],tags="Site",plev=1)
   end
 
-  ## 1. Given a LPDO
-  ρ0 = randomstate(N;lpdo=true,χ=χ)
 
-  # to MPS
-  Ψ = randomstate(N;χ=χ)
-  replacehilbertspace!(Ψ,ρ0)
+  # purified MPO <- MPS
+  ρ = randomstate(N;lpdo=true)
+  ψ = randomstate(N)
+  #@show ρ
+  #@show ψ
+  replacehilbertspace!(ρ,ψ)
   for j in 1:length(N)
-    @test firstind(Ψ[j],tags="Site") == firstind(ρ0.X[j],tags="Site",plev=0)
+    @test firstind(ψ[j],tags="Site") == firstind(ρ.X[j],tags="Site",plev=0)
   end
   
-  ## to MPO
-  ρ = randomstate(N;mixed=true,χ=χ)
+  # purified MPO <- regular MPO
+  ρ = randomstate(N;lpdo=true)
+  ρ0 = randomstate(N;mixed=true)
+  #@show ρ
+  #@show ρ0
   replacehilbertspace!(ρ,ρ0)
   for j in 1:length(N)
-    @test firstind(ρ[j],tags="Site",plev=0) == firstind(ρ0.X[j],tags="Site",plev=0)
+    @test firstind(ρ0[j],tags="Site",plev=0) == firstind(ρ.X[j],tags="Site",plev=0)
+    @test firstind(ρ0[j],tags="Site",plev=1) == firstind(ρ.X[j],tags="Site",plev=0)'
   end
-  # to LPDO
-  ρ = randomstate(N;lpdo=true,χ=χ)
+
+  # purified MPO <- purified MPO
+  ρ = randomstate(N;lpdo=true)
+  ρ0 = randomstate(N;lpdo=true)
   replacehilbertspace!(ρ,ρ0)
   for j in 1:length(N)
-    @test firstind(ρ.X[j],tags="Site",plev=0) == firstind(ρ0.X[j],tags="Site",plev=0)
+    @test firstind(ρ0.X[j],tags="Site",plev=0) == firstind(ρ.X[j],tags="Site",plev=0)
+  end
+  
+  #@show ρ
+  #@show ρ0
+
+
+
+  # PROCESS
+  # regular MPO <- MPS
+  ρ = randomprocess(N;mixed=false)
+  ψ = randomstate(N)
+  replacehilbertspace!(ρ,ψ)
+  for j in 1:length(N)
+    @test firstind(ψ[j],tags="Site") == firstind(ρ[j],tags="Site",plev=0)
+    @test firstind(ψ[j],tags="Site")' == firstind(ρ[j],tags="Site",plev=1)
+  end
+  
+  # regular MPO <- regular MPO
+  ρ = randomprocess(N;mixed=false)
+  ρ0 = randomstate(N;mixed=true)
+  replacehilbertspace!(ρ,ρ0)
+  for j in 1:length(N)
+    @test firstind(ρ0[j],tags="Site",plev=0) == firstind(ρ[j],tags="Site",plev=0)
+    @test firstind(ρ0[j],tags="Site",plev=1) == firstind(ρ[j],tags="Site",plev=1)
+  end
+
+  # regular MPO <- purified MPO
+  ρ = randomprocess(N;mixed=false)
+  ρ0 = randomstate(N;lpdo=true)
+  replacehilbertspace!(ρ,ρ0)
+  #@show ρ0
+  #@show ρ
+  for j in 1:length(N)
+    @test firstind(ρ0.X[j],tags="Site",plev=0) == firstind(ρ[j],tags="Site",plev=0)
+    @test firstind(ρ0.X[j],tags="Site",plev=0)' == firstind(ρ[j],tags="Site",plev=1)
+  end
+
+  # purified MPO <- MPS
+  ρ = randomprocess(N;mixed=true)
+  ψ = randomstate(N)
+  replacehilbertspace!(ρ,ψ)
+  #@show ρ
+  #@show ψ
+  for j in 1:length(N)
+    @test firstind(ψ[j],tags="Site") == firstind(ρ.X[j],tags="Site",plev=0)
+  end
+  
+  # purified MPO <- MPS
+  ρ = randomprocess(N;mixed=true)
+  ψ = randomstate(N)
+  replacehilbertspace!(ρ,ψ)
+  #@show ρ
+  #@show ψ
+  for j in 1:length(N)
+    @test firstind(ψ[j],tags="Site") == firstind(ρ.X[j],tags="Site",plev=0)
   end
 
 end

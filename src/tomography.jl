@@ -443,11 +443,10 @@ function tomography(L::LPDO,data_in::Array,data_out::Array,opt::Optimizer; kwarg
   target = get(kwargs,:target,nothing)
   mixed::Bool = get(kwargs,:mixed,false)
   observer = get(kwargs,:observer,nothing) 
-  @show target
-  @show L.X
   # Unitary circuit
   if !mixed
     U = L.X
+    U_split = splitunitary(U)
     model = LPDO(splitunitary(U))
     target = splitunitary(target)
     V = runtomography(model,data_in,data_out,opt; kwargs...,target=target)
@@ -488,7 +487,6 @@ function runtomography(L::LPDO,data::Array,opt::Optimizer;kwargs...)
   
   model = copy(L)
   
-  # Set up target quantum state
   if !isnothing(target)
     target = copy(target)
     if typeof(target)==MPS
@@ -501,10 +499,8 @@ function runtomography(L::LPDO,data::Array,opt::Optimizer;kwargs...)
         replaceind!(target[j],inds(target[j],"Site")[2],prime(firstind(model.X[j],"Site")))
       end
     end
-  end
-  #replacehilbertspace!(target,model)
-  #replacehilbertspace!(model,target)
-
+  end  
+  
   # Number of training batches
   num_batches = Int(floor(size(data)[1]/batchsize))
   
@@ -570,6 +566,8 @@ function runtomography(L::LPDO,data::Array,opt::Optimizer;kwargs...)
       else
         F = fidelity(model,target)
         @printf("Fidelity = %.3E  ",F)
+        #frobenius = fidelity_bound(model,MPO(target))
+        #@printf("Frobenius distance = %.3E  ",frobenius)
       end
     end
     @printf("Time = %.3f sec",ep_time)
@@ -710,8 +708,8 @@ function splitunitary(U0::MPO;cutoff=1e-15,maxdim=1000)
     # Choi indices 
     addtags!(U, "Input", plev = 0, tags = "Qubit")
     addtags!(U, "Output", plev = 1, tags = "Qubit")
-    noprime!(U)
   end
+  noprime!(U)
   u,S,v = svd(U[1],inds(U[1],tags="Input"), 
               cutoff=cutoff, maxdim=maxdim)
   push!(T,u*S)
@@ -739,7 +737,11 @@ function unsplitunitary(ψ0::MPS)
     end
   end
   T = ITensor[ψ[j]*ψ[j+1] for j in 1:2:length(ψ)]
-  return MPO(T)
+  U = MPO(T)
+  for j in 1:length(U)
+    prime!(U[j],tags="Output,Qubit,Site")
+  end
+  return U
 end
 
 function splitchoi(Λ::MPO;cutoff=1e-15,maxdim=10000)

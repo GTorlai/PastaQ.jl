@@ -678,16 +678,11 @@ end
   U0 = randomprocess(N;mixed=false,χ=4)
   U0prod = prod(U0)
   V0 = randomprocess(U0;mixed=false,χ=4)
-  F = inner(U0,V0)
-  
   Ψ = splitunitary(U0)
-  Φ = splitunitary(V0)
-  @test F ≈ inner(Ψ,Φ)
-
   U = unsplitunitary(Ψ)
-  Uprod = prod(U)
-  @test U0prod ≈ Uprod
-  
+  for j in 1:N
+    @test U[j] ≈ U0[j]
+  end
 end
 
 @testset "splitchoi" begin

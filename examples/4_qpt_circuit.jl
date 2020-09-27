@@ -24,7 +24,7 @@ opt = SGD(η = 0.1)
 # Run process tomography
 U = tomography(U0,data_in,data_out,opt;
                batchsize=500,
-               epochs=20,
+               epochs=5,
                target=Û)
 @show U
 
@@ -44,7 +44,8 @@ opt = SGD(η = 0.1)
 
 # Run process tomography
 Λ = tomography(Λ0,data_in,data_out,opt;
+               mixed=true,
                batchsize=500,
-               epochs=20,
+               epochs=5,
                target=Φ)
 @show Λ

@@ -16,26 +16,27 @@ U = runcircuit(N,gates;process=true)
 Random.seed!(1234)
 nshots = 1000
 ψ,data = generatedata(N,gates,nshots;return_state=true)
-savedata(ψ,data,"../examples/data/qst_circuit.h5")
+savedata(ψ,data,"../examples/data/qst_circuit_test.h5")
 
 ρ,data = generatedata(N,gates,nshots;
                       noise="AD",γ=0.01,
                       return_state=true)
+savedata(ρ,data,"../examples/data/qst_circuit_noisy_test.h5")
 
 U,data_in,data_out=generatedata(N,gates,nshots;
                                   process=true,
                                   return_state=true)
-savedata(U,data_in,data_out,"../examples/data/qpt_circuit.h5")
+savedata(U,data_in,data_out,"../examples/data/qpt_circuit_test.h5")
 
 Λ,data_in,data_out=generatedata(N,gates,nshots;
                                   process=true,
                                   noise="AD",γ=0.01,
                                   return_state=true)
-savedata(Λ,data_in,data_out,"../examples/data/qpt_circuit_noisy.h5")
+savedata(Λ,data_in,data_out,"../examples/data/qpt_circuit_noisy_test.h5")
 
 
 Random.seed!(1234)
-Ψ,data = loaddata("../examples/data/qst_circuit.h5")
+Ψ,data = loaddata("../examples/data/qst_circuit_test.h5")
 N = length(Ψ)     # Number of qubits
 χ = maxlinkdim(Ψ) # Bond dimension of variational MPS
 ψ0 = randomstate(N;χ=χ,σ=0.1)
@@ -45,7 +46,7 @@ opt = SGD(η = 0.01)
                epochs=2,
                target=Ψ);
 
-ϱ,data = loaddata("../examples/data/qst_circuit_noisy.h5")
+ϱ,data = loaddata("../examples/data/qst_circuit_noisy_test.h5")
 N = length(ϱ)     # Number of qubits
 χ = maxlinkdim(ϱ) # Bond dimension of variational LPDO
 ξ = 2             # Kraus dimension of variational LPDO
@@ -57,7 +58,7 @@ opt = SGD(η = 0.01)
                target=ϱ);
 
 Random.seed!(1234)
-U,data_in,data_out = loaddata("../examples/data/qpt_circuit.h5";process=true)
+U,data_in,data_out = loaddata("../examples/data/qpt_circuit_test.h5";process=true)
 N = length(U)     # Number of qubits
 χ = maxlinkdim(U) # Bond dimension of variational MPS
 opt = SGD(η = 0.1)
@@ -69,7 +70,7 @@ V = tomography(V0,data_in,data_out,opt;
 
 # Noisy circuit
 Random.seed!(1234)
-ϱ,data_in,data_out = loaddata("../examples/data/qpt_circuit_noisy.h5";process=true)
+ϱ,data_in,data_out = loaddata("../examples/data/qpt_circuit_noisy_test.h5";process=true)
 N = length(ϱ)
 χ = 8
 ξ = 2

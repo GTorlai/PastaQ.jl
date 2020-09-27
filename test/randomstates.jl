@@ -231,11 +231,15 @@ end
 
   ## to MPO
   ρ = randomprocess(ρ0;mixed=false)
+  #@show ρ0
+  #@show ρ
   for j in 1:length(N)
     @test firstind(ρ[j],tags="Site",plev=0) == firstind(ρ0[j],tags="Site",plev=0)
   end
   # to LPDO
   ρ = randomprocess(ρ0;mixed=true)
+  #@show ρ0
+  #@show ρ
   for j in 1:length(N)
     @test firstind(ρ.X[j],tags="Site",plev=0) == firstind(ρ0[j],tags="Site",plev=0)
   end
