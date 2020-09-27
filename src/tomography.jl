@@ -440,25 +440,7 @@ function tomography(L::LPDO,data::Array,opt::Optimizer; kwargs...)
   target = get(kwargs,:target,nothing)
   if !isnothing(target)
     target = copy(target)
-    @show L
-    @show MPO(L)
-    #@show frobenius_distance(L,target)
-    @show fullfidelity(L,target)
     replacehilbertspace!(target,model)
-    #if typeof(target)==MPS
-    #  for j in 1:length(model)
-    #    replaceind!(target[j],firstind(target[j],"Site"),firstind(model[j],"Site"))
-    #  end
-    #else
-    #  for j in 1:length(model)
-    #    # TODO: check the priming here
-    #    replaceind!(target[j],firstind(target[j],tags="Site",plev=0),firstind(model[j],"Site"))
-    #    replaceind!(target[j],firstind(target[j],tags="Site",plev=1),firstind(model[j],"Site")')
-    #    #replaceind!(target[j],firstind(target[j],tags="Site",plev=0),firstind(model[j],"Site")')
-    #    #replaceind!(target[j],firstind(target[j],tags="Site",plev=1),firstind(model[j],"Site"))
-    #  end
-    #end
-    @show fullfidelity(L,target)
   end  
   return runtomography(L,data,opt;kwargs...,target=target)
 end

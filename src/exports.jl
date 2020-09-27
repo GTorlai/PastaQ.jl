@@ -69,10 +69,10 @@ export
   gradients,
   tomography,
   runtomography,
-  unsplitchoi,     # Temporary
-  unsplitunitary,  # Temporary
-  splitchoi,       # Temporary 
-  splitunitary,    # Temporary
+  unsplitchoi,     # Temporary (for testing) 
+  unsplitunitary,  # Temporary (for testing)
+  splitchoi,       # Temporary (for testing)
+  splitunitary,    # Temporary (for testing)
 
 # distances.jl
   # Methods
