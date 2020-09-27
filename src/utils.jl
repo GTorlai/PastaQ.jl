@@ -158,9 +158,6 @@ replacehilbertspace!(ψ::MPS,L::LPDO) =
 replacehilbertspace!(ψ::MPS,M::Union{MPS,MPO}) = 
   replacehilbertspace!(LPDO(ψ),LPDO(M))
 
-#replacehilbertspace!(Λ::LPDO{MPO},L::LPDO; split_noisyqpt::Bool=false) = 
-#  replacehilbertspace(copy(Λ),L;split_noisyqpt=split_noisyqpt)
-
 function replacehilbertspace!(Λ::LPDO{MPO},L::LPDO; split_noisyqpt::Bool=false)
   mpo = Λ.X  
   M = L.X
@@ -173,10 +170,9 @@ function replacehilbertspace!(Λ::LPDO{MPO},L::LPDO; split_noisyqpt::Bool=false)
       replaceind!(mpo[j],firstind(mpo[j],tags="Site",plev=0),firstind(M[j],tags="Site"))
       replaceind!(mpo[j],firstind(mpo[j],tags="Site",plev=1),firstind(M[j],tags="Site")')
     end
+  # ----------------------------------------
+  # ----------------------------------------
   else
-    # ----------------------------------------
-    # ----------------------------------------
-    
     # Get site indices from the model
     h_M = hilbertspace(M)
 
@@ -257,88 +253,4 @@ replacehilbertspace!(Λ::LPDO{MPO},M::Union{MPS,MPO}) =
 
 replacehilbertspace!(Λ::LPDO{MPS},M::Union{MPS,MPO}) = 
   replacehilbertspace!(Λ,LPDO(M))
-
-
-#function replacehilbertspace!(Λ::LPDO{MPO},L::LPDO; split_noisyqpt::Bool=false)
-#  mpo = Λ.X  
-#  M = L.X
-#  
-#  # ----------------------------------------
-#  # ----------------------------------------
-#  # TODO: update with unsplit version (remove)
-#  if split_noisyqpt
-#    for j in 1:length(mpo)
-#      replaceind!(mpo[j],firstind(mpo[j],tags="Site",plev=0),firstind(M[j],tags="Site"))
-#      replaceind!(mpo[j],firstind(mpo[j],tags="Site",plev=1),firstind(M[j],tags="Site")')
-#    end
-#  # ----------------------------------------
-#  # ----------------------------------------
-#  else
-#    # Get site indices from the model
-#    h_M = hilbertspace(M)
-#    # Check if M describeds process (has input/output indices)
-#    M_isaprocess   = any(x -> hastags(x,"Input") , M)
-#    # Check if mpo represents a quantum channel
-#    mpo_ispurified = any(x -> hastags(x,"Purifier") , mpo)
-#    # Check if mpo is mixed (either state (density-matrix) or process (choi-matrix))
-#    mpo_isaprocess = any(x -> hastags(x,"Input") , mpo)
-#    # Check that process tags (input/output) are set properly
-#    if M_isaprocess
-#      @assert any(x -> hastags(x,"Output") , M)
-#    end
-#    if mpo_isaprocess
-#      @assert any(x -> hastags(x,"Output") , mpo)
-#    end
-#    # Hilbertspace replacement not imlemented for a state given a
-#    # reference Hilbert space of a process. There should be a rule
-#    # whether the output/input indices are handled.
-#    if M_isaprocess & !mpo_isaprocess
-#      error("not yet implemented")
-#    end
-#    # 1. the target state `mpo` is NOT purified. It has two sets
-#    # of Site indices (primed and unprimed for bra and ket respectively)
-#    if !mpo_ispurified
-#      # a. Both reference and target describe a process (input/output tags)
-#      if M_isaprocess & mpo_isaprocess
-#        for j in 1:length(mpo)
-#          # Pick up input/output indices from the reference state
-#          replaceind!(mpo[j],firstind(mpo[j],tags="Output"),firstind(M[j],tags="Output"))
-#          replaceind!(mpo[j],firstind(mpo[j],tags="Input"),firstind(M[j],tags="Input"))
-#          # Set output plev=1 (in case the reference state is a purified-MPO, 
-#          # where both input and output indices are unprimed by default.
-#          setprime!(mpo[j],1,tags="Output")
-#        end
-#      # b. Both reference and target describe a state (regular `qubit` tags).
-#      elseif !M_isaprocess & !mpo_isaprocess
-#        for j in 1:length(mpo)
-#          # Pick up target indices by the corresponding prime levels
-#          replaceind!(mpo[j],firstsiteinds(mpo,plev=0)[j],h_M[j])
-#          replaceind!(mpo[j],firstsiteinds(mpo,plev=1)[j],h_M[j]')
-#        end
-#      else
-#        error("Not yet implemented")
-#      end
-#    # mpo has a purified index (is a LPDO)
-#    # 2. The target state is a purified-MPO (has one set of site indices
-#    # and one set of purification indices (both unprimed).
-#    else
-#      # Purified MPO
-#      for j in 1:length(mpo)
-#        if M_isaprocess
-#          replaceind!(mpo[j],firstind(mpo[j],tags="Output"),firstind(M[j],tags="Output")')
-#          replaceind!(mpo[j],firstind(mpo[j],tags="Input"),firstind(M[j],tags="Input"))
-#          if mpo_ispurified
-#            noprime!(mpo[j])
-#          end
-#        elseif !mpo_isaprocess
-#          replaceind!(mpo[j],firstsiteinds(mpo,plev=0)[j],h_M[j])
-#        else
-#          error("Not yet implemented")
-#        end
-#      end
-#    end
-#  end
-#  return Λ
-#end
-
 

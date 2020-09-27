@@ -55,8 +55,6 @@ function measurementgates(basis::Array)
 end
 
 
-
-
 """
     randompreparations(N::Int,nshots::Int;
                        states::Array=["X+","X-","Y+","Y-","Z+","Z-"],
@@ -87,6 +85,7 @@ function randompreparations(N::Int,nshots::Int;
   return preparations
 end
 
+
 """
     preparationgates(prep::Array)
 
@@ -109,9 +108,6 @@ function preparationgates(prep::Array)
   end
   return gate_list
 end
-
-
-
 
 
 """
@@ -150,6 +146,7 @@ function generatedata!(M::Union{MPS,MPO},nshots::Int; kwargs...)
   return measurements
 end
 
+
 """
     readouterror!(measurement::Array;probs::Array=[0.0,0.0])
 
@@ -173,6 +170,7 @@ function readouterror!(measurement::Array;probs::Array=[0.0,0.0])
   end
   return measurement
 end
+
 
 """
 MEASUREMENT IN MULTIPLE BASES
@@ -244,6 +242,7 @@ function generatedata(M0::Union{MPS,MPO},
   return convertdatapoint(measurement,basis)
 end
 
+
 """
     projectchoi(Λ0::MPO,prep::Array)
 
@@ -268,6 +267,7 @@ function projectchoi(Λ0::MPO,prep::Array)
   return MPO(M)
 end
 
+
 """
     projectunitary(U0::MPO,prep::Array)
 
@@ -285,6 +285,7 @@ function projectunitary(U::MPO,prep::Array)
   end
   return noprime!(MPS(M))
 end
+
 
 """
     generatedata(N::Int64,gates::Vector{<:Tuple},nshots::Int64;     
@@ -362,6 +363,7 @@ function generatedata(N::Int64,gates::Vector{<:Tuple},nshots::Int64;
     end
   end
 end
+
 
 """
     convertdatapoint(datapoint::Array,basis::Array;state::Bool=false)

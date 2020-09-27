@@ -1,3 +1,11 @@
+"""
+    random_mps(ElT::Type{<:Number},sites::Vector{<: Index},χ::Int64,σ::Float64)
+
+Make a random MPS with bond dimension `χ` using the Hilbert spacee `sites`.
+Each bulk tensor has one site index, and two link indices. The components of each 
+tensor, with type `ElT`, are randomly drawn from a uniform distribution centered 
+around zero, with width `σ`.
+"""
 function random_mps(ElT::Type{<:Number},sites::Vector{<: Index},χ::Int64,σ::Float64) 
   d = 2 # Dimension of the local Hilbert space
   N = length(sites)
@@ -34,6 +42,17 @@ function random_mps(ElT::Type{<:Number},sites::Vector{<: Index},χ::Int64,σ::Fl
 end
 
 
+"""
+    random_mpo(ElT::Type{<:Number},sites::Vector{<: Index},χ::Int64,σ::Float64;
+               processtags::Bool=false)
+
+Make a random MPO with bond dimension `χ` using the Hilbert spacee `sites`.
+Each bulk tensor has two site indices, and two link indices. The components of each 
+tensor, with type `ElT`, are randomly drawn from a uniform distribution centered 
+around zero, with width `σ`.
+If `processtags=true`, add the tag `input` to the bra, and the tag `output` 
+to the ket.
+"""
 function random_mpo(ElT::Type{<:Number},sites::Vector{<: Index},χ::Int64,σ::Float64;processtags::Bool=false)
   d = 2 # Dimension of the local Hilbert space
   #@show sites
@@ -81,6 +100,15 @@ function random_mpo(ElT::Type{<:Number},sites::Vector{<: Index},χ::Int64,σ::Fl
   end
 end
 
+
+"""
+    random_lpdo(ElT::Type{<:Number},sites::Vector{<: Index},χ::Int64,ξ::Int64,σ::Float64)
+
+Make a random LPDO with bond dimension `χ`, kraus dimension `ξ` ,and using 
+the Hilbert spacee `sites`. Each bulk tensor has one site index, one kraus index,
+and two link indices. The components of each tensor, with type `ElT`, are 
+randomly drawn from a uniform distribution centered around zero, with width `σ`.
+"""
 function random_lpdo(ElT::Type{<:Number},sites::Vector{<: Index},χ::Int64,ξ::Int64,σ::Float64;
                     purifier_tag = ts"Purifier")
   d = 2 # Dimension of the local Hilbert space
@@ -123,6 +151,16 @@ function random_lpdo(ElT::Type{<:Number},sites::Vector{<: Index},χ::Int64,ξ::I
   return LPDO(MPO(M), purifier_tag)
 end
 
+"""
+    random_choi(ElT::Type{<:Number},sites::Vector{<: Index},χ::Int64,ξ::Int64,σ::Float64;
+                purifier_tag = ts"Purifier")
+
+Make a random Choi matrix with bond dimension `χ`, kraus dimension `ξ` ,and using 
+the Hilbert spacee `sites`. Each bulk tensor has two site indices (corresponding 
+to input and output indices, one kraus index,and two link indices. The components 
+of each tensor, with type `ElT`, are randomly drawn from a uniform distribution 
+centered around zero, with width `σ`.
+"""
 function random_choi(ElT::Type{<:Number},sites::Vector{<: Index},χ::Int64,ξ::Int64,σ::Float64;
                     purifier_tag = ts"Purifier")
   d = 2 # Dimension of the local Hilbert space
@@ -163,13 +201,12 @@ function random_choi(ElT::Type{<:Number},sites::Vector{<: Index},χ::Int64,ξ::I
   push!(M,ITensor(rand_mat,sites[N],sites[N]',links[N-1],kraus[N]))
   
   Λ = MPO(M)
+  # Add process tags
   addtags!(Λ, "Input", plev = 0, tags = "Qubit")
   addtags!(Λ, "Output", plev = 1, tags = "Qubit")
   noprime!(Λ)
   return LPDO(Λ)#, purifier_tag)
 end
-
-
 
 
 
@@ -231,10 +268,6 @@ function randomstate(M::Union{MPS,MPO,LPDO}; kwargs...)
   replacehilbertspace!(state,M)
   return state
 end
-
-
-
-
 
 
 function randomprocess(N::Int64; kwargs...)

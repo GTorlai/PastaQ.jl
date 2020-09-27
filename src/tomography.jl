@@ -414,7 +414,97 @@ gradients(ψ::MPS, data::Array; localnorms = nothing, choi::Bool = false) =
   gradients(LPDO(ψ), data; sqrt_localnorms = localnorms, choi = choi)
 
 
+"""
+    tomography(L::LPDO,data::Array,opt::Optimizer; kwargs...)
 
+TEMPORARY WRAPPER 
+This function is required as long as the process tomography is 
+using a split representation.
+"""
+function tomography(L::LPDO,data::Array,opt::Optimizer; kwargs...)
+  model = L.X
+  target = get(kwargs,:target,nothing)
+  if !isnothing(target)
+    target = copy(target)
+    replacehilbertspace!(target,model)
+  end  
+  return runtomography(L,data,opt;kwargs...,target=target)
+end
+
+tomography(ψ::MPS,data::Array,opt::Optimizer; kwargs...) =
+  tomography(LPDO(ψ),data,opt; kwargs...)
+
+"""
+    tomography(L::LPDO,data_in::Array,data_out::Array,opt::Optimizer; kwargs...)
+
+TEMPORARY WRAPPER FOR UNSPLIT PROCESS TOMOGRAPHY
+
+This function take a model `L` and a `target` (is provided) in a unsplit
+representation, and run tomography with the split algorithm. Returns the unsplit result.
+"""
+function tomography(L::LPDO,data_in::Array,data_out::Array,opt::Optimizer; kwargs...)
+  target = get(kwargs,:target,nothing)
+  mixed::Bool = get(kwargs,:mixed,false)
+  observer = get(kwargs,:observer,nothing) 
+  
+  # Target LPDO are currently not supported
+  @assert (target isa MPS) | (target isa MPO)
+  if isnothing(target)
+    M = runtomography(L,data_in,data_out,opt; kwargs...)
+    return (!mixed ? unsplitunitary(M.X) : unsplitchoi(M))
+  end
+  
+  # 1. Noiseless channel (unitary circuit)
+  if !mixed
+    U = L.X
+    # Split the variational state: MPO -> MPS (x2 sites)
+    model = LPDO(splitunitary(U))
+    # Split the target state: MPO -> MPS (x2 sites)
+    target = splitunitary(target)
+    # Replace the hilbert space indices
+    replacehilbertspace!(target,model)
+    # Run process tomography
+    V = runtomography(model,data_in,data_out,opt; kwargs...,target=target)
+    # Unsplit the learned state: MPS -> MPO (÷2 sites) 
+    V_unsplit = unsplitunitary(V.X)
+    return V_unsplit
+  # 2. Noisy channel (choi matrix)
+  else
+    # Split the target choi matrix: MPO -> MPS (x2 sites)
+    target = splitchoi(target)
+
+    # ---------------------------------------------------
+    # ---------------------------------------------------
+    # TODO: TEMPORARY 
+    # Build a new model with twice as many sites, and same bond
+    # and kraus dimensions. 
+    χ = maxlinkdim(L.X)
+    krausspace = [inds(L.X[j],tags="Purifier") for j in 1:length(L.X)]
+    ξ = maximum(dims(krausspace)) 
+    model = randomstate(2*size(data_in)[2];lpdo=true,χ=χ,ξ=ξ)
+    # Add the appropriate process tags (since using random state).
+    for j in 1:length(model)
+      if isodd(j)
+        addtags!(model.X[j], "Input", tags = "Qubit")
+      else
+        addtags!(model.X[j], "Output", tags = "Qubit")
+      end
+    end
+    # ---------------------------------------------------
+    # ---------------------------------------------------
+    
+    # Replace the hilbert space indices
+    replacehilbertspace!(target,model;split_noisyqpt=true)
+    # Run process tomography
+    Λ = runtomography(model,data_in,data_out,opt; kwargs...,target=target)
+    # Unsplit the learned choi matrix: MPO (rank-4) -> MPO (rank-5, ÷2 sites) 
+    Λ_unsplit = unsplitchoi(Λ)
+    return Λ_unsplit
+  end
+end
+
+tomography(U::MPO,data_in::Array,data_out::Array,opt::Optimizer; kwargs...) = 
+  tomography(LPDO(U),data_in,data_out,opt; kwargs...)
 
 """
     tomography(L::LPDO, data::Array, opt::Optimizer; kwargs...)
@@ -432,78 +522,6 @@ Run quantum state tomography using a the starting state `model` on `data`.
   - `observer`: keep track of measurements and fidelities.
   - `outputpath`: write observer on file 
 """
-#tomography(L::LPDO,data::Array,opt::Optimizer; kwargs...) = 
-#  runtomography(L,data,opt; kwargs...)
-
-function tomography(L::LPDO,data::Array,opt::Optimizer; kwargs...)
-  model = L.X
-  target = get(kwargs,:target,nothing)
-  if !isnothing(target)
-    target = copy(target)
-    replacehilbertspace!(target,model)
-  end  
-  return runtomography(L,data,opt;kwargs...,target=target)
-end
-
-tomography(ψ::MPS,data::Array,opt::Optimizer; kwargs...) =
-  tomography(LPDO(ψ),data,opt; kwargs...)
-
-# Split MPO/LPDO for process tomography
-function tomography(L::LPDO,data_in::Array,data_out::Array,opt::Optimizer; kwargs...)
-  target = get(kwargs,:target,nothing)
-  mixed::Bool = get(kwargs,:mixed,false)
-  observer = get(kwargs,:observer,nothing) 
-  
-  @assert (target isa MPS) | (target isa MPO)
-  if isnothing(target)
-    M = runtomography(L,data_in,data_out,opt; kwargs...)
-    return (!mixed ? unsplitunitary(M.X) : unsplitchoi(M))
-  else
-    # Unitary circuit
-    if !mixed
-      U = L.X
-      U_split = splitunitary(U)
-      model = LPDO(splitunitary(U))
-      target = splitunitary(target)
-      replacehilbertspace!(target,model)
-      #for j in 1:length(model)
-      #  replaceind!(target[j],firstind(target[j],"Site"),firstind(model.X[j],"Site"))
-      #end
-      V = runtomography(model,data_in,data_out,opt; kwargs...,target=target)
-      V_unsplit = unsplitunitary(V.X)
-      return V_unsplit
-    else
-      target = splitchoi(target)
-      χ = maxlinkdim(L.X)
-      krausspace = [inds(L.X[j],tags="Purifier") for j in 1:length(L.X)]
-      ξ = maximum(dims(krausspace)) 
-      model = randomstate(2*size(data_in)[2];lpdo=true,χ=χ,ξ=ξ)
-      for j in 1:length(model)
-        if isodd(j)
-          addtags!(model.X[j], "Input", tags = "Qubit")
-        else
-          addtags!(model.X[j], "Output", tags = "Qubit")
-        end
-      end
-      if !isnothing(target)
-        target = copy(target)
-        replacehilbertspace!(target,model;split_noisyqpt=true)
-        #for j in 1:length(model)
-        ## TODO: check the priming here
-        #  replaceind!(target[j],firstind(target[j],tags="Site",plev=0),firstind(model.X[j],"Site"))
-        #  replaceind!(target[j],firstind(target[j],tags="Site",plev=1),firstind(model.X[j],"Site")')
-        #end
-      end  
-      Λ = runtomography(model,data_in,data_out,opt; kwargs...,target=target)
-      Λ_unsplit = unsplitchoi(Λ)
-      return Λ_unsplit
-    end
-  end
-end
-
-tomography(U::MPO,data_in::Array,data_out::Array,opt::Optimizer; kwargs...) = 
-  tomography(LPDO(U),data_in,data_out,opt; kwargs...)
-
 function runtomography(L::LPDO,data::Array,opt::Optimizer;kwargs...)
  
   # Read arguments
@@ -588,12 +606,6 @@ function runtomography(L::LPDO,data::Array,opt::Optimizer;kwargs...)
       else
         F = fidelity(model,target)
         @printf("Fidelity = %.3E  ",F)
-        #disable_warn_order!()
-        #fid = fullfidelity(model,target)
-        #reset_warn_order!()
-        #@printf(" (%.3E)  | ",F)
-        #frobenius = fidelity_bound(model,MPO(target))
-        #@printf("Frobenius distance = %.3E  ",frobenius)
       end
     end
     @printf("Time = %.3f sec",ep_time)
@@ -826,6 +838,4 @@ function splitchoi(L::LPDO;cutoff=1e-15,maxdim=1000)
   end
   return MPO(T)
 end
-
-
 
