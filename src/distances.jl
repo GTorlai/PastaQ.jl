@@ -49,7 +49,7 @@ function fidelity(ψ::MPS, ρ::MPO)
   # log_F̃ = loginner(ψ, ρ, ψ)
   # log_K = 2 * lognorm(ψ) + logtr(ρ) 
   log_F̃ = log(abs(inner(ψ, ρ, ψ)))
-  log_K = 2 * lognorm(ψ) + log(tr(ρ)) 
+  log_K = 2 * lognorm(ψ) + log(real(tr(ρ))) 
   fidelity = exp(log_F̃ - log_K)
   return fidelity
 end
@@ -128,4 +128,20 @@ function fullfidelity(L::Union{MPO, LPDO}, σ::Union{LPDO, MPO})
   F = real(tr(sqrt(F)))^2
   return F
 end
+
+
+fullfidelity(L::LPDO{MPS},ϕ::MPS) = 
+  fullfidelity(MPO(L.X),MPO(ϕ))
+
+fullfidelity(L::LPDO{MPS},ρ::MPO) = 
+  fullfidelity(MPO(L.X),ρ)
+
+fullfidelity(ρ::MPO,L::LPDO{MPS}) = 
+  fullfidelity(ρ,MPO(L.X))
+
+fullfidelity(ρ::Union{LPDO, MPO},Ψ::MPS) = 
+  fullfidelity(MPO(Ψ),ρ)
+
+fullfidelity(Ψ::MPS, ρ::Union{LPDO, MPO}) = 
+  fullfidelity(MPO(Ψ),ρ)
 

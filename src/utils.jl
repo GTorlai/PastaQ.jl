@@ -111,194 +111,172 @@ end
 fullmatrix(L::LPDO; kwargs...) = fullmatrix(MPO(L); kwargs...)
 
 
-
+# TEMPORARY FUNCTION
+# TODO: remove when `firstsiteinds(ψ::MPS)` is implemented
 function hilbertspace(L::LPDO) 
   return  (L.X isa MPS ? siteinds(L.X) : firstsiteinds(L.X))
 end
 
 hilbertspace(M::Union{MPS,MPO}) = hilbertspace(LPDO(M))
 
-function replacehilbertspace!(ψ::MPS,L::LPDO)
+
+function replacehilbertspace!(Λ::LPDO{MPS},L::LPDO)
+  ψ = Λ.X
   M = L.X
-  h_M = hilbertspace(M)
-  h_ψ = hilbertspace(ψ)
-  for j in 1:length(ψ)
-    #replaceind!(M[j],h_M[j],h_ψ[j])
-    replaceind!(ψ[j],h_ψ[j],h_M[j])
+  M_isaprocess = any(x -> hastags(x,"Input") , L.X)
+  sM = hilbertspace(L)
+  sψ = hilbertspace(ψ)
+  if M_isaprocess 
+    if (ψ isa MPS) & (M isa MPS)
+     for j in 1:length(ψ)
+        replaceind!(ψ[j],sψ[j],sM[j])
+      end
+    else
+      error("not yet implemented")
+    end
+  else
+    for j in 1:length(ψ)
+      replaceind!(ψ[j],sψ[j],sM[j])
+    end
   end
 end
-replacehilbertspace!(ψ::MPS,M::Union{MPS,MPO}) =
-  replacehilbertspace!(ψ,LPDO(M))
 
-function replacehilbertspace!(mpo::MPO,L::LPDO)
+function replacehilbertspace!(Λ::LPDO{MPO},L::LPDO; split_noisyqpt::Bool=false)
+  mpo = Λ.X  
   M = L.X
   h_mpo = hilbertspace(mpo)
   h_M = hilbertspace(M)
-  purification_tag = any(x -> hastags(x,"Purifier") , mpo)
-  # Regular MPO
-  if !purification_tag
+
+  # Check if M represents a quantum channel
+  M_isaprocess   = any(x -> hastags(x,"Input") , M)
+  # Check if mpo represents a quantum channel
+  mpo_ispurified = any(x -> hastags(x,"Purifier") , mpo)
+  # Check if mpo is mixed (either state (density-matrix) or process (choi-matrix))
+  mpo_isaprocess = any(x -> hastags(x,"Input") , mpo)
+
+  # Check that process tags (input/output) are set properly
+  if M_isaprocess
+    @assert any(x -> hastags(x,"Output") , M)
+  end
+  if mpo_isaprocess
+    @assert any(x -> hastags(x,"Output") , mpo)
+  end
+  # Hilbertspace replacement not imlemented for a state given a
+  # reference Hilbert state of a process
+  if M_isaprocess & !mpo_isaprocess
+    error("not yet implemented")
+  end
+  # mpo is a regular MPO (no purification index)
+  #@show M_isaprocess, mpo_isaprocess,mpo_ispurified
+  if !mpo_ispurified
     for j in 1:length(mpo)
-      if (hastags(M[j],"Input")) | (hastags(M[j],"Output"))
-        replaceind!(mpo[j],firstsiteinds(mpo,plev=1)[j],firstind(M[j],tags="Output"))
-        replaceind!(mpo[j],firstsiteinds(mpo,plev=0)[j],firstind(M[j],tags="Input"))
-        noprime!(mpo[j],tags="Site")
-        prime!(mpo[j],tags="Output")
-      else
-        # TODO WATCH OUT THE PRIMING HERE! 
-        #@show firstsiteinds(mpo,plev=0)[j],firstsiteinds(mpo,plev=1)[j]
-        #replaceind!(mpo[j],firstsiteinds(mpo,plev=0)[j],h_M[j]')
-        #replaceind!(mpo[j],firstsiteinds(mpo,plev=1)[j],h_M[j])
+      # Both reference and target object represents quantum channels
+      if split_noisyqpt
+        replaceind!(mpo[j],firstind(mpo[j],tags="Site",plev=0),firstind(M[j],tags="Site"))
+        replaceind!(mpo[j],firstind(mpo[j],tags="Site",plev=1),firstind(M[j],tags="Site")')
+      elseif M_isaprocess & mpo_isaprocess
+        replaceind!(mpo[j],firstind(mpo[j],tags="Output"),firstind(M[j],tags="Output"))
+        replaceind!(mpo[j],firstind(mpo[j],tags="Input"),firstind(M[j],tags="Input"))
+        setprime!(mpo[j],1,tags="Output")
+      elseif !M_isaprocess & !mpo_isaprocess
         replaceind!(mpo[j],firstsiteinds(mpo,plev=0)[j],h_M[j])
         replaceind!(mpo[j],firstsiteinds(mpo,plev=1)[j],h_M[j]')
       end
     end
+  # mpo has a purified index (is a LPDO)
   else
     # Purified MPO
     for j in 1:length(mpo)
-      # TODO
-      if (hastags(M[j],"Input")) | (hastags(M[j],"Output"))
-        replaceind!(mpo[j],firstsiteinds(mpo,plev=0)[j],h_M[j])
+      if M_isaprocess
+        replaceind!(mpo[j],firstind(mpo[j],tags="Output"),firstind(M[j],tags="Output")')
+        replaceind!(mpo[j],firstind(mpo[j],tags="Input"),firstind(M[j],tags="Input"))
+        if mpo_ispurified
+          noprime!(mpo[j])
+        end
       else
         replaceind!(mpo[j],firstsiteinds(mpo,plev=0)[j],h_M[j])
       end
     end
   end
-  #@show mpo
 end
 
-replacehilbertspace!(mpo::MPO,M::Union{MPS,MPO}) =
-  replacehilbertspace!(mpo,LPDO(M))
 
-replacehilbertspace!(L::LPDO,M::Union{MPS,MPO}) =
-  replacehilbertspace!(L.X,LPDO(M))
+replacehilbertspace!(ψ::MPS,L::LPDO) = 
+  replacehilbertspace!(LPDO(ψ),L)
 
-replacehilbertspace!(L::LPDO,M::Union{MPS,MPO,LPDO}) =
-  replacehilbertspace!(L.X,M)
+replacehilbertspace!(ψ::MPS,M::Union{MPS,MPO}) = 
+  replacehilbertspace!(LPDO(ψ),LPDO(M))
 
+replacehilbertspace!(mpo::MPO,L::LPDO;split_noisyqpt=false) = 
+  replacehilbertspace!(LPDO(mpo),L;split_noisyqpt=split_noisyqpt)
 
-#replacehilbertspace!(M::Union{MPS,MPO},ϕ::MPS) =
-#  replacehilbertspace!(LPDO(M),ϕ)
-#
-#function replacehilbertspace!(L::LPDO,ρ::MPO)
+replacehilbertspace!(mpo::MPO,M::Union{MPS,MPO}) = 
+  replacehilbertspace!(LPDO(mpo),LPDO(M))
+
+replacehilbertspace!(Λ::LPDO{MPO},M::Union{MPS,MPO}) = 
+  replacehilbertspace!(Λ,LPDO(M))
+
+replacehilbertspace!(Λ::LPDO{MPS},M::Union{MPS,MPO}) = 
+  replacehilbertspace!(Λ,LPDO(M))
+
+replacehilbertspace!(mpo::MPO,L::LPDO) = 
+  replacehilbertspace!(LPDO(mpo),L)
+
+#function replacehilbertspace!(mpo::MPO,L::LPDO)
+#  mpo = Λ.X  
 #  M = L.X
+#  h_mpo = hilbertspace(mpo)
 #  h_M = hilbertspace(M)
-#  h_ρ = hilbertspace(ρ)
 #
-#  if M isa MPS
-#    for j in 1:length(M)
-#      replaceind!(M[j],h_M[j],h_ρ[j])
-#    end
-#  elseif M isa MPO
-#    purification_tag = any(x -> hastags(x,"Purifier") , M)
-#    @show purification_tag
-#    # M is a regular MPO
-#    if !purification_tag
-#      for j in 1:length(M)
-#        @show firstsiteinds(M,plev=0)[j]
-#        replaceind!(M[j],firstsiteinds(M,plev=0)[j],h_ρ[j])
-#        replaceind!(M[j],firstsiteinds(M,plev=1)[j],h_ρ[j]')
+#  # Check if M represents a quantum channel
+#  M_isaprocess   = any(x -> hastags(x,"Input") , M)
+#  # Check if mpo represents a quantum channel
+#  mpo_ispurified = any(x -> hastags(x,"Purifier") , mpo)
+#  # Check if mpo is mixed (either state (density-matrix) or process (choi-matrix))
+#  mpo_isaprocess = any(x -> hastags(x,"Input") , mpo)
+#
+#  # Check that process tags (input/output) are set properly
+#  if M_isaprocess
+#    @assert any(x -> hastags(x,"Output") , M)
+#  end
+#  if mpo_isaprocess
+#    @assert any(x -> hastags(x,"Output") , mpo)
+#  end
+#  @show M
+#  @show mpo 
+#  # Hilbertspace replacement not imlemented for a state given a
+#  # reference Hilbert state of a process
+#  if M_isaprocess & !mpo_isaprocess
+#    error("not yet implemented")
+#  end
+#  # mpo is a regular MPO (no purification index)
+#  @show M_isaprocess, mpo_isaprocess,mpo_ispurified
+#  if !mpo_ispurified
+#    for j in 1:length(mpo)
+#      # Both reference and target object represents quantum channels
+#      if M_isaprocess & mpo_isaprocess
+#        replaceind!(mpo[j],firstind(mpo[j],tags="Output"),firstind(M[j],tags="Output"))
+#        replaceind!(mpo[j],firstind(mpo[j],tags="Input"),firstind(M[j],tags="Input"))
+#        setprime!(mpo[j],1,tags="Output")
+#      elseif !M_isaprocess & !mpo_isaprocess
+#        replaceind!(mpo[j],firstsiteinds(mpo,plev=0)[j],h_M[j])
+#        replaceind!(mpo[j],firstsiteinds(mpo,plev=1)[j],h_M[j]')
 #      end
-#    # 
-#    # uM has a Kraus dimension
-#    else
-#
 #    end
-#  end
-#
-#end
-#
-#replacehilbertspace!(M::Union{MPS,MPO},ρ::MPO) =
-#  replacehilbertspace!(LPDO(M),ρ)
-#
-
-
-
-#function replacehilbertspace!(ψ::MPS,ϕ::MPS)
-#  h_ψ = hilbertspace(ψ)
-#  h_ϕ = hilbertspace(ϕ)
-#  for j in 1:length(ψ)
-#    replaceind!(ψ[j],h_ψ[j],h_ϕ[j])
-#  end
-#end
-#
-#function replacehilbertspace!(M::MPO,ϕ::MPS)
-#  h_M = hilbertspace(M)
-#  h_ϕ = hilbertspace(ϕ)
-#  # M is a regular MPO (s'-M-s)
-#  for j in 1:length(M)
-#    replaceind!(M[j],h_M[j],h_ϕ[j])
-#  end
-#end
-#
-#function replacehilbertspace!(L::LPDO,ϕ::MPS)
-#  M = L.X
-#  purification_tag = any(x -> hastags(x,"Purifier") , M)
-#  if (M isa MPS) | (!purification_tag) 
-#    return replacehilbertspace!(M,ϕ)
+#  # mpo has a purified index (is a LPDO)
 #  else
-#    h_M = hilbertspace(M)
-#    h_ϕ = hilbertspace(ϕ)
-#    for j in 1:length(M)
-#      replaceind!(M[j],h_M[j],h_ϕ[j])
-#    end
-#  end
-#end
-
-
-
-
-#replacehilbertspace!(ρ::MPO,ϕ::MPS) = replacehilbertspace!
-
-#function replacehilbertspace!(A::LPDO,B::LPDO)
-#  B = copy(B)
-#  M = A.X
-#  hA = hilbertspace(A)
-#  hB = hilbertspace(B)
-#  # Check if there are purification indices
-#  purification_tag = any(x -> hastags(x,"Purifier") , M)
-#  
-#  @assert length(A)==length(B)
-#  for j in 1:length(M)
-#    # Object to be modified is MPS
-#    if M isa MPS
-#      replaceind!(M[j],hA[j],hB[j])
-#    # Object be modified is MPO
-#    elseif M isa MPO
-#      # TODO make it general for tagsets
-#      # Object is MPO with purification indices
-#      if purification_tag
-#      #  # Object has rank-4 bulk tensors (it's state X, ρ=XX\dagger)
-#        if length(size(M[2]))==4
-#          replaceind!(M[j],hA[j],hB[j])
-#        # Object has rank-5 bulk tensors (it.s a process)
-#        elseif length(size(M[2]))==5
-#          replaceind!(M[j],siteinds(M)[j][1],siteinds(B.X)[j][1])
-#          replaceind!(M[j],siteinds(M)[j][2],siteinds(B.X)[j][2])
+#    # Purified MPO
+#    for j in 1:length(mpo)
+#      if M_isaprocess
+#        replaceind!(mpo[j],firstind(mpo[j],tags="Output"),firstind(M[j],tags="Output")')
+#        replaceind!(mpo[j],firstind(mpo[j],tags="Input"),firstind(M[j],tags="Input"))
+#        if mpo_ispurified
+#          noprime!(mpo[j])
 #        end
-#      ## Object is a regular MPO
 #      else
-#        if B.X isa MPS
-#          replaceind!(M[j],siteinds(M)[j][1],hB[j])
-#          replaceind!(M[j],siteinds(M)[j][2],hB[j]')
-#        elseif B.X isa MPO
-#          replaceind!(M[j],inds(M[j],"Site")[1],firstind(B.X[j],"Site"))
-#          replaceind!(M[j],inds(M[j],"Site")[2],prime(firstind(B.X[j],"Site")))
-#        else
-#          replaceind!(M[j],siteinds(M)[j][1],siteinds(B.X)[j][1])
-#          replaceind!(M[j],siteinds(M)[j][2],siteinds(B.X)[j][2])
-#        end
+#        replaceind!(mpo[j],firstsiteinds(mpo,plev=0)[j],h_M[j])
 #      end
 #    end
 #  end
-#  return A
 #end
-#
-#replacehilbertspace!(A::Union{MPS,MPO},B::LPDO) = 
-#  replacehilbertspace!(LPDO(A),B)
-#
-#replacehilbertspace!(A::LPDO,B::Union{MPS,MPO}) = 
-#  replacehilbertspace!(A,LPDO(B))
-#
-#replacehilbertspace!(A::Union{MPS,MPO},B::Union{MPS,MPO}) = 
-#  replacehilbertspace!(LPDO(A),LPDO(B))
 #

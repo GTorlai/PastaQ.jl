@@ -17,8 +17,11 @@ N = length(Û)     # Number of qubits
 
 # Initialize the unitary MPO
 U0 = randomprocess(N;χ=χ)
-
+# TODO: temporary check
+#ψ = randomstate(2*N;χ=8)
+#U0 = unsplitunitary(ψ)
 # Initialize stochastic gradient descent optimizer
+@show maxlinkdim(U0)
 opt = SGD(η = 0.1)
 
 # Run process tomography
@@ -28,24 +31,26 @@ U = tomography(U0,data_in,data_out,opt;
                target=Û)
 @show U
 
-# Noisy circuit
-Random.seed!(1234)
-# Load data and target Choi matrix
-Φ,data_in,data_out = loaddata("data/qpt_circuit_noisy.h5";process=true)
-N = length(Φ)
-χ = 8
-ξ = 2
-
-# Initialize the Choi LPDO
-Λ0 = randomprocess(N;mixed=true,χ=χ,ξ=ξ)
-
-# Initialize stochastic gradient descent optimizer
-opt = SGD(η = 0.1)
-
-# Run process tomography
-Λ = tomography(Λ0,data_in,data_out,opt;
-               mixed=true,
-               batchsize=500,
-               epochs=5,
-               target=Φ)
-@show Λ
+## Noisy circuit
+#Random.seed!(1234)
+## Load data and target Choi matrix
+#Φ,data_in,data_out = loaddata("data/qpt_circuit_noisy.h5";process=true)
+#N = length(Φ)
+#χ = 8
+#ξ = 2
+#
+## Initialize the Choi LPDO
+#Λ0 = randomprocess(N;mixed=true,χ=χ,ξ=ξ)
+#
+#@show Φ
+#@show Λ0
+## Initialize stochastic gradient descent optimizer
+#opt = SGD(η = 0.1)
+#
+## Run process tomography
+#Λ = tomography(Λ0,data_in,data_out,opt;
+#               mixed=true,
+#               batchsize=500,
+#               epochs=5,
+#               target=Φ)
+##@show Λ

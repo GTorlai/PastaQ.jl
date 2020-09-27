@@ -135,7 +135,7 @@ function random_choi(ElT::Type{<:Number},sites::Vector{<: Index},χ::Int64,ξ::I
     # Site 1 
     rand_mat = σ * (ones(d,d,ξ) - 2*rand(d,d,ξ))
     if (ElT == Complex{Float64})
-      rand_mat += im * σ * (ones(d,ξ) - 2*rand(d,d,ξ))
+      rand_mat += im * σ * (ones(d,d,ξ) - 2*rand(d,d,ξ))
     end
     push!(M,ITensor(rand_mat,sites[1],sites[1]',kraus[1]))
     return LPDO(MPO(M))
@@ -165,7 +165,8 @@ function random_choi(ElT::Type{<:Number},sites::Vector{<: Index},χ::Int64,ξ::I
   Λ = MPO(M)
   addtags!(Λ, "Input", plev = 0, tags = "Qubit")
   addtags!(Λ, "Output", plev = 1, tags = "Qubit")
-  return LPDO(MPO(M), purifier_tag)
+  noprime!(Λ)
+  return LPDO(Λ)#, purifier_tag)
 end
 
 
@@ -243,7 +244,8 @@ end
 
 function randomprocess(sites::Vector{<:Index}; kwargs...)
   mixed::Bool = get(kwargs,:mixed,false)
-  return (mixed ? randomprocess(sites,LPDO; kwargs...) : randomprocess(sites,MPO; kwargs...))
+  lpdo::Bool = get(kwargs,:lpdo,false)
+  return ((mixed | lpdo) ? randomprocess(sites,LPDO; kwargs...) : randomprocess(sites,MPO; kwargs...))
 end
 
 function randomprocess(sites::Vector{<:Index},T::Type; kwargs...)

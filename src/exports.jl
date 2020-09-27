@@ -104,7 +104,6 @@ export
   loaddata,
   fullvector,
   fullmatrix,
-  hilbertspace,
   replacehilbertspace!
 
  

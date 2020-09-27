@@ -43,8 +43,7 @@ savedata(ρ,data,"data/qst_circuit_noisy.h5")
 U,data_in,data_out=generatedata(N,gates,nshots;
                                   process=true,
                                   return_state=true)
-# Returns the MPS `Γ`for a rank-1 Choi matrix  `Λ=ΓΓ^†`.  
-# The MPS has `2N` sites.
+# Return the MPO for the unitary circuit
 @show maxlinkdim(U)
 @show U
 savedata(U,data_in,data_out,"data/qpt_circuit.h5")

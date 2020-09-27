@@ -432,8 +432,36 @@ Run quantum state tomography using a the starting state `model` on `data`.
   - `observer`: keep track of measurements and fidelities.
   - `outputpath`: write observer on file 
 """
-tomography(L::LPDO,data::Array,opt::Optimizer; kwargs...) = 
-  runtomography(L,data,opt; kwargs...)
+#tomography(L::LPDO,data::Array,opt::Optimizer; kwargs...) = 
+#  runtomography(L,data,opt; kwargs...)
+
+function tomography(L::LPDO,data::Array,opt::Optimizer; kwargs...)
+  model = L.X
+  target = get(kwargs,:target,nothing)
+  if !isnothing(target)
+    target = copy(target)
+    @show L
+    @show MPO(L)
+    #@show frobenius_distance(L,target)
+    @show fullfidelity(L,target)
+    replacehilbertspace!(target,model)
+    #if typeof(target)==MPS
+    #  for j in 1:length(model)
+    #    replaceind!(target[j],firstind(target[j],"Site"),firstind(model[j],"Site"))
+    #  end
+    #else
+    #  for j in 1:length(model)
+    #    # TODO: check the priming here
+    #    replaceind!(target[j],firstind(target[j],tags="Site",plev=0),firstind(model[j],"Site"))
+    #    replaceind!(target[j],firstind(target[j],tags="Site",plev=1),firstind(model[j],"Site")')
+    #    #replaceind!(target[j],firstind(target[j],tags="Site",plev=0),firstind(model[j],"Site")')
+    #    #replaceind!(target[j],firstind(target[j],tags="Site",plev=1),firstind(model[j],"Site"))
+    #  end
+    #end
+    @show fullfidelity(L,target)
+  end  
+  return runtomography(L,data,opt;kwargs...,target=target)
+end
 
 tomography(ψ::MPS,data::Array,opt::Optimizer; kwargs...) =
   tomography(LPDO(ψ),data,opt; kwargs...)
@@ -443,24 +471,51 @@ function tomography(L::LPDO,data_in::Array,data_out::Array,opt::Optimizer; kwarg
   target = get(kwargs,:target,nothing)
   mixed::Bool = get(kwargs,:mixed,false)
   observer = get(kwargs,:observer,nothing) 
-  # Unitary circuit
-  if !mixed
-    U = L.X
-    U_split = splitunitary(U)
-    model = LPDO(splitunitary(U))
-    target = splitunitary(target)
-    V = runtomography(model,data_in,data_out,opt; kwargs...,target=target)
-    V_unsplit = unsplitunitary(V.X)
-    return V_unsplit
+  
+  @assert (target isa MPS) | (target isa MPO)
+  if isnothing(target)
+    M = runtomography(L,data_in,data_out,opt; kwargs...)
+    return (!mixed ? unsplitunitary(M.X) : unsplitchoi(M))
   else
-    target = splitchoi(target)
-    χ = maxlinkdim(L.X)
-    krausspace = [inds(L.X[j],tags="Purifier") for j in 1:length(L.X)]
-    ξ = maximum(dims(krausspace)) 
-    model = randomstate(2*size(data_in)[2];lpdo=true,χ=χ,ξ=ξ)
-    Λ = runtomography(model,data_in,data_out,opt; kwargs...,target=target)
-    Λ_unsplit = unsplitchoi(Λ)
-    return Λ_unsplit
+    # Unitary circuit
+    if !mixed
+      U = L.X
+      U_split = splitunitary(U)
+      model = LPDO(splitunitary(U))
+      target = splitunitary(target)
+      replacehilbertspace!(target,model)
+      #for j in 1:length(model)
+      #  replaceind!(target[j],firstind(target[j],"Site"),firstind(model.X[j],"Site"))
+      #end
+      V = runtomography(model,data_in,data_out,opt; kwargs...,target=target)
+      V_unsplit = unsplitunitary(V.X)
+      return V_unsplit
+    else
+      target = splitchoi(target)
+      χ = maxlinkdim(L.X)
+      krausspace = [inds(L.X[j],tags="Purifier") for j in 1:length(L.X)]
+      ξ = maximum(dims(krausspace)) 
+      model = randomstate(2*size(data_in)[2];lpdo=true,χ=χ,ξ=ξ)
+      for j in 1:length(model)
+        if isodd(j)
+          addtags!(model.X[j], "Input", tags = "Qubit")
+        else
+          addtags!(model.X[j], "Output", tags = "Qubit")
+        end
+      end
+      if !isnothing(target)
+        target = copy(target)
+        replacehilbertspace!(target,model;split_noisyqpt=true)
+        #for j in 1:length(model)
+        ## TODO: check the priming here
+        #  replaceind!(target[j],firstind(target[j],tags="Site",plev=0),firstind(model.X[j],"Site"))
+        #  replaceind!(target[j],firstind(target[j],tags="Site",plev=1),firstind(model.X[j],"Site")')
+        #end
+      end  
+      Λ = runtomography(model,data_in,data_out,opt; kwargs...,target=target)
+      Λ_unsplit = unsplitchoi(Λ)
+      return Λ_unsplit
+    end
   end
 end
 
@@ -486,20 +541,6 @@ function runtomography(L::LPDO,data::Array,opt::Optimizer;kwargs...)
   end
   
   model = copy(L)
-  
-  if !isnothing(target)
-    target = copy(target)
-    if typeof(target)==MPS
-      for j in 1:length(model)
-        replaceind!(target[j],firstind(target[j],"Site"),firstind(model.X[j],"Site"))
-      end
-    else
-      for j in 1:length(model)
-        replaceind!(target[j],inds(target[j],"Site")[1],firstind(model.X[j],"Site"))
-        replaceind!(target[j],inds(target[j],"Site")[2],prime(firstind(model.X[j],"Site")))
-      end
-    end
-  end  
   
   # Number of training batches
   num_batches = Int(floor(size(data)[1]/batchsize))
@@ -537,7 +578,6 @@ function runtomography(L::LPDO,data::Array,opt::Optimizer;kwargs...)
       avg_loss += loss/Float64(num_batches)
       update!(model,grads,opt;step=nupdate)
     end
-
     end # end @elapsed
     
     # Measure
@@ -566,6 +606,10 @@ function runtomography(L::LPDO,data::Array,opt::Optimizer;kwargs...)
       else
         F = fidelity(model,target)
         @printf("Fidelity = %.3E  ",F)
+        #disable_warn_order!()
+        #fid = fullfidelity(model,target)
+        #reset_warn_order!()
+        #@printf(" (%.3E)  | ",F)
         #frobenius = fidelity_bound(model,MPO(target))
         #@printf("Frobenius distance = %.3E  ",frobenius)
       end
@@ -668,7 +712,6 @@ function nll(L::LPDO{MPO}, data::Array; choi::Bool = false)
   N = length(lpdo)
   loss = 0.0
   s = firstsiteinds(lpdo)
-  
   for n in 1:size(data)[1]
     x = data[n,:]
 

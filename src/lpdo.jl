@@ -122,21 +122,24 @@ function ITensors.MPO(lpdo0::LPDO)
   M = ITensor[]
   prime!(lpdo[1]; tags = "Site")
   prime!(lpdo[1]; tags = "Link")
-  tmp = dag(lpdo[1]) * noprime(lpdo[1])
+  #tmp = dag(lpdo[1]) * noprime(lpdo[1])
+  tmp = lpdo[1] * noprime(dag(lpdo[1])) 
   Cdn = combiner(inds(tmp, tags = "Link"), tags = "Link,l=1")
   push!(M, tmp * Cdn)
 
   for j in 2:N-1
     prime!(lpdo[j]; tags = "Site")
     prime!(lpdo[j]; tags = "Link")
-    tmp = dag(lpdo[j]) * noprime(lpdo[j])
+    #tmp = dag(lpdo[j]) * noprime(lpdo[j])
+    tmp = lpdo[j] * noprime(dag(lpdo[j]))
     Cup = Cdn
     Cdn = combiner(inds(tmp,tags="Link,l=$j"),tags="Link,l=$j")
     push!(M, tmp * Cup * Cdn)
   end
   prime!(lpdo[N]; tags = "Site")
   prime!(lpdo[N]; tags = "Link")
-  tmp = dag(lpdo[N]) * noprime(lpdo[N])
+  #tmp = dag(lpdo[N]) * noprime(lpdo[N])
+  tmp = lpdo[N] * noprime(dag(lpdo[N])) 
   Cup = Cdn
   push!(M, tmp * Cdn)
   rho = MPO(M)
