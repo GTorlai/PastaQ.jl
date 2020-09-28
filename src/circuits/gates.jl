@@ -245,8 +245,10 @@ gate(::GateName"CCCNOT") =
 # n-qubit gates
 #
 
-function gate(::GateName"randU", N::Int)
-  Q, _ = NDTensors.qr_positive(randn(ComplexF64, N, N))
+function gate(::GateName"randU", N::Int = 2;
+              eltype = ComplexF64,
+              random_matrix = randn(eltype, N, N))
+  Q, _ = NDTensors.qr_positive(random_matrix)
   return Q
 end
 
