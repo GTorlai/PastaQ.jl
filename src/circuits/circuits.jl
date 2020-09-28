@@ -100,7 +100,7 @@ Random quantum circuit.
 """
 function randomcircuit(N::Int,depth::Int,twoqubit_bonds::Array;
                        twoqubitgate   = "CX",
-                       onequbitgates  = ["randU"])
+                       onequbitgates  = ["Rn"])
   gates = Tuple[]
   numgates_1q = length(onequbitgates)
   
@@ -109,9 +109,10 @@ function randomcircuit(N::Int,depth::Int,twoqubit_bonds::Array;
     twoqubitlayer!(gates,twoqubitgate,cycle) 
     for j in 1:N
       onequbitgatename = onequbitgates[rand(1:numgates_1q)]
-      if onequbitgatename == "randU"
-        g = (onequbitgatename, j,
-             (random_matrix = randn(ComplexF64, 2, 2),))
+      if onequbitgatename == "Rn"
+        g = ("Rn", j, (θ = π*rand(), ϕ = 2*π*rand(), λ = 2*π*rand()))
+      elseif onequbitgatename == "randU"
+        g = ("randU", j, (random_matrix = randn(ComplexF64, 2, 2),))
       else
         g = (onequbitgatename, j)
       end
@@ -123,7 +124,7 @@ end
 
 function randomcircuit(N::Int,depth::Int;
                        twoqubitgate   = "CX",
-                       onequbitgates  = ["randU"])
+                       onequbitgates  = ["Rn"])
   twoqubit_bonds = lineararray(N)
   return randomcircuit(N,depth,twoqubit_bonds;
                        twoqubitgate=twoqubitgate,
@@ -132,7 +133,7 @@ end
 
 function randomcircuit(Lx::Int,Ly::Int,depth::Int;
                        twoqubitgate   = "CX",
-                       onequbitgates  = ["randU"])
+                       onequbitgates  = ["Rn"])
   twoqubit_bonds = squarearray(Lx,Ly)
   N = Lx * Ly
   return randomcircuit(N,depth,twoqubit_bonds;

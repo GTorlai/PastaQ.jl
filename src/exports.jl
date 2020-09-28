@@ -10,10 +10,6 @@ export
 # circuits.jl
   appendlayer!,
   gatelayer,
-  twoqubitlayer,
-  twoqubitlayer!,
-  lineararray,
-  squarearray,
   randomcircuit,
 
 # lpdo.jl
@@ -24,7 +20,6 @@ export
 # quantumcircuit.jl
   # Methods
   qubits,
-  densitymatrix,
   circuit,
   choi,
   resetqubits!,
@@ -34,7 +29,7 @@ export
   choimatrix,
 
 # datagen.jl
-  # Methhods
+  # Methods
   preparationgates,
   measurementgates,
   randombases,
