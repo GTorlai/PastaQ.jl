@@ -15,20 +15,20 @@ U = runcircuit(N,gates;process=true)
 
 Random.seed!(1234)
 nshots = 1000
-ψ,data = generatedata(N,gates,nshots;return_state=true)
+ψ,data = getsamples(N,gates,nshots;return_state=true)
 savedata(ψ,data,"../examples/data/qst_circuit_test.h5")
 
-ρ,data = generatedata(N,gates,nshots;
+ρ,data = getsamples(N,gates,nshots;
                       noise="AD",γ=0.01,
                       return_state=true)
 savedata(ρ,data,"../examples/data/qst_circuit_noisy_test.h5")
 
-U,data_in,data_out=generatedata(N,gates,nshots;
+U,data_in,data_out=getsamples(N,gates,nshots;
                                   process=true,
                                   return_state=true)
 savedata(U,data_in,data_out,"../examples/data/qpt_circuit_test.h5")
 
-Λ,data_in,data_out=generatedata(N,gates,nshots;
+Λ,data_in,data_out=getsamples(N,gates,nshots;
                                   process=true,
                                   noise="AD",γ=0.01,
                                   return_state=true)

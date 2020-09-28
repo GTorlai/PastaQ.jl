@@ -249,11 +249,8 @@ function randomstate(sites::Vector{<:Index},T::Type; kwargs...)
       M = randomMPS(ElT,sites,χ)
     end
   elseif T == MPO
-    if init == "randpars"
-      M = random_mpo(ElT,sites,χ,σ)
-    else
-      error("randomMPO with circuit initialization not implemented yet")
-    end
+    #M = random_mpo(ElT,sites,χ,σ)
+    error("initialization of random MPO density matrix not yet implemented.")
   elseif T == LPDO
     M = random_lpdo(ElT,sites,χ,ξ,σ;purifier_tag=purifier_tag)
   else

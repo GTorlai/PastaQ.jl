@@ -162,25 +162,25 @@ end
   end
  
 
-  # MPS <- regular MPO (state)
-  Ψ = randomstate(N)
-  ρref = randomstate(N;mixed=true)
-  Ψprod = prod(Ψ)
-  
-  measure_before = fullmatrix(ρref) * fullvector(Ψ) 
-  replacehilbertspace!(Ψ,ρref)
-  measure_after = fullvector(ρref * Ψ)
-  
-  @test array(Ψprod) ≈ array(prod(Ψ)) 
-  @test measure_before ≈ measure_after
-  for j in 1:N
-    @test firstind(Ψ[j],tags="Site") == firstind(ρref[j],tags="Site",plev=0)
-  end
-  if printflag
-    println("Initialize MPS with MPO")
-    @show ρref
-    @show Ψ
-  end
+  ## MPS <- regular MPO (state)
+  #Ψ = randomstate(N)
+  #ρref = randomstate(N;mixed=true)
+  #Ψprod = prod(Ψ)
+  #
+  #measure_before = fullmatrix(ρref) * fullvector(Ψ) 
+  #replacehilbertspace!(Ψ,ρref)
+  #measure_after = fullvector(ρref * Ψ)
+  #
+  #@test array(Ψprod) ≈ array(prod(Ψ)) 
+  #@test measure_before ≈ measure_after
+  #for j in 1:N
+  #  @test firstind(Ψ[j],tags="Site") == firstind(ρref[j],tags="Site",plev=0)
+  #end
+  #if printflag
+  #  println("Initialize MPS with MPO")
+  #  @show ρref
+  #  @show Ψ
+  #end
   
   # MPS <- purified MPO (state)
   Ψ = randomstate(N)
@@ -203,67 +203,67 @@ end
   end
 
   
-  # regular MPO <- MPS
-  Ψref = randomstate(N)
-  ρ = randomstate(N;mixed=true)
-  ρ2 = copy(ρ)
-  
-  measure_before = fullmatrix(ρ) * fullvector(Ψref)
-  replacehilbertspace!(ρ,Ψref)
-  measure_after = fullvector(ρ * Ψref)
-  @test measure_before ≈ measure_after
-  for j in 1:N
-    @test array(ρ[j]) ≈ array(ρ2[j])
-    @test firstind(Ψref[j],tags="Site") == firstind(ρ[j],tags="Site",plev=0)
-    @test firstind(Ψref[j],tags="Site")' == firstind(ρ[j],tags="Site",plev=1)
-  end
-  if printflag
-    println("Initialize MPO with MPS")
-    @show Ψref
-    @show ρ 
-  end
-  
-  
-  # regular MPO <- regular MPO (state)
-  ρ = randomstate(N;mixed=true)
-  ρref = randomstate(N;mixed=true)
-  ρ2 = copy(ρ)
-  
-  measure_before = tr(conj(transpose(fullmatrix(ρ))) * fullmatrix(ρref))
-  replacehilbertspace!(ρ,ρref)
-  measure_after = inner(ρ,ρref)#fullmatrix(ρ * ρref)
-  
-  @test measure_before ≈ measure_after atol=1e-8
-  for j in 1:N
-    @test array(ρ[j]) ≈ array(ρ2[j])
-    @test firstind(ρref[j],tags="Site",plev=0) == firstind(ρ[j],tags="Site",plev=0)
-    @test firstind(ρref[j],tags="Site",plev=1) == firstind(ρ[j],tags="Site",plev=1)
-  end
-  if printflag
-    println("Initialize MPO with MPO")
-    @show ρref
-    @show ρ 
-  end
-  
-  # regular MPO <- purified MPO (state)
-  ρ = randomstate(N;mixed=true)
-  Λref = randomstate(N;lpdo=true)
-  ρ2 = copy(ρ)
+  ## regular MPO <- MPS
+  #Ψref = randomstate(N)
+  #ρ = randomstate(N;mixed=true)
+  #ρ2 = copy(ρ)
+  #
+  #measure_before = fullmatrix(ρ) * fullvector(Ψref)
+  #replacehilbertspace!(ρ,Ψref)
+  #measure_after = fullvector(ρ * Ψref)
+  #@test measure_before ≈ measure_after
+  #for j in 1:N
+  #  @test array(ρ[j]) ≈ array(ρ2[j])
+  #  @test firstind(Ψref[j],tags="Site") == firstind(ρ[j],tags="Site",plev=0)
+  #  @test firstind(Ψref[j],tags="Site")' == firstind(ρ[j],tags="Site",plev=1)
+  #end
+  #if printflag
+  #  println("Initialize MPO with MPS")
+  #  @show Ψref
+  #  @show ρ 
+  #end
+  #
+  #
+  ## regular MPO <- regular MPO (state)
+  #ρ = randomstate(N;mixed=true)
+  #ρref = randomstate(N;mixed=true)
+  #ρ2 = copy(ρ)
+  #
+  #measure_before = tr(conj(transpose(fullmatrix(ρ))) * fullmatrix(ρref))
+  #replacehilbertspace!(ρ,ρref)
+  #measure_after = inner(ρ,ρref)#fullmatrix(ρ * ρref)
+  #
+  #@test measure_before ≈ measure_after atol=1e-8
+  #for j in 1:N
+  #  @test array(ρ[j]) ≈ array(ρ2[j])
+  #  @test firstind(ρref[j],tags="Site",plev=0) == firstind(ρ[j],tags="Site",plev=0)
+  #  @test firstind(ρref[j],tags="Site",plev=1) == firstind(ρ[j],tags="Site",plev=1)
+  #end
+  #if printflag
+  #  println("Initialize MPO with MPO")
+  #  @show ρref
+  #  @show ρ 
+  #end
+  #
+  ## regular MPO <- purified MPO (state)
+  #ρ = randomstate(N;mixed=true)
+  #Λref = randomstate(N;lpdo=true)
+  #ρ2 = copy(ρ)
 
-  measure_before = tr(conj(transpose(fullmatrix(ρ))) * fullmatrix(Λref)) 
-  replacehilbertspace!(ρ,Λref)
-  measure_after = inner(ρ,Λref)
-  @test measure_before ≈ measure_after
-  for j in 1:N
-    @test array(ρ[j]) ≈ array(ρ2[j])
-    @test firstind(Λref.X[j],tags="Site",plev=0) == firstind(ρ[j],tags="Site",plev=0)
-    @test firstind(Λref.X[j],tags="Site",plev=0)' == firstind(ρ[j],tags="Site",plev=1)
-  end
-  if printflag
-    println("Initialize MPO with LPDO")
-    @show Λref
-    @show ρ 
-  end
+  #measure_before = tr(conj(transpose(fullmatrix(ρ))) * fullmatrix(Λref)) 
+  #replacehilbertspace!(ρ,Λref)
+  #measure_after = inner(ρ,Λref)
+  #@test measure_before ≈ measure_after
+  #for j in 1:N
+  #  @test array(ρ[j]) ≈ array(ρ2[j])
+  #  @test firstind(Λref.X[j],tags="Site",plev=0) == firstind(ρ[j],tags="Site",plev=0)
+  #  @test firstind(Λref.X[j],tags="Site",plev=0)' == firstind(ρ[j],tags="Site",plev=1)
+  #end
+  #if printflag
+  #  println("Initialize MPO with LPDO")
+  #  @show Λref
+  #  @show ρ 
+  #end
 
   # LPDO <- MPS
   Λ = randomstate(N;lpdo=true)
@@ -282,23 +282,23 @@ end
     @show Λ 
   end
   
-  # LPDO <- regular MPO (state)
-  Λ = randomstate(N;lpdo=true)
-  ρref = randomstate(N;mixed=true)
-  
-  measure_before = tr(conj(transpose(fullmatrix(ρref))) * fullmatrix(Λ))
-  replacehilbertspace!(Λ,ρref)
-  measure_after = inner(ρref,Λ)
-  @test measure_before ≈ measure_after atol=1e-7
-  for j in 1:N
-    @test firstind(ρref[j],tags="Site",plev=0) == firstind(Λ.X[j],tags="Site",plev=0)
-    @test firstind(ρref[j],tags="Site",plev=1) == firstind(Λ.X[j],tags="Site",plev=0)'
-  end
-  if printflag
-    println("Initialize LPDO with MPO")
-    @show ρref
-    @show Λ 
-  end
+  ## LPDO <- regular MPO (state)
+  #Λ = randomstate(N;lpdo=true)
+  #ρref = randomstate(N;mixed=true)
+  #
+  #measure_before = tr(conj(transpose(fullmatrix(ρref))) * fullmatrix(Λ))
+  #replacehilbertspace!(Λ,ρref)
+  #measure_after = inner(ρref,Λ)
+  #@test measure_before ≈ measure_after atol=1e-7
+  #for j in 1:N
+  #  @test firstind(ρref[j],tags="Site",plev=0) == firstind(Λ.X[j],tags="Site",plev=0)
+  #  @test firstind(ρref[j],tags="Site",plev=1) == firstind(Λ.X[j],tags="Site",plev=0)'
+  #end
+  #if printflag
+  #  println("Initialize LPDO with MPO")
+  #  @show ρref
+  #  @show Λ 
+  #end
 
   # LPDO <- purified MPO (state)
   Λ    = randomstate(N;lpdo=true)

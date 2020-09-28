@@ -111,7 +111,7 @@ end
 
 
 """
-    generatedata!(M::Union{MPS,MPO},nshots::Int)
+    getsamples!(M::Union{MPS,MPO},nshots::Int)
 
 Perform a projective measurement of a wavefunction 
 `|ψ⟩` or density operator `ρ`. The measurement consist of
@@ -120,7 +120,7 @@ distribution:
 - P(σ) = |⟨σ|ψ⟩|² : if `M = ψ is MPS`
 - P(σ) = ⟨σ|ρ|σ⟩  : if `M = ρ is MPO`
 """
-function generatedata!(M::Union{MPS,MPO};kwargs...)
+function getsamples!(M::Union{MPS,MPO};kwargs...)
   readout_errors = get(kwargs,:readout_errors,nothing) 
   orthogonalize!(M,1)
   measurement = sample(M)
@@ -133,15 +133,15 @@ end
 
 
 """
-    generatedata!(M::Union{MPS,MPO},nshots::Int)
+    getsamples!(M::Union{MPS,MPO},nshots::Int)
 
 Perform `nshots` projective measurements on a wavefunction 
 `|ψ⟩` or density operator `ρ`. 
 """
-function generatedata!(M::Union{MPS,MPO},nshots::Int; kwargs...)
+function getsamples!(M::Union{MPS,MPO},nshots::Int; kwargs...)
   measurements = Matrix{Int64}(undef, nshots, length(M))
   for n in 1:nshots
-    measurements[n,:] = generatedata!(M;kwargs...)
+    measurements[n,:] = getsamples!(M;kwargs...)
   end
   return measurements
 end
@@ -177,7 +177,7 @@ MEASUREMENT IN MULTIPLE BASES
 """
 
 """
-    generatedata(M::Union{MPS,MPO},bases::Array)
+    getsamples(M::Union{MPS,MPO},bases::Array)
 Generate a dataset of `nshots` measurements acccording to a set
 of input `bases`. For a single measurement, tf `Û` is the depth-1 
 local circuit rotating each qubit, the  data-point `σ = (σ₁,σ₂,…)
@@ -185,13 +185,13 @@ is drawn from the probability distribution:
 - P(σ) = |⟨σ|Û|ψ⟩|²   : if M = ψ is MPS
 - P(σ) = <σ|Û ρ Û†|σ⟩ : if M = ρ is MPO   
 """
-function generatedata(M0::Union{MPS,MPO},bases::Array; kwargs...)
+function getsamples(M0::Union{MPS,MPO},bases::Array; kwargs...)
   @assert length(M0) == size(bases)[2]
   data = Matrix{String}(undef, size(bases)[1],length(M0))
   for n in 1:size(bases)[1]
     meas_gates = measurementgates(bases[n,:])
     M = runcircuit(M0,meas_gates)
-    measurement = generatedata!(M;kwargs...)
+    measurement = getsamples!(M;kwargs...)
     data[n,:] = convertdatapoint(measurement,bases[n,:])
   end
   return data 
@@ -203,7 +203,7 @@ QUANTUM PROCESS TOMOGRAPHY
 """
 
 """ 
-    generatedata(M0::Union{MPS,MPO},
+    getsamples(M0::Union{MPS,MPO},
                  gate_tensors::Vector{<:ITensor},
                  prep::Array,basis::Array;
                  cutoff::Float64=1e-15,maxdim::Int64=10000,
@@ -221,7 +221,7 @@ basis rotation is performed at the output of a quantum channel.
  - `basis`: a measuremement basis (e.g. `["Z","Z","Y","X"])
 """
 # Generate a single data point for process tomography
-function generatedata(M0::Union{MPS,MPO},
+function getsamples(M0::Union{MPS,MPO},
                       gate_tensors::Vector{<:ITensor},
                       prep::Array,basis::Array;
                       cutoff::Float64=1e-15,maxdim::Int64=10000,
@@ -237,7 +237,7 @@ function generatedata(M0::Union{MPS,MPO},
   # Apply basis rotation
   M_meas = runcircuit(M_out,meas_gates)
   # Measure
-  measurement = generatedata!(M_meas;kwargs...)
+  measurement = getsamples!(M_meas;kwargs...)
   
   return convertdatapoint(measurement,basis)
 end
@@ -288,7 +288,7 @@ end
 
 
 """
-    generatedata(N::Int64,gates::Vector{<:Tuple},nshots::Int64;     
+    getsamples(N::Int64,gates::Vector{<:Tuple},nshots::Int64;     
                  noise=nothing,return_state::Bool=false,            
                  choi::Bool=false,process::Bool=false,              
                  localbasis::Array=["X","Y","Z"],                   
@@ -310,7 +310,7 @@ model.
   - `inputstates`: a set of input states (e.g. `["X+","X-","Y+","Y-","Z+","Z-"]`)   
   - `localasis`: set of basis used (e.g. `["X","Y","Z"])
 """
-function generatedata(N::Int64,gates::Vector{<:Tuple},nshots::Int64;
+function getsamples(N::Int64,gates::Vector{<:Tuple},nshots::Int64;
                       noise=nothing,return_state::Bool=false,
                       build_process::Bool=true,process::Bool=false,
                       localbasis::Array=["X","Y","Z"],
@@ -326,7 +326,7 @@ function generatedata(N::Int64,gates::Vector{<:Tuple},nshots::Int64;
     # Apply the quantum channel
     M = runcircuit(N,gates;process=false,noise=noise,
                    cutoff=cutoff,maxdim=maxdim,kwargs...)
-    data = generatedata(M,bases;readout_errors=readout_errors)
+    data = getsamples(M,bases;readout_errors=readout_errors)
     return (return_state ? (M,data) : data)
   else
     # Generate a set of prepared input state to the channel
@@ -342,7 +342,7 @@ function generatedata(N::Int64,gates::Vector{<:Tuple},nshots::Int64;
         
         meas_gates = measurementgates(bases[n,:])
         M_meas = runcircuit(M′,meas_gates)
-        measurement = generatedata!(M_meas;kwargs...)
+        measurement = getsamples!(M_meas;kwargs...)
         data[n,:] =  convertdatapoint(measurement,bases[n,:])
       end
       return (return_state ? (M ,preps, data) : (preps,data))
@@ -354,7 +354,7 @@ function generatedata(N::Int64,gates::Vector{<:Tuple},nshots::Int64;
       # Pre-compile quantum channel
       gate_tensors = compilecircuit(ψ0,gates; noise=noise, kwargs...)
       for n in 1:nshots
-        data[n,:] = generatedata(ψ0,gate_tensors,preps[n,:],bases[n,:];
+        data[n,:] = getsamples(ψ0,gate_tensors,preps[n,:],bases[n,:];
                                 noise=noise,cutoff=cutoff,choi=false,
                                 maxdim=maxdim,readout_errors=readout_errors,
                                 kwargs...)
@@ -414,7 +414,7 @@ end
 
 
 #"""
-#    generatedata(Λ0::Union{MPS,MPO},prep::Array,basis::Array)
+#    getsamples(Λ0::Union{MPS,MPO},prep::Array,basis::Array)
 #
 #Generate a single data-point for quantum process tomography using an
 #input Choi matrix `Λ0`. Each data-point consists of an input state 
@@ -423,7 +423,7 @@ end
 #of a quantum channel.
 #
 #"""
-#function generatedata(Λ0::Union{MPS,MPO},prep::Array,basis::Array; kwargs...)
+#function getsamples(Λ0::Union{MPS,MPO},prep::Array,basis::Array; kwargs...)
 #  
 #  # Generate measurement gates
 #  meas_gates = measurementgates(basis)
@@ -432,7 +432,7 @@ end
 #  # Apply basis rotation
 #  Φ_meas = runcircuit(Φ,meas_gates)
 #  # Measure
-#  measurement = generatedata!(Φ_meas;kwargs...)
+#  measurement = getsamples!(Φ_meas;kwargs...)
 #  return convertdatapoint(measurement,basis)
 #end
 
