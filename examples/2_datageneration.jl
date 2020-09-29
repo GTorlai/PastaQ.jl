@@ -53,7 +53,7 @@ savedata(U,data_in,data_out,"data/qpt_circuit.h5")
                                   noise="AD",γ=0.01,
                                   return_state=true)
 # Return the Choi matrix `Λ` as MPO wiith `2N` sites
-@show maxlinkdim(Λ)
+@show maxlinkdim(Λ.M)
 @show Λ
 savedata(Λ,data_in,data_out,"data/qpt_circuit_noisy.h5")
 
