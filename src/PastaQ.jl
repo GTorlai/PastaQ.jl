@@ -1,6 +1,5 @@
 module PastaQ
 
-using Reexport
 using ITensors
 using Random
 using LinearAlgebra
