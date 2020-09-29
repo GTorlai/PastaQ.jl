@@ -1,89 +1,52 @@
-const TomographyMeasurement = Vector{Vector{Float64}}
-
 """
 TomographyObserver is an implementation of an
 observer object (<:AbstractObserver) which
 implements custom measurements.
 """
 struct TomographyObserver <: AbstractObserver
-  ops::Vector{String}
-  sites::Vector{<:Index}
-  measurements::Dict{String,TomographyMeasurement}
-  fidelities::Vector{Float64}
-  NLL::Vector{Float64}
-
-  function TomographyObserver(M::Union{MPS,MPO})
-    sites = (typeof(M)==MPS ? siteinds(M) : firstsiteinds(M))
-    return TomographyObserver(sites)
-  end
-  
-  function TomographyObserver(sites::Vector{<:Index})
-    return new([],sites,Dict{String,TomographyMeasurement}(),[],[])
-  end
-  
-  function TomographyObserver(ops::Vector{String},
-                              sites::Vector{<:Index})
-    measurements = Dict(o => TomographyMeasurement() for o in ops)
-    return new(ops,sites,measurements,[],[])
-  end
-  
-  function TomographyObserver(ops::Vector{String},
-                              M::Union{MPS,MPO})
-    sites = (typeof(M)==MPS ? siteinds(M) : firstsiteinds(M))
-    return TomographyObserver(ops,sites)
+  fidelity::Vector{Float64}
+  negative_loglikelihood::Vector{Float64}
+  frobenius_distance::Vector{Float64}
+  fidelity_bound::Vector{Float64}
+  function TomographyObserver()
+    return new([],[],[],[])
   end
 end
 
-measurements(o::TomographyObserver) = o.measurements
-fidelities(o::TomographyObserver)   = o.fidelities
-sites(obs::TomographyObserver)      = obs.sites
-ops(obs::TomographyObserver)        = obs.ops
-NLL(obs::TomographyObserver)        = obs.NLL
+negative_loglikelihood(obs::TomographyObserver) = obs.negative_loglikelihood
+fidelity(o::TomographyObserver) = o.fidelity
+fidelity_bound(o::TomographyObserver) = o.fidelity_bound
+frobenius_distance(o::TomographyObserver) = o.frobenius_distance
 
-function measurelocalops!(obs::TomographyObserver,
-                          wf::ITensor,
-                          i::Int)
-  for o in ops(obs)
-    m = dot(wf, noprime(gate(o,sites(obs),i)*wf))
-    imag(m)>1e-8 && (@warn "encountered finite imaginary part when measuring $o")
-    measurements(obs)[o][end][i]=real(m)
-  end
-end
-
-function measure!(obs::TomographyObserver,ψ0::MPS;
-                  nll=nothing,target=nothing,istargetlpdo::Bool=true)
+function measure!(obs::TomographyObserver;
+                  NLL=nothing,frob_dist=nothing,
+                  F=nothing,Fbound=nothing)
   
-  ψ = copy(ψ0)
-  N = length(ψ)
-  
-  for o in ops(obs)
-    push!(measurements(obs)[o],zeros(N))
-  end
-
-  # Measure 1-local operators
-  for j in 1:N
-    orthogonalize!(ψ,j)
-    measurelocalops!(obs,ψ[j],j)
-  end
-
   # Record negative log likelihood
-  if !isnothing(nll)
-    push!(NLL(obs),nll)
+  if !isnothing(NLL)
+    push!(negative_loglikelihood(obs),NLL)
   end
-  
   # Measure fidelity
-  if !isnothing(target)
-    F = fidelity(ψ,target)
-    push!(fidelities(obs),F)
+  if !isnothing(F)
+    push!(fidelity(obs),F)
+  end
+  # Measure fidelity
+  if !isnothing(frob_dist)
+    push!(frobenius_distance(obs),frob_dist)
+  end
+  # Measure fidelity
+  if !isnothing(Fbound)
+    push!(fidelity_bound(obs),Fbound)
   end
 end
 
 function writeobserver(obs::TomographyObserver,fout::String; M=nothing)
-  h5open(fout,"w") do file
-    # TODO save measurements
-    #write(file,"measurements",obs.measurements)
-    write(file,"fidelity",obs.fidelities)
-    write(file,"nll",obs.NLL)
+  h5rewrite(fout,"w") do file
+    write(file,"nll",obs.negative_loglikelihood)
+    write(file,"fidelity",obs.fidelity)
+    write(file,"frobenius_distance",obs.frobenius_distance)
+    write(file,"fidelity_bound",obs.fidelity_bound)
+    write(file,"nll",obs.negative_loglikelihood)
     if !isnothing(M)
       write(file,"model",M)
     end

@@ -438,7 +438,7 @@ representation, and run tomography with the split algorithm. Returns the unsplit
 function tomography(L::LPDO,data_in::Array,data_out::Array,opt::Optimizer; kwargs...)
   target = get(kwargs,:target,nothing)
   mixed::Bool = get(kwargs,:mixed,false)
-  observer = get(kwargs,:observer,nothing) 
+  record = get(kwargs,:record,false) 
   
   # Target LPDO are currently not supported
   if target isa Choi{MPO}
@@ -462,10 +462,16 @@ function tomography(L::LPDO,data_in::Array,data_out::Array,opt::Optimizer; kwarg
     # Split the target state: MPO -> MPS (x2 sites)
     target = splitunitary(target)
     # Run process tomography
-    V = runtomography(model,data_in,data_out,opt; kwargs...,target=target)
-    ## Unsplit the learned state: MPS -> MPO (÷2 sites) 
-    V_unsplit = unsplitunitary(V.X)
-    return V_unsplit
+    output = runtomography(model,data_in,data_out,opt; kwargs...,target=target)
+    if record
+      V,observer = output
+      V_unsplit = unsplitunitary(V.X)
+      return V_unsplit,observer
+    else
+      V = output
+      V_unsplit = unsplitunitary(V.X)
+      return V_unsplit
+    end
   # 2. Noisy channel (choi matrix)
   else
     # Split the target choi matrix: MPO -> MPS (x2 sites)
@@ -473,10 +479,16 @@ function tomography(L::LPDO,data_in::Array,data_out::Array,opt::Optimizer; kwarg
     target = splitchoi(target).M
     model = splitchoi(Choi(L))
     # Run process tomography
-    Λ = runtomography(model.M,data_in,data_out,opt; kwargs...,target=target)
-    # Unsplit the learned choi matrix: MPO (rank-4) -> MPO (rank-5, ÷2 sites) 
-    Λ_unsplit = unsplitchoi(Choi(Λ))
-    return Λ_unsplit
+    output = runtomography(model.M,data_in,data_out,opt; kwargs...,target=target)
+    if record
+      Λ,observer = output
+      Λ_unsplit = unsplitchoi(Choi(Λ))
+      return Λ_unsplit,observer
+    else
+      Λ = output
+      Λ_unsplit = unsplitchoi(Choi(Λ))
+      return Λ_unsplit
+    end
   end
 end
 
@@ -501,8 +513,8 @@ Run quantum state tomography using a the starting state `model` on `data`.
   - `epochs`: total number of full sweeps over the dataset.
   - `target`: target quantum state underlying the data
   - `choi`: if true, compute probability using Choi matrix
-  - `observer`: keep track of measurements and fidelities.
-  - `outputpath`: write observer on file 
+  - `record`: if true, keep track of measurements and fidelities.
+  - `outputpath`: write training metrics on file 
 """
 function runtomography(L::LPDO,data::Array,opt::Optimizer;kwargs...)
  
@@ -513,16 +525,23 @@ function runtomography(L::LPDO,data::Array,opt::Optimizer;kwargs...)
   epochs::Int64 = get(kwargs,:epochs,1000)
   target = get(kwargs,:target,nothing)
   choi::Bool = get(kwargs,:choi,false)
-  observer = get(kwargs,:observer,nothing) 
+  record = get(kwargs,:record,false) 
   outputpath = get(kwargs,:fout,nothing)
-
-  # Convert data to projetors
-  data = "state" .* data
+  
+  if record
+    observer = TomographyObserver()
+  end
   if (use_localnorm && use_globalnorm)
     error("Both input norms are set to true")
   end
   
+  # Convert data to projetors
+  data = "state" .* data
+  
   model = copy(L)
+  F = nothing
+  Fbound=nothing
+  frob_dist = nothing
   
   # Number of training batches
   num_batches = Int(floor(size(data)[1]/batchsize))
@@ -559,28 +578,20 @@ function runtomography(L::LPDO,data::Array,opt::Optimizer;kwargs...)
       update!(model,grads,opt;step=nupdate)
     end
     end # end @elapsed
-    # Measure
-    if !isnothing(observer)
-      measure!(observer,model;nll=avg_loss,target=target)
-      # Save on file
-      if !isnothing(outputpath)
-        writeobserver(observer,outputpath; M = model)
-      end
-    end
     
     print("Ep = $ep  ")
     @printf("Loss = %.5E  ",avg_loss)
     if !isnothing(target)
       if ((model.X isa MPO) & (target isa MPO)) 
         frob_dist = frobenius_distance(model,target)
-        fbound = fidelity_bound(model,target)
+        Fbound = fidelity_bound(model,target)
         @printf("Trace distance = %.3E  ",frob_dist)
-        @printf("Fidelity bound = %.3E  ",fbound)
+        @printf("Fidelity bound = %.3E  ",Fbound)
         if (length(model) <= 8)
           disable_warn_order!()
-          fid = fullfidelity(model,target)
+          F = fullfidelity(model,target)
           reset_warn_order!()
-          @printf("Fidelity = %.3E  ",fid)
+          @printf("Fidelity = %.3E  ",F)
         end
       else
         F = fidelity(model,target)
@@ -590,12 +601,26 @@ function runtomography(L::LPDO,data::Array,opt::Optimizer;kwargs...)
     @printf("Time = %.3f sec",ep_time)
     print("\n")
 
+    # Measure
+    if record 
+      measure!(observer;
+               NLL=avg_loss,
+               F=F,
+               Fbound=Fbound,
+               frob_dist=frob_dist)
+      # Save on file
+      if !isnothing(outputpath)
+        writeobserver(observer,outputpath; M = model)
+      end
+    end
+    
+
     tot_time += ep_time
   end
   @printf("Total Time = %.3f sec\n",tot_time)
   normalize!(model)
 
-  return (isnothing(observer) ? model : (model,observer))
+  return (record ? (model,observer) : model)
 end
 
 function runtomography(C::Choi,data::Array,opt::Optimizer;kwargs...)
