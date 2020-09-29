@@ -28,7 +28,7 @@ savedata(data, ψ, "data/qst_circuit.h5")
 
 # b) Noisy circuit
 data, ρ = getsamples(N, gates, nshots;
-                     noise = "AD", γ = 0.01)
+                     noise = ("amplitude_damping", (γ = 0.01,)))
 # Return the mixed density operator as MPO
 @show maxlinkdim(ρ)
 @show ρ
@@ -48,7 +48,7 @@ savedata(data_in, data_out, U, "data/qpt_circuit.h5")
 
 data_in, data_out, Λ = getsamples(N, gates, nshots;
                                   process = true,
-                                  noise = "AD", γ = 0.01)
+                                  noise = ("amplitude_damping", (γ = 0.01,)))
 # Return the Choi matrix `Λ` as MPO wiith `2N` sites
 @show maxlinkdim(Λ.M)
 @show Λ

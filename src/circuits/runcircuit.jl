@@ -116,26 +116,27 @@ function applygate!(M::Union{MPS,MPO},
 end
 
 """
-    buildcircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple};
-                 noise=nothing, kwargs...)
+    buildcircuit(M::Union{MPS,MPO}, gates::Vector{<:Tuple};
+                 noise = nothing)
 
 Generates a vector of ITensors from a tuple of gates. 
 If noise is nontrivial, the corresponding Kraus operators are 
 added to each gate as a tensor with an extra (Kraus) index.
 """
-function buildcircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple}; 
-                        noise=nothing, kwargs...)
+function buildcircuit(M::Union{MPS,MPO}, gates::Vector{<:Tuple}; 
+                      noise::Union{Nothing, String, Tuple{String, NamedTuple}} = nothing)
   gate_tensors = ITensor[]
   for g in gates
     push!(gate_tensors, gate(M, g))
     ns = g[2]
     if !isnothing(noise)
-      if ns isa Int
-        push!(gate_tensors, gate(M, noise, g[2]; kwargs...))
-      else
-        for n in ns
-          push!(gate_tensors, gate(M, noise, n; kwargs...))
+      for n in ns
+        if noise isa String
+          noisegate = (noise, n)
+        elseif noise isa Tuple{String, NamedTuple}
+          noisegate = (noise[1], n, noise[2])
         end
+        push!(gate_tensors, gate(M, noisegate))
       end
     end
   end
@@ -143,20 +144,18 @@ function buildcircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple};
 end
 
 """
-    runcircuit(M::Union{MPS,MPO},gate_tensors::Vector{<:ITensor}; kwargs...)
+    runcircuit(M::Union{MPS,MPO}, gate_tensors::Vector{<:ITensor}; kwargs...)
 
 Apply the circuit to a state (wavefunction/densitymatrix) from a list of tensors.
 """
-function runcircuit(M::Union{MPS,MPO},
+function runcircuit(M::Union{MPS, MPO},
                     gate_tensors::Vector{<:ITensor};
-                    kwargs...) 
+                    apply_dag = nothing,
+                    cutoff = 1e-15,
+                    maxdim = 10_000) 
   # Check if gate_tensors contains Kraus operators
   inds_sizes = [length(inds(g)) for g in gate_tensors]
   noiseflag = any(x -> x%2==1 , inds_sizes)
-  
-  apply_dag = get(kwargs,:apply_dag,nothing)
-  cutoff    = get(kwargs,:cutoff,1E-15)
-  maxdim    = get(kwargs,:maxdim,10000)
 
   if apply_dag==false & noiseflag==true
     error("noise simulation requires apply_dag=true")
@@ -169,36 +168,41 @@ function runcircuit(M::Union{MPS,MPO},
       # If M is an MPS, |ψ⟩ -> ρ = |ψ⟩⟨ψ| (MPS -> MPO)
       ρ = (typeof(M) == MPS ? MPO(M) : M)
       # ρ -> ε(ρ) (MPO -> MPO, conjugate evolution)
-      Mc = apply(gate_tensors,ρ; apply_dag=true, cutoff=cutoff,maxdim=maxdim)
+      return apply(gate_tensors, ρ; apply_dag = true, cutoff = cutoff, maxdim = maxdim)
     # Pure state evolution
     else
       # |ψ⟩ -> U |ψ⟩ (MPS -> MPS)
       #  ρ  -> U ρ U† (MPO -> MPO, conjugate evolution)
-      Mc = (typeof(M) == MPS ? apply(gate_tensors, M; apply_dag=false,cutoff=cutoff,maxdim=maxdim) :
-                               apply(gate_tensors, M; apply_dag=true,cutoff=cutoff,maxdim=maxdim))
+      if M isa MPS
+        return apply(gate_tensors, M; cutoff = cutoff, maxdim = maxdim)
+      else
+        return apply(gate_tensors, M; apply_dag = true, cutoff = cutoff, maxdim = maxdim)
+      end
     end
   # Custom mode (apply_dag = true / false)
   else
-    if typeof(M) == MPO
+    if M isa MPO
       # apply_dag = true:  ρ -> U ρ U† (MPO -> MPO, conjugate evolution)
       # apply_dag = false: ρ -> U ρ (MPO -> MPO)
-      Mc = apply(gate_tensors, M; apply_dag=apply_dag,kwargs...)
-    elseif typeof(M) == MPS
+      return apply(gate_tensors, M; apply_dag = apply_dag, cutoff = cutoff, maxdim = maxdim)
+    elseif M isa MPS
       # apply_dag = true:  ψ -> U ψ -> ρ = (U ψ) (ψ† U†) (MPS -> MPO, conjugate)
       # apply_dag = false: ψ -> U ψ (MPS -> MPS)
-      Mc = (apply_dag ? MPO(apply(gate_tensors, M; apply_dag=false,cutoff=cutoff,maxdim=maxdim)) :
-                        apply(gate_tensors, M; apply_dag=apply_dag=false,cutoff=cutoff,maxdim=maxdim))
+      Mc = apply(gate_tensors, M; cutoff = cutoff, maxdim = maxdim)
+      if apply_dag
+        Mc = MPO(Mc)
+      end
+      return Mc
     else
       error("Input state must be an MPS or an MPO")
     end
   end
-  return Mc
 end
 
 
 """
-    runcircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple}; noise=nothing, apply_dag=nothing, 
-               cutoff=1e-15, maxdim=10000, kwargs...)
+    runcircuit(M::Union{MPS,MPO}, gates::Vector{<:Tuple}; noise=nothing, apply_dag=nothing, 
+               cutoff=1e-15, maxdim=10000)
 
 Apply the circuit to a state (wavefunction or density matrix) from a list of gates.
 
@@ -206,7 +210,7 @@ If an MPS `|ψ⟩` is input, there are three possible modes:
 
 1. By default (`noise = nothing` and `apply_dag = nothing`), the evolution `U|ψ⟩` is performed.
 2. If `noise` is set to something nontrivial, the mixed evolution `ε(|ψ⟩⟨ψ|)` is performed.
-   Example: `noise = "AD"`, `γ=0.1` (amplitude damping channel with decay rate `γ`)
+   Example: `noise = ("amplitude_damping", (γ = 0.1,))` (amplitude damping channel with decay rate `γ = 0.1`)
 3. If `noise = nothing` and `apply_dag = true`, the evolution `U|ψ⟩⟨ψ|U†` is performed.
 
 If an MPO `ρ` is input, there are three possible modes:
@@ -215,10 +219,16 @@ If an MPO `ρ` is input, there are three possible modes:
 2. If `noise` is set to something nontrivial, the evolution `ε(ρ)` is performed.
 3. If `noise = nothing` and `apply_dag = false`, the evolution `Uρ` is performed.
 """
-function runcircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple}; noise=nothing,apply_dag=nothing, 
-                    cutoff=1e-15,maxdim=10000,kwargs...)
-  gate_tensors = buildcircuit(M,gates; noise=noise, kwargs...) 
-  runcircuit(M,gate_tensors; cutoff=cutoff,maxdim=maxdim,apply_dag=apply_dag, kwargs...)
+function runcircuit(M::Union{MPS, MPO}, gates::Vector{<:Tuple};
+                    noise = nothing,
+                    apply_dag = nothing, 
+                    cutoff = 1e-15,
+                    maxdim = 10000)
+  gate_tensors = buildcircuit(M, gates; noise = noise) 
+  return runcircuit(M, gate_tensors;
+                    cutoff = cutoff,
+                    maxdim = maxdim,
+                    apply_dag = apply_dag)
 end
 
 
@@ -240,46 +250,58 @@ The starting state is generated automatically based on the flags `process`, `noi
    The MPO approximation for the unitary represented by the set of gates is returned. 
    In this case, `noise` must be `nothing`.
 """
-function runcircuit(N::Int,gates::Vector{<:Tuple}; process=false,noise=nothing,
-                    cutoff=1e-15,maxdim=10000,kwargs...)
+function runcircuit(N::Int, gates::Vector{<:Tuple};
+                    process = false,
+                    noise = nothing,
+                    cutoff = 1e-15,
+                    maxdim = 10000)
   if process==false
     ψ = qubits(N) # = |0,0,0,…,0⟩
     # noiseless: ψ -> U ψ
     # noisy:     ψ -> ρ = ε(|ψ⟩⟨ψ|)
-    return runcircuit(ψ,gates;noise=noise,cutoff=cutoff,maxdim=maxdim,kwargs...)
+    return runcircuit(ψ, gates;
+                      noise = noise,
+                      cutoff = cutoff,
+                      maxdim = maxdim)
   
   elseif process==true
     if isnothing(noise)
       U = circuit(N) # = 1⊗1⊗1⊗…⊗1
-      return runcircuit(U,gates;noise=nothing,apply_dag=false,cutoff=cutoff,maxdim=maxdim,kwargs...) 
+      return runcircuit(U, gates;
+                        noise = nothing,
+                        apply_dag = false,
+                        cutoff = cutoff,
+                        maxdim = maxdim) 
     else
-      return choimatrix(N,gates;noise=noise,cutoff=cutoff,maxdim=maxdim,kwargs...)
+      return choimatrix(N, gates;
+                        noise = noise,
+                        cutoff = cutoff,
+                        maxdim = maxdim)
     end
   end
     
 end
 
 """
-    runcircuit(M::ITensor,gate_tensors::Vector{ <: ITensor};kwargs...)
+    runcircuit(M::ITensor,gate_tensors::Vector{ <: ITensor}; kwargs...)
 
 Apply the circuit to a ITensor from a list of tensors.
 """
-runcircuit(M::ITensor,gate_tensors::Vector{ <: ITensor};kwargs...) =
+runcircuit(M::ITensor, gate_tensors::Vector{ <: ITensor}; kwargs...) =
   apply(gate_tensors, M; kwargs...)
 
 """
-    runcircuit(M::ITensor,gates::Vector{<:Tuple}; cutoff=1e-15,maxdim=10000,kwargs...)
+    runcircuit(M::ITensor, gates::Vector{<:Tuple})
 
-Apply the circuit to a ITensor from a list of gates.
+Apply the circuit to an ITensor from a list of gates.
 """
-function runcircuit(M::ITensor,gates::Vector{<:Tuple}; cutoff=1e-15,maxdim=10000,kwargs...)
-  gate_tensors = buildcircuit(M,gates)
-  return runcircuit(M,gate_tensors;cutoff=1e-15,maxdim=10000,kwargs...)
-end
+runcircuit(M::ITensor, gates::Vector{ <: Tuple}; noise = nothing, kwargs...) =
+  runcircuit(M, buildcircuit(M, gates; noise = noise); kwargs...)
 
 """
-    choimatrix(N::Int, gates::Vector{<:Tuple}; noise=nothing, apply_dag=false,
-               cutoff=1e-15, maxdim=10000, kwargs...)
+    choimatrix(N::Int, gates::Vector{<:Tuple};
+               noise = nothing, apply_dag = false,
+               cutoff = 1e-15, maxdim = 10000, kwargs...)
 
 Compute the Choi matrix `Λ` from a set of gates that make up a quantum process.
 
@@ -297,7 +319,7 @@ If `noise = nothing` and `apply_dag = true`, the Choi matrix `Λ` is returned as
 function choimatrix(N::Int,
                     gates::Vector{<:Tuple};
                     noise = nothing, apply_dag = false,
-                    cutoff = 1e-15, maxdim = 10000, kwargs...)
+                    cutoff = 1e-15, maxdim = 10000)
   if isnothing(noise)
     error("choi matrix requires noise")
   end
@@ -311,7 +333,7 @@ function choimatrix(N::Int,
   s = [siteinds(U,tags="Output")[j][1] for j in 1:length(U)]
   compiler = circuit(s)
   prime!(compiler,-1,tags="Qubit") 
-  gate_tensors = buildcircuit(compiler, gates; noise=noise, kwargs...)
+  gate_tensors = buildcircuit(compiler, gates; noise = noise)
 
   M = ITensor[]
   push!(M,U[1] * noprime(U[1]))

@@ -213,17 +213,17 @@ end
 
   # Pure state, noisy circuit
   ψ0 = qubits(N)
-  ρ = runcircuit(ψ0,gates,noise="DEP",p=0.1)
+  ρ = runcircuit(ψ0, gates; noise = ("depolarizing", (p = 0.1,)))
   ρ0 = MPO(ψ0)
-  U = buildcircuit(ρ0, gates, noise="DEP", p=0.1)
+  U = buildcircuit(ρ0, gates; noise = ("depolarizing", (p = 0.1,)))
   disable_warn_order!()
   @test prod(ρ) ≈ runcircuit(prod(ρ0), U; apply_dag=true)
   reset_warn_order!()
   
   ## Mixed state, noisy circuit
   ρ0 = qubits(N, mixed = true)
-  ρ = runcircuit(ρ0, gates; noise = "DEP", p = 0.1)
-  U = buildcircuit(ρ0, gates, noise= "DEP",p = 0.1)
+  ρ = runcircuit(ρ0, gates; noise = ("depolarizing", (p = 0.1,)))
+  U = buildcircuit(ρ0, gates, noise = ("depolarizing", (p = 0.1,)))
   @test prod(ρ) ≈ runcircuit(prod(ρ0), U; apply_dag=true)
   reset_warn_order!()
 

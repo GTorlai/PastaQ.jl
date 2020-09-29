@@ -73,7 +73,7 @@ gates = [("X" , 1),                        # Pauli X on qubit 1
          ("√SWAP", (3, 4)),                # Sqrt Swap on qubits [2,3]
          ("T" , 4)]                        # T gate on qubit 4
 
-# Returns the MPS at the output of the quantum circuit: `|ψ⟩ = Û|0,0,…,0⟩`
+# Returns the MPS at the output of the quantum circuit: `|ψ⟩ = Û|0,0,…,0⟩`
 # First the gate ("X" , 1) is applied, then ("CX", (1, 3)), etc.
 ψ = runcircuit(N, gates)
 # This is equivalent to:
@@ -101,7 +101,7 @@ gates = randomcircuit(N, depth)
 
 @show gates
 
-# Returns the MPS at the output of the quantum circuit: `|ψ⟩ = Û|0,0,…,0⟩`
+# Returns the MPS at the output of the quantum circuit: `|ψ⟩ = Û|0,0,…,0⟩`
 ψ = runcircuit(N, gates)
 
 # Generate the MPO for the unitary circuit:
@@ -132,10 +132,10 @@ gates = randomcircuit(N, depth) # random circuit
 # Run the circuit using an amplitude damping channel with decay rate `γ=0.01`.
 # Returns the MPO for the mixed density operator `ρ = ε(|0,0,…⟩⟨0,0,̇…|), where
 # `ε` is the quantum channel.
-ρ = runcircuit(N, gates; noise="AD", γ=0.01)
+ρ = runcircuit(N, gates; noise = ("amplitude_damping", (γ = 0.01,))
 
 # Compute the Choi matrix of the channel
-Λ = runcircuit(N, gates; process = true, noise="AD", γ=0.01)
+Λ = runcircuit(N, gates; process = true, noise = ("amplitude_damping", (γ = 0.01,))
 ```
 
 
@@ -170,8 +170,7 @@ data, ψ = getsamples(N, gates, nshots)
 # > data = getsamples(ψ, bases)
 
 # 2b) Output state of a noisy circuit. Also returns the output MPO
-data, ρ = generatedata(N, gates, nshots; noise = "AD", γ = 0.01)
-```
+data, ρ = generatedata(N, gates, nshots; noise = ("amplitude_damping", (γ = 0.01,)))
 
 For quantum process tomography of a unitary or noisy circuit, the measurement data
 consists of pairs of input and output states to the channel. Each input state is a
@@ -191,7 +190,7 @@ unitary circuit (noiseless) or the Choi matrix (noisy).
 data_in, data_out, U = getsamples(N, gates, nshots; process=true)
 
 # Noisy channel, returns the Choi matrix
-data_in, data_out, Λ = getsamples(N, gates, nshots; process=true, noise = "AD", γ = 0.01)
+data_in, data_out, Λ = generatedata(N, gates, nshots; process = true, noise = ("amplitude_damping", (γ = 0.01,)))
 ```
 
 

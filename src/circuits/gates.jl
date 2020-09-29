@@ -349,6 +349,9 @@ function gate(::GateName"AD"; γ::Number)
   return kraus 
 end
 
+# To accept the gate name "amplitude_damping"
+gate(::GateName"amplitud"; kwargs...) = gate("AD"; kwargs...)
+
 function gate(::GateName"PD"; γ::Number)
   kraus = zeros(2,2,2)
   kraus[:,:,1] = [1 0
@@ -357,6 +360,12 @@ function gate(::GateName"PD"; γ::Number)
                   0 sqrt(γ)]
   return kraus 
 end
+
+# To accept the gate name "phase_damping"
+gate(::GateName"phase_da"; kwargs...) = gate("PD"; kwargs...)
+
+# To accept the gate name "dephasing"
+gate(::GateName"dephasin"; kwargs...) = gate("PD"; kwargs...)
 
 function gate(::GateName"DEP"; p::Number)
   kraus = zeros(Complex{Float64},2,2,4)
@@ -370,6 +379,9 @@ function gate(::GateName"DEP"; p::Number)
                                 0 -1]
   return kraus 
 end
+
+# To accept the gate name "depolarizing"
+gate(::GateName"depolari"; kwargs...) = gate("DEP"; kwargs...)
 
 gate(::GateName"noiseDEP"; kwargs...) =
   gate("DEP";kwargs...)
@@ -410,8 +422,12 @@ function gate(gn::GateName, s::Index...; kwargs...)
   error("Gate definitions must be either Vector{T} (for a state), Matrix{T} (for a gate) or Array{T,3} (for a noise model). For gate name $gn, gate size is $(size(g)).") 
 end
 
-gate(gn::String, s::Index...; kwargs...) =
-  gate(GateName(gn), s...; kwargs...)
+function gate(gn::String, s::Index...; kwargs...)
+  if length(gn) > 8
+    gn = gn[1:8]
+  end
+  return gate(GateName(gn), s...; kwargs...)
+end
 
 gate(gn::String, s::Vector{<:Index}, ns::Int...; kwargs...) =
   gate(gn, s[[ns...]]...; kwargs...)

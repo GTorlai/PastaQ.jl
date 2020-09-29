@@ -8,18 +8,18 @@ N = 4   # Number of qubits
 depth=4 # Depth of the quantum circuit
 gates = randomcircuit(N,depth)
 
-ψ = runcircuit(N,gates)
-U = runcircuit(N,gates;process=true)
-ρ = runcircuit(N,gates;noise="AD",γ=0.01)
-Λ = runcircuit(N,gates;process=true,noise="AD",γ=0.01)
+ψ = runcircuit(N, gates)
+U = runcircuit(N, gates; process = true)
+ρ = runcircuit(N, gates; noise = ("amplitude_damping", (γ = 0.01,)))
+Λ = runcircuit(N, gates; process = true, noise = ("amplitude_damping", (γ = 0.01,)))
 
 Random.seed!(1234)
 nshots = 100
 data, ψ = getsamples(N, gates, nshots)
 savedata(data, ψ, "../examples/data/qst_circuit_test.h5")
 
-data, ρ = getsamples(N,gates,nshots;
-                     noise="AD",γ=0.01)
+data, ρ = getsamples(N, gates, nshots;
+                     noise = ("amplitude_damping", (γ = 0.01,)))
 savedata(data, ρ, "../examples/data/qst_circuit_noisy_test.h5")
 
 data_in, data_out, U = getsamples(N,gates,nshots;
@@ -28,7 +28,7 @@ savedata(data_in, data_out, U, "../examples/data/qpt_circuit_test.h5")
 
 data_in, data_out, Λ = getsamples(N,gates,nshots;
                                   process = true,
-                                  noise = "AD", γ = 0.01)
+                                  noise = ("amplitude_damping", (γ = 0.01,)))
 savedata(data_in, data_out, Λ, "../examples/data/qpt_circuit_noisy_test.h5")
 
 
