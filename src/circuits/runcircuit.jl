@@ -116,14 +116,14 @@ function applygate!(M::Union{MPS,MPO},
 end
 
 """
-    compilecircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple};
+    buildcircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple};
                  noise=nothing, kwargs...)
 
 Generates a vector of ITensors from a tuple of gates. 
 If noise is nontrivial, the corresponding Kraus operators are 
 added to each gate as a tensor with an extra (Kraus) index.
 """
-function compilecircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple}; 
+function buildcircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple}; 
                         noise=nothing, kwargs...)
   gate_tensors = ITensor[]
   for g in gates
@@ -217,7 +217,7 @@ If an MPO `ρ` is input, there are three possible modes:
 """
 function runcircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple}; noise=nothing,apply_dag=nothing, 
                     cutoff=1e-15,maxdim=10000,kwargs...)
-  gate_tensors = compilecircuit(M,gates; noise=noise, kwargs...) 
+  gate_tensors = buildcircuit(M,gates; noise=noise, kwargs...) 
   runcircuit(M,gate_tensors; cutoff=cutoff,maxdim=maxdim,apply_dag=apply_dag, kwargs...)
 end
 
@@ -273,7 +273,7 @@ runcircuit(M::ITensor,gate_tensors::Vector{ <: ITensor};kwargs...) =
 Apply the circuit to a ITensor from a list of gates.
 """
 function runcircuit(M::ITensor,gates::Vector{<:Tuple}; cutoff=1e-15,maxdim=10000,kwargs...)
-  gate_tensors = compilecircuit(M,gates)
+  gate_tensors = buildcircuit(M,gates)
   return runcircuit(M,gate_tensors;cutoff=1e-15,maxdim=10000,kwargs...)
 end
 
@@ -311,7 +311,7 @@ function choimatrix(N::Int,
   s = [siteinds(U,tags="Output")[j][1] for j in 1:length(U)]
   compiler = circuit(s)
   prime!(compiler,-1,tags="Qubit") 
-  gate_tensors = compilecircuit(compiler, gates; noise=noise, kwargs...)
+  gate_tensors = buildcircuit(compiler, gates; noise=noise, kwargs...)
 
   M = ITensor[]
   push!(M,U[1] * noprime(U[1]))

@@ -24,7 +24,7 @@ PastaQ is developed at the Center for Computational Quantum Physics of the Flati
 and it is supported by the Simons Foundation.
 
 ## Installation
-The PastatQ package can be installed with the Julia package manager. From the Julia REPL,
+The PastaQ package can be installed with the Julia package manager. From the Julia REPL,
 type ] to enter the Pkg REPL mode and run:
 
 ```
@@ -168,18 +168,12 @@ gates = randomcircuit(N, depth) # Build gates
 data, ψ = getsamples(N, gates, nshots)
 
 #  Note: the above is equivalent to:
-# > bases = randombases(N, nshots; localbasis=["X","Y","Z"])
+# > bases = randombases(N, nshots; localbasis = ["X","Y","Z"])
 # > ψ = runcircuit(N, gates)
 # > data = getsamples(ψ, bases)
 
 # 2b) Output state of a noisy circuit. Also returns the output MPO
-data, ρ = getsamples(N, gates, nshots; noise="AD", γ=0.01)
-
-# 2c) Generate data for quantum process tomography, consisting of input states
-# (data_in) to a quantum channel, and the corresponding projective measurements
-# at the output. By defaul, the states prepared at the inputs are selected from
-# product states of eigenstates of Pauli operators, while measurements bases are
-# sampled from the Pauli group.
+data, ρ = generatedata(N, gates, nshots; noise = "AD", γ = 0.01)
 ```
 
 For quantum process tomography of a unitary or noisy circuit, the measurement data
@@ -200,17 +194,5 @@ unitary circuit (noiseless) or the Choi matrix (noisy).
 data_in, data_out, U = getsamples(N, gates, nshots; process=true)
 
 # Noisy channel, returns the Choi matrix
-data_in, data_out, Λ = getsamples(N, gates, nshots; process=true, noise="AD", γ=0.01)
+data_in, data_out, Λ = getsamples(N, gates, nshots; process=true, noise = "AD", γ = 0.01)
 ```
-
-
-### Quantum tomography
-
-
-
-## Full code examples
-
-
-### Quantum state tomography
-
-### Quantum process tomography

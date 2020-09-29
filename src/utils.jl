@@ -1,16 +1,16 @@
 """
-    savedata(model::Union{MPS,MPO},
-             data::Array,output_path::String)
+    savedata(data::Array, model::Union{MPS,MPO,Choi},
+             output_path::String)
 
 Save data and model on file:
 
 # Arguments:
-  - `model`: MPS or MPO
   - `data`: array of measurement data
+  - `model`: MPS, MPO, or Choi
   - `output_path`: path to file
 """
-function savedata(model::Union{MPS,MPO,LPDO},
-                  data::Array,
+function savedata(data::Array,
+                  model::Union{MPS,MPO,LPDO},
                   output_path::String)
   # Make the path the file will sit in, if it doesn't exist
   mkpath(dirname(output_path))
@@ -21,20 +21,22 @@ function savedata(model::Union{MPS,MPO,LPDO},
 end
 
 """
-    savedata(model::Union{MPS,MPO},
-             data::Array,output_path::String)
+    savedata(data_in::Array,
+             data_out::Array,
+             model::Union{MPS,MPO,Choi},
+             output_path::String)
 
 Save data and model on file:
 
 # Arguments:
-  - `model`: MPS or MPO
   - `data_in` : array of preparation states
   - `data_out`: array of measurement data
+  - `model`: MPS, MPO, or Choi
   - `output_path`: path to file
 """
-function savedata(model::Union{MPO,Choi},
-                  data_in::Array,
+function savedata(data_in::Array,
                   data_out::Array,
+                  model::Union{MPO,Choi},
                   output_path::String)
   # Make the path the file will sit in, if it doesn't exist
   mkpath(dirname(output_path))
@@ -52,25 +54,27 @@ Load data and model from file:
 
 # Arguments:
   - `input_path`: path to file
-  - `process`: if `true`, load input/output data 
+  - `process`: if `true`, data is treated as coming from measuring a process, and loads both input and output data
 """
 
-function loaddata(input_path::String;process::Bool=false)
+function loaddata(input_path::String; process::Bool = false)
   fin = h5open(input_path,"r")
   
   g = g_open(fin,"model")
   typestring = read(attrs(g)["type"])
   modeltype = eval(Meta.parse(typestring))
-  model = read(fin,"model",modeltype)
+  model = read(fin, "model", modeltype)
+  
   if process
     data_in = read(fin,"data_in")
     data_out = read(fin,"data_out")
-    return model,data_in,data_out
+    close(fin)
+    return data_in, data_out, model
   else
     data = read(fin,"data")
-    return model,data
+    close(fin)
+    return data, model
   end
-  close(fin)
 end
 
 """
@@ -105,7 +109,6 @@ function fullmatrix(M::MPO; reverse::Bool = true)
 end
 
 fullmatrix(L::LPDO; kwargs...) = fullmatrix(MPO(L); kwargs...)
-
 
 # TEMPORARY FUNCTION
 # TODO: remove when `firstsiteinds(ψ::MPS)` is implemented

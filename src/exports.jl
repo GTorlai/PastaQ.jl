@@ -25,8 +25,8 @@ export
   qubits,
   circuit,
   resetqubits!,
-  compilecircuit,
-  compilecircuit!,
+  buildcircuit,
+  buildcircuit!,
   runcircuit,
 
 # datagen.jl
@@ -35,9 +35,7 @@ export
   measurementgates,
   randombases,
   randompreparations,
-  getsamples!,
   getsamples,
-  readouterror!,
 
 # randomstates,jl
   # Methods
@@ -47,9 +45,7 @@ export
 # quantumtomography,jl
   # Methods
   normalize!,
-  nll,
   tomography,
-  runtomography,
 
 # distances.jl
   # Methods
@@ -80,7 +76,5 @@ export
   savedata,
   loaddata,
   fullvector,
-  fullmatrix,
+  fullmatrix
 
-# ITensors.jl
-  maxlinkdim

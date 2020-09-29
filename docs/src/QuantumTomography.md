@@ -6,7 +6,7 @@
 
 ```@docs
 tomography
-runtomography
+PastaQ.runtomography
 ```
 
 ## Certification
