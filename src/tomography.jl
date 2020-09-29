@@ -441,6 +441,9 @@ function tomography(L::LPDO,data_in::Array,data_out::Array,opt::Optimizer; kwarg
   observer = get(kwargs,:observer,nothing) 
   
   # Target LPDO are currently not supported
+  if target isa Choi
+    target = target.M
+  end
   @assert (target isa MPS) | (target isa MPO)
   if isnothing(target)
     M = runtomography(L,data_in,data_out,opt; kwargs...)
@@ -628,11 +631,11 @@ function runtomography(L::LPDO,
   return runtomography(L,data,opt; choi=true,kwargs...)
 end
 
-runtomography(U::MPO,data_in::Array, data_out::Array,opt::Optimizer; kwargs...) =
-  runtomography(LPDO(U),data_in,data_out,opt; kwargs...)
-
-runtomography(C::Choi,data_in::Array, data_out::Array,opt::Optimizer; kwargs...) =
-  runtomography(C.M,data_in,data_out,opt; kwargs...)
+#runtomography(U::MPO,data_in::Array, data_out::Array,opt::Optimizer; kwargs...) =
+#  runtomography(LPDO(U),data_in,data_out,opt; kwargs...)
+#
+#runtomography(C::Choi,data_in::Array, data_out::Array,opt::Optimizer; kwargs...) =
+#  runtomography(C.M,data_in,data_out,opt; kwargs...)
 
 
 """

@@ -37,7 +37,7 @@ data = generatedata(Ψ,bases)
 # Quantum state tomography
 # Initialize variational state
 χ = maxlinkdim(Ψ)
-ψ0 = randomstate(N;χ=χ)
+ψ0 = randomstate(Ψ0;χ=χ)
 # Optimizer
 opt = SGD(η = 0.01)
 # Run tomography
