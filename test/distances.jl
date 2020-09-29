@@ -36,7 +36,7 @@ using Random
   ψ_vec ./= sqrt(K)
   
   ξ = 2
-  ρ = randomstate(ψ;lpdo=true,χ=χ,ξ=ξ)
+  ρ = randomstate(ψ;mixed=true,χ=χ,ξ=ξ)
   
   ρ_mat = fullmatrix(ρ)
   J = tr(ρ_mat)
@@ -71,7 +71,7 @@ end
   @test T ≈ F
     
   Random.seed!(1111)
-  ρ = randomstate(ψ1;lpdo=true,χ=2,ξ=2)
+  ρ = randomstate(ψ1;mixed=true,χ=2,ξ=2)
   
   ρ_mpo = MPO(ρ)
   σ_mpo = MPO(ψ2)
@@ -90,7 +90,7 @@ end
 
 
   Random.seed!(1111)
-  σ = randomstate(ψ1;lpdo=true,χ=2,ξ=2)
+  σ = randomstate(ψ1;mixed=true,χ=2,ξ=2)
   
   ρ_mpo = MPO(ψ1)
   σ_mpo = MPO(σ)
@@ -108,9 +108,9 @@ end
   @test T ≈ F
   
   Random.seed!(1111)
-  ρ = randomstate(N;lpdo=true,χ=2,ξ=2)
+  ρ = randomstate(N;mixed=true,χ=2,ξ=2)
   Random.seed!(1111)
-  σ = randomstate(ρ;lpdo=true,χ=2,ξ=2)
+  σ = randomstate(ρ;mixed=true,χ=2,ξ=2)
   
   ρ_mpo = MPO(ρ)
   σ_mpo = MPO(σ)
@@ -149,7 +149,7 @@ end
   @test f ≈ F̃
     
   Random.seed!(1111)
-  ρ = randomstate(ψ1;lpdo=true,χ=2,ξ=2)
+  ρ = randomstate(ψ1;mixed=true,χ=2,ξ=2)
   
   ρ_mpo = MPO(ρ)
   σ_mpo = MPO(ψ2)
@@ -165,7 +165,7 @@ end
 
 
   Random.seed!(1111)
-  σ = randomstate(ψ1;lpdo=true,χ=2,ξ=2)
+  σ = randomstate(ψ1;mixed=true,χ=2,ξ=2)
   
   ρ_mpo = MPO(ψ1)
   σ_mpo = MPO(σ)
@@ -179,9 +179,9 @@ end
   @test f ≈ F̃
   
   Random.seed!(1111)
-  ρ = randomstate(N;lpdo=true,χ=2,ξ=2)
+  ρ = randomstate(N;mixed=true,χ=2,ξ=2)
   Random.seed!(1111)
-  σ = randomstate(ρ;lpdo=true,χ=2,ξ=2)
+  σ = randomstate(ρ;mixed=true,χ=2,ξ=2)
   
   ρ_mpo = MPO(ρ)
   σ_mpo = MPO(σ)

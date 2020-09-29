@@ -244,27 +244,25 @@ end
 
 
 """
-    projectchoi(Λ0::MPO,prep::Array)
+    projectchoi(Λ0::Choi{MPO},prep::Array)
 
-Project the Choi matrix (MPS/MPO) input indices into a state `prep` 
+Project the Choi matrix (MPO only for now) input indices into a state `prep` 
 made out of single-qubit Pauli eigenstates (e.g. `|ϕ⟩ =|+⟩⊗|0⟩⊗|r⟩⊗…).
-The resulting MPS/MPO describes the quantum state obtained by applying
+The resulting MPO describes the quantum state obtained by applying
 the quantum channel underlying the Choi matrix to `|ϕ⟩`.
 """
-function projectchoi(Λ0::MPO,prep::Array)
-  Λ = copy(Λ0) 
+function projectchoi(Λ0::Choi{MPO},prep::Array)
+  Λ = copy(Λ0)
+  choi = Λ.M
   state = "state" .* copy(prep) 
+  s = firstsiteinds(choi,tags="Input")
   
-  M = ITensor[]
-  s = firstsiteinds(Λ,tags="Input")
-  
-  for j in 1:length(Λ)
-    # No conjugate on the gate (transpose input)
-    Λ[j] = Λ[j] * dag(gate(state[j],s[j]))
-    Λ[j] = Λ[j] * prime(gate(state[j],s[j]))
-    push!(M,Λ[j])
+  for j in 1:length(choi)
+    # No conjugate on the gate (transpose input!)
+    choi[j] = choi[j] * dag(gate(state[j],s[j]))
+    choi[j] = choi[j] * prime(gate(state[j],s[j]))
   end
-  return MPO(M)
+  return choi
 end
 
 
@@ -334,12 +332,10 @@ function getsamples(N::Int64,gates::Vector{<:Tuple},nshots::Int64;
                                n_distinctstates = n_distinctstates)
     # Generate data using circuit MPO (noiseless) or Choi matrix (noisy)
     if build_process
-      M = (isnothing(noise) ? runcircuit(N,gates;process=true,cutoff=cutoff,maxdim=maxdim) :
-                              choimatrix(N,gates;noise=noise, cutoff=cutoff,maxdim=maxdim,kwargs...))
+      # Get unitary MPO / Choi matrix
+      M = runcircuit(N,gates;process=true,noise=noise, cutoff=cutoff,maxdim=maxdim,kwargs...)
       for n in 1:nshots
-        # TODO: simplify with the Choi type
-        M′= (isnothing(noise) ? Ψ = projectunitary(M,preps[n,:]) : projectchoi(M,preps[n,:]))
-        
+        M′= (isnothing(noise) ? projectunitary(M,preps[n,:]) : projectchoi(M,preps[n,:]))
         meas_gates = measurementgates(bases[n,:])
         M_meas = runcircuit(M′,meas_gates)
         measurement = getsamples!(M_meas;kwargs...)
@@ -349,7 +345,7 @@ function getsamples(N::Int64,gates::Vector{<:Tuple},nshots::Int64;
     
     # Generate data with full state evolution
     else
-      # Initialize state and indicxcecs
+      # Initialize state and indices
       ψ0 = qubits(N)
       # Pre-compile quantum channel
       gate_tensors = compilecircuit(ψ0,gates; noise=noise, kwargs...)
@@ -411,28 +407,4 @@ function convertdatapoints(datapoints::Array,bases::Array;state::Bool=false)
   end
   return newdata
 end
-
-
-#"""
-#    getsamples(Λ0::Union{MPS,MPO},prep::Array,basis::Array)
-#
-#Generate a single data-point for quantum process tomography using an
-#input Choi matrix `Λ0`. Each data-point consists of an input state 
-#(a product state of single-qubit Pauli eigenstates) and an output 
-#state measured after a given basis rotation is performed at the output 
-#of a quantum channel.
-#
-#"""
-#function getsamples(Λ0::Union{MPS,MPO},prep::Array,basis::Array; kwargs...)
-#  
-#  # Generate measurement gates
-#  meas_gates = measurementgates(basis)
-#  # Project Choi matrix input subspace
-#  Φ = projectchoi(Λ0,prep)
-#  # Apply basis rotation
-#  Φ_meas = runcircuit(Φ,meas_gates)
-#  # Measure
-#  measurement = getsamples!(Φ_meas;kwargs...)
-#  return convertdatapoint(measurement,basis)
-#end
 

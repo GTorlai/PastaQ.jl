@@ -49,7 +49,10 @@ function fidelity(ψ::MPS, ρ::MPO)
   # log_F̃ = loginner(ψ, ρ, ψ)
   # log_K = 2 * lognorm(ψ) + logtr(ρ) 
   log_F̃ = log(abs(inner(ψ, ρ, ψ)))
-  log_K = 2 * lognorm(ψ) + log(real(tr(ρ))) 
+  
+  @assert imag(tr(ρ)) ≈ 0.0 atol=1e-10
+  log_K = 2 * lognorm(ψ) + log(tr(ρ)) 
+  
   fidelity = exp(log_F̃ - log_K)
   return fidelity
 end

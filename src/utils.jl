@@ -16,6 +16,9 @@ function savedata(model::Union{MPS,MPO},
   mkpath(dirname(output_path))
   h5rewrite(output_path) do fout
     write(fout,"data",data)
+    if model isa Choi
+      model = model.M
+    end
     write(fout,"model",model)
   end
 end
@@ -32,7 +35,7 @@ Save data and model on file:
   - `data_out`: array of measurement data
   - `output_path`: path to file
 """
-function savedata(model::Union{MPS,MPO},
+function savedata(model::Union{MPS,MPO,Choi},
                   data_in::Array,
                   data_out::Array,
                   output_path::String)
@@ -41,6 +44,9 @@ function savedata(model::Union{MPS,MPO},
   h5rewrite(output_path) do fout
     write(fout,"data_in",data_in)
     write(fout,"data_out",data_out)
+    if model isa Choi
+      model = model.M
+    end
     write(fout,"model",model)
   end
 end

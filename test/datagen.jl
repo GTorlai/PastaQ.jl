@@ -228,7 +228,7 @@ end
     ψ_in  = runcircuit(N,pgates)
     ψ_out = runcircuit(ψ_in,gates)
     
-    Ψ_out = projectunitary(U,preps[n,:])
+    Ψ_out = PastaQ.projectunitary(U,preps[n,:])
     @test fullvector(ψ_out) ≈ fullvector(Ψ_out) 
     
     ψ_m   = runcircuit(ψ_out,mgates)
@@ -239,7 +239,7 @@ end
 end
 
 
-@testset "project choi" begin
+@testset "choi matrix + projectchoi" begin
   N = 4
   ntrial=100
   gates = randomcircuit(N,4)
@@ -254,7 +254,7 @@ end
     ψ_in  = runcircuit(N,pgates)
     ρ_out = runcircuit(ψ_in,gates;noise="AD",γ=0.1)
     
-    Λ_out = projectchoi(Λ,preps[n,:])
+    Λ_out = PastaQ.projectchoi(Λ,preps[n,:])
     @test fullmatrix(ρ_out) ≈ fullmatrix(Λ_out)
     
     ρ_m   = runcircuit(ρ_out,mgates)
@@ -266,7 +266,7 @@ end
 @testset "getsamples" begin
   
   N = 4
-  nshots = 100
+  nshots = 10
   gates = randomcircuit(N,4)
   ψ = runcircuit(N,gates)
   ρ = runcircuit(N,gates;noise="AD",γ=0.1)
@@ -316,7 +316,7 @@ end
 @testset "readout errors" begin
   
   N = 4
-  nshots = 100
+  nshots = 10
   gates = randomcircuit(N,4)
   ψ = runcircuit(N,gates)
   ρ = runcircuit(N,gates;noise="AD",γ=0.1)

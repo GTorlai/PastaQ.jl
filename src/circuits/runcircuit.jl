@@ -327,7 +327,7 @@ function choimatrix(N::Int,
   M[N] = M[N] * Cdn
   ρ = MPO(M)
   Λ = runcircuit(ρ,gate_tensors;apply_dag=true,cutoff=cutoff, maxdim=maxdim)
-  return Λ
+  return Choi(Λ)
 end
 
 

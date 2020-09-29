@@ -201,11 +201,18 @@ function random_choi(ElT::Type{<:Number},sites::Vector{<: Index},χ::Int64,ξ::I
   push!(M,ITensor(rand_mat,sites[N],sites[N]',links[N-1],kraus[N]))
   
   Λ = MPO(M)
-  # Add process tags
-  addtags!(Λ, "Input", plev = 0, tags = "Qubit")
-  addtags!(Λ, "Output", plev = 1, tags = "Qubit")
+  has_inputtags = (any(x -> hastags(x,"Input") , sites))
+  has_outputtags = (any(x -> hastags(x,"Output") , sites))
+  if !has_inputtags && !has_outputtags
+    addtags!(Λ, "Input", plev = 0, tags = "Qubit")
+    addtags!(Λ, "Output", plev = 1, tags = "Qubit")
+  elseif !has_outputtags
+    for j in 1:N
+      replacetags!(Λ,plev=1,"Input","Output")
+    end
+  end
   noprime!(Λ)
-  return LPDO(Λ)#, purifier_tag)
+  return Choi(LPDO(Λ))#, purifier_tag)
 end
 
 
@@ -217,12 +224,12 @@ end
 
 function randomstate(sites::Vector{<:Index}; kwargs...)
   mixed::Bool = get(kwargs,:mixed,false)
-  lpdo::Bool  = get(kwargs,:lpdo,false)
-  if lpdo
-    return randomstate(sites,LPDO; kwargs...)
+  lpdo::Bool  = get(kwargs,:lpdo,true)
+  if !mixed
+    return randomstate(sites,MPS; kwargs...)
   else
-    if !mixed
-      return randomstate(sites,MPS; kwargs...)
+    if lpdo
+      return randomstate(sites,LPDO; kwargs...)
     else
       return randomstate(sites,MPO; kwargs...)
     end
@@ -260,11 +267,18 @@ function randomstate(sites::Vector{<:Index},T::Type; kwargs...)
 end
 
 function randomstate(M::Union{MPS,MPO,LPDO}; kwargs...)
-  N = length(M)
-  state = randomstate(N;kwargs...)
-  replacehilbertspace!(state,M)
-  return state
+  hM = hilbertspace(M)
+  return randomstate(hM;kwargs...)
+  #state = randomstate(N;kwargs...)
+  #replacehilbertspace!(state,M)
+  #return state
 end
+#function randomstate(M::Union{MPS,MPO,LPDO}; kwargs...)
+#  N = length(M)
+#  state = randomstate(N;kwargs...)
+#  replacehilbertspace!(state,M)
+#  return state
+#end
 
 
 function randomprocess(N::Int64; kwargs...)
@@ -274,8 +288,7 @@ end
 
 function randomprocess(sites::Vector{<:Index}; kwargs...)
   mixed::Bool = get(kwargs,:mixed,false)
-  lpdo::Bool = get(kwargs,:lpdo,false)
-  return ((mixed | lpdo) ? randomprocess(sites,LPDO; kwargs...) : randomprocess(sites,MPO; kwargs...))
+  return (mixed ? randomprocess(sites,Choi; kwargs...) : randomprocess(sites,MPO; kwargs...))
 end
 
 function randomprocess(sites::Vector{<:Index},T::Type; kwargs...)
@@ -295,7 +308,7 @@ function randomprocess(sites::Vector{<:Index},T::Type; kwargs...)
     else
       error("randomMPO with circuit initialization not implemented yet")
     end
-  elseif T == LPDO
+  elseif T == Choi
     M = random_choi(ElT,sites,χ,ξ,σ;purifier_tag=purifier_tag)
   else
     error("ansatz type not recognized")
@@ -303,10 +316,23 @@ function randomprocess(sites::Vector{<:Index},T::Type; kwargs...)
   return M
 end
 
-function randomprocess(M::Union{MPS,MPO,LPDO}; kwargs...)
+randomprocess(C::Choi; kwargs...) = 
+  randomprocess(C.M; kwargs...)
+
+randomprocess(L::LPDO; kwargs...) = 
+  randomprocess(L.X; kwargs...)
+
+function randomprocess(M::Union{MPS,MPO}; kwargs...)
+  mixed = get(kwargs,:mixed,false)
   N = length(M)
-  proc = randomprocess(N;kwargs...)
-  replacehilbertspace!(proc,M)
+  s = Index[]
+  #processtags = !(any(x -> hastags(x,"Input") , sites))
+  for j in 1:N
+    #@show inds(M[j])
+    push!(s,firstind(M[j],tags="Site",plev=0))
+    #push!(s,firstind(M[j],tags="Input"))
+  end
+  proc = randomprocess(s; mixed=mixed,kwargs...)
   return proc
 end
 

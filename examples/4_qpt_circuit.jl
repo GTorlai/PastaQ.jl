@@ -43,7 +43,7 @@ N = length(Φ)
 ξ = 2
 
 # Initialize the Choi LPDO
-Λ0 = randomprocess(N;mixed=true,χ=χ,ξ=ξ)
+Λ0 = randomprocess(Φ;mixed=true,χ=χ,ξ=ξ)
 
 @show Φ
 @show Λ0

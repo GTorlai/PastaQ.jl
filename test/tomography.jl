@@ -7,7 +7,7 @@ using Random
 function splitstatewrapper(N::Int64,χ::Int64,ξ::Int64)
   split_version = true
   if split_version
-    return randomstate(2*N;lpdo=true,χ=χ,ξ=ξ)
+    return randomstate(2*N;mixed=true,χ=χ,ξ=ξ)
   else
     return randomprocess(2*N;mixed=trueχ=χ,ξ=ξ)
   end
@@ -680,9 +680,7 @@ end
   V0 = randomprocess(U0;mixed=false,χ=4)
   Ψ = splitunitary(U0)
   U = unsplitunitary(Ψ)
-  for j in 1:N
-    @test U[j] ≈ U0[j]
-  end
+  @test prod(U) ≈ prod(U0)
 end
 
 @testset "splitchoi" begin
@@ -690,13 +688,13 @@ end
   gates = randomcircuit(N,2)
   Λ0 = choimatrix(N,gates;noise="AD",γ=0.1)
   append!(gates,randomcircuit(N,2))
-  Γ0 = choimatrix(N,gates;noise="AD",γ=0.1)
-  replacehilbertspace!(Γ0,Λ0)
-  
   ρ = splitchoi(Λ0)
-
   Λ = unsplitchoi(ρ)
-  for j in 1:length(Λ0)
-    @test Λ0[j] ≈ Λ.X[j]
-  end
+  @test prod(Λ0.M) ≈ prod(Λ.M)
+
+  Λ0 = randomprocess(N;mixed=true)
+  ρ = splitchoi(Λ0)
+  Λ = unsplitchoi(ρ)
+  @test prod(Λ.M.X) ≈ prod(Λ.M.X)
+
 end

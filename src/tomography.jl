@@ -421,15 +421,8 @@ TEMPORARY WRAPPER
 This function is required as long as the process tomography is 
 using a split representation.
 """
-function tomography(L::LPDO,data::Array,opt::Optimizer; kwargs...)
-  model = L.X
-  target = get(kwargs,:target,nothing)
-  if !isnothing(target)
-    target = copy(target)
-    replacehilbertspace!(target,model)
-  end  
-  return runtomography(L,data,opt;kwargs...,target=target)
-end
+tomography(L::LPDO,data::Array,opt::Optimizer; kwargs...) =
+  runtomography(L,data,opt;kwargs...)
 
 tomography(ψ::MPS,data::Array,opt::Optimizer; kwargs...) =
   tomography(LPDO(ψ),data,opt; kwargs...)
@@ -461,50 +454,32 @@ function tomography(L::LPDO,data_in::Array,data_out::Array,opt::Optimizer; kwarg
     model = LPDO(splitunitary(U))
     # Split the target state: MPO -> MPS (x2 sites)
     target = splitunitary(target)
-    # Replace the hilbert space indices
-    replacehilbertspace!(target,model)
     # Run process tomography
     V = runtomography(model,data_in,data_out,opt; kwargs...,target=target)
-    # Unsplit the learned state: MPS -> MPO (÷2 sites) 
+    ## Unsplit the learned state: MPS -> MPO (÷2 sites) 
     V_unsplit = unsplitunitary(V.X)
     return V_unsplit
   # 2. Noisy channel (choi matrix)
   else
     # Split the target choi matrix: MPO -> MPS (x2 sites)
-    target = splitchoi(target)
-
-    # ---------------------------------------------------
-    # ---------------------------------------------------
-    # TODO: TEMPORARY 
-    # Build a new model with twice as many sites, and same bond
-    # and kraus dimensions. 
-    χ = maxlinkdim(L.X)
-    krausspace = [inds(L.X[j],tags="Purifier") for j in 1:length(L.X)]
-    ξ = maximum(dims(krausspace)) 
-    model = randomstate(2*size(data_in)[2];lpdo=true,χ=χ,ξ=ξ)
-    # Add the appropriate process tags (since using random state).
-    for j in 1:length(model)
-      if isodd(j)
-        addtags!(model.X[j], "Input", tags = "Qubit")
-      else
-        addtags!(model.X[j], "Output", tags = "Qubit")
-      end
-    end
-    # ---------------------------------------------------
-    # ---------------------------------------------------
-    
-    # Replace the hilbert space indices
-    replacehilbertspace!(target,model;split_noisyqpt=true)
+    #@show target
+    target = splitchoi(target).M
+    model = splitchoi(Choi(L))
     # Run process tomography
-    Λ = runtomography(model,data_in,data_out,opt; kwargs...,target=target)
+    Λ = runtomography(model.M,data_in,data_out,opt; kwargs...,target=target)
     # Unsplit the learned choi matrix: MPO (rank-4) -> MPO (rank-5, ÷2 sites) 
-    Λ_unsplit = unsplitchoi(Λ)
+    Λ_unsplit = unsplitchoi(Choi(Λ))
     return Λ_unsplit
   end
 end
 
 tomography(U::MPO,data_in::Array,data_out::Array,opt::Optimizer; kwargs...) = 
   tomography(LPDO(U),data_in,data_out,opt; kwargs...)
+
+tomography(C::Choi,data_in::Array,data_out::Array,opt::Optimizer; kwargs...) = 
+  tomography(C.M,data_in,data_out,opt; kwargs...)
+
+
 
 """
     tomography(L::LPDO, data::Array, opt::Optimizer; kwargs...)
@@ -546,7 +521,6 @@ function runtomography(L::LPDO,data::Array,opt::Optimizer;kwargs...)
   num_batches = Int(floor(size(data)[1]/batchsize))
   
   tot_time = 0.0
-
   # Training iterations
   for ep in 1:epochs
     ep_time = @elapsed begin
@@ -558,7 +532,6 @@ function runtomography(L::LPDO,data::Array,opt::Optimizer;kwargs...)
     # Sweep over the data set
     for b in 1:num_batches
       batch = data[(b-1)*batchsize+1:b*batchsize,:]
-      
       # Local normalization
       if use_localnorm
         modelcopy = copy(model)
@@ -579,7 +552,6 @@ function runtomography(L::LPDO,data::Array,opt::Optimizer;kwargs...)
       update!(model,grads,opt;step=nupdate)
     end
     end # end @elapsed
-    
     # Measure
     if !isnothing(observer)
       measure!(observer,model;nll=avg_loss,target=target)
@@ -619,6 +591,11 @@ function runtomography(L::LPDO,data::Array,opt::Optimizer;kwargs...)
   return (isnothing(observer) ? model : (model,observer))
 end
 
+function runtomography(C::Choi,data::Array,opt::Optimizer;kwargs...)
+ return runtomography(C.M,data,opt;kwargs...)
+end
+
+
 runtomography(ψ::MPS, data::Array,opt::Optimizer; kwargs...) =
   runtomography(LPDO(ψ),data,opt; kwargs...)
 
@@ -652,7 +629,10 @@ function runtomography(L::LPDO,
 end
 
 runtomography(U::MPO,data_in::Array, data_out::Array,opt::Optimizer; kwargs...) =
-  runtomography(LPDO(U),data_in,data_out,opt; kwargs...).X
+  runtomography(LPDO(U),data_in,data_out,opt; kwargs...)
+
+runtomography(C::Choi,data_in::Array, data_out::Array,opt::Optimizer; kwargs...) =
+  runtomography(C.M,data_in,data_out,opt; kwargs...)
 
 
 """
@@ -781,7 +761,78 @@ function unsplitunitary(ψ0::MPS)
   return U
 end
 
+
+#function splitchoi(M::MPO;cutoff=1e-15,maxdim=1000)
+#  
+#  @show M 
+#  Λ = copy(M)
+#  choitag = any(x -> hastags(x,"Input") , M)
+#  T = ITensor[]
+#  u,S,v = svd(Λ[1],inds(Λ[1],tags="Input"), 
+#              cutoff=cutoff, maxdim=maxdim)
+#  push!(T,u*S)
+#  push!(T,v)
+#  
+#  for j in 2:length(Λ)
+#    u,S,v = svd(Λ[j],inds(Λ[j],tags="Input")[1],
+#                commonind(Λ[j-1],Λ[j]),cutoff=cutoff,maxdim=maxdim) 
+#    push!(T,u*S)
+#    push!(T,v)
+#  end
+#  @show MPO(T)
+#  return Choi(MPO(T))
+#end
+
+splitchoi(Λ::Choi{MPO}; kwargs...) = splitchoi(Λ.M; kwargs...)
+
+splitchoi(Λ::Choi{LPDO{MPO}}; kwargs...) = splitchoi(Λ.M; kwargs...)
+
+function splitchoi(L::LPDO{MPO};cutoff=1e-15,maxdim=1000)
+  X = copy(L.X)
+  T = ITensor[]
+  
+  u,S,v = svd(X[1],firstind(X[1],tags="Input"),firstind(X[1],tags="Purifier"),
+              cutoff=cutoff, maxdim=maxdim)
+  push!(T,u*S)
+  push!(T,v)
+  purification_index = Index(1,tags="Purifier,k=2")
+  T[2] = T[2] * ITensor(1,purification_index)
+  for j in 2:length(X)
+    u,S,v = svd(X[j],inds(X[j],tags="Input")[1],firstind(X[j],tags="Purifier"),
+                commonind(X[j-1],X[j]),cutoff=cutoff,maxdim=maxdim,
+                righttags="Link,l=$(j)")
+
+    push!(T,u*S)
+    push!(T,v)
+    replacetags!(T[end-1],"k=$j","k=$(2*j-1)")
+    purification_index = Index(1,tags="Purifier,k=$(2*j)")
+    T[end] = T[end] * ITensor(1,purification_index)
+  end
+  return Choi(LPDO(MPO(T)))
+end
+  
+
+function unsplitchoi(C::Choi{LPDO{MPO}})
+  M = C.M.X
+  T = ITensor[]
+  for j in 1:2:length(M)
+    t = M[j]*M[j+1]
+    t = t * combiner(inds(t,tags="Purifier"),tags="Purifier,k=$(j÷2+1)")
+    push!(T,t)
+  end
+  return Choi(LPDO(MPO(T)))
+end
+
+function unsplitchoi(C::Choi{MPO})
+  M = C.M
+  T = ITensor[M[j]*M[j+1] for j in 1:2:length(M)]
+  return Choi(MPO(T))
+end
+
+
+
 function splitchoi(Λ::MPO;cutoff=1e-15,maxdim=10000)
+  @show Λ
   choitag = any(x -> hastags(x,"Input") , Λ)
   if !choitag
     # Choi indices 
@@ -802,40 +853,7 @@ function splitchoi(Λ::MPO;cutoff=1e-15,maxdim=10000)
     push!(T,v)
   end
   Λ_split = MPO(T)
-  return Λ_split
-end
-
-"""
-    unsplitchoi(Λ0::MPO)
-
-"""
-function unsplitchoi(L::LPDO)
-  Λ = L.X
-  @assert Λ isa MPO
-  T = ITensor[Λ[j]*Λ[j+1] for j in 1:2:length(Λ)]
-  return LPDO(MPO(T))
-end
-
-unsplitchoi(M::MPO) = unsplitchoi(LPDO(M))
-
-function splitchoi(L::LPDO;cutoff=1e-15,maxdim=1000)
-  
-  Λ = copy(L.X)
-  @assert Λ isa MPO
-
-  choitag = any(x -> hastags(x,"Input") , L.X)
-  T = ITensor[]
-  u,S,v = svd(Λ[1],inds(Λ[1],tags="Input"), 
-              cutoff=cutoff, maxdim=maxdim)
-  push!(T,u*S)
-  push!(T,v)
-  
-  for j in 2:length(Λ)
-    u,S,v = svd(Λ[j],inds(Λ[j],tags="Input")[1],
-                commonind(Λ[j-1],Λ[j]),cutoff=cutoff,maxdim=maxdim) 
-    push!(T,u*S)
-    push!(T,v)
-  end
-  return MPO(T)
+  @show Λ_split
+  return Choi(Λ_split)
 end
 

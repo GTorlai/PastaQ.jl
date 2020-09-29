@@ -86,7 +86,7 @@ end
   χ = 4
   ξ = 3
   d = 2
-  ρ = randomstate(N;lpdo=true,χ=χ,ξ=ξ,σ=1.0)
+  ρ = randomstate(N;mixed=true,χ=χ,ξ=ξ,σ=1.0)
   sites = firstsiteinds(ρ.X) 
   links = linkinds(ρ.X)
   kraus = [firstind(ρ.X[j],tags="Purifier") for j in 1:N]
@@ -144,7 +144,7 @@ end
   χ = 4
   ξ = 3
   d = 2
-  ρ = randomstate(N;lpdo=true,χ=χ,ξ=ξ,σ=1.0)
+  ρ = randomstate(N;mixed=true,χ=χ,ξ=ξ,σ=1.0)
   sites = firstsiteinds(ρ.X) 
   links = linkinds(ρ.X)
   kraus = [firstind(ρ.X[j],tags="Purifier") for j in 1:N]
@@ -206,7 +206,7 @@ end
   χ = 4
   ξ = 3
   d = 2
-  ρ = randomstate(N;lpdo=true,χ=χ,ξ=ξ,σ=1.0)
+  ρ = randomstate(N;mixed=true,χ=χ,ξ=ξ,σ=1.0)
   sites = firstsiteinds(ρ.X) 
   links = linkinds(ρ.X)
   kraus = [firstind(ρ.X[j],tags="Purifier") for j in 1:N]
@@ -276,7 +276,7 @@ end
   χ = 4
   ξ = 3
   d = 2
-  ρ = randomstate(N;lpdo=true,χ=χ,ξ=ξ,σ=1.0)
+  ρ = randomstate(N;mixed=true,χ=χ,ξ=ξ,σ=1.0)
   sites = firstsiteinds(ρ.X) 
   links = linkinds(ρ.X)
   kraus = [firstind(ρ.X[j],tags="Purifier") for j in 1:N]

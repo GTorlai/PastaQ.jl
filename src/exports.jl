@@ -29,7 +29,6 @@ export
   qubits,
   densitymatrix,
   circuit,
-  choi,
   resetqubits!,
   compilecircuit,
   compilecircuit!,
@@ -51,10 +50,6 @@ export
 
 # randomstates,jl
   # Methods
-  random_mps,
-  random_mpo,
-  random_lpdo,
-  randomChoi,
   randomstate,
   randomprocess,
 

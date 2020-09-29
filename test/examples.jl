@@ -39,7 +39,7 @@ Random.seed!(1234)
 Ψ,data = loaddata("../examples/data/qst_circuit_test.h5")
 N = length(Ψ)     # Number of qubits
 χ = maxlinkdim(Ψ) # Bond dimension of variational MPS
-ψ0 = randomstate(N;χ=χ,σ=0.1)
+ψ0 = randomstate(Ψ;χ=χ,σ=0.1)
 opt = SGD(η = 0.01)
 ψ = tomography(ψ0,data,opt;
                batchsize=100,
@@ -50,7 +50,7 @@ opt = SGD(η = 0.01)
 N = length(ϱ)     # Number of qubits
 χ = maxlinkdim(ϱ) # Bond dimension of variational LPDO
 ξ = 2             # Kraus dimension of variational LPDO
-ρ0 = randomstate(N;lpdo=true,χ=χ,ξ=ξ,σ=0.1)
+ρ0 = randomstate(ϱ;mixed=true,χ=χ,ξ=ξ,σ=0.1)
 opt = SGD(η = 0.01)
 ρ = tomography(ρ0,data,opt;
                batchsize=100,
@@ -62,7 +62,8 @@ U,data_in,data_out = loaddata("../examples/data/qpt_circuit_test.h5";process=tru
 N = length(U)     # Number of qubits
 χ = maxlinkdim(U) # Bond dimension of variational MPS
 opt = SGD(η = 0.1)
-V0 = randomprocess(N;mixed=false,χ=χ)
+V0 = randomprocess(U;mixed=false,χ=χ)
+@show V0
 V = tomography(V0,data_in,data_out,opt;
                batchsize=100,
                epochs=2,
@@ -74,10 +75,11 @@ Random.seed!(1234)
 N = length(ϱ)
 χ = 8
 ξ = 2
-Λ0 = randomprocess(N;mixed=true,χ=χ,ξ=ξ,σ=0.1)
+Λ0 = randomprocess(ϱ;mixed=true,χ=χ,ξ=ξ,σ=0.1)
 opt = SGD(η = 0.1)
 Λ = tomography(Λ0,data_in,data_out,opt;
                mixed=true,
                batchsize=100,
                epochs=2,
                target=ϱ);
+@show Λ
