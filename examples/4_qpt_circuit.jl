@@ -9,14 +9,14 @@ Random.seed!(1234)
 # Load target state and measurements. Each samples is built out
 # of a input state (`data_in`) to the quantum channel, and the
 # measurement output (`data_out`) after a local basis rotation.
-Û,data_in,data_out = loaddata("data/qpt_circuit.h5";process=true)
+data_in, data_out, Û = loaddata("data/qpt_circuit.h5"; process = true)
 
 # Set parameters
 N = length(Û)     # Number of qubits
 χ = maxlinkdim(Û) # Bond dimension of variational MPS
 
 # Initialize the unitary MPO
-U0 = randomprocess(N;χ=χ)
+U0 = randomprocess(N; χ = χ)
 # TODO: temporary check
 #ψ = randomstate(2*N;χ=8)
 
@@ -28,10 +28,10 @@ U0 = randomprocess(N;χ=χ)
 opt = SGD(η = 0.1)
 
 # Run process tomography
-U = tomography(U0,data_in,data_out,opt;
-               batchsize=500,
-               epochs=5,
-               target=Û)
+U = tomography(U0, data_in, data_out, opt;
+               batchsize = 500,
+               epochs = 5,
+               target = Û)
 @show U
 
 # Noisy circuit

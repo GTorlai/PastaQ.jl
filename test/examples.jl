@@ -33,7 +33,7 @@ savedata(data_in, data_out, Λ, "../examples/data/qpt_circuit_noisy_test.h5")
 
 
 Random.seed!(1234)
-Ψ,data = loaddata("../examples/data/qst_circuit_test.h5")
+data, ψ = loaddata("../examples/data/qst_circuit_test.h5")
 N = length(Ψ)     # Number of qubits
 χ = maxlinkdim(Ψ) # Bond dimension of variational MPS
 ψ0 = randomstate(Ψ; χ = χ, σ = 0.1)
@@ -43,7 +43,7 @@ opt = SGD(η = 0.01)
                epochs = 2,
                target = Ψ);
 
-ϱ, data = loaddata("../examples/data/qst_circuit_noisy_test.h5")
+data, ϱ = loaddata("../examples/data/qst_circuit_noisy_test.h5")
 N = length(ϱ)     # Number of qubits
 χ = maxlinkdim(ϱ) # Bond dimension of variational LPDO
 ξ = 2             # Kraus dimension of variational LPDO
@@ -55,7 +55,7 @@ opt = SGD(η = 0.01)
                target=ϱ);
 
 Random.seed!(1234)
-U, data_in, data_out = loaddata("../examples/data/qpt_circuit_test.h5"; process = true)
+data_in, data_out, U = loaddata("../examples/data/qpt_circuit_test.h5"; process = true)
 N = length(U)     # Number of qubits
 χ = maxlinkdim(U) # Bond dimension of variational MPS
 opt = SGD(η = 0.1)
@@ -68,7 +68,7 @@ V = tomography(V0, data_in, data_out, opt;
 
 # Noisy circuit
 Random.seed!(1234)
-ϱ, data_in, data_out = loaddata("../examples/data/qpt_circuit_noisy_test.h5"; process = true)
+data_in, data_out, ϱ = loaddata("../examples/data/qpt_circuit_noisy_test.h5"; process = true)
 N = length(ϱ)
 χ = 8
 ξ = 2
