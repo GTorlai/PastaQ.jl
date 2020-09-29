@@ -121,8 +121,9 @@ distribution:
 - P(σ) = ⟨σ|ρ|σ⟩  : if `M = ρ is MPO`
 """
 function getsamples!(M::Union{MPS,MPO};kwargs...)
-  p1given0 = get(kwargs,:p1given0,nothing) 
-  p0given1 = get(kwargs,:p0given1,nothing) 
+  readout_errors = get(kwargs,:readout_errors,(p1given0=nothing,p0given1=nothing)) 
+  p1given0 = readout_errors[:p1given0]
+  p0given1 = readout_errors[:p0given1]
   orthogonalize!(M,1)
   measurement = sample(M)
   measurement .-= 1
@@ -160,6 +161,7 @@ Add readout error to a single measurement
   - `p0given1`: readout error probability 1 -> 0
 """
 function readouterror!(measurement::Array,p1given0::Float64,p0given1::Float64)
+
   for j in 1:size(measurement)[1]
     if measurement[j] == 0
       measurement[j] = StatsBase.sample([0,1],Weights([1-p1given0,p1given0]))
@@ -319,10 +321,8 @@ function getsamples(N::Int64, gates::Vector{<:Tuple}, nshots::Int64;
                     ndistinctstates = nothing,
                     cutoff::Float64 = 1e-15,
                     maxdim::Int64 = 10000,
-                    p1given0=nothing,
-                    p0given1=nothing,
+                    readout_errors = (p1given0 = nothing, p0given1 = nothing),
                     kwargs...)
-  
   data = Matrix{String}(undef, nshots,N)
   bases = randombases(N, nshots;
                       localbasis = localbasis,
@@ -331,7 +331,7 @@ function getsamples(N::Int64, gates::Vector{<:Tuple}, nshots::Int64;
     # Apply the quantum channel
     M = runcircuit(N, gates; process = false, noise = noise,
                    cutoff = cutoff, maxdim = maxdim, kwargs...)
-    data = getsamples(M, bases; p1given0 = p1given0, p0given1 = p0given1)
+    data = getsamples(M, bases; readout_errors = readout_errors)
     return data, M
   else
     # Generate a set of prepared input state to the channel
@@ -345,7 +345,7 @@ function getsamples(N::Int64, gates::Vector{<:Tuple}, nshots::Int64;
         M′= (isnothing(noise) ? projectunitary(M,preps[n,:]) : projectchoi(M,preps[n,:]))
         meas_gates = measurementgates(bases[n,:])
         M_meas = runcircuit(M′,meas_gates)
-        measurement = getsamples!(M_meas;p1given0=p1given0,p0given1=p0given1)
+        measurement = getsamples!(M_meas; readout_errors = readout_errors)
         data[n,:] =  convertdatapoint(measurement,bases[n,:])
       end
       return preps, data, M
@@ -360,7 +360,7 @@ function getsamples(N::Int64, gates::Vector{<:Tuple}, nshots::Int64;
         data[n,:] = getsamples(ψ0, gate_tensors, preps[n,:], bases[n,:];
                                noise = noise, cutoff = cutoff,
                                build_process = false, # TODO: is this needed?
-                               maxdim = maxdim,p1given0=p1given0,p0given1=p0given1,
+                               maxdim = maxdim, readout_errors = readout_errors,
                                kwargs...)
       end
       return preps, data
