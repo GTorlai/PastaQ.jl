@@ -115,7 +115,7 @@ end
 
   for n in 1:nshots
     basis = bases[n,:]
-    meas_gates = measurementgates(basis)
+    meas_gates = PastaQ.measurementgates(basis)
     #meas_tensors = buildcircuit(ψ,meas_gates)
     ψ_out = runcircuit(ψ,meas_gates)
     x1 = PastaQ.getsamples!(ψ_out)
