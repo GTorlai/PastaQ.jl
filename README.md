@@ -24,7 +24,7 @@ PastaQ is developed at the Center for Computational Quantum Physics of the Flati
 and it is supported by the Simons Foundation.
 
 ## Installation
-The PastatQ package can be installed with the Julia package manager. From the Julia REPL,
+The PastaQ package can be installed with the Julia package manager. From the Julia REPL,
 type ] to enter the Pkg REPL mode and run:
 
 ```
@@ -156,7 +156,7 @@ gates = randomcircuit(N, depth) # Build gates
 
 # 2a) Output state of a noiseless circuit. By default, each projective measurement
 # is taken in basis randomly drawn from the the Pauli group. Also returns the output MPS.
-ψ, data = getsamples(N, gates, nshots; return_state=true)
+data, ψ = getsamples(N, gates, nshots)
 
 #  Note: the above is equivalent to:
 # > bases = randombases(N, nshots; localbasis=["X","Y","Z"])
@@ -164,7 +164,7 @@ gates = randomcircuit(N, depth) # Build gates
 # > data = getsamples(ψ, bases)
 
 # 2b) Output state of a noisy circuit. Also returns the output MPO
-ρ, data = getsamples(N, gates, nshots; noise="AD", γ=0.01, return_state=true)
+data, ρ = getsamples(N, gates, nshots; noise="AD", γ=0.01)
 
 # 2c) Generate data for quantum process tomography, consisting of input states
 # (data_in) to a quantum channel, and the corresponding projective measurements
@@ -172,11 +172,10 @@ gates = randomcircuit(N, depth) # Build gates
 # product states of eigenstates of Pauli operators, while measurements bases are
 # sampled from the Pauli group.
 
-# Unitary channel, returns the (rank-1) Choi matrix (as MPS)
-Γ, data_in, data_out = getsamples(N, gates, nshots; process=true, return_state=true)
+# Unitary channel, returns the unitary circuit as an MPO
+data_in, data_out, Γ = getsamples(N, gates, nshots; process = true)
 
 # Noisy channel, returns the Choi matrix as MPO
-Λ, data_in, data_out = getsamples(N, gates, nshots; process=true, noise="AD", γ=0.01,
-                                  return_state=true)
+data_in, data_out, Λ = getsamples(N, gates, nshots; process = true, noise = "AD", γ = 0.01)
 ```
 ### Quantum tomography

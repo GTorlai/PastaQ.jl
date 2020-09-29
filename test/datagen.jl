@@ -44,7 +44,7 @@ end
   @test size(states)[1] == nshots
   @test size(states)[2] == N
   
-  states = randompreparations(N,nshots,n_distinctstates=10)
+  states = randompreparations(N, nshots, ndistinctstates = 10)
   @test size(states)[1] == nshots
   @test size(states)[2] == N
   
@@ -58,11 +58,11 @@ end
 @testset "generation of measurement bases" begin
   N = 4
   nshots = 100
-  bases = randombases(N,nshots)
+  bases = randombases(N, nshots)
   @test size(bases)[1] == nshots
   @test size(bases)[2] == N
   
-  bases = randombases(N,nshots,n_distinctbases=10)
+  bases = randombases(N, nshots, ndistinctbases = 10)
   @test size(bases)[1] == nshots
   @test size(bases)[2] == N
   
@@ -84,7 +84,7 @@ end
   probs = abs2.(ψ_vec)
   
   nshots = 100000
-  samples = getsamples!(ψ,nshots)
+  samples = PastaQ.getsamples!(ψ,nshots)
   @test size(samples)[1] == nshots
   @test size(samples)[2] == N
   data_prob = empiricalprobability(samples)
@@ -94,7 +94,7 @@ end
   ρ_mat = fullmatrix(ρ)
   probs = real(diag(ρ_mat))
 
-  samples = getsamples!(ρ,nshots)
+  samples = PastaQ.getsamples!(ρ,nshots)
   @test size(samples)[1] == nshots
   @test size(samples)[2] == N
   data_prob = empiricalprobability(samples)
@@ -116,9 +116,9 @@ end
   for n in 1:nshots
     basis = bases[n,:]
     meas_gates = measurementgates(basis)
-    #meas_tensors = compilecircuit(ψ,meas_gates)
+    #meas_tensors = buildcircuit(ψ,meas_gates)
     ψ_out = runcircuit(ψ,meas_gates)
-    x1 = getsamples!(ψ_out)
+    x1 = PastaQ.getsamples!(ψ_out)
     x1 .+= 1 
     
     if (basis[1] == "Z")
@@ -272,10 +272,10 @@ end
   ρ = runcircuit(N,gates;noise="AD",γ=0.1)
 
   # 1a) Generate data with a MPS on the reference basis
-  data = getsamples!(ψ,nshots)
+  data = PastaQ.getsamples!(ψ,nshots)
   @test size(data) == (nshots,N)
   # 1b) Generate data with a MPO on the reference basis
-  data = getsamples!(ρ,nshots)
+  data = PastaQ.getsamples!(ρ,nshots)
   @test size(data) == (nshots,N)
   
   # 2a) Generate data with a MPS on multiple bases
@@ -288,28 +288,30 @@ end
   @test size(data) == (nshots,N)
 
   # 3) Measure MPS at the output of a circuit
-  data = getsamples(N,gates,nshots)
+  data, _ = getsamples(N, gates, nshots)
+  @test size(data) == (nshots, N)
+  data, _ = getsamples(N, gates, nshots; noise = "AD", γ = 0.1)
+  @test size(data) == (nshots, N)
+  data, _ = getsamples(N, gates, nshots; localbasis = ["X","Y","Z"])
   @test size(data) == (nshots,N)
-  data = getsamples(N,gates,nshots;noise="AD",γ=0.1)
+  data, _ = getsamples(N, gates, nshots; noise = "AD", γ = 0.1, localbasis = ["X","Y","Z"])
   @test size(data) == (nshots,N)
-  data = getsamples(N,gates,nshots;localbasis=["X","Y","Z"])
-  @test size(data) == (nshots,N)
-  data = getsamples(N,gates,nshots;noise="AD",γ=0.1,localbasis=["X","Y","Z"])
-  @test size(data) == (nshots,N)
-  M,data = getsamples(N,gates,nshots;return_state=true)
-  M,data = getsamples(N,gates,nshots;return_state=true,noise="AD",γ=0.1)
-  M,data = getsamples(N,gates,nshots;return_state=true,localbasis=["X","Y","Z"])
-  M,data = getsamples(N,gates,nshots;return_state=true,noise="AD",γ=0.1,localbasis=["X","Y","Z"])
+  data, M = getsamples(N,gates,nshots;)
+  data, M = getsamples(N,gates,nshots; noise="AD", γ=0.1)
+  data, M = getsamples(N,gates,nshots; localbasis = ["X","Y","Z"])
+  data, M = getsamples(N,gates,nshots; noise="AD", γ=0.1, localbasis=["X","Y","Z"])
   
   # 4) Process tomography
-  (data_in,data_out) = getsamples(N,gates,nshots;process=true,build_process=false)
+  data_in, data_out = getsamples(N, gates, nshots; process = true, build_process = false)
   @test size(data_in) == (nshots,N)
   @test size(data_out) == (nshots,N)
-  (data_in,data_out) = getsamples(N,gates,nshots;process=true,build_process=false,noise="AD",γ=0.1)
+  data_in,data_out = getsamples(N, gates, nshots; process = true, build_process = false, noise="AD", γ=0.1)
   @test size(data_in) == (nshots,N)
   @test size(data_out) == (nshots,N)
-  (Λ,data_in,data_out) = getsamples(N,gates,nshots;process=true,build_process=true,return_state=true)
-  (Λ,data_in,data_out) = getsamples(N,gates,nshots;process=true,build_process=true,return_state=true,noise="AD",γ=0.1)
+  data_in, data_out, Λ  = getsamples(N, gates, nshots; process = true, build_process = true)
+  @test Λ isa MPO
+  data_in, data_out, Λ = getsamples(N, gates, nshots; process = true, build_process = true, noise = "AD", γ = 0.1)
+  @test Λ isa Choi{MPO}
 
 end
 
@@ -322,10 +324,10 @@ end
   ρ = runcircuit(N,gates;noise="AD",γ=0.1)
   
   # 1a) Generate data with a MPS on the reference basis
-  data = getsamples!(ψ,nshots;readout_errors = [0.01,0.04])
+  data = PastaQ.getsamples!(ψ,nshots;readout_errors = [0.01,0.04])
   @test size(data) == (nshots,N)
   # 1b) Generate data with a MPO on the reference basis
-  data = getsamples!(ρ,nshots;readout_errors = [0.01,0.04])
+  data = PastaQ.getsamples!(ρ,nshots;readout_errors = [0.01,0.04])
   @test size(data) == (nshots,N)
   
   # 2a) Generate data with a MPS on multiple bases
@@ -338,27 +340,27 @@ end
   @test size(data) == (nshots,N)
 
   # 3) Measure MPS at the output of a circuit
-  data = getsamples(N,gates,nshots;readout_errors = [0.01,0.04])
+  data, _ = getsamples(N, gates, nshots; readout_errors = [0.01,0.04])
   @test size(data) == (nshots,N)
-  data = getsamples(N,gates,nshots;noise="AD",γ=0.1,readout_errors = [0.01,0.04])
+  data, _ = getsamples(N, gates, nshots; noise = "AD", γ = 0.1, readout_errors = [0.01,0.04])
   @test size(data) == (nshots,N)
-  data = getsamples(N,gates,nshots;localbasis=["X","Y","Z"],readout_errors = [0.01,0.04])
+  data, _ = getsamples(N, gates, nshots; localbasis = ["X","Y","Z"], readout_errors = [0.01,0.04])
   @test size(data) == (nshots,N)
-  data = getsamples(N,gates,nshots;noise="AD",γ=0.1,localbasis=["X","Y","Z"],readout_errors = [0.01,0.04])
+  data, _ = getsamples(N, gates, nshots; noise = "AD", γ = 0.1, localbasis = ["X","Y","Z"], readout_errors = [0.01,0.04])
   @test size(data) == (nshots,N)
-  M,data = getsamples(N,gates,nshots;return_state=true,readout_errors = [0.01,0.04])
-  M,data = getsamples(N,gates,nshots;return_state=true,noise="AD",γ=0.1,readout_errors = [0.01,0.04])
-  M,data = getsamples(N,gates,nshots;return_state=true,localbasis=["X","Y","Z"],readout_errors = [0.01,0.04])
-  M,data = getsamples(N,gates,nshots;return_state=true,noise="AD",γ=0.1,localbasis=["X","Y","Z"],readout_errors = [0.01,0.04])
+  data, M = getsamples(N, gates, nshots; readout_errors = [0.01,0.04])
+  data, M = getsamples(N, gates, nshots; noise = "AD", γ = 0.1, readout_errors = [0.01,0.04])
+  data, M = getsamples(N, gates, nshots; localbasis = ["X","Y","Z"], readout_errors = [0.01,0.04])
+  data, M = getsamples(N, gates, nshots; noise = "AD",γ=0.1, localbasis = ["X","Y","Z"], readout_errors = [0.01,0.04])
   
   # 4) Process tomography
-  (data_in,data_out) = getsamples(N,gates,nshots;process=true,build_process=false,readout_errors = [0.01,0.04])
+  data_in, data_out = getsamples(N,gates,nshots;process=true,build_process=false,readout_errors = [0.01,0.04])
   @test size(data_in) == (nshots,N)
   @test size(data_out) == (nshots,N)
   (data_in,data_out) = getsamples(N,gates,nshots;process=true,build_process=false,noise="AD",γ=0.1,readout_errors = [0.01,0.04])
   @test size(data_in) == (nshots,N)
   @test size(data_out) == (nshots,N)
-  (Λ,data_in,data_out) = getsamples(N,gates,nshots;process=true,build_process=true,return_state=true,readout_errors = [0.01,0.04])
-  (Λ,data_in,data_out) = getsamples(N,gates,nshots;process=true,build_process=true,return_state=true,noise="AD",γ=0.1,readout_errors = [0.01,0.04])
+  data_in, data_out, Λ = getsamples(N, gates, nshots; process = true, build_process = true, readout_errors = [0.01,0.04])
+  data_in, data_out, Λ = getsamples(N, gates, nshots; process = true, build_process = true, noise="AD",γ=0.1,readout_errors = [0.01,0.04])
 
 end
