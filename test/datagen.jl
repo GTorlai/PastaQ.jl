@@ -244,7 +244,7 @@ end
   ntrial=100
   gates = randomcircuit(N,4)
   
-  Λ = choimatrix(N,gates;noise="AD",γ=0.1)
+  Λ = runcircuit(N,gates;process=true,noise="AD",γ=0.1)
   
   bases = randombases(N,ntrial)
   preps = randompreparations(N,ntrial)

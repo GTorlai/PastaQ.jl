@@ -33,7 +33,6 @@ export
   compilecircuit,
   compilecircuit!,
   runcircuit,
-  choimatrix,
 
 # datagen.jl
   # Methhods
@@ -43,9 +42,6 @@ export
   randompreparations,
   getsamples!,
   getsamples,
-  projectchoi,
-  projectunitary,
-  convertdatapoint,
   readouterror!,
 
 # randomstates,jl
@@ -55,19 +51,10 @@ export
 
 # quantumtomography,jl
   # Methods
-  randomstate,
-  randomprocess,
   normalize!,
   nll,
-  gradlogZ,
-  gradnll,
-  gradients,
   tomography,
   runtomography,
-  unsplitchoi,     # Temporary (for testing) 
-  unsplitunitary,  # Temporary (for testing)
-  splitchoi,       # Temporary (for testing)
-  splitunitary,    # Temporary (for testing)
 
 # distances.jl
   # Methods
@@ -98,7 +85,5 @@ export
   savedata,
   loaddata,
   fullvector,
-  fullmatrix,
-  replacehilbertspace!
-
+  fullmatrix
  

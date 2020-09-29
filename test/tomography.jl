@@ -201,7 +201,7 @@ end
   
   # 1. Unnormalized
   ψ = randomstate(N;χ=χ)
-  alg_grad,_ = gradlogZ(ψ)
+  alg_grad,_ = PastaQ.gradlogZ(ψ)
   num_grad = numgradslogZ(ψ)
   for j in 1:N
     @test array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
@@ -211,7 +211,7 @@ end
   ψ = randomstate(N;χ=χ)
   normalize!(ψ)
   @test norm(ψ)^2 ≈ 1
-  alg_grad,_ = gradlogZ(ψ)
+  alg_grad,_ = PastaQ.gradlogZ(ψ)
   num_grad = numgradslogZ(ψ)
   for j in 1:N
     @test array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
@@ -224,7 +224,7 @@ end
   localnorms = []
   normalize!(ψ; localnorms! = localnorms)
   @test norm(ψ) ≈ 1
-  alg_grad,_ = gradlogZ(ψ; localnorms = localnorms)
+  alg_grad,_ = PastaQ.gradlogZ(ψ; localnorms = localnorms)
   for j in 1:N
     @test array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
   end
@@ -233,19 +233,19 @@ end
 @testset "mps-qst: grad nll" begin
   N = 5
   χ = 4
-  nsamples = 100
+  nsamples = 10
   Random.seed!(1234)
   rawdata = rand(0:1,nsamples,N)
   bases = randombases(N,nsamples)
   data = Matrix{String}(undef, nsamples,N)
   for n in 1:nsamples
-    data[n,:] = convertdatapoint(rawdata[n,:],bases[n,:],state=true)
+    data[n,:] = PastaQ.convertdatapoint(rawdata[n,:],bases[n,:],state=true)
   end
   
   # 1. Unnormalized
   ψ = randomstate(N;χ=χ)
   num_grad = numgradsnll(ψ,data)
-  alg_grad,loss = gradnll(ψ,data)
+  alg_grad,loss = PastaQ.gradnll(ψ,data)
   for j in 1:N
     @test array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
   end
@@ -254,7 +254,7 @@ end
   ψ = randomstate(N;χ=χ)
   normalize!(ψ)
   num_grad = numgradsnll(ψ,data)
-  alg_grad,loss = gradnll(ψ,data)
+  alg_grad,loss = PastaQ.gradnll(ψ,data)
   for j in 1:N
     @test array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
   end
@@ -265,7 +265,7 @@ end
   localnorms = []
   normalize!(ψ; localnorms! = localnorms)
   @test norm(ψ) ≈ 1
-  alg_grad_localnorm, loss = gradnll(ψ, data; localnorms = localnorms)
+  alg_grad_localnorm, loss = PastaQ.gradnll(ψ, data; localnorms = localnorms)
   for j in 1:N
     @test array(alg_grad_localnorm[j]) ≈ num_grad[j] rtol=1e-3
   end
@@ -274,13 +274,13 @@ end
 @testset "mps-qst: full gradients" begin
   N = 5
   χ = 4
-  nsamples = 100
+  nsamples = 10
   Random.seed!(1234)
   rawdata = rand(0:1,nsamples,N)
   bases = randombases(N,nsamples)
   data = Matrix{String}(undef, nsamples,N)
   for n in 1:nsamples
-    data[n,:] = convertdatapoint(rawdata[n,:],bases[n,:],state=true)
+    data[n,:] = PastaQ.convertdatapoint(rawdata[n,:],bases[n,:],state=true)
   end
   
   # 1. Unnormalized
@@ -292,7 +292,7 @@ end
   num_gradNLL = numgradsnll(ψ,data)
   num_grads = num_gradZ + num_gradNLL
   
-  alg_grads,loss = gradients(ψ,data)
+  alg_grads,loss = PastaQ.gradients(ψ,data)
   @test ex_loss ≈ loss
   for j in 1:N
     @test array(alg_grads[j]) ≈ num_grads[j] rtol=1e-3
@@ -308,7 +308,7 @@ end
   ex_loss = NLL
   @test norm(ψ)^2 ≈ 1
   
-  alg_grads,loss = gradients(ψ,data)
+  alg_grads,loss = PastaQ.gradients(ψ,data)
   @test ex_loss ≈ loss
   for j in 1:N
     @test array(alg_grads[j]) ≈ num_grads[j] rtol=1e-3
@@ -326,7 +326,7 @@ end
   ex_loss = NLL
   @test norm(ψ)^2 ≈ 1
   
-  alg_grads,loss = gradients(ψ, data; localnorms = localnorms)
+  alg_grads,loss = PastaQ.gradients(ψ, data; localnorms = localnorms)
   @test ex_loss ≈ loss
   for j in 1:N
     @test array(alg_grads[j]) ≈ num_grads[j] rtol=1e-3
@@ -340,19 +340,19 @@ end
   Nphysical = 4
   N = Nphysical
   χ = 2
-  nsamples = 100
+  nsamples = 10
   Random.seed!(1234)
   rawdata = rand(0:1,nsamples,N)
   bases = randombases(N,nsamples)
   data = Matrix{String}(undef, nsamples,N)
   for n in 1:nsamples
-    data[n,:] = convertdatapoint(rawdata[n,:],bases[n,:],state=true)
+    data[n,:] = PastaQ.convertdatapoint(rawdata[n,:],bases[n,:],state=true)
   end
   
   # 1. Unnnomalized
   ψ = randomstate(N;χ=χ)
   num_grad = numgradsnll(ψ,data,choi=true)
-  alg_grad,loss = gradnll(ψ,data,choi=true)
+  alg_grad,loss = PastaQ.gradnll(ψ,data,choi=true)
   for j in 1:N
     @test array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
   end
@@ -362,7 +362,7 @@ end
   normalize!(ψ)
   num_grad = numgradsnll(ψ,data,choi=true)
   #@test norm(ψ)^2 ≈ 2^(Nphysical)
-  alg_grad,loss = gradnll(ψ,data;choi=true)
+  alg_grad,loss = PastaQ.gradnll(ψ,data;choi=true)
   for j in 1:N
     @test array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
   end
@@ -373,7 +373,7 @@ end
   localnorms = []
   normalize!(ψ; localnorms! = localnorms)
   #@test norm(ψ)^2 ≈ 2^(Nphysical)
-  alg_grad,loss = gradnll(ψ, data, localnorms = localnorms, choi = true)
+  alg_grad,loss = PastaQ.gradnll(ψ, data, localnorms = localnorms, choi = true)
   for j in 1:N
     @test array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
   end
@@ -384,13 +384,13 @@ end
   Nphysical = 2
   N = Nphysical
   χ = 4
-  nsamples = 100
+  nsamples = 10
   Random.seed!(1234)
   rawdata = rand(0:1,nsamples,N)
   bases = randombases(N,nsamples)
   data = Matrix{String}(undef, nsamples,N)
   for n in 1:nsamples
-    data[n,:] = convertdatapoint(rawdata[n,:],bases[n,:],state=true)
+    data[n,:] = PastaQ.convertdatapoint(rawdata[n,:],bases[n,:],state=true)
   end
   
   # 1. Unnormalized
@@ -402,7 +402,7 @@ end
   num_gradNLL = numgradsnll(ψ,data;choi=true)
   num_grads = num_gradZ + num_gradNLL
 
-  alg_grads,loss = gradients(ψ,data;choi=true)
+  alg_grads,loss = PastaQ.gradients(ψ,data;choi=true)
   @test ex_loss ≈ loss
   for j in 1:N
     @test array(alg_grads[j]) ≈ num_grads[j] rtol=1e-3
@@ -418,7 +418,7 @@ end
   ex_loss = NLL - 0.5*N*log(2)
   #@test norm(ψ)^2 ≈ 2^(Nphysical)
   
-  alg_grads,loss = gradients(ψ,data;choi=true)
+  alg_grads,loss = PastaQ.gradients(ψ,data;choi=true)
   @test ex_loss ≈ loss
   for j in 1:N
     @test array(alg_grads[j]) ≈ num_grads[j] rtol=1e-3
@@ -435,7 +435,7 @@ end
   NLL  = nll(ψ,data;choi=true)
   ex_loss = NLL - 0.5*N*log(2)
   
-  alg_grads,loss = gradients(ψ, data; localnorms = localnorms, choi = true)
+  alg_grads,loss = PastaQ.gradients(ψ, data; localnorms = localnorms, choi = true)
   @test ex_loss ≈ loss
   for j in 1:N
     @test array(alg_grads[j]) ≈ num_grads[j] rtol=1e-3
@@ -480,7 +480,7 @@ end
   # 1. Unnormalized
   #ρ = randomprocess(Nqubits;mixed=true,χ=χ,ξ=ξ)
   ρ = splitstatewrapper(Nqubits,χ,ξ)
-  alg_grad,_ = gradlogZ(ρ)
+  alg_grad,_ = PastaQ.gradlogZ(ρ)
   num_grad = numgradslogZ(ρ)
   alg_gradient = permutedims(array(alg_grad[1]),[1,3,2])
   @test alg_gradient ≈ num_grad[1] rtol=1e-3
@@ -496,7 +496,7 @@ end
   ρ = splitstatewrapper(Nqubits,χ,ξ)
   normalize!(ρ)
   @test tr(ρ) ≈ 1
-  alg_grad,_ = gradlogZ(ρ)
+  alg_grad,_ = PastaQ.gradlogZ(ρ)
   num_grad = numgradslogZ(ρ)
   
   alg_gradient = permutedims(array(alg_grad[1]),[1,3,2])
@@ -516,7 +516,7 @@ end
   sqrt_localnorms = []
   normalize!(ρ; sqrt_localnorms! = sqrt_localnorms)
   @test tr(ρ) ≈ 1
-  alg_grad,_ = gradlogZ(ρ, sqrt_localnorms = sqrt_localnorms)
+  alg_grad,_ = PastaQ.gradlogZ(ρ, sqrt_localnorms = sqrt_localnorms)
 
   alg_gradient = permutedims(array(alg_grad[1]),[1,3,2])
   @test alg_gradient ≈ num_grad[1] rtol=1e-3
@@ -535,13 +535,13 @@ end
   N = 2*Nqubits
   χ = 4
   ξ = 3
-  nsamples = 100
+  nsamples = 10
   Random.seed!(1234)
   rawdata = rand(0:1,nsamples,N)
   bases = randombases(N,nsamples)
   data = Matrix{String}(undef, nsamples,N)
   for n in 1:nsamples
-    data[n,:] = convertdatapoint(rawdata[n,:],bases[n,:],state=true)
+    data[n,:] = PastaQ.convertdatapoint(rawdata[n,:],bases[n,:],state=true)
   end
   
   # 1. Unnormalized
@@ -549,7 +549,7 @@ end
   ρ = splitstatewrapper(Nqubits,χ,ξ)
 
   num_grad = numgradsnll(ρ,data)
-  alg_grad,loss = gradnll(ρ,data)
+  alg_grad,loss = PastaQ.gradnll(ρ,data)
   ex_loss = nll(ρ,data)
   @test ex_loss ≈ loss
   alg_gradient = permutedims(array(alg_grad[1]),[3,1,2])
@@ -567,7 +567,7 @@ end
   normalize!(ρ)
   @test tr(ρ) ≈ 1
   num_grad = numgradsnll(ρ,data)
-  alg_grad,loss = gradnll(ρ,data)
+  alg_grad,loss = PastaQ.gradnll(ρ,data)
   ex_loss = nll(ρ,data)
   @test ex_loss ≈ loss
   alg_gradient = permutedims(array(alg_grad[1]),[3,1,2])
@@ -586,7 +586,7 @@ end
   sqrt_localnorms = []
   normalize!(ρ; sqrt_localnorms! = sqrt_localnorms)
   @test tr(ρ) ≈ 1
-  alg_grad,loss = gradnll(ρ, data; sqrt_localnorms = sqrt_localnorms)
+  alg_grad,loss = PastaQ.gradnll(ρ, data; sqrt_localnorms = sqrt_localnorms)
   ex_loss = nll(ρ,data)
   @test ex_loss ≈ loss
   alg_gradient = permutedims(array(alg_grad[1]),[3,1,2])
@@ -610,20 +610,20 @@ PROCESS TOMOGRAPHY WITH LPDO
   N = 2*Nqubits
   χ = 4
   ξ = 3
-  nsamples = 100
+  nsamples = 10
   Random.seed!(1234)
   rawdata = rand(0:1,nsamples,N)
   bases = randombases(N,nsamples)
   data = Matrix{String}(undef, nsamples,N)
   for n in 1:nsamples
-    data[n,:] = convertdatapoint(rawdata[n,:],bases[n,:],state=true)
+    data[n,:] = PastaQ.convertdatapoint(rawdata[n,:],bases[n,:],state=true)
   end
   
   # 1. Unnormalized
   #Λ = randomprocess(N;mixed=true,χ=χ,ξ=ξ)
   Λ = splitstatewrapper(Nqubits,χ,ξ)
   num_grad = numgradsnll(Λ,data,choi=true)
-  alg_grad,loss = gradnll(Λ,data,choi=true)
+  alg_grad,loss = PastaQ.gradnll(Λ,data,choi=true)
   ex_loss = nll(Λ,data,choi=true)
   @test ex_loss ≈ loss
   alg_gradient = permutedims(array(alg_grad[1]),[3,1,2])
@@ -641,7 +641,7 @@ PROCESS TOMOGRAPHY WITH LPDO
   normalize!(Λ)
   num_grad = numgradsnll(Λ,data,choi=true)
   ex_loss = nll(Λ,data,choi=true) 
-  alg_grad,loss = gradnll(Λ,data,choi=true)
+  alg_grad,loss = PastaQ.gradnll(Λ,data,choi=true)
   @test ex_loss ≈ loss 
   alg_gradient = permutedims(array(alg_grad[1]),[3,1,2])
   @test alg_gradient ≈ num_grad[1] rtol=1e-3
@@ -659,7 +659,7 @@ PROCESS TOMOGRAPHY WITH LPDO
   sqrt_localnorms = []
   normalize!(Λ; sqrt_localnorms! = sqrt_localnorms)
   ex_loss = nll(Λ, data; choi = true) 
-  alg_grad,loss = gradnll(Λ, data; sqrt_localnorms = sqrt_localnorms, choi = true)
+  alg_grad,loss = PastaQ.gradnll(Λ, data; sqrt_localnorms = sqrt_localnorms, choi = true)
   @test ex_loss ≈ loss
   alg_gradient = permutedims(array(alg_grad[1]),[3,1,2])
   @test alg_gradient ≈ num_grad[1] rtol=1e-3
@@ -678,23 +678,22 @@ end
   U0 = randomprocess(N;mixed=false,χ=4)
   U0prod = prod(U0)
   V0 = randomprocess(U0;mixed=false,χ=4)
-  Ψ = splitunitary(U0)
-  U = unsplitunitary(Ψ)
+  Ψ = PastaQ.splitunitary(U0)
+  U = PastaQ.unsplitunitary(Ψ)
   @test prod(U) ≈ prod(U0)
 end
 
 @testset "splitchoi" begin
-  N = 2
+  N = 3
   gates = randomcircuit(N,2)
-  Λ0 = choimatrix(N,gates;noise="AD",γ=0.1)
-  append!(gates,randomcircuit(N,2))
-  ρ = splitchoi(Λ0)
-  Λ = unsplitchoi(ρ)
+  Λ0 = runcircuit(N,gates;process=true,noise="AD",γ=0.1)
+  ρ = PastaQ.splitchoi(Λ0)
+  Λ = PastaQ.unsplitchoi(ρ)
   @test prod(Λ0.M) ≈ prod(Λ.M)
 
   Λ0 = randomprocess(N;mixed=true)
-  ρ = splitchoi(Λ0)
-  Λ = unsplitchoi(ρ)
+  ρ = PastaQ.splitchoi(Λ0)
+  Λ = PastaQ.unsplitchoi(ρ)
   @test prod(Λ.M.X) ≈ prod(Λ.M.X)
 
 end

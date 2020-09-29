@@ -46,13 +46,12 @@ N = length(ϱ)     # Number of qubits
 
 # Initialize stochastic gradient descent optimizer
 opt = SGD(η = 0.1)
-@show ϱ
 # Run quantum state tomography, where a variational LPDO `Γ(θ)`
 # is optimized to mimimize the cross entropy between the data and 
 # the tensor-network distribution `P(x) = ⟨x|ρ(θ)|x⟩`, where
 # `ρ = ΓΓ†` is the corresponding density operator..
 ρ = tomography(ρ0,data,opt;
                batchsize=1000,
-               epochs=10,
+               epochs=5,
                target=ϱ)
-#@show ρ
+@show ρ

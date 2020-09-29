@@ -50,8 +50,9 @@ function fidelity(ψ::MPS, ρ::MPO)
   # log_K = 2 * lognorm(ψ) + logtr(ρ) 
   log_F̃ = log(abs(inner(ψ, ρ, ψ)))
   
-  @assert imag(tr(ρ)) ≈ 0.0 atol=1e-5
-  log_K = 2 * lognorm(ψ) + log(tr(ρ)) 
+  # TODO Check if trace is real
+  #@assert imag(tr(ρ)) ≈ 0.0 atol=1e-5
+  log_K = 2 * lognorm(ψ) + log(real(tr(ρ))) 
   
   fidelity = exp(log_F̃ - log_K)
   return fidelity

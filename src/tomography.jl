@@ -831,6 +831,7 @@ end
 
 
 function splitchoi(Λ::MPO;cutoff=1e-15,maxdim=10000)
+  
   choitag = any(x -> hastags(x,"Input") , Λ)
   if !choitag
     # Choi indices 
@@ -845,8 +846,15 @@ function splitchoi(Λ::MPO;cutoff=1e-15,maxdim=10000)
   push!(T,v)
 
   for j in 2:length(Λ)
-    u,S,v = svd(Λ[j],inds(Λ[j],tags="Input")[1],inds(Λ[j],tags="Input")[2],
-                commonind(Λ[j-1],Λ[j]),cutoff=cutoff,maxdim=maxdim)
+    if length(inds(Λ[j],tags="Input")) == 1
+      u,S,v = svd(Λ[j],inds(Λ[j],tags="Input")[1],
+                  commonind(Λ[j-1],Λ[j]),cutoff=cutoff,maxdim=maxdim)
+    elseif length(inds(Λ[j],tags="Input")) == 2
+      u,S,v = svd(Λ[j],inds(Λ[j],tags="Input")[1],inds(Λ[j],tags="Input")[2],
+                  commonind(Λ[j-1],Λ[j]),cutoff=cutoff,maxdim=maxdim)
+    else
+      error("input cannot be split")
+    end
     push!(T,u*S)
     push!(T,v)
   end
