@@ -144,11 +144,11 @@ function compilecircuit(M::Union{MPS,MPO}, gates::Vector{<:Tuple};
 end
 
 """
-    runcircuit(M::Union{MPS,MPO},gate_tensors::Vector{<:ITensor}; kwargs...)
+    runcircuit(M::Union{MPS,MPO}, gate_tensors::Vector{<:ITensor}; kwargs...)
 
 Apply the circuit to a state (wavefunction/densitymatrix) from a list of tensors.
 """
-function runcircuit(M::Union{MPS,MPO},
+function runcircuit(M::Union{MPS, MPO},
                     gate_tensors::Vector{<:ITensor};
                     kwargs...) 
   # Check if gate_tensors contains Kraus operators
