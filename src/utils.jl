@@ -114,3 +114,4 @@ function hilbertspace(L::LPDO)
 end
 
 hilbertspace(M::Union{MPS,MPO}) = hilbertspace(LPDO(M))
+
