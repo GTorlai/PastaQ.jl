@@ -107,7 +107,7 @@ gates = randomcircuit(N, depth)
 U = runcircuit(N, gates; process=true)
 ```
 
-![alt text](assets/runcircuit_unitary.jpg)
+![alt text](docs/src/assets/runcircuit_unitary.jpg)
 
 #### Noisy gates
 
@@ -140,7 +140,7 @@ The full quantum channel has several (and equivalent) mathematical representatio
 Here we focus on the Choi matrix, which is obtained by applying a given channel `ε`
 to half of N pairs of maximally entangled states.
 
-![alt text](assets/runcircuit_noisy.jpg)
+![alt text](docs/src/assets/runcircuit_noisy.jpg)
 
 ### Generation of projective measurements
 For a given quantum circuit, with or without noise, different flavors of measurement
