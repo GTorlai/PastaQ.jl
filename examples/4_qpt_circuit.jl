@@ -45,8 +45,6 @@ N = length(Φ)
 # Initialize the Choi LPDO
 Λ0 = randomprocess(Φ;mixed=true,χ=χ,ξ=ξ)
 
-@show Φ
-@show Λ0
 # Initialize stochastic gradient descent optimizer
 opt = SGD(η = 0.1)
 
@@ -56,4 +54,4 @@ opt = SGD(η = 0.1)
                batchsize=500,
                epochs=5,
                target=Φ)
-#@show Λ
+@show Λ
