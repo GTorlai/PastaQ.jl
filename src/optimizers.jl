@@ -16,16 +16,12 @@ Stochastic gradient descent with momentum.
   - `γ`: friction coefficient
   - `v`: "velocity"
 """
-function SGD(L::LPDO;η::Float64=0.01,γ::Float64=0.0)
-  M = L.X
+function SGD(;η::Float64=0.01,γ::Float64=0.0)
   v = ITensor[]
-  for j in 1:length(L)
-    push!(v,ITensor(zeros(size(M[j])),inds(M[j])))
-  end
   return SGD(η,γ,v)
 end
 
-SGD(ψ::MPS;η::Float64=0.01,γ::Float64=0.0) = SGD(LPDO(ψ);η=η,γ=γ)
+#SGD(M::Union{MPS,MPO};η::Float64=0.01,γ::Float64=0.0) = SGD(LPDO(M);η=η,γ=γ)
 
 """
     update!(L::LPDO,∇::Array,opt::SGD; kwargs...)
@@ -37,6 +33,11 @@ Update parameters with SGD.
 """
 function update!(L::LPDO,∇::Array,opt::SGD; kwargs...)
   M = L.X
+  if isempty(opt.v)
+    for j in 1:length(M)
+      push!(opt.v,ITensor(zeros(size(M[j])),inds(M[j])))
+    end
+  end
   for j in 1:length(M)
     opt.v[j] = opt.γ * opt.v[j] - opt.η * ∇[j]
     M[j] = M[j] + opt.v[j] 
@@ -44,6 +45,14 @@ function update!(L::LPDO,∇::Array,opt::SGD; kwargs...)
 end
 
 update!(ψ::MPS,∇::Array,opt::SGD; kwargs...) = update!(LPDO(ψ),∇,opt;kwargs...)
+
+# TODO: remove after converting tomography to unsplit version
+function resetoptimizer(opt::SGD,L::LPDO)
+  return SGD(L;η=opt.η,γ=opt.γ)
+end
+resetoptimizer(opt::SGD,M::Union{MPS,MPO}) = resetoptimizer(opt,LPDO(M))
+
+
 
 
 
@@ -62,16 +71,12 @@ end
   - `ϵ`: shift 
   - `∇²`: square gradients (running sums)
 """
-function AdaGrad(L::LPDO;η::Float64=0.01,ϵ::Float64=1E-8)
-  M = L.X
+function AdaGrad(;η::Float64=0.01,ϵ::Float64=1E-8)
   ∇² = ITensor[]
-  for j in 1:length(M)
-    push!(∇²,ITensor(zeros(size(M[j])),inds(M[j])))
-  end
   return AdaGrad(η,ϵ,∇²)
 end
 
-AdaGrad(ψ::MPS;η::Float64=0.01,ϵ::Float64=1E-8) = AdaGrad(LPDO(ψ);η=η,ϵ=ϵ)
+#AdaGrad(ψ::Union{MPS,MPO};η::Float64=0.01,ϵ::Float64=1E-8) = AdaGrad(LPDO(ψ);η=η,ϵ=ϵ)
 
 """
     update!(L::LPDO,∇::Array,opt::AdaGrad; kwargs...)
@@ -86,6 +91,11 @@ Update parameters with AdaGrad.
 """
 function update!(L::LPDO,∇::Array,opt::AdaGrad; kwargs...)
   M = L.X
+  if isempty(opt.∇²)
+    for j in 1:length(M)
+      push!(opt.∇²,ITensor(zeros(size(M[j])),inds(M[j])))
+    end
+  end
   for j in 1:length(M)
     opt.∇²[j] += ∇[j] .^ 2 
     ∇² = copy(opt.∇²[j])
@@ -118,18 +128,13 @@ end
   - `∇²`: square gradients (decaying average)
   - `Δθ²`: square updates (decaying average)
 """
-function AdaDelta(L::LPDO;γ::Float64=0.9,ϵ::Float64=1E-8)
-  M = L.X
+function AdaDelta(;γ::Float64=0.9,ϵ::Float64=1E-8)
   Δθ² = ITensor[]
   ∇² = ITensor[]
-  for j in 1:length(M)
-    push!(Δθ²,ITensor(zeros(size(M[j])),inds(M[j])))
-    push!(∇²,ITensor(zeros(size(M[j])),inds(M[j])))
-  end
   return AdaDelta(γ,ϵ,∇²,Δθ²)
 end
 
-AdaDelta(ψ::MPS;γ::Float64=0.9,ϵ::Float64=1E-8) = AdaDelta(LPDO(ψ);γ=γ,ϵ=ϵ) 
+#AdaDelta(ψ::Union{MPS,MPO};γ::Float64=0.9,ϵ::Float64=1E-8) = AdaDelta(LPDO(ψ);γ=γ,ϵ=ϵ) 
 
 """
     update!(L::LPDO,∇::Array,opt::AdaDelta; kwargs...)
@@ -146,6 +151,12 @@ Update parameters with AdaDelta
 """
 function update!(L::LPDO,∇::Array,opt::AdaDelta; kwargs...)
   M = L.X
+  if isempty(opt.∇²)
+    for j in 1:length(M)
+      push!(opt.Δθ²,ITensor(zeros(size(M[j])),inds(M[j])))
+      push!(opt.∇²,ITensor(zeros(size(M[j])),inds(M[j])))
+    end
+  end
   for j in 1:length(M)
     # Update square gradients
     opt.∇²[j] = opt.γ * opt.∇²[j] + (1-opt.γ) * ∇[j] .^ 2
@@ -198,19 +209,14 @@ end
   - `∇`: gradients (decaying average)
   - `∇²`: square gradients (decaying average)
 """
-function Adam(L::LPDO;η::Float64=0.001,
+function Adam(;η::Float64=0.001,
               β₁::Float64=0.9,β₂::Float64=0.999,ϵ::Float64=1E-7)
-  M = L.X
   ∇ = ITensor[]
   ∇² = ITensor[]
-  for j in 1:length(M)
-    push!(∇,ITensor(zeros(size(M[j])),inds(M[j])))
-    push!(∇²,ITensor(zeros(size(M[j])),inds(M[j])))
-  end
   return Adam(η,β₁,β₂,ϵ,∇,∇²)
 end
 
-Adam(ψ::MPS;η::Float64=0.001,β₁::Float64=0.9,β₂::Float64=0.999,ϵ::Float64=1E-7) = Adam(LPDO(ψ);η=η,β₁=β₁,β₂=β₂,ϵ=ϵ)
+#Adam(ψ::Union{MPS,MPO};η::Float64=0.001,β₁::Float64=0.9,β₂::Float64=0.999,ϵ::Float64=1E-7) = Adam(LPDO(ψ);η=η,β₁=β₁,β₂=β₂,ϵ=ϵ)
 
 """
     update!(L::LPDO,∇::Array,opt::Adam; kwargs...)
@@ -221,6 +227,12 @@ Update parameters with Adam
 """
 function update!(L::LPDO,∇::Array,opt::Adam; kwargs...)
   M = L.X
+  if isempty(opt.∇²)
+    for j in 1:length(M)
+      push!(opt.∇,ITensor(zeros(size(M[j])),inds(M[j])))
+      push!(opt.∇²,ITensor(zeros(size(M[j])),inds(M[j])))
+    end
+  end
   t = kwargs[:step]
   for j in 1:length(M)
     # Update square gradients

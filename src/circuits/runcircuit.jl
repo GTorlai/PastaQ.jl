@@ -14,7 +14,8 @@ qubits(N::Int; mixed::Bool=false) =
 qubits(sites::Vector{<:Index}; mixed::Bool=false) = 
   mixed ? MPO(productMPS(sites, "0")) : productMPS(sites, "0") 
 
-
+qubits(M::Union{MPS,MPO,LPDO}; mixed::Bool=false) =
+  qubits(hilbertspace(M); mixed=mixed)
 
 """ 
     resetqubits!(M::Union{MPS,MPO})
@@ -298,83 +299,36 @@ function choimatrix(N::Int,
                     noise = nothing, apply_dag = false,
                     cutoff = 1e-15, maxdim = 10000, kwargs...)
   if isnothing(noise)
-    # Get circuit MPO
-    U = runcircuit(N, gates;
-                   process = true, cutoff = 1e-15,
-                   maxdim = 10000, kwargs...)
-    
-    # Choi indices 
-    addtags!(U, "Input", plev = 0, tags = "Qubit")
-    addtags!(U, "Output", plev = 1, tags = "Qubit")
-    noprime!(U)
-    # SVD to bring into 2N-sites MPS
-    Λ0 = splitchoi(U,noise=nothing,cutoff=cutoff,maxdim=maxdim)
-    # if apply_dag = true:  Λ = |U⟩⟩ ⟨⟨U†|
-    # if apply_dag = false: Λ = |U⟩⟩
-    Λ = (apply_dag ? MPO(Λ0) : Λ0)
-  else
-    # Initialize circuit MPO
-    U = circuit(N)
-    addtags!(U,"Input",plev=0,tags="Qubit")
-    addtags!(U,"Output",plev=1,tags="Qubit")
-    prime!(U,tags="Input")
-    prime!(U,tags="Link")
-    
-    s = [siteinds(U,tags="Output")[j][1] for j in 1:length(U)]
-    compiler = circuit(s)
-    prime!(compiler,-1,tags="Qubit") 
-    gate_tensors = compilecircuit(compiler, gates; noise=noise, kwargs...)
-
-    M = ITensor[]
-    push!(M,U[1] * noprime(U[1]))
-    Cdn = combiner(inds(M[1],tags="Link")[1],inds(M[1],tags="Link")[2],
-                  tags="Link,n=1")
-    M[1] = M[1] * Cdn
-    for j in 2:N-1
-      push!(M,U[j] * noprime(U[j]))
-      Cup = Cdn
-      Cdn = combiner(inds(M[j],tags="Link,n=$j")[1],inds(M[j],tags="Link,n=$j")[2],tags="Link,n=$j")
-      M[j] = M[j] * Cup * Cdn
-    end
-    push!(M, U[N] * noprime(U[N]))
-    M[N] = M[N] * Cdn
-    ρ = MPO(M)
-    Λ0 = runcircuit(ρ,gate_tensors;apply_dag=true,cutoff=cutoff, maxdim=maxdim)
-    Λ = splitchoi(Λ0,noise=noise,cutoff=cutoff,maxdim=maxdim)
+    error("choi matrix requires noise")
   end
-  return Λ
-end
-
-"""
-  splitchoi(Λ::MPO;noise=nothing,cutoff=1e-15,maxdim=1000)
-
-Map a Choi matrix from `N` sites to `2N` sites, arranged as
-(input1,output1,input2,output2,…)
-"""
-function splitchoi(Λ::MPO;noise=nothing,cutoff=1e-15,maxdim=1000)
-  T = ITensor[]
-  if isnothing(noise)
-    u,S,v = svd(Λ[1],firstind(Λ[1],tags="Input"), 
-                cutoff=cutoff, maxdim=maxdim)
-  else
-    u,S,v = svd(Λ[1],inds(Λ[1],tags="Input"), 
-                cutoff=cutoff, maxdim=maxdim)
-  end
-  push!(T,u*S)
-  push!(T,v)
+  # Initialize circuit MPO
+  U = circuit(N)
+  addtags!(U,"Input",plev=0,tags="Qubit")
+  addtags!(U,"Output",plev=1,tags="Qubit")
+  prime!(U,tags="Input")
+  prime!(U,tags="Link")
   
-  for j in 2:length(Λ)
-    if isnothing(noise)
-      u,S,v = svd(Λ[j],firstind(Λ[j],tags="Input"),commonind(Λ[j-1],Λ[j]),
-                  cutoff=cutoff,maxdim=maxdim)
-    else
-      u,S,v = svd(Λ[j],inds(Λ[j],tags="Input")[1],inds(Λ[j],tags="Input")[2],
-                  commonind(Λ[j-1],Λ[j]),cutoff=cutoff,maxdim=maxdim) 
-    end
-    push!(T,u*S)
-    push!(T,v)
+  s = [siteinds(U,tags="Output")[j][1] for j in 1:length(U)]
+  compiler = circuit(s)
+  prime!(compiler,-1,tags="Qubit") 
+  gate_tensors = compilecircuit(compiler, gates; noise=noise, kwargs...)
+
+  M = ITensor[]
+  push!(M,U[1] * noprime(U[1]))
+  Cdn = combiner(inds(M[1],tags="Link")[1],inds(M[1],tags="Link")[2],
+                tags="Link,n=1")
+  M[1] = M[1] * Cdn
+  for j in 2:N-1
+    push!(M,U[j] * noprime(U[j]))
+    Cup = Cdn
+    Cdn = combiner(inds(M[j],tags="Link,n=$j")[1],inds(M[j],tags="Link,n=$j")[2],tags="Link,n=$j")
+    M[j] = M[j] * Cup * Cdn
   end
-  Λ_split = (isnothing(noise) ? MPS(T) : MPO(T))
-  return Λ_split
+  push!(M, U[N] * noprime(U[N]))
+  M[N] = M[N] * Cdn
+  ρ = MPO(M)
+  Λ = runcircuit(ρ,gate_tensors;apply_dag=true,cutoff=cutoff, maxdim=maxdim)
+  return Choi(Λ)
 end
+
 

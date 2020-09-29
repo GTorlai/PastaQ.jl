@@ -42,7 +42,7 @@ U = runcircuit(N,gates;process=true)
 # is obtained using the flag `process=true`, which 
 # returns the Choi matrix `Λ` of the channel:`:
 Λ = runcircuit(N,gates;process=true,noise="AD",γ=0.01)
-@show maxlinkdim(Λ)
+@show maxlinkdim(Λ.M)
 @show Λ
 
 

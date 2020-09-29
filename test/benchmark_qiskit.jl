@@ -27,26 +27,8 @@ end
   exact_U = testdata["U"]
   g = testdata["gates"]
   gates = convert_gates(g)
-  U0 = circuit(N)
-  U = fullmatrix(runcircuit(N,gates,process=true))
+  U = fullmatrix(runcircuit(N,gates;process=true))
   @test U ≈ exact_U
-end
-
-@testset " Noiseless Choi matrix " begin
-  N = 5
-  path = string("test_data_unitary.pickle")
-  f_in = open(path)
-  testdata = pickle.load(f_in);
-  exact_choi = testdata["choi"]
-  g = testdata["gates"]
-  gates = convert_gates(g)
-
-  Λ0 = choimatrix(N,gates)
-  disable_warn_order!()
-  Λ = fullmatrix(MPO(Λ0))
-  reset_warn_order!()
-
-  @test Λ ≈ exact_choi
 end
 
 @testset " Noisy Choi matrix " begin
@@ -57,25 +39,23 @@ end
   exact_choi = testdata["choi"]
   g = testdata["gates"]
   gates = convert_gates(g)
-  #Λ0 = runcircuit(N,gates,process=true,noise="AD",γ=0.1)
   Λ0 = choimatrix(N,gates;noise="AD",γ=0.1)
   disable_warn_order!()
-  Λ = fullmatrix(Λ0)
+  Λ = splitchoi(Λ0)
+  @test fullmatrix(Λ) ≈ exact_choi# rtol=1e-2
   reset_warn_order!()
-  @test Λ ≈ exact_choi
-
+  
   path = string("test_data_PD_0.1.pickle")
   f_in = open(path)
   testdata = pickle.load(f_in);
   exact_choi = testdata["choi"]
   g = testdata["gates"]
   gates = convert_gates(g)
-  #Λ0 = runcircuit(N,gates,process=true,noise="PD",γ=0.1)
   Λ0 = choimatrix(N,gates;noise="PD",γ=0.1)
   disable_warn_order!()
-  Λ = fullmatrix(Λ0)
+  Λ = splitchoi(Λ0)
+  @test fullmatrix(Λ) ≈ exact_choi# rtol=1e-2
   reset_warn_order!()
-  @test Λ ≈ exact_choi
   
   #path = string("test_data_DEP_0.1.pickle")
   #f_in = open(path)

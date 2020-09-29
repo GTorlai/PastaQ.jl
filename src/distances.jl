@@ -49,7 +49,11 @@ function fidelity(ψ::MPS, ρ::MPO)
   # log_F̃ = loginner(ψ, ρ, ψ)
   # log_K = 2 * lognorm(ψ) + logtr(ρ) 
   log_F̃ = log(abs(inner(ψ, ρ, ψ)))
-  log_K = 2 * lognorm(ψ) + log(tr(ρ)) 
+  
+  # TODO Check if trace is real
+  #@assert imag(tr(ρ)) ≈ 0.0 atol=1e-5
+  log_K = 2 * lognorm(ψ) + log(real(tr(ρ))) 
+  
   fidelity = exp(log_F̃ - log_K)
   return fidelity
 end
@@ -124,9 +128,24 @@ function fullfidelity(L::Union{MPO, LPDO}, σ::Union{LPDO, MPO})
   
   ρ_mat ./= tr(ρ_mat)
   σ_mat ./= tr(σ_mat)
-  
   F = sqrt(ρ_mat) * σ_mat * sqrt(ρ_mat)
-  F = real(tr(sqrt(F)))
+  F = real(tr(sqrt(F)))^2
   return F
 end
+
+
+fullfidelity(L::LPDO{MPS},ϕ::MPS) = 
+  fullfidelity(MPO(L.X),MPO(ϕ))
+
+fullfidelity(L::LPDO{MPS},ρ::MPO) = 
+  fullfidelity(MPO(L.X),ρ)
+
+fullfidelity(ρ::MPO,L::LPDO{MPS}) = 
+  fullfidelity(ρ,MPO(L.X))
+
+fullfidelity(ρ::Union{LPDO, MPO},Ψ::MPS) = 
+  fullfidelity(MPO(Ψ),ρ)
+
+fullfidelity(Ψ::MPS, ρ::Union{LPDO, MPO}) = 
+  fullfidelity(MPO(Ψ),ρ)
 

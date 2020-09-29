@@ -17,16 +17,17 @@ export
   logtr,
   tr,
 
+# choi.jl,
+  Choi,
+
 # quantumcircuit.jl
   # Methods
   qubits,
   circuit,
-  choi,
   resetqubits!,
   compilecircuit,
   compilecircuit!,
   runcircuit,
-  choimatrix,
 
 # datagen.jl
   # Methods
@@ -34,21 +35,21 @@ export
   measurementgates,
   randombases,
   randompreparations,
-  generatedata!,
-  generatedata,
-  projectchoi,
-  convertdatapoint,
+  getsamples!,
+  getsamples,
   readouterror!,
+
+# randomstates,jl
+  # Methods
+  randomstate,
+  randomprocess,
 
 # quantumtomography,jl
   # Methods
-  initializetomography,
   normalize!,
   nll,
-  gradlogZ,
-  gradnll,
-  gradients,
   tomography,
+  runtomography,
 
 # distances.jl
   # Methods
@@ -66,6 +67,7 @@ export
   AdaMax,
   # Methods
   update!,
+  resetoptimizer,
 
 # observer.jl
   TomographyObserver,
@@ -79,3 +81,4 @@ export
   loaddata,
   fullvector,
   fullmatrix
+ 

@@ -15,10 +15,10 @@ N = length(Ψ)     # Number of qubits
 χ = maxlinkdim(Ψ) # Bond dimension of variational MPS
 
 # Initialize the variational MPS
-ψ0 = initializetomography(N;χ=χ,σ=0.1)
+ψ0 = randomstate(Ψ;χ=χ)
 
 # Initialize stochastic gradient descent optimizer
-opt = SGD(ψ0;η = 0.01)
+opt = SGD(η = 0.01)
 
 # Run quantum state tomography, where a variational MPS `|ψ(θ)⟩`
 # is optimized to mimimize the cross entropy between the data and 
@@ -42,11 +42,10 @@ N = length(ϱ)     # Number of qubits
 ξ = 2             # Kraus dimension of variational LPDO
 
 # Initialize the LPDO
-ρ0 = initializetomography(N;χ=χ,ξ=ξ,σ=0.1)
+ρ0 = randomstate(ϱ; mixed=true, χ=χ, ξ=ξ)
 
 # Initialize stochastic gradient descent optimizer
-opt = SGD(ρ0;η = 0.01)
-
+opt = SGD(η = 0.1)
 # Run quantum state tomography, where a variational LPDO `Γ(θ)`
 # is optimized to mimimize the cross entropy between the data and 
 # the tensor-network distribution `P(x) = ⟨x|ρ(θ)|x⟩`, where

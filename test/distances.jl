@@ -10,7 +10,7 @@ using Random
   N = 3
   χ = 4
   Random.seed!(1111)
-  ψ1 = initializetomography(N;χ=χ)
+  ψ1 = randomstate(N;χ=χ)
   ψ2 = copy(ψ1)
   ψ2[1] = ITensor(ones(2,4),inds(ψ2[1])[1],inds(ψ2[1])[2])
   
@@ -26,25 +26,19 @@ using Random
   F = fidelity(ψ1,ψ2)
   
   @test ex_F ≈ F
-  
-  gates = randomcircuit(N,2)
-  Φ1 = choimatrix(N,gates)
-  F = fidelity(Φ1,Φ1)
-  @test F ≈ 1.0
-
   """ F = <PSI|RHO|PSI> """
   N = 3
   χ = 2
-  ψ = initializetomography(N;χ=χ)
+  ψ = randomstate(N;χ=χ)
   ψ_vec = fullvector(ψ)   
   
   K = sum(ψ_vec .* conj(ψ_vec))
   ψ_vec ./= sqrt(K)
   
   ξ = 2
-  ρ = initializetomography(ψ;χ=χ,ξ=ξ)
+  ρ = randomstate(ψ;mixed=true,χ=χ,ξ=ξ)
   
-  ρ_mat = fullmatrix(MPO(ρ))
+  ρ_mat = fullmatrix(ρ)
   J = tr(ρ_mat)
   ρ_mat ./= J
 
@@ -57,9 +51,9 @@ end
 
   N = 4
   Random.seed!(1111)
-  ψ1 = initializetomography(N;χ=2)
+  ψ1 = randomstate(N;χ=2)
   Random.seed!(2222)
-  ψ2 = initializetomography(ψ1;χ=2)
+  ψ2 = randomstate(ψ1;χ=2)
   
   ρ_mpo = MPO(ψ1)
   σ_mpo = MPO(ψ2)
@@ -77,7 +71,7 @@ end
   @test T ≈ F
     
   Random.seed!(1111)
-  ρ = initializetomography(ψ1;χ=2,ξ=2)
+  ρ = randomstate(ψ1;mixed=true,χ=2,ξ=2)
   
   ρ_mpo = MPO(ρ)
   σ_mpo = MPO(ψ2)
@@ -96,7 +90,7 @@ end
 
 
   Random.seed!(1111)
-  σ = initializetomography(ψ1;χ=2,ξ=2)
+  σ = randomstate(ψ1;mixed=true,χ=2,ξ=2)
   
   ρ_mpo = MPO(ψ1)
   σ_mpo = MPO(σ)
@@ -114,9 +108,9 @@ end
   @test T ≈ F
   
   Random.seed!(1111)
-  ρ = initializetomography(N;χ=2,ξ=2)
+  ρ = randomstate(N;mixed=true,χ=2,ξ=2)
   Random.seed!(1111)
-  σ = initializetomography(ρ;χ=2,ξ=2)
+  σ = randomstate(ρ;mixed=true,χ=2,ξ=2)
   
   ρ_mpo = MPO(ρ)
   σ_mpo = MPO(σ)
@@ -138,9 +132,9 @@ end
 
   N = 4
   Random.seed!(1111)
-  ψ1 = initializetomography(N;χ=2)
+  ψ1 = randomstate(N;χ=2)
   Random.seed!(2222)
-  ψ2 = initializetomography(ψ1;χ=2)
+  ψ2 = randomstate(ψ1;χ=2)
   
   ρ_mpo = MPO(ψ1)
   σ_mpo = MPO(ψ2)
@@ -155,7 +149,7 @@ end
   @test f ≈ F̃
     
   Random.seed!(1111)
-  ρ = initializetomography(ψ1;χ=2,ξ=2)
+  ρ = randomstate(ψ1;mixed=true,χ=2,ξ=2)
   
   ρ_mpo = MPO(ρ)
   σ_mpo = MPO(ψ2)
@@ -171,7 +165,7 @@ end
 
 
   Random.seed!(1111)
-  σ = initializetomography(ψ1;χ=2,ξ=2)
+  σ = randomstate(ψ1;mixed=true,χ=2,ξ=2)
   
   ρ_mpo = MPO(ψ1)
   σ_mpo = MPO(σ)
@@ -185,9 +179,9 @@ end
   @test f ≈ F̃
   
   Random.seed!(1111)
-  ρ = initializetomography(N;χ=2,ξ=2)
+  ρ = randomstate(N;mixed=true,χ=2,ξ=2)
   Random.seed!(1111)
-  σ = initializetomography(ρ;χ=2,ξ=2)
+  σ = randomstate(ρ;mixed=true,χ=2,ξ=2)
   
   ρ_mpo = MPO(ρ)
   σ_mpo = MPO(σ)

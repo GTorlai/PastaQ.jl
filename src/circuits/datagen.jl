@@ -55,8 +55,6 @@ function measurementgates(basis::Array)
 end
 
 
-
-
 """
     randompreparations(N::Int,nshots::Int;
                        states::Array=["X+","X-","Y+","Y-","Z+","Z-"],
@@ -87,6 +85,7 @@ function randompreparations(N::Int,nshots::Int;
   return preparations
 end
 
+
 """
     preparationgates(prep::Array)
 
@@ -111,11 +110,8 @@ function preparationgates(prep::Array)
 end
 
 
-
-
-
 """
-    generatedata!(M::Union{MPS,MPO},nshots::Int)
+    getsamples!(M::Union{MPS,MPO},nshots::Int)
 
 Perform a projective measurement of a wavefunction 
 `|ψ⟩` or density operator `ρ`. The measurement consist of
@@ -124,7 +120,7 @@ distribution:
 - P(σ) = |⟨σ|ψ⟩|² : if `M = ψ is MPS`
 - P(σ) = ⟨σ|ρ|σ⟩  : if `M = ρ is MPO`
 """
-function generatedata!(M::Union{MPS,MPO};kwargs...)
+function getsamples!(M::Union{MPS,MPO};kwargs...)
   readout_errors = get(kwargs,:readout_errors,nothing) 
   orthogonalize!(M,1)
   measurement = sample(M)
@@ -137,18 +133,19 @@ end
 
 
 """
-    generatedata!(M::Union{MPS,MPO},nshots::Int)
+    getsamples!(M::Union{MPS,MPO},nshots::Int)
 
 Perform `nshots` projective measurements on a wavefunction 
 `|ψ⟩` or density operator `ρ`. 
 """
-function generatedata!(M::Union{MPS,MPO},nshots::Int; kwargs...)
+function getsamples!(M::Union{MPS,MPO},nshots::Int; kwargs...)
   measurements = Matrix{Int64}(undef, nshots, length(M))
   for n in 1:nshots
-    measurements[n,:] = generatedata!(M;kwargs...)
+    measurements[n,:] = getsamples!(M;kwargs...)
   end
   return measurements
 end
+
 
 """
     readouterror!(measurement::Array;probs::Array=[0.0,0.0])
@@ -174,12 +171,13 @@ function readouterror!(measurement::Array;probs::Array=[0.0,0.0])
   return measurement
 end
 
+
 """
 MEASUREMENT IN MULTIPLE BASES
 """
 
 """
-    generatedata(M::Union{MPS,MPO},bases::Array)
+    getsamples(M::Union{MPS,MPO},bases::Array)
 Generate a dataset of `nshots` measurements acccording to a set
 of input `bases`. For a single measurement, tf `Û` is the depth-1 
 local circuit rotating each qubit, the  data-point `σ = (σ₁,σ₂,…)
@@ -187,13 +185,13 @@ is drawn from the probability distribution:
 - P(σ) = |⟨σ|Û|ψ⟩|²   : if M = ψ is MPS
 - P(σ) = <σ|Û ρ Û†|σ⟩ : if M = ρ is MPO   
 """
-function generatedata(M0::Union{MPS,MPO},bases::Array; kwargs...)
+function getsamples(M0::Union{MPS,MPO},bases::Array; kwargs...)
   @assert length(M0) == size(bases)[2]
   data = Matrix{String}(undef, size(bases)[1],length(M0))
   for n in 1:size(bases)[1]
     meas_gates = measurementgates(bases[n,:])
     M = runcircuit(M0,meas_gates)
-    measurement = generatedata!(M;kwargs...)
+    measurement = getsamples!(M;kwargs...)
     data[n,:] = convertdatapoint(measurement,bases[n,:])
   end
   return data 
@@ -205,7 +203,7 @@ QUANTUM PROCESS TOMOGRAPHY
 """
 
 """ 
-    generatedata(M0::Union{MPS,MPO},
+    getsamples(M0::Union{MPS,MPO},
                  gate_tensors::Vector{<:ITensor},
                  prep::Array,basis::Array;
                  cutoff::Float64=1e-15,maxdim::Int64=10000,
@@ -223,7 +221,7 @@ basis rotation is performed at the output of a quantum channel.
  - `basis`: a measuremement basis (e.g. `["Z","Z","Y","X"])
 """
 # Generate a single data point for process tomography
-function generatedata(M0::Union{MPS,MPO},
+function getsamples(M0::Union{MPS,MPO},
                       gate_tensors::Vector{<:ITensor},
                       prep::Array,basis::Array;
                       cutoff::Float64=1e-15,maxdim::Int64=10000,
@@ -239,64 +237,56 @@ function generatedata(M0::Union{MPS,MPO},
   # Apply basis rotation
   M_meas = runcircuit(M_out,meas_gates)
   # Measure
-  measurement = generatedata!(M_meas;kwargs...)
+  measurement = getsamples!(M_meas;kwargs...)
   
   return convertdatapoint(measurement,basis)
 end
 
-"""
-    projectchoi(Λ0::Union{MPS,MPO},prep::Array)
 
-Project the Choi matrix (MPS/MPO) input indices into a state `prep` 
+"""
+    projectchoi(Λ0::Choi{MPO},prep::Array)
+
+Project the Choi matrix (MPO only for now) input indices into a state `prep` 
 made out of single-qubit Pauli eigenstates (e.g. `|ϕ⟩ =|+⟩⊗|0⟩⊗|r⟩⊗…).
-The resulting MPS/MPO describes the quantum state obtained by applying
+The resulting MPO describes the quantum state obtained by applying
 the quantum channel underlying the Choi matrix to `|ϕ⟩`.
 """
-function projectchoi(Λ0::Union{MPS,MPO},prep::Array)
-  Λ = copy(Λ0) 
+function projectchoi(Λ0::Choi{MPO},prep::Array)
+  Λ = copy(Λ0)
+  choi = Λ.M
   state = "state" .* copy(prep) 
+  s = firstsiteinds(choi,tags="Input")
   
-  M = ITensor[]
-  s = (Λ isa MPS ? siteinds(Λ) : firstsiteinds(Λ))
-  
-  for j in 1:2:length(Λ)
-    # No conjugate on the gate (transpose input)
-    if typeof(Λ) == MPS
-      Λ[j] = Λ[j] * gate(state[(j+1)÷2],s[j])
-    else
-      Λ[j] = Λ[j] * dag(gate(state[(j+1)÷2],s[j]))
-      Λ[j] = Λ[j] * prime(gate(state[(j+1)÷2],s[j]))
-    end
-    push!(M,Λ[j]*Λ[j+1])
+  for j in 1:length(choi)
+    # No conjugate on the gate (transpose input!)
+    choi[j] = choi[j] * dag(gate(state[j],s[j]))
+    choi[j] = choi[j] * prime(gate(state[j],s[j]))
   end
-  return (Λ isa MPS ? MPS(M) : MPO(M))
+  return choi
 end
 
-"""
-    generatedata(Λ0::Union{MPS,MPO},prep::Array,basis::Array)
-
-Generate a single data-point for quantum process tomography using an
-input Choi matrix `Λ0`. Each data-point consists of an input state 
-(a product state of single-qubit Pauli eigenstates) and an output 
-state measured after a given basis rotation is performed at the output 
-of a quantum channel.
 
 """
-function generatedata(Λ0::Union{MPS,MPO},prep::Array,basis::Array; kwargs...)
-  
-  # Generate measurement gates
-  meas_gates = measurementgates(basis)
-  # Project Choi matrix input subspace
-  Φ = projectchoi(Λ0,prep)
-  # Apply basis rotation
-  Φ_meas = runcircuit(Φ,meas_gates)
-  # Measure
-  measurement = generatedata!(Φ_meas;kwargs...)
-  return convertdatapoint(measurement,basis)
+    projectunitary(U0::MPO,prep::Array)
+
+Project the unitary circuit (MPO) into a state `prep` 
+made out of single-qubit Pauli eigenstates (e.g. `|ϕ⟩ =|+⟩⊗|0⟩⊗|r⟩⊗…).
+The resulting MPS describes the quantum state obtained by applying
+the quantum circuit to `|ϕ⟩`.
+"""
+function projectunitary(U::MPO,prep::Array)
+  state = "state" .* copy(prep) 
+  M = ITensor[]
+  s = firstsiteinds(U)
+  for j in 1:length(U)
+    push!(M,U[j] * gate(state[j],s[j]))
+  end
+  return noprime!(MPS(M))
 end
 
+
 """
-    generatedata(N::Int64,gates::Vector{<:Tuple},nshots::Int64;     
+    getsamples(N::Int64,gates::Vector{<:Tuple},nshots::Int64;     
                  noise=nothing,return_state::Bool=false,            
                  choi::Bool=false,process::Bool=false,              
                  localbasis::Array=["X","Y","Z"],                   
@@ -318,47 +308,49 @@ model.
   - `inputstates`: a set of input states (e.g. `["X+","X-","Y+","Y-","Z+","Z-"]`)   
   - `localasis`: set of basis used (e.g. `["X","Y","Z"])
 """
-function generatedata(N::Int64,gates::Vector{<:Tuple},nshots::Int64;
+function getsamples(N::Int64,gates::Vector{<:Tuple},nshots::Int64;
                       noise=nothing,return_state::Bool=false,
-                      choi::Bool=true,process::Bool=false,
+                      build_process::Bool=true,process::Bool=false,
                       localbasis::Array=["X","Y","Z"],
                       inputstates::Array=["X+","X-","Y+","Y-","Z+","Z-"],
                       n_distinctbases = nothing,n_distinctstates=nothing,
                       cutoff::Float64=1e-15,maxdim::Int64=10000,
                       readout_errors=nothing,kwargs...)
   
+  data = Matrix{String}(undef, nshots,N)
   bases = randombases(N,nshots;localbasis=localbasis,n_distinctbases=n_distinctbases)
+  
   if !process
     # Apply the quantum channel
     M = runcircuit(N,gates;process=false,noise=noise,
                    cutoff=cutoff,maxdim=maxdim,kwargs...)
-    data = generatedata(M,bases;readout_errors=readout_errors)
+    data = getsamples(M,bases;readout_errors=readout_errors)
     return (return_state ? (M,data) : data)
   else
     # Generate a set of prepared input state to the channel
     preps = randompreparations(N,nshots,inputstates=inputstates,
                                n_distinctstates = n_distinctstates)
-    
-    # Generate data with Choi matrix
-    if choi
-      # Compute Choi matrix
-      Λ = choimatrix(N,gates;noise=noise,cutoff=cutoff,maxdim=maxdim,kwargs...)
-      # Generate data
-      data = Matrix{String}(undef, nshots,length(Λ)÷2)
+    # Generate data using circuit MPO (noiseless) or Choi matrix (noisy)
+    if build_process
+      # Get unitary MPO / Choi matrix
+      M = runcircuit(N,gates;process=true,noise=noise, cutoff=cutoff,maxdim=maxdim,kwargs...)
       for n in 1:nshots
-        data[n,:] = generatedata(Λ,preps[n,:],bases[n,:];readout_errors=readout_errors)
+        M′= (isnothing(noise) ? projectunitary(M,preps[n,:]) : projectchoi(M,preps[n,:]))
+        meas_gates = measurementgates(bases[n,:])
+        M_meas = runcircuit(M′,meas_gates)
+        measurement = getsamples!(M_meas;kwargs...)
+        data[n,:] =  convertdatapoint(measurement,bases[n,:])
       end
-      
-      return (return_state ? (Λ ,preps, data) : (preps,data))
+      return (return_state ? (M ,preps, data) : (preps,data))
+    
+    # Generate data with full state evolution
     else
-      # Initialize state and indiccecs
+      # Initialize state and indices
       ψ0 = qubits(N)
       # Pre-compile quantum channel
       gate_tensors = compilecircuit(ψ0,gates; noise=noise, kwargs...)
-      # Generate data
-      data = Matrix{String}(undef, nshots,length(ψ0))
       for n in 1:nshots
-        data[n,:] = generatedata(ψ0,gate_tensors,preps[n,:],bases[n,:];
+        data[n,:] = getsamples(ψ0,gate_tensors,preps[n,:],bases[n,:];
                                 noise=noise,cutoff=cutoff,choi=false,
                                 maxdim=maxdim,readout_errors=readout_errors,
                                 kwargs...)
@@ -367,6 +359,7 @@ function generatedata(N::Int64,gates::Vector{<:Tuple},nshots::Int64;
     end
   end
 end
+
 
 """
     convertdatapoint(datapoint::Array,basis::Array;state::Bool=false)
@@ -414,5 +407,4 @@ function convertdatapoints(datapoints::Array,bases::Array;state::Bool=false)
   end
   return newdata
 end
-
 

@@ -2,6 +2,7 @@ using PastaQ
 using ITensors
 using Test
 using LinearAlgebra
+using Random
 
 @testset "fullvector - native" begin
   psi = qubits(1)
@@ -104,5 +105,5 @@ end
   applygate!(psi,"CX",(2,1))
   psi_vec = fullvector(psi, reverse = true)
   @test psi_vec ≈ [0, 1, 0, 0]
-
 end
+

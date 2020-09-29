@@ -4,6 +4,15 @@ using Test
 using LinearAlgebra
 using Random
 
+function splitstatewrapper(N::Int64,χ::Int64,ξ::Int64)
+  split_version = true
+  if split_version
+    return randomstate(2*N;mixed=true,χ=χ,ξ=ξ)
+  else
+    return randomprocess(2*N;mixed=trueχ=χ,ξ=ξ)
+  end
+end
+
 """ HELPER FUNCTIONS """
 function numgradslogZ(L::LPDO;accuracy=1e-8)
   M = L.X
@@ -177,7 +186,7 @@ numgradsnll(M::MPS, args...; kwargs...) =
 @testset "mps-qst: normalization" begin
   N = 10
   χ = 4
-  ψ = initializetomography(N;χ=χ)
+  ψ = randomstate(N;χ=χ)
   @test length(ψ) == N
   logZ = lognorm(ψ)
   localZ = []
@@ -191,31 +200,31 @@ end
   χ = 4
   
   # 1. Unnormalized
-  ψ = initializetomography(N;χ=χ)
-  alg_grad,_ = gradlogZ(ψ)
+  ψ = randomstate(N;χ=χ)
+  alg_grad,_ = PastaQ.gradlogZ(ψ)
   num_grad = numgradslogZ(ψ)
   for j in 1:N
     @test array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
   end
   
   # 2. Globally normalized
-  ψ = initializetomography(N;χ=χ)
+  ψ = randomstate(N;χ=χ)
   normalize!(ψ)
   @test norm(ψ)^2 ≈ 1
-  alg_grad,_ = gradlogZ(ψ)
+  alg_grad,_ = PastaQ.gradlogZ(ψ)
   num_grad = numgradslogZ(ψ)
   for j in 1:N
     @test array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
   end
 
   # 3. Locally normalized
-  ψ = initializetomography(N;χ=χ)
+  ψ = randomstate(N;χ=χ)
   num_grad = numgradslogZ(ψ)
 
   localnorms = []
   normalize!(ψ; localnorms! = localnorms)
   @test norm(ψ) ≈ 1
-  alg_grad,_ = gradlogZ(ψ; localnorms = localnorms)
+  alg_grad,_ = PastaQ.gradlogZ(ψ; localnorms = localnorms)
   for j in 1:N
     @test array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
   end
@@ -224,39 +233,39 @@ end
 @testset "mps-qst: grad nll" begin
   N = 5
   χ = 4
-  nsamples = 100
+  nsamples = 10
   Random.seed!(1234)
   rawdata = rand(0:1,nsamples,N)
   bases = randombases(N,nsamples)
   data = Matrix{String}(undef, nsamples,N)
   for n in 1:nsamples
-    data[n,:] = convertdatapoint(rawdata[n,:],bases[n,:],state=true)
+    data[n,:] = PastaQ.convertdatapoint(rawdata[n,:],bases[n,:],state=true)
   end
   
   # 1. Unnormalized
-  ψ = initializetomography(N;χ=χ)
+  ψ = randomstate(N;χ=χ)
   num_grad = numgradsnll(ψ,data)
-  alg_grad,loss = gradnll(ψ,data)
+  alg_grad,loss = PastaQ.gradnll(ψ,data)
   for j in 1:N
     @test array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
   end
   
   # 2. Globally normalized
-  ψ = initializetomography(N;χ=χ)
+  ψ = randomstate(N;χ=χ)
   normalize!(ψ)
   num_grad = numgradsnll(ψ,data)
-  alg_grad,loss = gradnll(ψ,data)
+  alg_grad,loss = PastaQ.gradnll(ψ,data)
   for j in 1:N
     @test array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
   end
   
   # 3. Locally normalized
-  ψ = initializetomography(N;χ=χ)
+  ψ = randomstate(N;χ=χ)
   num_grad = numgradsnll(ψ,data)
   localnorms = []
   normalize!(ψ; localnorms! = localnorms)
   @test norm(ψ) ≈ 1
-  alg_grad_localnorm, loss = gradnll(ψ, data; localnorms = localnorms)
+  alg_grad_localnorm, loss = PastaQ.gradnll(ψ, data; localnorms = localnorms)
   for j in 1:N
     @test array(alg_grad_localnorm[j]) ≈ num_grad[j] rtol=1e-3
   end
@@ -265,17 +274,17 @@ end
 @testset "mps-qst: full gradients" begin
   N = 5
   χ = 4
-  nsamples = 100
+  nsamples = 10
   Random.seed!(1234)
   rawdata = rand(0:1,nsamples,N)
   bases = randombases(N,nsamples)
   data = Matrix{String}(undef, nsamples,N)
   for n in 1:nsamples
-    data[n,:] = convertdatapoint(rawdata[n,:],bases[n,:],state=true)
+    data[n,:] = PastaQ.convertdatapoint(rawdata[n,:],bases[n,:],state=true)
   end
   
   # 1. Unnormalized
-  ψ = initializetomography(N;χ=χ)
+  ψ = randomstate(N;χ=χ)
   logZ = 2.0*log(norm(ψ))
   NLL  = nll(ψ,data)
   ex_loss = logZ + NLL
@@ -283,14 +292,14 @@ end
   num_gradNLL = numgradsnll(ψ,data)
   num_grads = num_gradZ + num_gradNLL
   
-  alg_grads,loss = gradients(ψ,data)
+  alg_grads,loss = PastaQ.gradients(ψ,data)
   @test ex_loss ≈ loss
   for j in 1:N
     @test array(alg_grads[j]) ≈ num_grads[j] rtol=1e-3
   end
 
   # 2. Globally normalized
-  ψ = initializetomography(N;χ=χ)
+  ψ = randomstate(N;χ=χ)
   normalize!(ψ)
   num_gradZ = numgradslogZ(ψ)
   num_gradNLL = numgradsnll(ψ,data)
@@ -299,14 +308,14 @@ end
   ex_loss = NLL
   @test norm(ψ)^2 ≈ 1
   
-  alg_grads,loss = gradients(ψ,data)
+  alg_grads,loss = PastaQ.gradients(ψ,data)
   @test ex_loss ≈ loss
   for j in 1:N
     @test array(alg_grads[j]) ≈ num_grads[j] rtol=1e-3
   end
   
   # 3. Locally normalized
-  ψ = initializetomography(N;χ=χ)
+  ψ = randomstate(N;χ=χ)
   num_gradZ = numgradslogZ(ψ)
   num_gradNLL = numgradsnll(ψ,data)
   num_grads = num_gradZ + num_gradNLL
@@ -317,7 +326,7 @@ end
   ex_loss = NLL
   @test norm(ψ)^2 ≈ 1
   
-  alg_grads,loss = gradients(ψ, data; localnorms = localnorms)
+  alg_grads,loss = PastaQ.gradients(ψ, data; localnorms = localnorms)
   @test ex_loss ≈ loss
   for j in 1:N
     @test array(alg_grads[j]) ≈ num_grads[j] rtol=1e-3
@@ -325,82 +334,46 @@ end
 end
 
 """ MPS PROCESS TOMOGRAPHY TESTS """
-
-@testset "mps-qpt: grad logZ" begin
-
-  N = 10
-  χ = 4
-  
-  # 1. Unnormalized
-  ψ = initializetomography(N;χ=χ)
-  num_grad = numgradslogZ(ψ)
-  alg_grad,logZ = gradlogZ(ψ)
-  
-  for j in 1:N
-    @test array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
-  end
-
-  # 2. Globally normalized
-  ψ = initializetomography(N;χ=χ)
-  normalize!(ψ)
-  #@test norm(ψ)^2 ≈ 2^(0.5*N)
-  alg_grad,_ = gradlogZ(ψ)
-  num_grad = numgradslogZ(ψ)
-  for j in 1:N
-    @test array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
-  end
-  
-  # 3. Locally normalized
-  ψ = initializetomography(N;χ=χ)
-  num_grad = numgradslogZ(ψ)
-
-  localnorms = []
-  normalize!(ψ; localnorms! = localnorms)
-  #@test norm(ψ)^2 ≈ 2^(0.5*N)
-  alg_grad,_ = gradlogZ(ψ; localnorms = localnorms)
-  for j in 1:N
-    @test array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
-  end
-end
+# TODO: Change after the unsplit tomography is in place
 
 @testset "mps-qpt: grad nll" begin
   Nphysical = 4
-  N = 2*Nphysical
+  N = Nphysical
   χ = 2
-  nsamples = 100
+  nsamples = 10
   Random.seed!(1234)
   rawdata = rand(0:1,nsamples,N)
   bases = randombases(N,nsamples)
   data = Matrix{String}(undef, nsamples,N)
   for n in 1:nsamples
-    data[n,:] = convertdatapoint(rawdata[n,:],bases[n,:],state=true)
+    data[n,:] = PastaQ.convertdatapoint(rawdata[n,:],bases[n,:],state=true)
   end
   
   # 1. Unnnomalized
-  ψ = initializetomography(N;χ=χ)
+  ψ = randomstate(N;χ=χ)
   num_grad = numgradsnll(ψ,data,choi=true)
-  alg_grad,loss = gradnll(ψ,data,choi=true)
+  alg_grad,loss = PastaQ.gradnll(ψ,data,choi=true)
   for j in 1:N
     @test array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
   end
   
   # 2. Globally normalized
-  ψ = initializetomography(N;χ=χ)
+  ψ = randomstate(N;χ=χ)
   normalize!(ψ)
   num_grad = numgradsnll(ψ,data,choi=true)
   #@test norm(ψ)^2 ≈ 2^(Nphysical)
-  alg_grad,loss = gradnll(ψ,data;choi=true)
+  alg_grad,loss = PastaQ.gradnll(ψ,data;choi=true)
   for j in 1:N
     @test array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
   end
   
   # 3. Locally normalized
-  ψ = initializetomography(N;χ=χ)
+  ψ = randomstate(N;χ=χ)
   num_grad = numgradsnll(ψ,data,choi=true)
   localnorms = []
   normalize!(ψ; localnorms! = localnorms)
   #@test norm(ψ)^2 ≈ 2^(Nphysical)
-  alg_grad,loss = gradnll(ψ, data, localnorms = localnorms, choi = true)
+  alg_grad,loss = PastaQ.gradnll(ψ, data, localnorms = localnorms, choi = true)
   for j in 1:N
     @test array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
   end
@@ -409,19 +382,19 @@ end
 
 @testset "mps-qpt: full gradients" begin
   Nphysical = 2
-  N = 2 * Nphysical
+  N = Nphysical
   χ = 4
-  nsamples = 100
+  nsamples = 10
   Random.seed!(1234)
   rawdata = rand(0:1,nsamples,N)
   bases = randombases(N,nsamples)
   data = Matrix{String}(undef, nsamples,N)
   for n in 1:nsamples
-    data[n,:] = convertdatapoint(rawdata[n,:],bases[n,:],state=true)
+    data[n,:] = PastaQ.convertdatapoint(rawdata[n,:],bases[n,:],state=true)
   end
   
   # 1. Unnormalized
-  ψ = initializetomography(N;χ=χ)
+  ψ = randomstate(N;χ=χ)
   logZ = 2.0*log(norm(ψ))
   NLL  = nll(ψ,data;choi=true)
   ex_loss = logZ + NLL - 0.5*N*log(2)
@@ -429,14 +402,14 @@ end
   num_gradNLL = numgradsnll(ψ,data;choi=true)
   num_grads = num_gradZ + num_gradNLL
 
-  alg_grads,loss = gradients(ψ,data;choi=true)
+  alg_grads,loss = PastaQ.gradients(ψ,data;choi=true)
   @test ex_loss ≈ loss
   for j in 1:N
     @test array(alg_grads[j]) ≈ num_grads[j] rtol=1e-3
   end
 
   # 2. Globally normalized
-  ψ = initializetomography(N;χ=χ)
+  ψ = randomstate(N;χ=χ)
   normalize!(ψ)
   num_gradZ = numgradslogZ(ψ)
   num_gradNLL = numgradsnll(ψ,data;choi=true)
@@ -445,14 +418,14 @@ end
   ex_loss = NLL - 0.5*N*log(2)
   #@test norm(ψ)^2 ≈ 2^(Nphysical)
   
-  alg_grads,loss = gradients(ψ,data;choi=true)
+  alg_grads,loss = PastaQ.gradients(ψ,data;choi=true)
   @test ex_loss ≈ loss
   for j in 1:N
     @test array(alg_grads[j]) ≈ num_grads[j] rtol=1e-3
   end
   
   # 3. Locally normalized
-  ψ = initializetomography(N;χ=χ)
+  ψ = randomstate(N;χ=χ)
   num_gradZ = numgradslogZ(ψ)
   num_gradNLL = numgradsnll(ψ,data;choi=true)
   num_grads = num_gradZ + num_gradNLL
@@ -462,33 +435,35 @@ end
   NLL  = nll(ψ,data;choi=true)
   ex_loss = NLL - 0.5*N*log(2)
   
-  alg_grads,loss = gradients(ψ, data; localnorms = localnorms, choi = true)
+  alg_grads,loss = PastaQ.gradients(ψ, data; localnorms = localnorms, choi = true)
   @test ex_loss ≈ loss
   for j in 1:N
     @test array(alg_grads[j]) ≈ num_grads[j] rtol=1e-3
   end
 end
-
-
 """ LPDO STATE TOMOGRAPHY TESTS """
 
 @testset "lpdo-qst: normalization" begin
-  N = 10
+  N = Nqubits = 5
+  N = 2*Nqubits
   χ = 4
   ξ = 2
+  
+  #ρ = randomprocess(N;mixed=true,χ=χ,ξ=ξ)
+  ρ = splitstatewrapper(Nqubits,χ,ξ)
 
-  ρ = initializetomography(N;χ=χ,ξ=ξ)
   @test length(ρ) == N
   logZ = logtr(ρ)
   sqrt_localZ = []
   normalize!(ρ; sqrt_localnorms! = sqrt_localZ)
   @test logZ ≈ 2 * sum(log.(sqrt_localZ))
-
-  ρ = initializetomography(N;χ=χ,ξ=ξ)
+  #ρ = randomprocess(N;mixed=true,χ=χ,ξ=ξ)
+  ρ = splitstatewrapper(Nqubits,χ,ξ)
   normalize!(ρ)
   @test tr(ρ) ≈ 1
 
-  ρ = MPO(initializetomography(N;χ=χ,ξ=ξ))
+  #ρ = MPO(randomprocess(N;mixed=true,χ=χ,ξ=ξ))
+  ρ = MPO(splitstatewrapper(Nqubits,χ,ξ))
   trρ = tr(ρ)
   localtrρ = []
   normalize!(ρ; localnorms! = localtrρ)
@@ -496,28 +471,16 @@ end
   @test tr(ρ) ≈ 1
 end
 
-@testset "lpdo-qst: density matrix properties" begin
-  N = 5
-  χ = 4
-  ξ = 3
-  ρ = initializetomography(N;χ=χ,ξ=ξ)
-  @test length(ρ) == N
-  normalize!(ρ)
-  rho = MPO(ρ)
-  rho_mat = fullmatrix(rho)
-  @test sum(abs.(imag(diag(rho_mat)))) ≈ 0.0 atol=1e-10
-  @test real(tr(rho_mat)) ≈ 1.0 atol=1e-10
-  @test all(real(eigvals(rho_mat)) .≥ 0) 
-end
-
 @testset "lpdo-qst: grad logZ" begin
-  N = 5
+  Nqubits = 3
+  N = 2*Nqubits
   χ = 4
   ξ = 3
   
   # 1. Unnormalized
-  ρ = initializetomography(N;χ=χ,ξ=ξ)
-  alg_grad,_ = gradlogZ(ρ)
+  #ρ = randomprocess(Nqubits;mixed=true,χ=χ,ξ=ξ)
+  ρ = splitstatewrapper(Nqubits,χ,ξ)
+  alg_grad,_ = PastaQ.gradlogZ(ρ)
   num_grad = numgradslogZ(ρ)
   alg_gradient = permutedims(array(alg_grad[1]),[1,3,2])
   @test alg_gradient ≈ num_grad[1] rtol=1e-3
@@ -529,10 +492,11 @@ end
   @test alg_gradient ≈ num_grad[N] rtol=1e-3
   
   # 2. Globally normalizeid
-  ρ = initializetomography(N;χ=χ,ξ=ξ)
+  #ρ = randomprocess(Nqubits;mixed=true,χ=χ,ξ=ξ)
+  ρ = splitstatewrapper(Nqubits,χ,ξ)
   normalize!(ρ)
   @test tr(ρ) ≈ 1
-  alg_grad,_ = gradlogZ(ρ)
+  alg_grad,_ = PastaQ.gradlogZ(ρ)
   num_grad = numgradslogZ(ρ)
   
   alg_gradient = permutedims(array(alg_grad[1]),[1,3,2])
@@ -545,13 +509,14 @@ end
   @test alg_gradient ≈ num_grad[N] rtol=1e-3
 
   # 3. Locally normalized
-  ρ = initializetomography(N;χ=χ,ξ=ξ)
+  #ρ = randomprocess(Nqubits;mixed=true,χ=χ,ξ=ξ)
+  ρ = splitstatewrapper(Nqubits,χ,ξ)
   num_grad = numgradslogZ(ρ)
 
   sqrt_localnorms = []
   normalize!(ρ; sqrt_localnorms! = sqrt_localnorms)
   @test tr(ρ) ≈ 1
-  alg_grad,_ = gradlogZ(ρ, sqrt_localnorms = sqrt_localnorms)
+  alg_grad,_ = PastaQ.gradlogZ(ρ, sqrt_localnorms = sqrt_localnorms)
 
   alg_gradient = permutedims(array(alg_grad[1]),[1,3,2])
   @test alg_gradient ≈ num_grad[1] rtol=1e-3
@@ -566,23 +531,25 @@ end
 
 
 @testset "lpdo-qst: grad nll" begin
-  N = 5
+  Nqubits = 3
+  N = 2*Nqubits
   χ = 4
   ξ = 3
-  nsamples = 100
+  nsamples = 10
   Random.seed!(1234)
   rawdata = rand(0:1,nsamples,N)
   bases = randombases(N,nsamples)
   data = Matrix{String}(undef, nsamples,N)
   for n in 1:nsamples
-    data[n,:] = convertdatapoint(rawdata[n,:],bases[n,:],state=true)
+    data[n,:] = PastaQ.convertdatapoint(rawdata[n,:],bases[n,:],state=true)
   end
   
   # 1. Unnormalized
-  ρ = initializetomography(N;χ=χ,ξ=ξ)
+  #ρ = randomprocess(Nqubits;mixed=true,χ=χ,ξ=ξ)
+  ρ = splitstatewrapper(Nqubits,χ,ξ)
 
   num_grad = numgradsnll(ρ,data)
-  alg_grad,loss = gradnll(ρ,data)
+  alg_grad,loss = PastaQ.gradnll(ρ,data)
   ex_loss = nll(ρ,data)
   @test ex_loss ≈ loss
   alg_gradient = permutedims(array(alg_grad[1]),[3,1,2])
@@ -595,11 +562,12 @@ end
   @test alg_gradient ≈ num_grad[N] rtol=1e-3
   
   # 2. Globally normalized
-  ρ = initializetomography(N;χ=χ,ξ=ξ)
+  #ρ = randomprocess(Nqubits;mixed=true,χ=χ,ξ=ξ)
+  ρ = splitstatewrapper(Nqubits,χ,ξ)
   normalize!(ρ)
   @test tr(ρ) ≈ 1
   num_grad = numgradsnll(ρ,data)
-  alg_grad,loss = gradnll(ρ,data)
+  alg_grad,loss = PastaQ.gradnll(ρ,data)
   ex_loss = nll(ρ,data)
   @test ex_loss ≈ loss
   alg_gradient = permutedims(array(alg_grad[1]),[3,1,2])
@@ -612,12 +580,13 @@ end
   @test alg_gradient ≈ num_grad[N] rtol=1e-3
 
   # 3. Locally normalized
-  ρ = initializetomography(N;χ=χ,ξ=ξ)
+  #ρ = randomprocess(Nqubits;mixed=true,χ=χ,ξ=ξ)
+  ρ = splitstatewrapper(Nqubits,χ,ξ)
   num_grad = numgradsnll(ρ,data)
   sqrt_localnorms = []
   normalize!(ρ; sqrt_localnorms! = sqrt_localnorms)
   @test tr(ρ) ≈ 1
-  alg_grad,loss = gradnll(ρ, data; sqrt_localnorms = sqrt_localnorms)
+  alg_grad,loss = PastaQ.gradnll(ρ, data; sqrt_localnorms = sqrt_localnorms)
   ex_loss = nll(ρ,data)
   @test ex_loss ≈ loss
   alg_gradient = permutedims(array(alg_grad[1]),[3,1,2])
@@ -635,26 +604,26 @@ end
 PROCESS TOMOGRAPHY WITH LPDO
 """
 
-
+#TODO This works with the plit version only
 @testset "lpdo-qpt: grad nll" begin
-  Nphysical = 1
-  N = 2 * Nphysical
+  Nqubits= 3
+  N = 2*Nqubits
   χ = 4
   ξ = 3
-  nsamples = 100
+  nsamples = 10
   Random.seed!(1234)
   rawdata = rand(0:1,nsamples,N)
   bases = randombases(N,nsamples)
   data = Matrix{String}(undef, nsamples,N)
   for n in 1:nsamples
-    data[n,:] = convertdatapoint(rawdata[n,:],bases[n,:],state=true)
+    data[n,:] = PastaQ.convertdatapoint(rawdata[n,:],bases[n,:],state=true)
   end
   
   # 1. Unnormalized
-  Λ = initializetomography(N;χ=χ,ξ=ξ)
-
+  #Λ = randomprocess(N;mixed=true,χ=χ,ξ=ξ)
+  Λ = splitstatewrapper(Nqubits,χ,ξ)
   num_grad = numgradsnll(Λ,data,choi=true)
-  alg_grad,loss = gradnll(Λ,data,choi=true)
+  alg_grad,loss = PastaQ.gradnll(Λ,data,choi=true)
   ex_loss = nll(Λ,data,choi=true)
   @test ex_loss ≈ loss
   alg_gradient = permutedims(array(alg_grad[1]),[3,1,2])
@@ -667,11 +636,12 @@ PROCESS TOMOGRAPHY WITH LPDO
   @test alg_gradient ≈ num_grad[N] rtol=1e-3
   
   # 2. Globally normalized
-  Λ = initializetomography(N;χ=χ,ξ=ξ) 
+  #Λ = randomprocess(N;mixed=true,χ=χ,ξ=ξ)
+  Λ = splitstatewrapper(Nqubits,χ,ξ)
   normalize!(Λ)
   num_grad = numgradsnll(Λ,data,choi=true)
   ex_loss = nll(Λ,data,choi=true) 
-  alg_grad,loss = gradnll(Λ,data,choi=true)
+  alg_grad,loss = PastaQ.gradnll(Λ,data,choi=true)
   @test ex_loss ≈ loss 
   alg_gradient = permutedims(array(alg_grad[1]),[3,1,2])
   @test alg_gradient ≈ num_grad[1] rtol=1e-3
@@ -683,12 +653,13 @@ PROCESS TOMOGRAPHY WITH LPDO
   @test alg_gradient ≈ num_grad[N] rtol=1e-3
 
   # 3. Locally normalized
-  Λ = initializetomography(N;χ=χ,ξ=ξ)
+  #Λ = randomprocess(N;mixed=true,χ=χ,ξ=ξ)
+  Λ = splitstatewrapper(Nqubits,χ,ξ)
   num_grad = numgradsnll(Λ,data,choi=true)
   sqrt_localnorms = []
   normalize!(Λ; sqrt_localnorms! = sqrt_localnorms)
   ex_loss = nll(Λ, data; choi = true) 
-  alg_grad,loss = gradnll(Λ, data; sqrt_localnorms = sqrt_localnorms, choi = true)
+  alg_grad,loss = PastaQ.gradnll(Λ, data; sqrt_localnorms = sqrt_localnorms, choi = true)
   @test ex_loss ≈ loss
   alg_gradient = permutedims(array(alg_grad[1]),[3,1,2])
   @test alg_gradient ≈ num_grad[1] rtol=1e-3
@@ -701,3 +672,28 @@ PROCESS TOMOGRAPHY WITH LPDO
   
 end
 
+@testset "splitunitary" begin
+  
+  N = 4 
+  U0 = randomprocess(N;mixed=false,χ=4)
+  U0prod = prod(U0)
+  V0 = randomprocess(U0;mixed=false,χ=4)
+  Ψ = PastaQ.splitunitary(U0)
+  U = PastaQ.unsplitunitary(Ψ)
+  @test prod(U) ≈ prod(U0)
+end
+
+@testset "splitchoi" begin
+  N = 3
+  gates = randomcircuit(N,2)
+  Λ0 = runcircuit(N,gates;process=true,noise="AD",γ=0.1)
+  ρ = PastaQ.splitchoi(Λ0)
+  Λ = PastaQ.unsplitchoi(ρ)
+  @test prod(Λ0.M) ≈ prod(Λ.M)
+
+  Λ0 = randomprocess(N;mixed=true)
+  ρ = PastaQ.splitchoi(Λ0)
+  Λ = PastaQ.unsplitchoi(ρ)
+  @test prod(Λ.M.X) ≈ prod(Λ.M.X)
+
+end
