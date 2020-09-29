@@ -59,13 +59,21 @@ including Pauli matrices, phase and T gates, single-qubit rotations, controlled
 gates, Toffoli gate and others. Additional user-specific gates can be added.
 
 ```julia
+using PastaQ
+
+N = 4   # Number of qubits
+
 # Building a circuit data-structure
 gates = [("X" , 1),                        # Pauli X on qubit 1
-         ("CX", (1, 2)),                   # Controlled-X on qubits [1,2]
+         ("CX", (1, 3)),                   # Controlled-X on qubits [1,3]
          ("Rx", 2, (θ=0.5,)),              # Rotation of θ around X
          ("Rn", 3, (θ=0.5, ϕ=0.2, λ=1.2)), # Arbitrary rotation with angles (θ,ϕ,λ)
-         ("√SWAP", (3, 4)],                # Sqrt Swap on qubits [2,3]
+         ("√SWAP", (3, 4)),                # Sqrt Swap on qubits [2,3]
          ("T" , 4)]                        # T gate on qubit 4
+
+# Returns the MPS at the output of the quantum circuit: `|ψ⟩ = Û|0,0,…,0⟩`
+# First the gate ("X" , 1) is applied, then ("CX", (1, 3)), etc.
+ψ = runcircuit(N, gates)
 ```
 
 For the case of a noiseless circuit, the output quantum state (MPS) and the
