@@ -25,8 +25,8 @@ export
   qubits,
   circuit,
   resetqubits!,
-  compilecircuit,
-  compilecircuit!,
+  buildcircuit,
+  buildcircuit!,
   runcircuit,
 
 # datagen.jl
@@ -35,9 +35,7 @@ export
   measurementgates,
   randombases,
   randompreparations,
-  getsamples!,
   getsamples,
-  readouterror!,
 
 # randomstates,jl
   # Methods

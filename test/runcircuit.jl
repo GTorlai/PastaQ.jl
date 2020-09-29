@@ -195,12 +195,12 @@ end
   #Pure state, noiseless circuit
   ψ0 = qubits(N)
   ψ = runcircuit(ψ0,gates)
-  @test prod(ψ) ≈ runcircuit(prod(ψ0),compilecircuit(ψ0,gates))
+  @test prod(ψ) ≈ runcircuit(prod(ψ0),buildcircuit(ψ0,gates))
 
   # Mixed state, noiseless circuit
   ρ0 = qubits(N,mixed=true) 
   ρ = runcircuit(ρ0,gates)
-  @test prod(ρ) ≈ runcircuit(prod(ρ0),compilecircuit(ρ0,gates); apply_dag=true)
+  @test prod(ρ) ≈ runcircuit(prod(ρ0),buildcircuit(ρ0,gates); apply_dag=true)
   
 end
 
@@ -215,7 +215,7 @@ end
   ψ0 = qubits(N)
   ρ = runcircuit(ψ0,gates,noise="DEP",p=0.1)
   ρ0 = MPO(ψ0)
-  U = compilecircuit(ρ0, gates, noise="DEP", p=0.1)
+  U = buildcircuit(ρ0, gates, noise="DEP", p=0.1)
   disable_warn_order!()
   @test prod(ρ) ≈ runcircuit(prod(ρ0), U; apply_dag=true)
   reset_warn_order!()
@@ -223,7 +223,7 @@ end
   ## Mixed state, noisy circuit
   ρ0 = qubits(N, mixed = true)
   ρ = runcircuit(ρ0, gates; noise = "DEP", p = 0.1)
-  U = compilecircuit(ρ0, gates, noise= "DEP",p = 0.1)
+  U = buildcircuit(ρ0, gates, noise= "DEP",p = 0.1)
   @test prod(ρ) ≈ runcircuit(prod(ρ0), U; apply_dag=true)
   reset_warn_order!()
 
@@ -240,7 +240,7 @@ end
   end
   ψ0 = qubits(N)
   ψ = runcircuit(ψ0, gates)
-  @test prod(ψ) ≈ runcircuit(prod(ψ0),compilecircuit(ψ0,gates))
+  @test prod(ψ) ≈ runcircuit(prod(ψ0),buildcircuit(ψ0,gates))
 
 end
 
@@ -258,7 +258,7 @@ end
   end
   ψ0 = qubits(N)
   ψ = runcircuit(ψ0,gates)
-  @test prod(ψ) ≈ runcircuit(prod(ψ0),compilecircuit(ψ0,gates)) 
+  @test prod(ψ) ≈ runcircuit(prod(ψ0),buildcircuit(ψ0,gates)) 
   
 end
 
