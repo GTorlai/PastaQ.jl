@@ -47,7 +47,7 @@ end
   τ = 0.001
   ρ = transversefieldising(N,h,β=β,τ=τ)
   @test length(ρ) == N
-  ρ_mat = fullmatrix(ρ)
+  ρ_mat = PastaQ.fullmatrix(ρ)
   @test ρ_mat ≈ transpose(conj(ρ_mat)) atol=1e-2
   exact_ρ = exact_densitymatrix(N,β,h)
   @test ρ_mat ≈ exact_ρ atol=1e-2

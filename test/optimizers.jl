@@ -264,10 +264,10 @@ end
     # exact
     g_flat  = β₁ * g_flat  + (1-β₁) * ∇_flat
     g²_flat = β₂ * g²_flat + (1-β₂) * (∇_flat .^2)
-    ĝ_flat  = g_flat  / (1-β₁^n)
-    ĝ²_flat = g²_flat / (1-β₂^n)
-    g1_flat = sqrt.(ĝ²_flat) .+ ϵ
-    Δθ_flat = ĝ_flat ./ g1_flat
+    ĝ_flat  = g_flat  / (1-β₁^n)
+    ĝ²_flat = g²_flat / (1-β₂^n)
+    g1_flat = sqrt.(ĝ²_flat) .+ ϵ
+    Δθ_flat = ĝ_flat ./ g1_flat
     ψ′_flat = ψ_flat - η * Δθ_flat
     @test ψ′_flat ≈ ψ′_alg_flat rtol = 1e-4
   end
@@ -299,13 +299,11 @@ end
     # exact
     g_flat  = β₁ * g_flat  + (1-β₁) * ∇_flat
     g²_flat = β₂ * g²_flat + (1-β₂) * (∇_flat .^2)
-    ĝ_flat  = g_flat  / (1-β₁^n)
-    ĝ²_flat = g²_flat / (1-β₂^n)
-    g1_flat = sqrt.(ĝ²_flat) .+ ϵ
-    Δθ_flat = ĝ_flat ./ g1_flat
+    ĝ_flat  = g_flat  / (1-β₁^n)
+    ĝ²_flat = g²_flat / (1-β₂^n)
+    g1_flat = sqrt.(ĝ²_flat) .+ ϵ
+    Δθ_flat = ĝ_flat ./ g1_flat
     ρ′_flat = ρ_flat - η * Δθ_flat
     @test ρ′_flat ≈ ρ′_alg_flat rtol = 1e-4
   end
 end
-
-

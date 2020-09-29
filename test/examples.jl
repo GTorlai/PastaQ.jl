@@ -39,10 +39,10 @@ N = length(Ψ)     # Number of qubits
 ψ0 = randomstate(Ψ; χ = χ, σ = 0.1)
 opt = SGD(η = 0.01)
 ψ = tomography(data, ψ0;
-               optimizer=opt,
-               batchsize = 10,
+               optimizer = opt,
+               batchsize = 100,
                epochs = 2,
-               target = Ψ);
+               target = Ψ)
 
 data, ϱ = loaddata("../examples/data/qst_circuit_noisy_test.h5")
 N = length(ϱ)     # Number of qubits
@@ -50,11 +50,12 @@ N = length(ϱ)     # Number of qubits
 ξ = 2             # Kraus dimension of variational LPDO
 ρ0 = randomstate(ϱ; mixed = true, χ = χ, ξ = ξ, σ = 0.1)
 opt = SGD(η = 0.01)
-ρ = tomography(data,ρ0;
-               optimizer=opt,
-               batchsize=10,
-               epochs=2,
-               target=ϱ);
+
+ρ = tomography(data, ρ0;
+               optimizer = opt,
+               batchsize = 100,
+               epochs = 2,
+               target = ϱ)
 
 Random.seed!(1234)
 data_in, data_out, U = loaddata("../examples/data/qpt_circuit_test.h5"; process = true)
@@ -63,8 +64,8 @@ N = length(U)     # Number of qubits
 V0 = randomprocess(U; χ = χ)
 opt = SGD(η = 0.1)
 V = tomography(data_in, data_out, V0;
-               optimizer=opt,
-               batchsize = 10,
+               optimizer = opt,
+               batchsize = 100,
                epochs = 2,
                target = U)
 
@@ -77,8 +78,9 @@ N = length(ϱ)
 Λ0 = randomprocess(ϱ; mixed = true, χ = χ, ξ = ξ, σ = 0.1)
 opt = SGD(η = 0.1)
 Λ = tomography(data_in, data_out, Λ0;
-               optimizer=opt,
+               optimizer = opt,
                mixed = true,
                batchsize = 10,
                epochs = 2,
-               target = ϱ);
+               target = ϱ)
+@show Λ
