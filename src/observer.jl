@@ -40,7 +40,7 @@ function measure!(obs::TomographyObserver;
   end
 end
 
-function writeobserver(obs::TomographyObserver,fout::String; M=nothing)
+function saveobserver(obs::TomographyObserver,fout::String; M=nothing)
   h5rewrite(fout,"w") do file
     write(file,"nll",obs.negative_loglikelihood)
     write(file,"fidelity",obs.fidelity)

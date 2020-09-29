@@ -624,7 +624,7 @@ function _tomography(data::Array, L::LPDO; optimizer::Optimizer, kwargs...)
                frob_dist=frob_dist)
       # Save on file
       if !isnothing(outputpath)
-        writeobserver(observer,outputpath; M = model)
+        saveobserver(observer,outputpath; M = model)
       end
     end
     
