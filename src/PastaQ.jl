@@ -1,7 +1,7 @@
 module PastaQ
 
 using Reexport
-@reexport using ITensors
+using ITensors
 using Random
 using LinearAlgebra
 using JLD

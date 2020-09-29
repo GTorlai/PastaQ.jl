@@ -116,26 +116,27 @@ function applygate!(M::Union{MPS,MPO},
 end
 
 """
-    compilecircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple};
-                 noise=nothing, kwargs...)
+    compilecircuit(M::Union{MPS,MPO}, gates::Vector{<:Tuple};
+                   noise = nothing, kwargs...)
 
 Generates a vector of ITensors from a tuple of gates. 
 If noise is nontrivial, the corresponding Kraus operators are 
 added to each gate as a tensor with an extra (Kraus) index.
 """
-function compilecircuit(M::Union{MPS,MPO},gates::Vector{<:Tuple}; 
-                        noise=nothing, kwargs...)
+function compilecircuit(M::Union{MPS,MPO}, gates::Vector{<:Tuple}; 
+                        noise::Union{Nothing, String, Tuple{String, NamedTuple}} = nothing)
   gate_tensors = ITensor[]
   for g in gates
     push!(gate_tensors, gate(M, g))
     ns = g[2]
     if !isnothing(noise)
-      if ns isa Int
-        push!(gate_tensors, gate(M, noise, g[2]; kwargs...))
-      else
-        for n in ns
-          push!(gate_tensors, gate(M, noise, n; kwargs...))
+      for n in ns
+        if noise isa String
+          noisegate = (noise, n)
+        elseif noise isa Tuple{String, NamedTuple}
+          noisegate = (noise[1], n, noise[2])
         end
+        push!(gate_tensors, gate(M, noisegate))
       end
     end
   end
