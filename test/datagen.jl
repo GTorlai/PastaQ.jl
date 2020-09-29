@@ -40,11 +40,11 @@ end
 @testset "generation of preparation states" begin
   N = 4
   nshots = 100
-  states = randompreparations(N,nshots)
+  states = PastaQ.randompreparations(N,nshots)
   @test size(states)[1] == nshots
   @test size(states)[2] == N
   
-  states = randompreparations(N, nshots, ndistinctstates = 10)
+  states = PastaQ.randompreparations(N, nshots, ndistinctstates = 10)
   @test size(states)[1] == nshots
   @test size(states)[2] == N
   
@@ -80,7 +80,7 @@ end
   ψ0 = qubits(N)
   gates = randomcircuit(N,depth)
   ψ = runcircuit(ψ0,gates)
-  ψ_vec = fullvector(ψ)
+  ψ_vec = PastaQ.fullvector(ψ)
   probs = abs2.(ψ_vec)
   
   nshots = 100000
@@ -91,7 +91,7 @@ end
   @test probs ≈ data_prob atol=1e-2
 
   ρ = runcircuit(N, gates, noise = ("amplitude_damping", (γ = 0.01,)))
-  ρ_mat = fullmatrix(ρ)
+  ρ_mat = PastaQ.fullmatrix(ρ)
   probs = real(diag(ρ_mat))
 
   samples = PastaQ.getsamples!(ρ,nshots)
@@ -220,20 +220,20 @@ end
   U = runcircuit(N,gates;process=true)
   
   bases = randombases(N,ntrial)
-  preps = randompreparations(N,ntrial)
+  preps = PastaQ.randompreparations(N,ntrial)
   
   for n in 1:ntrial
-    pgates = preparationgates(preps[n,:])
-    mgates = measurementgates(bases[n,:])
+    pgates = PastaQ.preparationgates(preps[n,:])
+    mgates = PastaQ.measurementgates(bases[n,:])
     ψ_in  = runcircuit(N,pgates)
     ψ_out = runcircuit(ψ_in,gates)
     
     Ψ_out = PastaQ.projectunitary(U,preps[n,:])
-    @test fullvector(ψ_out) ≈ fullvector(Ψ_out) 
+    @test PastaQ.fullvector(ψ_out) ≈ PastaQ.fullvector(Ψ_out) 
     
     ψ_m   = runcircuit(ψ_out,mgates)
     Ψ_m   = runcircuit(Ψ_out,mgates)
-    @test fullvector(ψ_m) ≈ fullvector(Ψ_m) 
+    @test PastaQ.fullvector(ψ_m) ≈ PastaQ.fullvector(Ψ_m) 
   end
   
 end
@@ -247,19 +247,19 @@ end
   Λ = runcircuit(N, gates; process = true, noise = ("amplitude_damping", (γ = 0.1,)))
   
   bases = randombases(N,ntrial)
-  preps = randompreparations(N,ntrial)
+  preps = PastaQ.randompreparations(N,ntrial)
   for n in 1:ntrial
-    pgates = preparationgates(preps[n,:])
-    mgates = measurementgates(bases[n,:])
+    pgates = PastaQ.preparationgates(preps[n,:])
+    mgates = PastaQ.measurementgates(bases[n,:])
     ψ_in  = runcircuit(N,pgates)
     ρ_out = runcircuit(ψ_in, gates; noise = ("amplitude_damping", (γ = 0.1,)))
     
     Λ_out = PastaQ.projectchoi(Λ,preps[n,:])
-    @test fullmatrix(ρ_out) ≈ fullmatrix(Λ_out)
+    @test PastaQ.fullmatrix(ρ_out) ≈ PastaQ.fullmatrix(Λ_out)
     
     ρ_m   = runcircuit(ρ_out,mgates)
     Λ_m   = runcircuit(Λ_out,mgates)
-    @test fullmatrix(ρ_m) ≈ fullmatrix(Λ_m) 
+    @test PastaQ.fullmatrix(ρ_m) ≈ PastaQ.fullmatrix(Λ_m) 
   end
 end
 

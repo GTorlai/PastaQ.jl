@@ -27,7 +27,7 @@ end
   exact_U = testdata["U"]
   g = testdata["gates"]
   gates = convert_gates(g)
-  U = fullmatrix(runcircuit(N,gates;process=true))
+  U = PastaQ.fullmatrix(runcircuit(N,gates;process=true))
   @test U ≈ exact_U
 end
 
@@ -42,7 +42,7 @@ end
   Λ0 = choimatrix(N, gates; noise = ("amplitude_damping", (γ = 0.1,)))
   disable_warn_order!()
   Λ = splitchoi(Λ0)
-  @test fullmatrix(Λ) ≈ exact_choi# rtol=1e-2
+  @test PastaQ.fullmatrix(Λ) ≈ exact_choi# rtol=1e-2
   reset_warn_order!()
   
   path = string("test_data_PD_0.1.pickle")
@@ -54,7 +54,7 @@ end
   Λ0 = choimatrix(N, gates; noise = ("phase_damping", (γ = 0.1,)))
   disable_warn_order!()
   Λ = splitchoi(Λ0)
-  @test fullmatrix(Λ) ≈ exact_choi# rtol=1e-2
+  @test PastaQ.fullmatrix(Λ) ≈ exact_choi# rtol=1e-2
   reset_warn_order!()
   
   #path = string("test_data_DEP_0.1.pickle")
@@ -65,7 +65,7 @@ end
   #gates = convert_gates(g)
   #Λ0 = runcircuit(N, gates; process = true, noise = ("depolarizing", (p = 0.1,)))
   #disable_warn_order!()
-  #Λ = fullmatrix(Λ0)
+  #Λ = PastaQ.fullmatrix(Λ0)
   #reset_warn_order!()
   #@test Λ ≈ exact_choi
 
