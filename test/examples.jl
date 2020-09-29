@@ -16,20 +16,20 @@ U = runcircuit(N,gates;process=true)
 Random.seed!(1234)
 nshots = 1000
 data, ψ = getsamples(N, gates, nshots)
-savedata(ψ, data, "../examples/data/qst_circuit_test.h5")
+savedata(data, ψ, "../examples/data/qst_circuit_test.h5")
 
 data, ρ = getsamples(N,gates,nshots;
-                    noise="AD",γ=0.01)
-savedata(ρ, data, "../examples/data/qst_circuit_noisy_test.h5")
+                     noise="AD",γ=0.01)
+savedata(data, ρ, "../examples/data/qst_circuit_noisy_test.h5")
 
 data_in, data_out, U = getsamples(N,gates,nshots;
                                   process=true)
-savedata(U, data_in, data_out, "../examples/data/qpt_circuit_test.h5")
+savedata(data_in, data_out, U, "../examples/data/qpt_circuit_test.h5")
 
 data_in, data_out, Λ = getsamples(N,gates,nshots;
-                                  process=true,
-                                  noise="AD",γ=0.01)
-savedata(Λ, data_in, data_out, "../examples/data/qpt_circuit_noisy_test.h5")
+                                  process = true,
+                                  noise = "AD", γ = 0.01)
+savedata(data_in, data_out, Λ, "../examples/data/qpt_circuit_noisy_test.h5")
 
 
 Random.seed!(1234)

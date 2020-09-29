@@ -45,9 +45,7 @@ export
 # quantumtomography,jl
   # Methods
   normalize!,
-  nll,
   tomography,
-  runtomography,
 
 # distances.jl
   # Methods

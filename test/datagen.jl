@@ -288,13 +288,13 @@ end
   @test size(data) == (nshots,N)
 
   # 3) Measure MPS at the output of a circuit
-  data = getsamples(N,gates,nshots)
+  data, _ = getsamples(N, gates, nshots)
+  @test size(data) == (nshots, N)
+  data, _ = getsamples(N, gates, nshots; noise = "AD", γ = 0.1)
+  @test size(data) == (nshots, N)
+  data, _ = getsamples(N, gates, nshots; localbasis = ["X","Y","Z"])
   @test size(data) == (nshots,N)
-  data = getsamples(N,gates,nshots;noise="AD",γ=0.1)
-  @test size(data) == (nshots,N)
-  data = getsamples(N,gates,nshots;localbasis=["X","Y","Z"])
-  @test size(data) == (nshots,N)
-  data = getsamples(N,gates,nshots;noise="AD",γ=0.1,localbasis=["X","Y","Z"])
+  data, _ = getsamples(N, gates, nshots; noise = "AD", γ = 0.1, localbasis = ["X","Y","Z"])
   @test size(data) == (nshots,N)
   data, M = getsamples(N,gates,nshots;)
   data, M = getsamples(N,gates,nshots; noise="AD", γ=0.1)
@@ -305,11 +305,13 @@ end
   data_in, data_out = getsamples(N, gates, nshots; process = true, build_process = false)
   @test size(data_in) == (nshots,N)
   @test size(data_out) == (nshots,N)
-  (data_in,data_out) = getsamples(N, gates, nshots; process = true, build_process = false, noise="AD", γ=0.1)
+  data_in,data_out = getsamples(N, gates, nshots; process = true, build_process = false, noise="AD", γ=0.1)
   @test size(data_in) == (nshots,N)
   @test size(data_out) == (nshots,N)
-  Λ,data_in, data_out, Λ  = getsamples(N,gates,nshots; process = true, build_process = true)
-  Λ,data_in, data_out, Λ = getsamples(N,gates,nshots; process = true, build_process = true, noise = "AD", γ = 0.1)
+  data_in, data_out, Λ  = getsamples(N, gates, nshots; process = true, build_process = true)
+  @test Λ isa MPO
+  data_in, data_out, Λ = getsamples(N, gates, nshots; process = true, build_process = true, noise = "AD", γ = 0.1)
+  @test Λ isa Choi{MPO}
 
 end
 
@@ -344,7 +346,7 @@ end
   @test size(data) == (nshots,N)
   data, _ = getsamples(N, gates, nshots; localbasis = ["X","Y","Z"], readout_errors = [0.01,0.04])
   @test size(data) == (nshots,N)
-  data = getsamples(N, gates, nshots; noise = "AD", γ = 0.1, localbasis = ["X","Y","Z"], readout_errors = [0.01,0.04])
+  data, _ = getsamples(N, gates, nshots; noise = "AD", γ = 0.1, localbasis = ["X","Y","Z"], readout_errors = [0.01,0.04])
   @test size(data) == (nshots,N)
   data, M = getsamples(N, gates, nshots; readout_errors = [0.01,0.04])
   data, M = getsamples(N, gates, nshots; noise = "AD", γ = 0.1, readout_errors = [0.01,0.04])
