@@ -313,7 +313,7 @@ end
 #  N = 3
 #  χ = 4
 #  d = 2
-#  ψ = initializetomography(N,χ)
+#  ψ = randomstate(N,χ)
 #  sites = siteinds(ψ) 
 #  links = linkinds(ψ)
 #
@@ -352,7 +352,7 @@ end
 #  N = 3
 #  χ = 4
 #  d = 2
-#  ψ = initializetomography(N,χ)
+#  ψ = randomstate(N,χ)
 #  sites = siteinds(ψ) 
 #  links = linkinds(ψ)
 #  

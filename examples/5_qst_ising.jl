@@ -39,10 +39,9 @@ data = getsamples(Ψ, bases)
 # Initialize variational state
 χ = maxlinkdim(Ψ)
 ψ0 = randomstate(Ψ0; χ = χ)
-# Optimizer
-opt = SGD(η = 0.01)
 # Run tomography
-ψ = tomography(ψ0, data, opt;
+ψ = tomography(data, ψ0;
+               optimizer = SGD(η = 0.01),
                batchsize = 500,
                epochs = 20,
                target = Ψ)

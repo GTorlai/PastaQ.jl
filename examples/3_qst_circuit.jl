@@ -23,10 +23,11 @@ opt = SGD(η = 0.01)
 # Run quantum state tomography, where a variational MPS `|ψ(θ)⟩`
 # is optimized to mimimize the cross entropy between the data and 
 # the tensor-network distribution `P(x) = |⟨x|ψ(θ)⟩|²`.
-ψ = tomography(ψ0,data,opt;
-               batchsize=1000,
-               epochs=5,
-               target=Ψ)
+ψ = tomography(data, ψ0;
+               optimizer = opt,
+               batchsize = 1000,
+               epochs = 5,
+               target = Ψ)
 @show ψ
 
 
@@ -42,7 +43,7 @@ N = length(ϱ)     # Number of qubits
 ξ = 2             # Kraus dimension of variational LPDO
 
 # Initialize the LPDO
-ρ0 = randomstate(ϱ; mixed=true, χ=χ, ξ=ξ)
+ρ0 = randomstate(ϱ; mixed = true, χ = χ, ξ = ξ)
 
 # Initialize stochastic gradient descent optimizer
 opt = SGD(η = 0.1)
@@ -50,8 +51,9 @@ opt = SGD(η = 0.1)
 # is optimized to mimimize the cross entropy between the data and 
 # the tensor-network distribution `P(x) = ⟨x|ρ(θ)|x⟩`, where
 # `ρ = ΓΓ†` is the corresponding density operator..
-ρ = tomography(ρ0,data,opt;
-               batchsize=1000,
-               epochs=5,
-               target=ϱ)
+ρ = tomography(data, ρ0;
+               optimizer = opt,
+               batchsize = 1000,
+               epochs = 5,
+               target = ϱ)
 @show ρ
