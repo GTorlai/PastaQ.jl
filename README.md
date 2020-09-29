@@ -63,7 +63,7 @@ gates, Toffoli gate and others. Additional user-specific gates can be added.
 gates = [("X" , 1),                        # Pauli X on qubit 1
          ("CX", (1, 2)),                   # Controlled-X on qubits [1,2]
          ("Rx", 2, (θ=0.5,)),              # Rotation of θ around X
-         ("Rn", 3, (θ=0.5, ϕ=0.2, λ=1.2)), # Arbitrady rotation with angles (θ,ϕ,λ)
+         ("Rn", 3, (θ=0.5, ϕ=0.2, λ=1.2)), # Arbitrary rotation with angles (θ,ϕ,λ)
          ("√SWAP", (3, 4)],                # Sqrt Swap on qubits [2,3]
          ("T" , 4)]                        # T gate on qubit 4
 ```
