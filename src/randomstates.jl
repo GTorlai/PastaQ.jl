@@ -256,7 +256,6 @@ function randomstate(sites::Vector{<:Index},T::Type; kwargs...)
       M = randomMPS(ElT,sites,χ)
     end
   elseif T == MPO
-    #M = random_mpo(ElT,sites,χ,σ)
     error("initialization of random MPO density matrix not yet implemented.")
   elseif T == LPDO
     M = random_lpdo(ElT,sites,χ,ξ,σ;purifier_tag=purifier_tag)
@@ -269,17 +268,7 @@ end
 function randomstate(M::Union{MPS,MPO,LPDO}; kwargs...)
   hM = hilbertspace(M)
   return randomstate(hM;kwargs...)
-  #state = randomstate(N;kwargs...)
-  #replacehilbertspace!(state,M)
-  #return state
 end
-#function randomstate(M::Union{MPS,MPO,LPDO}; kwargs...)
-#  N = length(M)
-#  state = randomstate(N;kwargs...)
-#  replacehilbertspace!(state,M)
-#  return state
-#end
-
 
 function randomprocess(N::Int64; kwargs...)
   sites = siteinds("Qubit", N)
@@ -326,11 +315,8 @@ function randomprocess(M::Union{MPS,MPO}; kwargs...)
   mixed = get(kwargs,:mixed,false)
   N = length(M)
   s = Index[]
-  #processtags = !(any(x -> hastags(x,"Input") , sites))
   for j in 1:N
-    #@show inds(M[j])
     push!(s,firstind(M[j],tags="Site",plev=0))
-    #push!(s,firstind(M[j],tags="Input"))
   end
   proc = randomprocess(s; mixed=mixed,kwargs...)
   return proc

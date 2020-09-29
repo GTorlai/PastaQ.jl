@@ -14,7 +14,8 @@ qubits(N::Int; mixed::Bool=false) =
 qubits(sites::Vector{<:Index}; mixed::Bool=false) = 
   mixed ? MPO(productMPS(sites, "0")) : productMPS(sites, "0") 
 
-
+qubits(M::Union{MPS,MPO,LPDO}; mixed::Bool=false) =
+  qubits(hilbertspace(M); mixed=mixed)
 
 """ 
     resetqubits!(M::Union{MPS,MPO})

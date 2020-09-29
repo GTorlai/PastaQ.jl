@@ -761,32 +761,6 @@ function unsplitunitary(ψ0::MPS)
   return U
 end
 
-
-#function splitchoi(M::MPO;cutoff=1e-15,maxdim=1000)
-#  
-#  @show M 
-#  Λ = copy(M)
-#  choitag = any(x -> hastags(x,"Input") , M)
-#  T = ITensor[]
-#  u,S,v = svd(Λ[1],inds(Λ[1],tags="Input"), 
-#              cutoff=cutoff, maxdim=maxdim)
-#  push!(T,u*S)
-#  push!(T,v)
-#  
-#  for j in 2:length(Λ)
-#    u,S,v = svd(Λ[j],inds(Λ[j],tags="Input")[1],
-#                commonind(Λ[j-1],Λ[j]),cutoff=cutoff,maxdim=maxdim) 
-#    push!(T,u*S)
-#    push!(T,v)
-#  end
-#  @show MPO(T)
-#  return Choi(MPO(T))
-#end
-
-splitchoi(Λ::Choi{MPO}; kwargs...) = splitchoi(Λ.M; kwargs...)
-
-splitchoi(Λ::Choi{LPDO{MPO}}; kwargs...) = splitchoi(Λ.M; kwargs...)
-
 function splitchoi(L::LPDO{MPO};cutoff=1e-15,maxdim=1000)
   X = copy(L.X)
   T = ITensor[]
@@ -810,7 +784,12 @@ function splitchoi(L::LPDO{MPO};cutoff=1e-15,maxdim=1000)
   end
   return Choi(LPDO(MPO(T)))
 end
-  
+
+splitchoi(Λ::Choi{MPO}; kwargs...) = splitchoi(Λ.M; kwargs...)
+
+splitchoi(Λ::Choi{LPDO{MPO}}; kwargs...) = splitchoi(Λ.M; kwargs...)
+
+
 
 function unsplitchoi(C::Choi{LPDO{MPO}})
   M = C.M.X
