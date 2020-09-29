@@ -33,7 +33,7 @@ savedata(data_in, data_out, Λ, "../examples/data/qpt_circuit_noisy_test.h5")
 
 
 Random.seed!(1234)
-data, ψ = loaddata("../examples/data/qst_circuit_test.h5")
+data, Ψ = loaddata("../examples/data/qst_circuit_test.h5")
 N = length(Ψ)     # Number of qubits
 χ = maxlinkdim(Ψ) # Bond dimension of variational MPS
 ψ0 = randomstate(Ψ; χ = χ, σ = 0.1)
