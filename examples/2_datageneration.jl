@@ -15,11 +15,11 @@ gates = randomcircuit(N,depth)
 # measurement in an arbitrary local basis.Default local basis 
 # is `["X","Y","Z"]`.
 # a) Unitary circuit
-ψ,data = getsamples(N,gates,nshots;return_state=true)
+data, ψ = getsamples(N, gates, nshots)
 # Returns output state as MPS
 @show maxlinkdim(ψ)
 @show ψ 
-savedata(ψ,data,"data/qst_circuit.h5")
+savedata(data, ψ, "data/qst_circuit.h5")
 
 # Note: the above is equivalent to:
 #> bases = randombases(N,nshots,localbasis=["X","Y","Z"])
@@ -27,33 +27,30 @@ savedata(ψ,data,"data/qst_circuit.h5")
 #> data = getsamples(ψ,nshots,bases)
 
 # b) Noisy circuit
-ρ,data = getsamples(N,gates,nshots;
-                      noise="AD",γ=0.01,
-                      return_state=true)
+data, ρ = getsamples(N, gates, nshots;
+                     noise = "AD", γ = 0.01)
 # Return the mixed density operator as MPO
 @show maxlinkdim(ρ)
 @show ρ
-savedata(ρ,data,"data/qst_circuit_noisy.h5")
+savedata(data, ρ, "data/qst_circuit_noisy.h5")
 
 # 2. Generation of measurerment data for quantum process
 # tomography. Each measurement consist of a input product 
 # state and an output projective measurement in a arbitrary
 # local basis. By default, the single-qubit input states are 
 # the 6 eigenstates of Pauli operators.
-U,data_in,data_out=getsamples(N,gates,nshots;
-                                  process=true,
-                                  return_state=true)
+data_in, data_out, U = getsamples(N, gates, nshots;
+                                  process = true)
 # Return the MPO for the unitary circuit
 @show maxlinkdim(U)
 @show U
-savedata(U,data_in,data_out,"data/qpt_circuit.h5")
+savedata(data_in, data_out, U, "data/qpt_circuit.h5")
 
-Λ,data_in,data_out=getsamples(N,gates,nshots;
-                                  process=true,
-                                  noise="AD",γ=0.01,
-                                  return_state=true)
+data_in, data_out, Λ = getsamples(N, gates, nshots;
+                                  process = true,
+                                  noise = "AD", γ = 0.01)
 # Return the Choi matrix `Λ` as MPO wiith `2N` sites
 @show maxlinkdim(Λ.M)
 @show Λ
-savedata(Λ,data_in,data_out,"data/qpt_circuit_noisy.h5")
+savedata(data_in, data_out, Λ, "data/qpt_circuit_noisy.h5")
 
