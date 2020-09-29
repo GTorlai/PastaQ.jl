@@ -3,10 +3,6 @@ export
   # Methods
   gate,
 
-# circuitops.jl
-  # Methods
-  applygate!,
-
 # circuits.jl
   appendlayer!,
   gatelayer,
@@ -26,16 +22,12 @@ export
   circuit,
   resetqubits!,
   buildcircuit,
-  buildcircuit!,
   runcircuit,
 
 # datagen.jl
   # Methods
-  preparationgates,
-  measurementgates,
-  randombases,
-  randompreparations,
   getsamples,
+  randombases,
 
 # randomstates,jl
   # Methods
@@ -50,9 +42,8 @@ export
 # distances.jl
   # Methods
   fidelity,
-  fullfidelity,
-  frobenius_distance,
   fidelity_bound,
+  frobenius_distance,
 
 # optimizers/
   Optimizer,
@@ -61,20 +52,14 @@ export
   AdaDelta,
   Adam,
   AdaMax,
-  # Methods
-  update!,
-  resetoptimizer,
 
 # observer.jl
   TomographyObserver,
   # Methods
-  measure!,
   writeobserver,
   
 # utils.jl
   # Methods
   savedata,
-  loaddata,
-  fullvector,
-  fullmatrix
+  loaddata
  

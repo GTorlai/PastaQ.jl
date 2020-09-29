@@ -74,7 +74,7 @@ end
     ∇_flat = flatten_tensorarray(∇)
     ψ_flat  = flatten_tensorarray(ψ)
     # algorithm
-    update!(ψ,∇,opt)
+    PastaQ.update!(ψ,∇,opt)
     ψ′_alg_flat = flatten_tensorarray(ψ)
     # exact
     v_flat = γ * v_flat - η * ∇_flat 
@@ -102,7 +102,7 @@ end
     ∇_flat = flatten_tensorarray(∇)
     ρ_flat  = flatten_tensorarray(ρ.X)
     # algorithm
-    update!(ρ,∇,opt)
+    PastaQ.update!(ρ,∇,opt)
     ρ′_alg_flat = flatten_tensorarray(ρ.X)
     # exact
     v_flat = γ * v_flat - η * ∇_flat 
@@ -131,7 +131,7 @@ end
     ∇_flat = flatten_tensorarray(∇)
     ψ_flat  = flatten_tensorarray(ψ)
     # algorithm
-    update!(ψ,∇,opt)
+    PastaQ.update!(ψ,∇,opt)
     ψ′_alg_flat = flatten_tensorarray(ψ)
     # exact
     ∇²_flat += ∇_flat .^ 2
@@ -160,7 +160,7 @@ end
     ∇_flat = flatten_tensorarray(∇)
     ρ_flat  = flatten_tensorarray(ρ.X)
     # algorithm
-    update!(ρ,∇,opt)
+    PastaQ.update!(ρ,∇,opt)
     ρ′_alg_flat = flatten_tensorarray(ρ.X)
     # exact
     ∇²_flat += ∇_flat .^ 2
@@ -190,7 +190,7 @@ end
     ∇_flat = flatten_tensorarray(∇)
     ψ_flat  = flatten_tensorarray(ψ)
     # algorithm
-    update!(ψ,∇,opt)
+    PastaQ.update!(ψ,∇,opt)
     ψ′_alg_flat = flatten_tensorarray(ψ)
     # exact
     ∇²_flat = γ * ∇²_flat + (1-γ) * ∇_flat .^2
@@ -222,7 +222,7 @@ end
     ∇_flat = flatten_tensorarray(∇)
     ρ_flat  = flatten_tensorarray(ρ.X)
     # algorithm
-    update!(ρ,∇,opt)
+    PastaQ.update!(ρ,∇,opt)
     ρ′_alg_flat = flatten_tensorarray(ρ.X)
     # exact
     ∇²_flat = γ * ∇²_flat + (1-γ) * ∇_flat .^2
@@ -259,7 +259,7 @@ end
     ∇_flat  = flatten_tensorarray(∇)
     ψ_flat  = flatten_tensorarray(ψ)
     # algorithm
-    update!(ψ,∇,opt;step=n)
+    PastaQ.update!(ψ,∇,opt;step=n)
     ψ′_alg_flat = flatten_tensorarray(ψ)
     # exact
     g_flat  = β₁ * g_flat  + (1-β₁) * ∇_flat
@@ -294,7 +294,7 @@ end
     ∇_flat = flatten_tensorarray(∇)
     ρ_flat  = flatten_tensorarray(ρ.X)
     # algorithm
-    update!(ρ,∇,opt;step=n)
+    PastaQ.update!(ρ,∇,opt;step=n)
     ρ′_alg_flat = flatten_tensorarray(ρ.X)
     # exact
     g_flat  = β₁ * g_flat  + (1-β₁) * ∇_flat
@@ -313,7 +313,7 @@ end
 #  N = 3
 #  χ = 4
 #  d = 2
-#  ψ = initializetomography(N,χ)
+#  ψ = randomstate(N,χ)
 #  sites = siteinds(ψ) 
 #  links = linkinds(ψ)
 #
@@ -331,7 +331,7 @@ end
 #    ψ_flat  = flatten_tensorarray(ψ)
 #    
 #    ## algorithm
-#    #update!(ψ,∇,opt;step=n)
+#    #PastaQ.update!(ψ,∇,opt;step=n)
 #    #ψ′_alg_flat = flatten_tensorarray(ψ)
 #    
 #    ## exact
@@ -352,7 +352,7 @@ end
 #  N = 3
 #  χ = 4
 #  d = 2
-#  ψ = initializetomography(N,χ)
+#  ψ = randomstate(N,χ)
 #  sites = siteinds(ψ) 
 #  links = linkinds(ψ)
 #  
@@ -371,7 +371,7 @@ end
 #    ψ_flat  = flatten_tensorarray(ψ)
 #    
 #    # algorithm
-#    update!(ψ,∇,opt;step=n)
+#    PastaQ.update!(ψ,∇,opt;step=n)
 #    ψ′_alg_flat = flatten_tensorarray(ψ)
 #    
 #    # exact
