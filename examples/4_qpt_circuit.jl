@@ -37,21 +37,21 @@ U = tomography(U0, data_in, data_out, opt;
 # Noisy circuit
 Random.seed!(1234)
 # Load data and target Choi matrix
-Φ,data_in,data_out = loaddata("data/qpt_circuit_noisy.h5";process=true)
+data_in, data_out, Φ = loaddata("data/qpt_circuit_noisy.h5"; process = true)
 N = length(Φ)
 χ = 8
 ξ = 2
 
 # Initialize the Choi LPDO
-Λ0 = randomprocess(Φ;mixed=true,χ=χ,ξ=ξ)
+Λ0 = randomprocess(Φ; mixed = true, χ = χ, ξ = ξ)
 
 # Initialize stochastic gradient descent optimizer
 opt = SGD(η = 0.1)
 
 # Run process tomography
-Λ = tomography(Λ0,data_in,data_out,opt;
-               mixed=true,
-               batchsize=500,
-               epochs=5,
-               target=Φ)
+Λ = tomography(Λ0, data_in, data_out, opt;
+               mixed = true,
+               batchsize = 500,
+               epochs = 5,
+               target = Φ)
 @show Λ

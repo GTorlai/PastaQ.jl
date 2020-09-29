@@ -75,12 +75,13 @@ function loaddata(input_path::String; process::Bool = false)
   if process
     data_in = read(fin,"data_in")
     data_out = read(fin,"data_out")
+    close(fin)
     return data_in, data_out, model
   else
     data = read(fin,"data")
+    close(fin)
     return data, model
   end
-  close(fout)
 end
 
 """
