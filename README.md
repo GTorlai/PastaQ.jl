@@ -119,7 +119,7 @@ gates = randomcircuit(N, depth) # random circuit
 # Run the circuit using an amplitude damping channel with decay rate `γ=0.01`.
 # Returns the MPO for the mixed density operator `ρ = ε(|0,0,…⟩⟨0,0,̇…|), where
 # `ε` is the quantum channel.
-ρ = runcircuit(N, gates; noise="AD", γ=0.01)
+ρ = runcircuit(N, gates; noise = ("amplitude_damping", (γ = 0.01,)))
 ```
 
 #### Choi matrix
@@ -137,7 +137,7 @@ depth = 4 # Depth of the quantum circuit
 gates = randomcircuit(N,depth) # random circuit
 
 # Compute the Choi matrix of a noisy channel
-Λ = runcircuit(N, gates; process = true, noise="AD", γ=0.01)
+Λ = runcircuit(N, gates; process = true, noise = ("amplitude_damping", (γ = 0.01,)))
 ```
 
 #### Data generation
@@ -164,7 +164,7 @@ data, ψ = getsamples(N, gates, nshots)
 # > data = getsamples(ψ, bases)
 
 # 2b) Output state of a noisy circuit. Also returns the output MPO
-data, ρ = getsamples(N, gates, nshots; noise="AD", γ=0.01)
+data, ρ = getsamples(N, gates, nshots; noise = ("amplitude_damping", (γ = 0.01,)))
 
 # 2c) Generate data for quantum process tomography, consisting of input states
 # (data_in) to a quantum channel, and the corresponding projective measurements
@@ -176,6 +176,6 @@ data, ρ = getsamples(N, gates, nshots; noise="AD", γ=0.01)
 data_in, data_out, Γ = getsamples(N, gates, nshots; process = true)
 
 # Noisy channel, returns the Choi matrix as MPO
-data_in, data_out, Λ = getsamples(N, gates, nshots; process = true, noise = "AD", γ = 0.01)
+data_in, data_out, Λ = getsamples(N, gates, nshots; process = true, noise = ("amplitude_damping", (γ = 0.01,)))
 ```
 ### Quantum tomography

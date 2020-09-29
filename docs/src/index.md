@@ -99,14 +99,14 @@ using PastaQ
 
 # Example 1b: noisy quantum circuit
 
-N = 4   # Number of qubits
-depth=4 # Depth of the quantum circuit
-gates = randomcircuit(N,depth) # random circuit
+N = 4     # Number of qubits
+depth = 4 # Depth of the quantum circuit
+gates = randomcircuit(N, depth) # random circuit
 
 # Run the circuit using an amplitude damping channel with decay rate `γ=0.01`.
 # Returns the MPO for the mixed density operator `ρ = ε(|0,0,…⟩⟨0,0,̇…|), where
 # `ε` is the quantum channel.
-ρ = runcircuit(N,gates; noise="AD", γ=0.01)
+ρ = runcircuit(N, gates; noise = ("amplitude_damping", (γ = 0.01,))
 ```
 
 #### Choi matrix
@@ -124,13 +124,13 @@ using PastaQ
 
 N = 4   # Number of qubits
 depth=4 # Depth of the quantum circuit
-gates = randomcircuit(N,depth) # random circuit
+gates = randomcircuit(N, depth) # random circuit
 
-# Compute MPS for rank-1 Choi matrix of a unitary channel
-|U⟩⟩ = choimatrix(N,gates)
+# Compute unitary circuit of a unitary channel as an MPO
+U = runcircuit(N, gates)
 
-# Compute the MPO for Choi matrix of a noisy channel
-Λ = choimatrix(N,gates; noise="AD", γ=0.01)
+# Compute the Choi matrix of a noisy channel
+Λ = runcircuit(N, gates; noise = ("amplitude_damping", (γ = 0.01,)))
 
 ```
 
@@ -158,7 +158,7 @@ data, ψ = getsamples(N, gates, nshots)
 # > data = getsamples(ψ,bases)
 
 # 2b) Output state of a noisy circuit. Also returns the output MPO
-data, ρ = generatedata(N, gates, nshots; noise="AD", γ=0.01)
+data, ρ = generatedata(N, gates, nshots; noise = ("amplitude_damping", (γ = 0.01,)))
 
 # 2c) Generate data for quantum process tomography, consisting of input states
 # (data_in) to a quantum channel, and the corresponding projective measurements
@@ -170,6 +170,6 @@ data, ρ = generatedata(N, gates, nshots; noise="AD", γ=0.01)
 data_in, data_out, Γ = generatedata(N, gates, nshots; process = true)
 
 # Noisy channel, returns the Choi matrix as MPO
-data_in, data_out, Λ = generatedata(N, gates, nshots; process=true, noise = "AD", γ = 0.01)
+data_in, data_out, Λ = generatedata(N, gates, nshots; process = true, noise = ("amplitude_damping", (γ = 0.01,)))
 ```
 ### Quantum tomography
