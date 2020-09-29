@@ -830,9 +830,7 @@ function unsplitchoi(C::Choi{MPO})
 end
 
 
-
 function splitchoi(Λ::MPO;cutoff=1e-15,maxdim=10000)
-  @show Λ
   choitag = any(x -> hastags(x,"Input") , Λ)
   if !choitag
     # Choi indices 
@@ -853,7 +851,6 @@ function splitchoi(Λ::MPO;cutoff=1e-15,maxdim=10000)
     push!(T,v)
   end
   Λ_split = MPO(T)
-  @show Λ_split
   return Choi(Λ_split)
 end
 
