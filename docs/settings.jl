@@ -13,6 +13,7 @@ settings = Dict(
              "Introduction" => "index.md",
              "Documentation" => [
                                  "Circuit Simulator" => "Circuits.md",
+                                 "Random states" => "RandomStates.md",
                                  "Quantum Tomography" => "QuantumTomography.md",
                                  "Optimizers" => "Optimizers.md",
                                 ],

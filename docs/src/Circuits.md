@@ -12,9 +12,3 @@ resetqubits!
 ```@docs
 runcircuit
 ```
-
-## Choi matrix
-
-```@docs
-choimatrix
-```

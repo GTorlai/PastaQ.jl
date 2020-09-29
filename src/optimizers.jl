@@ -46,11 +46,9 @@ end
 
 update!(ψ::MPS,∇::Array,opt::SGD; kwargs...) = update!(LPDO(ψ),∇,opt;kwargs...)
 
-# TODO: remove after converting tomography to unsplit version
-function resetoptimizer(opt::SGD,L::LPDO)
-  return SGD(L;η=opt.η,γ=opt.γ)
+function resetoptimizer!(opt::SGD)
+  empty!(opt.v)
 end
-resetoptimizer(opt::SGD,M::Union{MPS,MPO}) = resetoptimizer(opt,LPDO(M))
 
 
 
@@ -109,6 +107,9 @@ end
 update!(ψ::MPS,∇::Array,opt::AdaGrad; kwargs...) = update!(LPDO(ψ),∇,opt; kwargs...)
 
 
+function resetoptimizer!(opt::AdaGrad)
+  empty!(opt.∇²)
+end
 
 
 
@@ -185,6 +186,15 @@ end
 
 update!(ψ::MPS,∇::Array,opt::AdaDelta; kwargs...) = update!(LPDO(ψ),∇,opt; kwargs...)
 
+
+function resetoptimizer!(opt::AdaDelta)
+  empty!(opt.∇²)
+  empty!(opt.Δθ²)
+end
+
+
+
+
 struct Adam <: Optimizer 
   η::Float64
   β₁::Float64
@@ -254,34 +264,7 @@ end
 
 update!(ψ::MPS,∇::Array,opt::Adam; kwargs...) = update!(LPDO(ψ),∇,opt; kwargs...)
 
-#struct AdaMax <: Optimizer 
-#  η::Float64
-#  β₁::Float64
-#  β₂::Float64
-#  ∇::Vector{ITensor}    # m in the paper
-#  u::Vector{ITensor}   # v in the paper
-#end
-#
-#function AdaMax(M::Union{MPS,MPO};η::Float64=0.001,β₁::Float64=0.9,β₂::Float64=0.999)
-#  ∇ = ITensor[]
-#  u = ITensor[]
-#  for j in 1:length(M)
-#    push!(∇,ITensor(zeros(size(M[j])),inds(M[j])))
-#    push!(u,ITensor(zeros(size(M[j])),inds(M[j])))
-#  end
-#  return AdaMax(η,β₁,β₂,∇,u)
-#end
-#
-#function update!(M::Union{MPS,MPO},∇::Array,opt::AdaMax; kwargs...)
-#  t = kwargs[:step]
-#  for j in 1:length(M)
-#    # Update square gradients
-#    opt.∇[j]  = opt.β₁ * opt.∇[j]  + (1-opt.β₁) * ∇[j]
-#    opt.u[j]  = max.(opt.β₂ * opt.u[j], abs.(opt.∇[j])) 
-#    δ = opt.u[j] .^-1
-#    Δθ = opt.∇[j] ⊙ δ
-#    # Update parameters
-#    M[j] = M[j] - (opt.η/(1-opt.β₁^t)) * Δθ
-#  end
-#end
-
+function resetoptimizer!(opt::Adam)
+  empty!(opt.∇)
+  empty!(opt.∇²)
+end

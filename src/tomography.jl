@@ -543,6 +543,10 @@ function runtomography(L::LPDO,data::Array,opt::Optimizer;kwargs...)
   Fbound=nothing
   frob_dist = nothing
   
+  if batchsize ≥ size(data)[1]
+    error("Batch size larger than dataset size")
+  end
+
   # Number of training batches
   num_batches = Int(floor(size(data)[1]/batchsize))
   

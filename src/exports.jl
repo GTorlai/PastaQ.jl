@@ -66,8 +66,8 @@ export
   Adam,
   AdaMax,
   # Methods
-  update!,
-  resetoptimizer,
+  resetoptimizer!,
+  #update!,
 
 # observer.jl
   TomographyObserver,
@@ -80,5 +80,7 @@ export
   savedata,
   loaddata,
   fullvector,
-  fullmatrix
- 
+  fullmatrix,
+
+# ITensors.jl
+  maxlinkdim

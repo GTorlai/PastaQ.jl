@@ -56,20 +56,35 @@ consisting of a `gatename` string identifying a particular gate, a set of `sites
 identifying which qubits the gate acts on, and a set of gate parameters `params`
 (e.g. angles of qubit rotations). A comprehensive set of gates is provided,
 including Pauli matrices, phase and T gates, single-qubit rotations, controlled
-gates, Toffoli gate and others. Additional user-specific gates can be added.
+gates, Toffoli gate and others. Additional user-specific gates can be added. Once
+a set of gates is specified, the output quantum state (represented as an MPS) is
+obtained with the `runcircuit` function.
 
 ```julia
+using PastaQ
+
+N = 4   # Number of qubits
+
 # Building a circuit data-structure
 gates = [("X" , 1),                        # Pauli X on qubit 1
-         ("CX", (1, 2)),                   # Controlled-X on qubits [1,2]
+         ("CX", (1, 3)),                   # Controlled-X on qubits [1,3]
          ("Rx", 2, (θ=0.5,)),              # Rotation of θ around X
-         ("Rn", 3, (θ=0.5, ϕ=0.2, λ=1.2)), # Arbitrady rotation with angles (θ,ϕ,λ)
-         ("√SWAP", (3, 4)],                # Sqrt Swap on qubits [2,3]
+         ("Rn", 3, (θ=0.5, ϕ=0.2, λ=1.2)), # Arbitrary rotation with angles (θ,ϕ,λ)
+         ("√SWAP", (3, 4)),                # Sqrt Swap on qubits [2,3]
          ("T" , 4)]                        # T gate on qubit 4
+
+# Returns the MPS at the output of the quantum circuit: `|ψ⟩ = Û|0,0,…,0⟩`
+# First the gate ("X" , 1) is applied, then ("CX", (1, 3)), etc.
+ψ = runcircuit(N, gates)
+# This is equivalent to:
+# julia> ψ0 = qubits(N) # Initialize |ψ⟩ to |0,0,…⟩
+# julia> ψ = runcircuit(ψ0,gates) # Run the circuit
 ```
 
-For the case of a noiseless circuit, the output quantum state (MPS) and the
-unitary circuit (MPO) can be obtained with the `runcircuit` function.
+The unitary circuit can be approximated by a MPO, running the `runcircuit`
+function with the flag `process=true`. Below is an example for a random
+quantum circuit.
+
 
 ```julia
 using PastaQ
@@ -81,60 +96,60 @@ depth = 4 # Depth of the circuit
 
 # Generate a random quantum circuit built out of layers of single-qubit random
 # rotations + CX gates, alternating between even and of odd layers.
-gates = randomcircuit(N,depth)
+gates = randomcircuit(N, depth)
+
+@show gates
 
 # Returns the MPS at the output of the quantum circuit: `|ψ⟩ = Û|0,0,…,0⟩`
-ψ = runcircuit(N,gates)
+ψ = runcircuit(N, gates)
 
 # Generate the MPO for the unitary circuit:
-U = runcircuit(N,gates; process=true)
+U = runcircuit(N, gates; process=true)
 ```
 
+![alt text](assets/runcircuit_unitary.jpg)
+
+#### Noisy gates
+
 If a noise model is provided, a local noise channel is applied after each quantum
-gate. A noise model is described by a string `noisename` identifying a set of
-Kraus operators, which can depend on a set of additional parameters `params`.
+gate. A noise model is described by a string identifying a set of
+Kraus operators, which can depend on a set of additional parameters.
+
+When a noise model is provided, mixed state evolution is performed, and an MPO
+approximation to the evolution under a noisy circuit is returned.
 
 ```julia
 using PastaQ
 
 # Example 1b: noisy quantum circuit
 
-N = 4   # Number of qubits
-depth=4 # Depth of the quantum circuit
-gates = randomcircuit(N,depth) # random circuit
+N = 4     # Number of qubits
+depth = 4 # Depth of the quantum circuit
+gates = randomcircuit(N, depth) # random circuit
 
 # Run the circuit using an amplitude damping channel with decay rate `γ=0.01`.
 # Returns the MPO for the mixed density operator `ρ = ε(|0,0,…⟩⟨0,0,̇…|), where
 # `ε` is the quantum channel.
-ρ = runcircuit(N,gates; noise="AD", γ=0.01)
+ρ = runcircuit(N, gates; noise="AD", γ=0.01)
+
+# Compute the Choi matrix of the channel
+Λ = runcircuit(N, gates; process = true, noise="AD", γ=0.01)
 ```
 
-#### Choi matrix
+The full quantum channel has several (and equivalent) mathematical representations.
+Here we focus on the Choi matrix, which is obtained by applying a given channel `ε`
+to half of N pairs of maximally entangled states.
 
-The Choi matrix provides a complete description of an arbitrary quantum channel.
-It is obtained by applying a given channel `ε` to half of N pairs of entangled states.
-If the channel `ε` is unitary, the Choi matrix has rank 1 `Λ = |U⟩⟩⟨⟨U|`, where
-`U` is the unitary circuit and `|U⟩⟩` is an MPS obtained by bending the inpupt wires
-of the circuit MPO. If the channel is noisy, the Choi matrix is described by a MPO.
+![alt text](assets/runcircuit_noisy.jpg)
 
-```julia
-using PastaQ
-
-# Example 1c: choi matrix
-
-N = 4   # Number of qubits
-depth=4 # Depth of the quantum circuit
-gates = randomcircuit(N,depth) # random circuit
-
-# Compute MPS for rank-1 Choi matrix of a unitary channel
-|U⟩⟩ = choimatrix(N,gates)
-
-# Compute the MPO for Choi matrix of a noisy channel
-Λ = choimatrix(N,gates; noise="AD", γ=0.01)
-
-```
-
-#### Data generation
+### Generation of projective measurements
+For a given quantum circuit, with or without noise, different flavors of measurement
+data can be obtained with the function `getsamples(...)` If one is interested in
+the quantum state at the output of the circuit, the function carries out a set of
+projective measurements in arbitrary local bases. By default, each qubit is measured
+randomly in the bases corresponding to the Pauli matrices. The output quantum state,
+given as an MPS wavefunction or MPO density operators for unitary and noisy circuits
+respectively, is also returned with the data.
 
 ```julia
 using PastaQ
@@ -142,35 +157,60 @@ using PastaQ
 # Example 2: generation of measurement data
 
 # Set parameters
-N = 4                          # Number of qubits
-depth = 4                      # Depth of random circuit
-nshots = 1000                  # Number of measurements
-gates = randomcircuit(N,depth) # Build gates
+N = 4                           # Number of qubits
+depth = 4                       # Depth of random circuit
+nshots = 1000                   # Number of measurements
+gates = randomcircuit(N, depth) # Build gates
 
 
 # 2a) Output state of a noiseless circuit. By default, each projective measurement
 # is taken in basis randomly drawn from the the Pauli group. Also returns the output MPS.
-ψ,data = generatedata(N,gates,nshots; return_state=true)
+data, ψ = getsamples(N, gates, nshots)
 
 #  Note: the above is equivalent to:
-# > bases = randombases(N,nshots; localbasis=["X","Y","Z"])
-# > ψ = runcircuit(N,gates)
-# > data = generatedata(ψ,bases)
+# > bases = randombases(N, nshots; localbasis=["X","Y","Z"])
+# > ψ = runcircuit(N, gates)
+# > data = getsamples(ψ, bases)
 
 # 2b) Output state of a noisy circuit. Also returns the output MPO
-ρ,data = generatedata(N,gates,nshots; noise="AD", γ=0.01, return_state=true)
+data, ρ = getsamples(N, gates, nshots; noise="AD", γ=0.01)
 
 # 2c) Generate data for quantum process tomography, consisting of input states
 # (data_in) to a quantum channel, and the corresponding projective measurements
 # at the output. By defaul, the states prepared at the inputs are selected from
 # product states of eigenstates of Pauli operators, while measurements bases are
 # sampled from the Pauli group.
-
-# Unitary channel, returns the (rank-1) Choi matrix (as MPS)
-Γ,data_in,data_out=generatedata(N,gates,nshots; process=true, return_state=true)
-
-# Noisy channel, returns the Choi matrix as MPO
-Λ,data_in,data_out=generatedata(N,gates,nshots;process=true,noise="AD",γ=0.01,
-                                return_state=true)
 ```
+
+For quantum process tomography of a unitary or noisy circuit, the measurement data
+consists of pairs of input and output states to the channel. Each input state is a
+product state of random single-qubit states. Be default, these are set to the six
+eigenstates of the Pauli matrices (an overcomplete basis). The output states are
+projective measurements for a set of different local bases. It returns the MPO
+unitary circuit (noiseless) or the Choi matrix (noisy).
+
+```julia
+# 2c) Generate data for quantum process tomography, consisting of input states
+# (data_in) to a quantum channel, and the corresponding projective measurements
+# at the output. By defaul, the states prepared at the inputs are selected from
+# product states of eigenstates of Pauli operators, while measurements bases are
+# sampled from the Pauli group.
+
+# Unitary channel, returns the MPO unitary circuit
+data_in, data_out, U = getsamples(N, gates, nshots; process=true)
+
+# Noisy channel, returns the Choi matrix
+data_in, data_out, Λ = getsamples(N, gates, nshots; process=true, noise="AD", γ=0.01)
+```
+
+
 ### Quantum tomography
+
+
+
+## Full code examples
+
+
+### Quantum state tomography
+
+### Quantum process tomography
