@@ -216,7 +216,22 @@ function random_choi(ElT::Type{<:Number},sites::Vector{<: Index},χ::Int64,ξ::I
 end
 
 
+"""
+    randomstate(N::Int64; kwargs...)
 
+Generates a random quantum state of N qubits
+
+# Arguments
+  - `N`: number of qubits
+  - `mixed`: if false (default), generate a random MPS; if true, generates a random LPDO
+  - `init`: initialization criteria: `"randompars"` initializes random tensor components; 
+    `"circuit` initializes with a random quantum circuit (MPS only).
+  - `σ`: size of the 0-centered uniform distribution in `init="randpars"`. 
+  - `χ`: bond dimension of the MPS/LPDO
+  - 'ξ`: kraus dimension (LPDO)
+  - `normalize`: if true, return normalize state
+  - `cplx`: if true (default), returns complex-valued state
+"""
 function randomstate(N::Int64; kwargs...)
   sites = siteinds("Qubit", N)
   return randomstate(sites; kwargs...)
@@ -265,11 +280,31 @@ function randomstate(sites::Vector{<:Index},T::Type; kwargs...)
   return (normalize ? normalize!(M) : M)
 end
 
+"""
+    randomstate(M::Union{MPS,MPO,LPDO}; kwargs...)
+
+Generate a random state with same Hilbert space (i.e. site indices)
+of a reference state `M`.
+"""
 function randomstate(M::Union{MPS,MPO,LPDO}; kwargs...)
   hM = hilbertspace(M)
   return randomstate(hM;kwargs...)
 end
 
+"""
+    randomprocess(N::Int64; kwargs...)
+
+Generates a random quantum procecss of N qubits.
+
+# Arguments
+  - `N`: number of qubits
+  - `mixed`: if false (default), generates a random MPO; if true, generates a random LPDO.
+  - `init`: initialization criteria, set to `"randompars"` (see `randomstate`).
+  - `σ`: size of the 0-centered uniform distribution in `init="randpars"`. 
+  - `χ`: bond dimension of the MPO/LPDO.
+  - 'ξ`: kraus dimension (LPDO).
+  - `cplx`: if true (default), returns complex-valued state.
+"""
 function randomprocess(N::Int64; kwargs...)
   sites = siteinds("Qubit", N)
   return randomprocess(sites; kwargs...)
@@ -305,12 +340,12 @@ function randomprocess(sites::Vector{<:Index},T::Type; kwargs...)
   return M
 end
 
-randomprocess(C::Choi; kwargs...) = 
-  randomprocess(C.M; kwargs...)
+"""
+    randomprocess(M::Union{MPS,MPO}; kwargs...)
 
-randomprocess(L::LPDO; kwargs...) = 
-  randomprocess(L.X; kwargs...)
-
+Generate a random process with same Hilbert space (i.e. input
+and output indices)of a reference process `M`.
+"""
 function randomprocess(M::Union{MPS,MPO}; kwargs...)
   mixed = get(kwargs,:mixed,false)
   N = length(M)
@@ -321,5 +356,11 @@ function randomprocess(M::Union{MPS,MPO}; kwargs...)
   proc = randomprocess(s; mixed=mixed,kwargs...)
   return proc
 end
+
+randomprocess(C::Choi; kwargs...) = 
+  randomprocess(C.M; kwargs...)
+
+randomprocess(L::LPDO; kwargs...) = 
+  randomprocess(L.X; kwargs...)
 
 

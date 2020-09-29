@@ -10,16 +10,13 @@ Save data and model on file:
   - `output_path`: path to file
 """
 function savedata(data::Array,
-                  model::Union{MPS,MPO,Choi},
+                  model::Union{MPS,MPO,LPDO},
                   output_path::String)
   # Make the path the file will sit in, if it doesn't exist
   mkpath(dirname(output_path))
   h5rewrite(output_path) do fout
     write(fout,"data",data)
-    if model isa Choi
-      model = model.M
-    end
-    write(fout, "model", model)
+    write(fout,"model",model)
   end
 end
 
@@ -39,16 +36,13 @@ Save data and model on file:
 """
 function savedata(data_in::Array,
                   data_out::Array,
-                  model::Union{MPS,MPO,Choi},
+                  model::Union{MPO,Choi},
                   output_path::String)
   # Make the path the file will sit in, if it doesn't exist
   mkpath(dirname(output_path))
   h5rewrite(output_path) do fout
     write(fout,"data_in",data_in)
     write(fout,"data_out",data_out)
-    if model isa Choi
-      model = model.M
-    end
     write(fout,"model",model)
   end
 end
@@ -69,7 +63,6 @@ function loaddata(input_path::String; process::Bool = false)
   g = g_open(fin,"model")
   typestring = read(attrs(g)["type"])
   modeltype = eval(Meta.parse(typestring))
-
   model = read(fin, "model", modeltype)
   
   if process
@@ -101,9 +94,7 @@ end
 
 """
     fullmatrix(M::MPO; reverse::Bool = true)
-
     fullmatrix(L::LPDO; reverse::Bool = true)
-
 Extract the full matrix from an MPO or LPDO, returning a Julia Matrix.
 """
 function fullmatrix(M::MPO; reverse::Bool = true)
@@ -121,7 +112,7 @@ fullmatrix(L::LPDO; kwargs...) = fullmatrix(MPO(L); kwargs...)
 
 # TEMPORARY FUNCTION
 # TODO: remove when `firstsiteinds(ψ::MPS)` is implemented
-function hilbertspace(L::LPDO) 
+function hilbertspace(L::LPDO)
   return  (L.X isa MPS ? siteinds(L.X) : firstsiteinds(L.X))
 end
 

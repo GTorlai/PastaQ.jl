@@ -2,14 +2,11 @@
 
 ## Initialization
 
-```@docs
-initializetomography
-```
-
 ## Tomography
 
 ```@docs
 tomography
+PastaQ._tomography
 ```
 
 ## Certification
@@ -17,4 +14,5 @@ tomography
 ```@docs
 fidelity
 frobenius_distance
+fidelity_bound
 ```

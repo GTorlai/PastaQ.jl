@@ -52,6 +52,8 @@ export
   AdaDelta,
   Adam,
   AdaMax,
+  # Methods
+  resetoptimizer!,
 
 # observer.jl
   TomographyObserver,
@@ -62,4 +64,3 @@ export
   # Methods
   savedata,
   loaddata
- 

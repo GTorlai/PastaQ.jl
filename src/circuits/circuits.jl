@@ -105,7 +105,8 @@ function randomcircuit(N::Int,depth::Int,twoqubit_bonds::Array;
   numgates_1q = length(onequbitgates)
   
   for d in 1:depth
-    cycle = twoqubit_bonds[(d-1)%2+1]
+    #cycle = twoqubit_bonds[(d-1)%2+1]
+    cycle = twoqubit_bonds[(d-1)%length(twoqubit_bonds)+1]
     twoqubitlayer!(gates,twoqubitgate,cycle) 
     for j in 1:N
       onequbitgatename = onequbitgates[rand(1:numgates_1q)]

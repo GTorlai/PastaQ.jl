@@ -121,16 +121,19 @@ distribution:
 - P(σ) = ⟨σ|ρ|σ⟩  : if `M = ρ is MPO`
 """
 function getsamples!(M::Union{MPS,MPO};kwargs...)
-  readout_errors = get(kwargs,:readout_errors,nothing) 
+  readout_errors = get(kwargs,:readout_errors,(p1given0=nothing,p0given1=nothing)) 
+  p1given0 = readout_errors[:p1given0]
+  p0given1 = readout_errors[:p0given1]
   orthogonalize!(M,1)
   measurement = sample(M)
   measurement .-= 1
-  if !isnothing(readout_errors)
-    readouterror!(measurement;probs=readout_errors)
+  if !isnothing(p1given0) | !isnothing(p0given1)
+    p1given0 = (isnothing(p1given0) ? 0.0 : p1given0)
+    p0given1 = (isnothing(p0given1) ? 0.0 : p0given1)
+    readouterror!(measurement,p1given0,p0given1)
   end
   return measurement
 end
-
 
 """
     getsamples!(M::Union{MPS,MPO},nshots::Int)
@@ -154,18 +157,16 @@ Add readout error to a single measurement
 
 # Arguments:
   - `measurement`: bit string of projective measurement outcome
-  - `readout_probs`: readout error probabilities:
-      `probs[1]` = probability to observe `1` given outcome `0`
-      `probs[2]` = probability to observe `0` given outcome `1`
+  - `p1given0`: readout error probability 0 -> 1
+  - `p0given1`: readout error probability 1 -> 0
 """
-function readouterror!(measurement::Array;probs::Array=[0.0,0.0])
-  p10 = probs[1]
-  p01 = probs[2]
+function readouterror!(measurement::Array,p1given0::Float64,p0given1::Float64)
+
   for j in 1:size(measurement)[1]
     if measurement[j] == 0
-      measurement[j] = StatsBase.sample([0,1],Weights([1-p10,p10]))
+      measurement[j] = StatsBase.sample([0,1],Weights([1-p1given0,p1given0]))
     else
-      measurement[j] = StatsBase.sample([0,1],Weights([p01,1-p01]))
+      measurement[j] = StatsBase.sample([0,1],Weights([p0given1,1-p0given1]))
     end
   end
   return measurement
@@ -320,8 +321,8 @@ function getsamples(N::Int64, gates::Vector{<:Tuple}, nshots::Int64;
                     ndistinctstates = nothing,
                     cutoff::Float64 = 1e-15,
                     maxdim::Int64 = 10000,
-                    readout_errors = nothing, kwargs...)
-  
+                    readout_errors = (p1given0 = nothing, p0given1 = nothing),
+                    kwargs...)
   data = Matrix{String}(undef, nshots,N)
   bases = randombases(N, nshots;
                       localbasis = localbasis,
@@ -330,11 +331,11 @@ function getsamples(N::Int64, gates::Vector{<:Tuple}, nshots::Int64;
     # Apply the quantum channel
     M = runcircuit(N, gates; process = false, noise = noise,
                    cutoff = cutoff, maxdim = maxdim, kwargs...)
-    data = getsamples(M,bases;readout_errors=readout_errors)
+    data = getsamples(M, bases; readout_errors = readout_errors)
     return data, M
   else
     # Generate a set of prepared input state to the channel
-    preps = randompreparations(N,nshots,inputstates=inputstates,
+    preps = randompreparations(N, nshots, inputstates = inputstates,
                                ndistinctstates = ndistinctstates)
     # Generate data using circuit MPO (noiseless) or Choi matrix (noisy)
     if build_process
@@ -344,7 +345,7 @@ function getsamples(N::Int64, gates::Vector{<:Tuple}, nshots::Int64;
         M′= (isnothing(noise) ? projectunitary(M,preps[n,:]) : projectchoi(M,preps[n,:]))
         meas_gates = measurementgates(bases[n,:])
         M_meas = runcircuit(M′,meas_gates)
-        measurement = getsamples!(M_meas;kwargs...)
+        measurement = getsamples!(M_meas; readout_errors = readout_errors)
         data[n,:] =  convertdatapoint(measurement,bases[n,:])
       end
       return preps, data, M

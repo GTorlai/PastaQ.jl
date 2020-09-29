@@ -51,6 +51,7 @@ opt = SGD(η = 0.1)
 # is optimized to mimimize the cross entropy between the data and 
 # the tensor-network distribution `P(x) = ⟨x|ρ(θ)|x⟩`, where
 # `ρ = ΓΓ†` is the corresponding density operator..
+
 ρ = tomography(data, ρ0;
                optimizer = opt,
                batchsize = 1000,

@@ -14,7 +14,7 @@ U = runcircuit(N, gates; process = true)
 Λ = runcircuit(N, gates; process = true, noise = ("amplitude_damping", (γ = 0.01,)))
 
 Random.seed!(1234)
-nshots = 1000
+nshots = 100
 data, ψ = getsamples(N, gates, nshots)
 savedata(data, ψ, "../examples/data/qst_circuit_test.h5")
 
@@ -50,6 +50,7 @@ N = length(ϱ)     # Number of qubits
 ξ = 2             # Kraus dimension of variational LPDO
 ρ0 = randomstate(ϱ; mixed = true, χ = χ, ξ = ξ, σ = 0.1)
 opt = SGD(η = 0.01)
+
 ρ = tomography(data, ρ0;
                optimizer = opt,
                batchsize = 100,
@@ -60,9 +61,8 @@ Random.seed!(1234)
 data_in, data_out, U = loaddata("../examples/data/qpt_circuit_test.h5"; process = true)
 N = length(U)     # Number of qubits
 χ = maxlinkdim(U) # Bond dimension of variational MPS
+V0 = randomprocess(U; χ = χ)
 opt = SGD(η = 0.1)
-V0 = randomprocess(U; mixed = false, χ = χ)
-@show V0
 V = tomography(data_in, data_out, V0;
                optimizer = opt,
                batchsize = 100,
@@ -80,7 +80,7 @@ opt = SGD(η = 0.1)
 Λ = tomography(data_in, data_out, Λ0;
                optimizer = opt,
                mixed = true,
-               batchsize = 100,
+               batchsize = 10,
                epochs = 2,
                target = ϱ)
 @show Λ

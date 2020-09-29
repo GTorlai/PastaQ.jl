@@ -12,7 +12,8 @@ using Test
     "distances.jl",
     "randomstates.jl",
     "tomography.jl",
-    "examples.jl", 
+    "examples.jl",
+    "observer.jl",
     #"benchmark_qiskit.jl"
   )
     println("Running $filename")
