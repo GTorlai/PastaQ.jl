@@ -63,4 +63,4 @@ export
 # utils.jl
   # Methods
   savedata,
-  loaddata,
+  loaddata

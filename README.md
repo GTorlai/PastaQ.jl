@@ -85,7 +85,7 @@ The unitary circuit can be approximated by a MPO, running the `runcircuit`
 function with the flag `process=true`. Below is an example for a random
 quantum circuit.
 
-![alt text](assets/runcircuit_unitary.jpg)
+![alt text](docs/src/assets/runcircuit_unitary.jpg)
 
 ```julia
 using PastaQ
@@ -118,7 +118,7 @@ The full quantum channel has several (and equivalent) mathematical representatio
 Here we focus on the Choi matrix, which is obtained by applying a given channel `ε`
 to half of N pairs of maximally entangled states.
 
-![alt text](assets/runcircuit_noisy.jpg)
+![alt text](docs/src/assets/runcircuit_noisy.jpg)
 
 ```julia
 using PastaQ
@@ -192,59 +192,3 @@ data_in, data_out, U = getsamples(N, gates, nshots; process=true)
 data_in, data_out, Λ = getsamples(N, gates, nshots; process = true, noise = ("amplitude_damping", (γ = 0.01,)))
 ```
 
-
-### Quantum tomography
-
-
-#### State tomography
-![alt text](assets/quantumtomography.jpg)
-
-#### Process tomography
-
-## Full code examples
-
-#### Quantum state tomography
-Quantum tomography of the wavefunction at the output of a 10-qubit random quantum
-circuit of depth 10, using 20000 training measurements.
-
-```julia
-using PastaQ
-using Random
-
-Random.seed!(1234)
-N = 10
-depth = 10
-nshots = 20000
-gates = randomcircuit(N, depth)
-
-data,Ψ = getsamples(N, gates, nshots)
-
-ψ0 = randomstate(Ψ; χ=maxlinkdim(Ψ))
-opt = SGD(η = 0.01)
-ψ = tomography(ψ0,data,opt;target=Ψ,epochs=10)
-
-# Output
-
-  Ep = 1   Loss = 7.56136E+00  Fidelity = 1.048E-01  Time = 3.640 sec
-  Ep = 2   Loss = 7.15703E+00  Fidelity = 4.390E-01  Time = 3.583 sec
-  Ep = 3   Loss = 6.87236E+00  Fidelity = 6.315E-01  Time = 3.734 sec
-  Ep = 4   Loss = 6.70552E+00  Fidelity = 7.743E-01  Time = 3.712 sec
-  Ep = 5   Loss = 6.54243E+00  Fidelity = 8.746E-01  Time = 3.645 sec
-  Ep = 6   Loss = 6.48293E+00  Fidelity = 9.112E-01  Time = 3.691 sec
-  Ep = 7   Loss = 6.44810E+00  Fidelity = 9.284E-01  Time = 3.647 sec
-  Ep = 8   Loss = 6.43632E+00  Fidelity = 9.373E-01  Time = 3.603 sec
-  Ep = 9   Loss = 6.42528E+00  Fidelity = 9.448E-01  Time = 3.559 sec
-  Ep = 10  Loss = 6.41982E+00  Fidelity = 9.450E-01  Time = 3.601 sec
-  Ep = 11  Loss = 6.41674E+00  Fidelity = 9.511E-01  Time = 3.557 sec
-  Ep = 12  Loss = 6.41443E+00  Fidelity = 9.554E-01  Time = 3.700 sec
-  Ep = 13  Loss = 6.41014E+00  Fidelity = 9.553E-01  Time = 3.717 sec
-  Ep = 14  Loss = 6.40734E+00  Fidelity = 9.538E-01  Time = 3.643 sec
-  Ep = 15  Loss = 6.40643E+00  Fidelity = 9.529E-01  Time = 3.782 sec
-  Ep = 16  Loss = 6.40799E+00  Fidelity = 9.565E-01  Time = 3.623 sec
-  Ep = 17  Loss = 6.40472E+00  Fidelity = 9.542E-01  Time = 3.623 sec
-  Ep = 18  Loss = 6.40551E+00  Fidelity = 9.565E-01  Time = 3.660 sec
-  Ep = 19  Loss = 6.40192E+00  Fidelity = 9.564E-01  Time = 3.578 sec
-  Ep = 20  Loss = 6.40119E+00  Fidelity = 9.603E-01  Time = 3.597 sec
-
-```
-#### Quantum process tomography

@@ -504,7 +504,11 @@ function tomography(data_in::Array, data_out::Array, L::LPDO; optimizer::Optimiz
   end
 end
 
+tomography(data_in::Array, data_out::Array, U::MPO; optimizer::Optimizer, kwargs...) = 
+  tomography(data_in, data_out, LPDO(U); optimizer = optimizer, kwargs...)
 
+tomography(data_in::Array, data_out::Array, C::Choi; optimizer::Optimizer, kwargs...) = 
+  tomography(data_in, data_out, C.M; optimizer = optimizer, kwargs...)
 
 """
     tomography(data::Array, L::LPDO; optimizer::Optimizer, kwargs...)
