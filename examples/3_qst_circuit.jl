@@ -23,7 +23,8 @@ opt = SGD(η = 0.01)
 # Run quantum state tomography, where a variational MPS `|ψ(θ)⟩`
 # is optimized to mimimize the cross entropy between the data and 
 # the tensor-network distribution `P(x) = |⟨x|ψ(θ)⟩|²`.
-ψ = tomography(ψ0,data,opt;
+ψ = tomography(data,ψ0;
+               optimizer=opt,
                batchsize=1000,
                epochs=5,
                target=Ψ)
@@ -50,7 +51,8 @@ opt = SGD(η = 0.1)
 # is optimized to mimimize the cross entropy between the data and 
 # the tensor-network distribution `P(x) = ⟨x|ρ(θ)|x⟩`, where
 # `ρ = ΓΓ†` is the corresponding density operator..
-ρ = tomography(ρ0,data,opt;
+ρ = tomography(data,ρ0;
+               optimizer=opt,
                batchsize=1000,
                epochs=5,
                target=ϱ)

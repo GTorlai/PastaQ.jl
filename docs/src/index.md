@@ -85,6 +85,7 @@ The unitary circuit can be approximated by a MPO, running the `runcircuit`
 function with the flag `process=true`. Below is an example for a random
 quantum circuit.
 
+![alt text](assets/runcircuit_unitary.jpg)
 
 ```julia
 using PastaQ
@@ -107,16 +108,17 @@ gates = randomcircuit(N, depth)
 U = runcircuit(N, gates; process=true)
 ```
 
-![alt text](assets/runcircuit_unitary.jpg)
-
 #### Noisy gates
 
 If a noise model is provided, a local noise channel is applied after each quantum
 gate. A noise model is described by a string identifying a set of
-Kraus operators, which can depend on a set of additional parameters.
+Kraus operators, which can depend on a set of additional parameters. The `runcircuit`
+function in this setting returns the MPO for the output mixed density operator. 
+The full quantum channel has several (and equivalent) mathematical representations.
+Here we focus on the Choi matrix, which is obtained by applying a given channel `ε`
+to half of N pairs of maximally entangled states.
 
-When a noise model is provided, mixed state evolution is performed, and an MPO
-approximation to the evolution under a noisy circuit is returned.
+![alt text](assets/runcircuit_noisy.jpg)
 
 ```julia
 using PastaQ
@@ -136,11 +138,6 @@ gates = randomcircuit(N, depth) # random circuit
 Λ = runcircuit(N, gates; process = true, noise="AD", γ=0.01)
 ```
 
-The full quantum channel has several (and equivalent) mathematical representations.
-Here we focus on the Choi matrix, which is obtained by applying a given channel `ε`
-to half of N pairs of maximally entangled states.
-
-![alt text](assets/runcircuit_noisy.jpg)
 
 ### Generation of projective measurements
 For a given quantum circuit, with or without noise, different flavors of measurement

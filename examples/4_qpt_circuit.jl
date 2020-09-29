@@ -17,18 +17,14 @@ N = length(Û)     # Number of qubits
 
 # Initialize the unitary MPO
 U0 = randomprocess(N; χ = χ)
-# TODO: temporary check
-#ψ = randomstate(2*N;χ=8)
-
-#U0 = unsplitunitary(ψ)
-#ϕ = splitunitary(U0)
 
 # Initialize stochastic gradient descent optimizer
 @show maxlinkdim(U0)
 opt = SGD(η = 0.1)
 
 # Run process tomography
-U = tomography(U0, data_in, data_out, opt;
+U = tomography(data_in, data_out, U0;
+               optimizer=opt,
                batchsize = 500,
                epochs = 5,
                target = Û)
@@ -49,7 +45,8 @@ N = length(Φ)
 opt = SGD(η = 0.1)
 
 # Run process tomography
-Λ = tomography(Λ0, data_in, data_out, opt;
+Λ = tomography(data_in, data_out, Λ0;
+               optimizer=opt,
                mixed = true,
                batchsize = 500,
                epochs = 5,

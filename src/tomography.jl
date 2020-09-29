@@ -421,11 +421,11 @@ TEMPORARY WRAPPER
 This function is required as long as the process tomography is 
 using a split representation.
 """
-tomography(L::LPDO,data::Array,opt::Optimizer; kwargs...) =
-  runtomography(L,data,opt;kwargs...)
+tomography(data::Array,L::LPDO; kwargs...) =
+  runtomography(data,L; kwargs...)
 
-tomography(ψ::MPS,data::Array,opt::Optimizer; kwargs...) =
-  tomography(LPDO(ψ),data,opt; kwargs...)
+tomography(data::Array,ψ::MPS; kwargs...) =
+  tomography(data,LPDO(ψ); kwargs...)
 
 """
     tomography(L::LPDO,data_in::Array,data_out::Array,opt::Optimizer; kwargs...)
@@ -435,7 +435,7 @@ TEMPORARY WRAPPER FOR UNSPLIT PROCESS TOMOGRAPHY
 This function take a model `L` and a `target` (is provided) in a unsplit
 representation, and run tomography with the split algorithm. Returns the unsplit result.
 """
-function tomography(L::LPDO,data_in::Array,data_out::Array,opt::Optimizer; kwargs...)
+function tomography(data_in::Array,data_out::Array,L::LPDO; kwargs...)
   target = get(kwargs,:target,nothing)
   mixed::Bool = get(kwargs,:mixed,false)
   record = get(kwargs,:record,false) 
@@ -450,7 +450,7 @@ function tomography(L::LPDO,data_in::Array,data_out::Array,opt::Optimizer; kwarg
   @assert (target isa MPS) | (target isa MPO)
   
   if isnothing(target)
-    M = runtomography(L,data_in,data_out,opt; kwargs...)
+    M = runtomography(data_in,data_out,L; kwargs...)
     return (!mixed ? unsplitunitary(M.X) : unsplitchoi(Choi(M)))
   end
   
@@ -462,7 +462,8 @@ function tomography(L::LPDO,data_in::Array,data_out::Array,opt::Optimizer; kwarg
     # Split the target state: MPO -> MPS (x2 sites)
     target = splitunitary(target)
     # Run process tomography
-    output = runtomography(model,data_in,data_out,opt; kwargs...,target=target)
+    @show model
+    output = runtomography(data_in,data_out,model; kwargs...,target=target)
     if record
       V,observer = output
       V_unsplit = unsplitunitary(V.X)
@@ -479,7 +480,7 @@ function tomography(L::LPDO,data_in::Array,data_out::Array,opt::Optimizer; kwarg
     target = splitchoi(target).M
     model = splitchoi(Choi(L))
     # Run process tomography
-    output = runtomography(model.M,data_in,data_out,opt; kwargs...,target=target)
+    output = runtomography(data_in,data_out,model.M; kwargs...,target=target)
     if record
       Λ,observer = output
       Λ_unsplit = unsplitchoi(Choi(Λ))
@@ -492,11 +493,11 @@ function tomography(L::LPDO,data_in::Array,data_out::Array,opt::Optimizer; kwarg
   end
 end
 
-tomography(U::MPO,data_in::Array,data_out::Array,opt::Optimizer; kwargs...) = 
-  tomography(LPDO(U),data_in,data_out,opt; kwargs...)
+tomography(data_in::Array,data_out::Array,U::MPO; kwargs...) = 
+  tomography(data_in,data_out,LPDO(U); kwargs...)
 
-tomography(C::Choi,data_in::Array,data_out::Array,opt::Optimizer; kwargs...) = 
-  tomography(C.M,data_in,data_out,opt; kwargs...)
+tomography(data_in::Array,data_out::Array,C::Choi; kwargs...) = 
+  tomography(data_in,data_out,C.M; kwargs...)
 
 
 
@@ -516,7 +517,7 @@ Run quantum state tomography using a the starting state `model` on `data`.
   - `record`: if true, keep track of measurements and fidelities.
   - `outputpath`: write training metrics on file 
 """
-function runtomography(L::LPDO,data::Array,opt::Optimizer;kwargs...)
+function runtomography(data::Array,L::LPDO; kwargs...)
  
   # Read arguments
   use_localnorm::Bool = get(kwargs,:use_localnorm,true)
@@ -527,7 +528,8 @@ function runtomography(L::LPDO,data::Array,opt::Optimizer;kwargs...)
   choi::Bool = get(kwargs,:choi,false)
   record = get(kwargs,:record,false) 
   outputpath = get(kwargs,:fout,nothing)
-  
+  opt = get(kwargs,:optimizer,SGD(η=0.01))
+
   if record
     observer = TomographyObserver()
   end
@@ -543,7 +545,7 @@ function runtomography(L::LPDO,data::Array,opt::Optimizer;kwargs...)
   Fbound=nothing
   frob_dist = nothing
   
-  if batchsize ≥ size(data)[1]
+  if batchsize > size(data)[1]
     error("Batch size larger than dataset size")
   end
 
@@ -627,13 +629,11 @@ function runtomography(L::LPDO,data::Array,opt::Optimizer;kwargs...)
   return (record ? (model,observer) : model)
 end
 
-function runtomography(C::Choi,data::Array,opt::Optimizer;kwargs...)
- return runtomography(C.M,data,opt;kwargs...)
-end
+runtomography(data::Array, C::Choi; kwargs...) = 
+  runtomography(data, C.M; kwargs...)
 
-
-runtomography(ψ::MPS, data::Array,opt::Optimizer; kwargs...) =
-  runtomography(LPDO(ψ),data,opt; kwargs...)
+runtomography(data::Array,ψ::MPS; kwargs...) =
+  runtomography(data,LPDO(ψ); kwargs...)
 
 
 """
@@ -644,11 +644,7 @@ Run quantum process tomography on `(data_in,data_out)` using `model` as variatio
 
 The data is reshuffled so it takes the format: `(input1,output1,input2,output2,…)`.
 """
-function runtomography(L::LPDO,
-                    data_in::Array,
-                    data_out::Array,
-                    opt::Optimizer;
-                    kwargs...)
+function runtomography(data_in::Array, data_out::Array, L::LPDO; kwargs...)
   target = get(kwargs,:target,nothing)
   N = size(data_in)[2]
   @assert size(data_in) == size(data_out)
@@ -661,14 +657,8 @@ function runtomography(L::LPDO,
       data[n,2*j]   = data_out[n,j]
     end
   end
-  return runtomography(L,data,opt; choi=true,kwargs...)
+  return runtomography(data,L; choi=true,kwargs...)
 end
-
-#runtomography(U::MPO,data_in::Array, data_out::Array,opt::Optimizer; kwargs...) =
-#  runtomography(LPDO(U),data_in,data_out,opt; kwargs...)
-#
-#runtomography(C::Choi,data_in::Array, data_out::Array,opt::Optimizer; kwargs...) =
-#  runtomography(C.M,data_in,data_out,opt; kwargs...)
 
 
 """

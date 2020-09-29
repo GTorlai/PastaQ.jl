@@ -77,4 +77,3 @@ export
   loaddata,
   fullvector,
   fullmatrix
-
