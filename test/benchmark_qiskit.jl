@@ -39,7 +39,7 @@ end
   exact_choi = testdata["choi"]
   g = testdata["gates"]
   gates = convert_gates(g)
-  Λ0 = choimatrix(N,gates;noise="AD",γ=0.1)
+  Λ0 = choimatrix(N, gates; noise = ("amplitude_damping", (γ = 0.1,)))
   disable_warn_order!()
   Λ = splitchoi(Λ0)
   @test fullmatrix(Λ) ≈ exact_choi# rtol=1e-2
@@ -51,7 +51,7 @@ end
   exact_choi = testdata["choi"]
   g = testdata["gates"]
   gates = convert_gates(g)
-  Λ0 = choimatrix(N,gates;noise="PD",γ=0.1)
+  Λ0 = choimatrix(N, gates; noise = ("phase_damping", (γ = 0.1,)))
   disable_warn_order!()
   Λ = splitchoi(Λ0)
   @test fullmatrix(Λ) ≈ exact_choi# rtol=1e-2
@@ -63,7 +63,7 @@ end
   #exact_choi = testdata["choi"]
   #g = testdata["gates"]
   #gates = convert_gates(g)
-  #Λ0 = runcircuit(N,gates,process=true,noise="DEP",p=0.1)
+  #Λ0 = runcircuit(N, gates; process = true, noise = ("depolarizing", (p = 0.1,)))
   #disable_warn_order!()
   #Λ = fullmatrix(Λ0)
   #reset_warn_order!()

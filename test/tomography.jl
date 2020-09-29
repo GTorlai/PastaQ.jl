@@ -686,12 +686,12 @@ end
 @testset "splitchoi" begin
   N = 3
   gates = randomcircuit(N,2)
-  Λ0 = runcircuit(N,gates;process=true,noise="AD",γ=0.1)
+  Λ0 = runcircuit(N, gates; process = true, noise = ("amplitude_damping", (γ = 0.1,)))
   ρ = PastaQ.splitchoi(Λ0)
   Λ = PastaQ.unsplitchoi(ρ)
   @test prod(Λ0.M) ≈ prod(Λ.M)
 
-  Λ0 = randomprocess(N;mixed=true)
+  Λ0 = randomprocess(N; mixed = true)
   ρ = PastaQ.splitchoi(Λ0)
   Λ = PastaQ.unsplitchoi(ρ)
   @test prod(Λ.M.X) ≈ prod(Λ.M.X)
