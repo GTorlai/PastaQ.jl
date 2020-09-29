@@ -437,7 +437,6 @@ TEMPORARY WRAPPER FOR UNSPLIT PROCESS TOMOGRAPHY
 This function take a model `L` and a `target` (is provided) in a unsplit
 representation, and run tomography with the split algorithm. Returns the unsplit result.
 """
-
 function tomography(data_in::Array, data_out::Array, L::LPDO; optimizer::Optimizer, kwargs...)
 
   target = get(kwargs,:target,nothing)
@@ -652,7 +651,6 @@ Run quantum process tomography on `(data_in,data_out)` using `model` as s variat
 
 The data is reshuffled so it takes the format: `(input1,output1,input2,output2,…)`.
 """
-
 function _tomography(data_in::Array,
                      data_out::Array,
                      L::LPDO;

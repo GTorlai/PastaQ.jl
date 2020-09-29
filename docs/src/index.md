@@ -113,7 +113,7 @@ U = runcircuit(N, gates; process=true)
 If a noise model is provided, a local noise channel is applied after each quantum
 gate. A noise model is described by a string identifying a set of
 Kraus operators, which can depend on a set of additional parameters. The `runcircuit`
-function in this setting returns the MPO for the output mixed density operator. 
+function in this setting returns the MPO for the output mixed density operator.
 The full quantum channel has several (and equivalent) mathematical representations.
 Here we focus on the Choi matrix, which is obtained by applying a given channel `ε`
 to half of N pairs of maximally entangled states.
@@ -171,6 +171,7 @@ data, ψ = getsamples(N, gates, nshots)
 
 # 2b) Output state of a noisy circuit. Also returns the output MPO
 data, ρ = generatedata(N, gates, nshots; noise = ("amplitude_damping", (γ = 0.01,)))
+```
 
 For quantum process tomography of a unitary or noisy circuit, the measurement data
 consists of pairs of input and output states to the channel. Each input state is a
@@ -196,11 +197,8 @@ data_in, data_out, Λ = generatedata(N, gates, nshots; process = true, noise = (
 
 ### Quantum tomography
 
-
 #### State tomography
 ![alt text](assets/quantumtomography.jpg)
-
-#### Process tomography
 
 ## Full code examples
 

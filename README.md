@@ -170,6 +170,7 @@ data, ψ = getsamples(N, gates, nshots)
 
 # 2b) Output state of a noisy circuit. Also returns the output MPO
 data, ρ = getsamples(N, gates, nshots; noise = ("amplitude_damping", (γ = 0.01,)))
+```
 
 For quantum process tomography of a unitary or noisy circuit, the measurement data
 consists of pairs of input and output states to the channel. Each input state is a
@@ -191,4 +192,3 @@ data_in, data_out, U = getsamples(N, gates, nshots; process=true)
 # Noisy channel, returns the Choi matrix
 data_in, data_out, Λ = getsamples(N, gates, nshots; process = true, noise = ("amplitude_damping", (γ = 0.01,)))
 ```
-
