@@ -214,7 +214,7 @@ end
 
 @testset "project unitary" begin
   N = 4
-  ntrial=100
+  ntrial=10
   gates = randomcircuit(N,4)
  
   U = runcircuit(N,gates;process=true)
@@ -241,7 +241,7 @@ end
 
 @testset "choi matrix + projectchoi" begin
   N = 4
-  ntrial=100
+  ntrial=10
   gates = randomcircuit(N,4)
   
   Λ = runcircuit(N,gates;process=true,noise="AD",γ=0.1)
@@ -322,43 +322,43 @@ end
   ρ = runcircuit(N,gates;noise="AD",γ=0.1)
   
   # 1a) Generate data with a MPS on the reference basis
-  data = getsamples!(ψ,nshots;readout_errors = [0.01,0.04])
+  data = getsamples!(ψ,nshots;p1given0=0.01,p0given1=0.04)
   @test size(data) == (nshots,N)
   # 1b) Generate data with a MPO on the reference basis
-  data = getsamples!(ρ,nshots;readout_errors = [0.01,0.04])
+  data = getsamples!(ρ,nshots;p1given0=0.01,p0given1=0.04)
   @test size(data) == (nshots,N)
   
   # 2a) Generate data with a MPS on multiple bases
   bases = randombases(N,nshots;localbasis=["X","Y","Z"])
-  data = getsamples(ψ,bases;readout_errors = [0.01,0.04])
+  data = getsamples(ψ,bases;p1given0=0.01,p0given1=0.04)
   @test size(data) == (nshots,N)
   # 2b) Generate data with a MPO on multiple bases
   bases = randombases(N,nshots;localbasis=["X","Y","Z"])
-  data = getsamples(ρ,bases;readout_errors = [0.01,0.04])
+  data = getsamples(ρ,bases;p1given0=0.01,p0given1=0.04)
   @test size(data) == (nshots,N)
 
   # 3) Measure MPS at the output of a circuit
-  data = getsamples(N,gates,nshots;readout_errors = [0.01,0.04])
+  data = getsamples(N,gates,nshots;p1given0=0.01,p0given1=0.04)
   @test size(data) == (nshots,N)
-  data = getsamples(N,gates,nshots;noise="AD",γ=0.1,readout_errors = [0.01,0.04])
+  data = getsamples(N,gates,nshots;noise="AD",γ=0.1,p1given0=0.01,p0given1=0.04)
   @test size(data) == (nshots,N)
-  data = getsamples(N,gates,nshots;localbasis=["X","Y","Z"],readout_errors = [0.01,0.04])
+  data = getsamples(N,gates,nshots;localbasis=["X","Y","Z"],p1given0=0.01,p0given1=0.04)
   @test size(data) == (nshots,N)
-  data = getsamples(N,gates,nshots;noise="AD",γ=0.1,localbasis=["X","Y","Z"],readout_errors = [0.01,0.04])
+  data = getsamples(N,gates,nshots;noise="AD",γ=0.1,localbasis=["X","Y","Z"],p1given0=0.01,p0given1=0.04)
   @test size(data) == (nshots,N)
-  M,data = getsamples(N,gates,nshots;return_state=true,readout_errors = [0.01,0.04])
-  M,data = getsamples(N,gates,nshots;return_state=true,noise="AD",γ=0.1,readout_errors = [0.01,0.04])
-  M,data = getsamples(N,gates,nshots;return_state=true,localbasis=["X","Y","Z"],readout_errors = [0.01,0.04])
-  M,data = getsamples(N,gates,nshots;return_state=true,noise="AD",γ=0.1,localbasis=["X","Y","Z"],readout_errors = [0.01,0.04])
+  M,data = getsamples(N,gates,nshots;return_state=true,p1given0=0.01,p0given1=0.04)
+  M,data = getsamples(N,gates,nshots;return_state=true,noise="AD",γ=0.1,p1given0=0.01,p0given1=0.04)
+  M,data = getsamples(N,gates,nshots;return_state=true,localbasis=["X","Y","Z"],p1given0=0.01,p0given1=0.04)
+  M,data = getsamples(N,gates,nshots;return_state=true,noise="AD",γ=0.1,localbasis=["X","Y","Z"],p1given0=0.01,p0given1=0.04)
   
   # 4) Process tomography
-  (data_in,data_out) = getsamples(N,gates,nshots;process=true,build_process=false,readout_errors = [0.01,0.04])
+  (data_in,data_out) = getsamples(N,gates,nshots;process=true,build_process=false,p1given0=0.01,p0given1=0.04)
   @test size(data_in) == (nshots,N)
   @test size(data_out) == (nshots,N)
-  (data_in,data_out) = getsamples(N,gates,nshots;process=true,build_process=false,noise="AD",γ=0.1,readout_errors = [0.01,0.04])
+  (data_in,data_out) = getsamples(N,gates,nshots;process=true,build_process=false,noise="AD",γ=0.1,p1given0=0.01,p0given1=0.04)
   @test size(data_in) == (nshots,N)
   @test size(data_out) == (nshots,N)
-  (Λ,data_in,data_out) = getsamples(N,gates,nshots;process=true,build_process=true,return_state=true,readout_errors = [0.01,0.04])
-  (Λ,data_in,data_out) = getsamples(N,gates,nshots;process=true,build_process=true,return_state=true,noise="AD",γ=0.1,readout_errors = [0.01,0.04])
+  (Λ,data_in,data_out) = getsamples(N,gates,nshots;process=true,build_process=true,return_state=true,p1given0=0.01,p0given1=0.04)
+  (Λ,data_in,data_out) = getsamples(N,gates,nshots;process=true,build_process=true,return_state=true,noise="AD",γ=0.1,p1given0=0.01,p0given1=0.04)
 
 end

@@ -441,13 +441,17 @@ function tomography(L::LPDO,data_in::Array,data_out::Array,opt::Optimizer; kwarg
   observer = get(kwargs,:observer,nothing) 
   
   # Target LPDO are currently not supported
-  if target isa Choi
+  if target isa Choi{MPO}
     target = target.M
+  elseif target isa Choi{LPDO{MPO}}
+    target = target.M.X
   end
+  
   @assert (target isa MPS) | (target isa MPO)
+  
   if isnothing(target)
     M = runtomography(L,data_in,data_out,opt; kwargs...)
-    return (!mixed ? unsplitunitary(M.X) : unsplitchoi(M))
+    return (!mixed ? unsplitunitary(M.X) : unsplitchoi(Choi(M)))
   end
   
   # 1. Noiseless channel (unitary circuit)

@@ -63,7 +63,6 @@ N = length(U)     # Number of qubits
 χ = maxlinkdim(U) # Bond dimension of variational MPS
 opt = SGD(η = 0.1)
 V0 = randomprocess(U;mixed=false,χ=χ)
-@show V0
 V = tomography(V0,data_in,data_out,opt;
                batchsize=100,
                epochs=2,
@@ -82,4 +81,3 @@ opt = SGD(η = 0.1)
                batchsize=100,
                epochs=2,
                target=ϱ);
-@show Λ
