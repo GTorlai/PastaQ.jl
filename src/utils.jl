@@ -1,6 +1,6 @@
 """
-    writedata(data::Matrix, model::Union{MPS,MPO,Choi},
-             output_path::String)
+    writedata(data::Matrix, model::Union{MPS, MPO, LPDO, Choi},
+              output_path::String)
 
 Save data and model on file:
 
@@ -10,13 +10,25 @@ Save data and model on file:
   - `output_path`: path to file
 """
 function writedata(data::Matrix,
-                  model::Union{MPS,MPO,LPDO},
-                  output_path::String)
+                   model::Union{MPS, MPO, LPDO, Choi},
+                   output_path::String)
   # Make the path the file will sit in, if it doesn't exist
   mkpath(dirname(output_path))
   h5rewrite(output_path) do fout
     write(fout,"data",data)
     write(fout,"model",model)
+  end
+end
+
+function writedata(data::Matrix{<: Pair},
+                   model::Union{MPS, MPO, LPDO, Choi},
+                   output_path::String)
+  # Make the path the file will sit in, if it doesn't exist
+  mkpath(dirname(output_path))
+  h5rewrite(output_path) do fout
+    write(fout, "data_first", first.(data))
+    write(fout, "data_last", last.(data))
+    write(fout, "model", model)
   end
 end
 
@@ -29,20 +41,24 @@ Load data and model from file:
   - `input_path`: path to file
 """
 function readdata(input_path::String)
-  fin = h5open(input_path,"r")
-  
-  g = g_open(fin,"model")
+  fin = h5open(input_path, "r")
+  g = g_open(fin, "model")
   typestring = read(attrs(g)["type"])
   modeltype = eval(Meta.parse(typestring))
   model = read(fin, "model", modeltype)
-  
-  data = read(fin,"data")
+  if exists(fin, "data")
+    data = read(fin, "data")
+  elseif exists(fin, "data_first") && exists(fin, "data_last")
+    data = read(fin, "data_first") .=> read(fin, "data_last")
+  else
+    error("File must contain either \"data\" for quantum state tomography data or \"data_first\" and \"data_second\" for quantum process tomography.")
+  end
   close(fin)
   return data, model
 end
 
 """
-    fullvector(M::MPS; reverse::Bool = true)
+    PastaQ.fullvector(M::MPS; reverse::Bool = true)
 
 Extract the full vector from an MPS
 """
@@ -57,8 +73,9 @@ function fullvector(M::MPS; reverse::Bool = true)
 end
 
 """
-    fullmatrix(M::MPO; reverse::Bool = true)
-    fullmatrix(L::LPDO; reverse::Bool = true)
+    PastaQ.fullmatrix(M::MPO; reverse::Bool = true)
+    PastaQ.fullmatrix(L::LPDO; reverse::Bool = true)
+
 Extract the full matrix from an MPO or LPDO, returning a Julia Matrix.
 """
 function fullmatrix(M::MPO; reverse::Bool = true)

@@ -58,7 +58,7 @@ opt = SGD(η = 0.01)
                target = ϱ)
 
 Random.seed!(1234)
-data, U = readdata("../examples/data/qpt_circuit_test.h5"; process = true)
+data, U = readdata("../examples/data/qpt_circuit_test.h5")
 N = length(U)     # Number of qubits
 χ = maxlinkdim(U) # Bond dimension of variational MPS
 V0 = randomprocess(U; χ = χ)
@@ -71,7 +71,7 @@ V = tomography(data, V0;
 
 # Noisy circuit
 Random.seed!(1234)
-data, ϱ = readdata("../examples/data/qpt_circuit_noisy_test.h5"; process = true)
+data, ϱ = readdata("../examples/data/qpt_circuit_noisy_test.h5")
 N = length(ϱ)
 χ = 8
 ξ = 2
