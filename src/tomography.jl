@@ -445,6 +445,8 @@ function tomography(data::Matrix{Pair{String, String}}, L::LPDO;
   target = get(kwargs,:target,nothing)
   mixed::Bool = get(kwargs,:mixed,false)
 
+  optimizer = copy(optimizer)
+
   #
   # TEMPORARY WRAPPER FOR UNSPLIT PROCESS TOMOGRAPHY
   #
@@ -533,13 +535,14 @@ function _tomography(data::Array, L::LPDO;
   target = get(kwargs,:target,nothing)
   choi::Bool = get(kwargs,:choi,false)
   outputpath = get(kwargs,:fout,nothing)
-  opt = get(kwargs,:optimizer,SGD(η=0.01))
+
+  optimizer = copy(optimizer)
 
   if use_localnorm && use_globalnorm
     error("Both use_localnorm and use_globalnorm are set to true, cannot use both local norm and global norm.")
   end
   
-  # Convert data to projetors
+  # Convert data to projectors
   data = "state" .* data
   
   model = copy(L)

@@ -1,17 +1,18 @@
 """
-    writesamples(data::Matrix, model::Union{MPS, MPO, LPDO, Choi},
-              output_path::String)
+    writesamples(data::Matrix,
+                 [model::Union{MPS, MPO, LPDO, Choi},]
+                 output_path::String)
 
 Save data and model on file:
 
 # Arguments:
   - `data`: array of measurement data
-  - `model`: MPS, MPO, or Choi
+  - `model`: (optional) MPS, MPO, or Choi
   - `output_path`: path to file
 """
 function writesamples(data::Matrix,
-                   model::Union{MPS, MPO, LPDO, Choi},
-                   output_path::String)
+                      model::Union{MPS, MPO, LPDO, Choi},
+                      output_path::String)
   # Make the path the file will sit in, if it doesn't exist
   mkpath(dirname(output_path))
   h5rewrite(output_path) do fout
@@ -20,15 +21,34 @@ function writesamples(data::Matrix,
   end
 end
 
+function writesamples(data::Matrix,
+                      output_path::String)
+  # Make the path the file will sit in, if it doesn't exist
+  mkpath(dirname(output_path))
+  h5rewrite(output_path) do fout
+    write(fout,"data",data)
+  end
+end
+
 function writesamples(data::Matrix{<: Pair},
-                   model::Union{MPS, MPO, LPDO, Choi},
-                   output_path::String)
+                      model::Union{MPS, MPO, LPDO, Choi},
+                      output_path::String)
   # Make the path the file will sit in, if it doesn't exist
   mkpath(dirname(output_path))
   h5rewrite(output_path) do fout
     write(fout, "data_first", first.(data))
     write(fout, "data_last", last.(data))
     write(fout, "model", model)
+  end
+end
+
+function writesamples(data::Matrix{<: Pair},
+                      output_path::String)
+  # Make the path the file will sit in, if it doesn't exist
+  mkpath(dirname(output_path))
+  h5rewrite(output_path) do fout
+    write(fout, "data_first", first.(data))
+    write(fout, "data_last", last.(data))
   end
 end
 
@@ -42,19 +62,29 @@ Load data and model from file:
 """
 function readsamples(input_path::String)
   fin = h5open(input_path, "r")
-  g = g_open(fin, "model")
-  typestring = read(attrs(g)["type"])
-  modeltype = eval(Meta.parse(typestring))
-  model = read(fin, "model", modeltype)
+
+  # Check if the data is for state tomography or process tomography
   if exists(fin, "data")
     data = read(fin, "data")
   elseif exists(fin, "data_first") && exists(fin, "data_last")
     data = read(fin, "data_first") .=> read(fin, "data_last")
   else
+    close(fin)
     error("File must contain either \"data\" for quantum state tomography data or \"data_first\" and \"data_second\" for quantum process tomography.")
   end
+
+  # Check if a model is saved, if so read it and return it
+  if exists(fin, "model")
+    g = g_open(fin, "model")
+    typestring = read(attrs(g)["type"])
+    modeltype = eval(Meta.parse(typestring))
+    model = read(fin, "model", modeltype)
+    close(fin)
+    return data, model
+  end
+
   close(fin)
-  return data, model
+  return data
 end
 
 """
