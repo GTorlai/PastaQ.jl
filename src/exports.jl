@@ -3,9 +3,10 @@ export
   # Methods
   gate,
 
-# circuits.jl
+# circuits/circuits.jl
   appendlayer!,
   gatelayer,
+  qft,
   randomcircuit,
 
 # lpdo.jl
@@ -16,7 +17,7 @@ export
 # choi.jl,
   Choi,
 
-# quantumcircuit.jl
+# circuits/runcircuit.jl
   # Methods
   qubits,
   circuit,
