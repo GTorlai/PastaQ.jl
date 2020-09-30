@@ -39,18 +39,18 @@ savedata(data, ρ, "data/qst_circuit_noisy.h5")
 # state and an output projective measurement in a arbitrary
 # local basis. By default, the single-qubit input states are 
 # the 6 eigenstates of Pauli operators.
-data_in, data_out, U = getsamples(N, gates, nshots;
+data, U = getsamples(N, gates, nshots;
                                   process = true)
 # Return the MPO for the unitary circuit
 @show maxlinkdim(U)
 @show U
-savedata(data_in, data_out, U, "data/qpt_circuit.h5")
+savedata(data, U, "data/qpt_circuit.h5")
 
-data_in, data_out, Λ = getsamples(N, gates, nshots;
+data, Λ = getsamples(N, gates, nshots;
                                   process = true,
                                   noise = ("amplitude_damping", (γ = 0.01,)))
 # Return the Choi matrix `Λ` as MPO wiith `2N` sites
 @show maxlinkdim(Λ.M)
 @show Λ
-savedata(data_in, data_out, Λ, "data/qpt_circuit_noisy.h5")
+savedata(data, Λ, "data/qpt_circuit_noisy.h5")
 

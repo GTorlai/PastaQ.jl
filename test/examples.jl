@@ -22,14 +22,14 @@ data, ρ = getsamples(N, gates, nshots;
                      noise = ("amplitude_damping", (γ = 0.01,)))
 savedata(data, ρ, "../examples/data/qst_circuit_noisy_test.h5")
 
-data_in, data_out, U = getsamples(N,gates,nshots;
-                                  process=true)
-savedata(data_in, data_out, U, "../examples/data/qpt_circuit_test.h5")
+data, U = getsamples(N, gates, nshots;
+                     process = true)
+savedata(data, U, "../examples/data/qpt_circuit_test.h5")
 
-data_in, data_out, Λ = getsamples(N,gates,nshots;
-                                  process = true,
-                                  noise = ("amplitude_damping", (γ = 0.01,)))
-savedata(data_in, data_out, Λ, "../examples/data/qpt_circuit_noisy_test.h5")
+data, Λ = getsamples(N,gates,nshots;
+                     process = true,
+                     noise = ("amplitude_damping", (γ = 0.01,)))
+savedata(data, Λ, "../examples/data/qpt_circuit_noisy_test.h5")
 
 
 Random.seed!(1234)
@@ -58,12 +58,12 @@ opt = SGD(η = 0.01)
                target = ϱ)
 
 Random.seed!(1234)
-data_in, data_out, U = loaddata("../examples/data/qpt_circuit_test.h5"; process = true)
+data, U = loaddata("../examples/data/qpt_circuit_test.h5"; process = true)
 N = length(U)     # Number of qubits
 χ = maxlinkdim(U) # Bond dimension of variational MPS
 V0 = randomprocess(U; χ = χ)
 opt = SGD(η = 0.1)
-V = tomography(data_in, data_out, V0;
+V = tomography(data, V0;
                optimizer = opt,
                batchsize = 100,
                epochs = 2,
@@ -71,13 +71,13 @@ V = tomography(data_in, data_out, V0;
 
 # Noisy circuit
 Random.seed!(1234)
-data_in, data_out, ϱ = loaddata("../examples/data/qpt_circuit_noisy_test.h5"; process = true)
+data, ϱ = loaddata("../examples/data/qpt_circuit_noisy_test.h5"; process = true)
 N = length(ϱ)
 χ = 8
 ξ = 2
 Λ0 = randomprocess(ϱ; mixed = true, χ = χ, ξ = ξ, σ = 0.1)
 opt = SGD(η = 0.1)
-Λ = tomography(data_in, data_out, Λ0;
+Λ = tomography(data, Λ0;
                optimizer = opt,
                mixed = true,
                batchsize = 10,

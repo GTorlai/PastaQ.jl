@@ -1,5 +1,5 @@
 """
-    savedata(data::Array, model::Union{MPS,MPO,Choi},
+    savedata(data::Matrix, model::Union{MPS,MPO,Choi},
              output_path::String)
 
 Save data and model on file:
@@ -9,7 +9,7 @@ Save data and model on file:
   - `model`: MPS, MPO, or Choi
   - `output_path`: path to file
 """
-function savedata(data::Array,
+function savedata(data::Matrix,
                   model::Union{MPS,MPO,LPDO},
                   output_path::String)
   # Make the path the file will sit in, if it doesn't exist
@@ -21,43 +21,37 @@ function savedata(data::Array,
 end
 
 """
-    savedata(data_in::Array,
-             data_out::Array,
+    savedata(data::Matrix{Pair{String, String}},
              model::Union{MPS,MPO,Choi},
              output_path::String)
 
 Save data and model on file:
 
 # Arguments:
-  - `data_in` : array of preparation states
-  - `data_out`: array of measurement data
+  - `data` : array of pairs of preparation states and measurement data
   - `model`: MPS, MPO, or Choi
   - `output_path`: path to file
 """
-function savedata(data_in::Array,
-                  data_out::Array,
+function savedata(data::Matrix{Pair{String, String}},
                   model::Union{MPO,Choi},
                   output_path::String)
   # Make the path the file will sit in, if it doesn't exist
   mkpath(dirname(output_path))
   h5rewrite(output_path) do fout
-    write(fout,"data_in",data_in)
-    write(fout,"data_out",data_out)
-    write(fout,"model",model)
+    write(fout, "data", data)
+    write(fout, "model", model)
   end
 end
 
 """
-    loaddata(input_path::String;process::Bool=false)
+    loaddata(input_path::String)
 
 Load data and model from file:
 
 # Arguments:
   - `input_path`: path to file
-  - `process`: if `true`, data is treated as coming from measuring a process, and loads both input and output data
 """
-
-function loaddata(input_path::String; process::Bool = false)
+function loaddata(input_path::String)
   fin = h5open(input_path,"r")
   
   g = g_open(fin,"model")
@@ -65,16 +59,9 @@ function loaddata(input_path::String; process::Bool = false)
   modeltype = eval(Meta.parse(typestring))
   model = read(fin, "model", modeltype)
   
-  if process
-    data_in = read(fin,"data_in")
-    data_out = read(fin,"data_out")
-    close(fin)
-    return data_in, data_out, model
-  else
-    data = read(fin,"data")
-    close(fin)
-    return data, model
-  end
+  data = read(fin,"data")
+  close(fin)
+  return data, model
 end
 
 """

@@ -7,9 +7,9 @@ Random.seed!(1234)
 # 1. Quantum process tomography of a unitary circuit
 
 # Load target state and measurements. Each samples is built out
-# of a input state (`data_in`) to the quantum channel, and the
-# measurement output (`data_out`) after a local basis rotation.
-data_in, data_out, Û = loaddata("data/qpt_circuit.h5"; process = true)
+# of an input state (`first.(data)`) to the quantum channel, and the
+# measurement output (`last.(data)`) after a local basis rotation.
+data, Û = loaddata("data/qpt_circuit.h5")
 
 # Set parameters
 N = length(Û)     # Number of qubits
@@ -22,7 +22,7 @@ U0 = randomprocess(N; χ = χ)
 @show maxlinkdim(U0)
 
 # Run process tomography
-U = tomography(data_in, data_out, U0;
+U = tomography(data, U0;
                optimizer = SGD(η = 0.1),
                batchsize = 500,
                epochs = 5,
@@ -32,7 +32,7 @@ U = tomography(data_in, data_out, U0;
 # Noisy circuit
 Random.seed!(1234)
 # Load data and target Choi matrix
-data_in, data_out, Φ = loaddata("data/qpt_circuit_noisy.h5"; process = true)
+data, Φ = loaddata("data/qpt_circuit_noisy.h5")
 N = length(Φ)
 χ = 8
 ξ = 2
@@ -44,7 +44,7 @@ N = length(Φ)
 opt = SGD(η = 0.1)
 
 # Run process tomography
-Λ = tomography(data_in, data_out, Λ0;
+Λ = tomography(data, Λ0;
                optimizer = opt,
                mixed = true,
                batchsize = 500,
