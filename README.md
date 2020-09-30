@@ -34,7 +34,7 @@ type ] to enter the Pkg REPL mode and run:
 ```julia
 julia> ]
 
-pkg> add github.com/GTorlai/PastaQ.jl
+pkg> add https://github.com/GTorlai/PastaQ.jl
 ```
 
 Please note that right now, PastaQ.jl requires that you use Julia v1.4 or later.
