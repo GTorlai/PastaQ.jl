@@ -41,7 +41,9 @@ Please note that right now, PastaQ.jl requires that you use Julia v1.4 or later.
 
 ## Documentation
 
+<!---
 - [**STABLE**](https://gtorlai.github.io/PastaQ.jl/stable/) --  **documentation of the most recently tagged version.**
+-->
 - [**DEVEL**](https://gtorlai.github.io/PastaQ.jl/dev/) -- *documentation of the in-development version.*
 
 ## Code Overview
