@@ -21,29 +21,6 @@ function savedata(data::Matrix,
 end
 
 """
-    savedata(data::Matrix{Pair{String, String}},
-             model::Union{MPS,MPO,Choi},
-             output_path::String)
-
-Save data and model on file:
-
-# Arguments:
-  - `data` : array of pairs of preparation states and measurement data
-  - `model`: MPS, MPO, or Choi
-  - `output_path`: path to file
-"""
-function savedata(data::Matrix{Pair{String, String}},
-                  model::Union{MPO,Choi},
-                  output_path::String)
-  # Make the path the file will sit in, if it doesn't exist
-  mkpath(dirname(output_path))
-  h5rewrite(output_path) do fout
-    write(fout, "data", data)
-    write(fout, "model", model)
-  end
-end
-
-"""
     loaddata(input_path::String)
 
 Load data and model from file:
