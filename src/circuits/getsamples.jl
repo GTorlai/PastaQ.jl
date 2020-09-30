@@ -1,4 +1,3 @@
-
 """
     randombases(N::Int,nshots::Int;
                 localbasis::Array=["X","Y","Z"],
@@ -110,18 +109,9 @@ function preparationgates(prep::Array)
 end
 
 
-"""
-    getsamples!(M::Union{MPS,MPO},nshots::Int)
-
-Perform a projective measurement of a wavefunction 
-`|ψ⟩` or density operator `ρ`. The measurement consist of
-a binary vector `σ = (σ₁,σ₂,…)`, drawn from the probabilty
-distribution:
-- P(σ) = |⟨σ|ψ⟩|² : if `M = ψ is MPS`
-- P(σ) = ⟨σ|ρ|σ⟩  : if `M = ρ is MPO`
-"""
-function getsamples!(M::Union{MPS,MPO};kwargs...)
-  readout_errors = get(kwargs,:readout_errors,(p1given0=nothing,p0given1=nothing)) 
+function getsamples!(M::Union{MPS,MPO};
+                     readout_errors = (p1given0 = nothing,
+                                       p0given1 = nothing))
   p1given0 = readout_errors[:p1given0]
   p0given1 = readout_errors[:p0given1]
   orthogonalize!(M,1)
@@ -136,19 +126,35 @@ function getsamples!(M::Union{MPS,MPO};kwargs...)
 end
 
 """
-    getsamples!(M::Union{MPS,MPO},nshots::Int)
+    PastaQ.getsamples!(M::Union{MPS,MPO}, nshots::Int; kwargs...)
 
-Perform `nshots` projective measurements on a wavefunction 
-`|ψ⟩` or density operator `ρ`. 
+Perform a projective measurement of a wavefunction 
+`|ψ⟩` or density operator `ρ`. The measurement consist of
+a binary vector `σ = (σ₁,σ₂,…)`, drawn from the probabilty
+distribution:
+- P(σ) = |⟨σ|ψ⟩|² : if `M = ψ is MPS`
+- P(σ) = ⟨σ|ρ|σ⟩  : if `M = ρ is MPO`
 """
 function getsamples!(M::Union{MPS,MPO},nshots::Int; kwargs...)
   measurements = Matrix{Int64}(undef, nshots, length(M))
   for n in 1:nshots
-    measurements[n,:] = getsamples!(M;kwargs...)
+    measurements[n,:] = getsamples!(M; kwargs...)
   end
   return measurements
 end
 
+"""
+    getsamples(M::Union{MPS,MPO}, nshots::Int; kwargs...)
+
+Perform a projective measurement of a wavefunction 
+`|ψ⟩` or density operator `ρ`. The measurement consist of
+a binary vector `σ = (σ₁,σ₂,…)`, drawn from the probabilty
+distribution:
+- P(σ) = |⟨σ|ψ⟩|² : if `M = ψ is MPS`
+- P(σ) = ⟨σ|ρ|σ⟩  : if `M = ρ is MPO`
+"""
+getsamples(M::Union{MPS,MPO}, nshots::Int; kwargs...) =
+  getsamples!(copy(M), nshots; kwargs...)
 
 """
     readouterror!(measurement::Array;probs::Array=[0.0,0.0])
@@ -172,13 +178,12 @@ function readouterror!(measurement::Array,p1given0::Float64,p0given1::Float64)
   return measurement
 end
 
+#
+# MEASUREMENT IN MULTIPLE BASES
+#
 
 """
-MEASUREMENT IN MULTIPLE BASES
-"""
-
-"""
-    getsamples(M::Union{MPS,MPO},bases::Array)
+    getsamples(M::Union{MPS,MPO}, bases::Array)
 Generate a dataset of `nshots` measurements acccording to a set
 of input `bases`. For a single measurement, tf `Û` is the depth-1 
 local circuit rotating each qubit, the  data-point `σ = (σ₁,σ₂,…)
@@ -198,17 +203,18 @@ function getsamples(M0::Union{MPS,MPO}, bases::Array; kwargs...)
   return data 
 end
 
-
-"""
-QUANTUM PROCESS TOMOGRAPHY
-"""
+#
+# QUANTUM PROCESS TOMOGRAPHY
+#
 
 """ 
-    getsamples(M0::Union{MPS,MPO},
-                 gate_tensors::Vector{<:ITensor},
-                 prep::Array,basis::Array;
-                 cutoff::Float64=1e-15,maxdim::Int64=10000,
-                 kwargs...)
+    getsamples(M0::Union{MPS, MPO},
+               gate_tensors::Vector{<: ITensor},
+               prep::Array,
+               basis::Array;
+               cutoff::Float64 = 1e-15,
+               maxdim::Int64 = 10000,
+               kwargs...)
 
 Generate a single data-point for quantum process tomography, 
 consisting of an input state (a product state of single-qubit
