@@ -16,24 +16,24 @@ U = runcircuit(N, gates; process = true)
 Random.seed!(1234)
 nshots = 100
 data, ψ = getsamples(N, gates, nshots)
-writedata(data, ψ, "../examples/data/qst_circuit_test.h5")
+writesamples(data, ψ, "../examples/data/qst_circuit_test.h5")
 
 data, ρ = getsamples(N, gates, nshots;
                      noise = ("amplitude_damping", (γ = 0.01,)))
-writedata(data, ρ, "../examples/data/qst_circuit_noisy_test.h5")
+writesamples(data, ρ, "../examples/data/qst_circuit_noisy_test.h5")
 
 data, U = getsamples(N, gates, nshots;
                      process = true)
-writedata(data, U, "../examples/data/qpt_circuit_test.h5")
+writesamples(data, U, "../examples/data/qpt_circuit_test.h5")
 
 data, Λ = getsamples(N,gates,nshots;
                      process = true,
                      noise = ("amplitude_damping", (γ = 0.01,)))
-writedata(data, Λ, "../examples/data/qpt_circuit_noisy_test.h5")
+writesamples(data, Λ, "../examples/data/qpt_circuit_noisy_test.h5")
 
 
 Random.seed!(1234)
-data, Ψ = readdata("../examples/data/qst_circuit_test.h5")
+data, Ψ = readsamples("../examples/data/qst_circuit_test.h5")
 N = length(Ψ)     # Number of qubits
 χ = maxlinkdim(Ψ) # Bond dimension of variational MPS
 ψ0 = randomstate(Ψ; χ = χ, σ = 0.1)
@@ -44,7 +44,7 @@ opt = SGD(η = 0.01)
                epochs = 2,
                target = Ψ)
 
-data, ϱ = readdata("../examples/data/qst_circuit_noisy_test.h5")
+data, ϱ = readsamples("../examples/data/qst_circuit_noisy_test.h5")
 N = length(ϱ)     # Number of qubits
 χ = maxlinkdim(ϱ) # Bond dimension of variational LPDO
 ξ = 2             # Kraus dimension of variational LPDO
@@ -58,7 +58,7 @@ opt = SGD(η = 0.01)
                target = ϱ)
 
 Random.seed!(1234)
-data, U = readdata("../examples/data/qpt_circuit_test.h5")
+data, U = readsamples("../examples/data/qpt_circuit_test.h5")
 N = length(U)     # Number of qubits
 χ = maxlinkdim(U) # Bond dimension of variational MPS
 V0 = randomprocess(U; χ = χ)
@@ -71,7 +71,7 @@ V = tomography(data, V0;
 
 # Noisy circuit
 Random.seed!(1234)
-data, ϱ = readdata("../examples/data/qpt_circuit_noisy_test.h5")
+data, ϱ = readsamples("../examples/data/qpt_circuit_noisy_test.h5")
 N = length(ϱ)
 χ = 8
 ξ = 2

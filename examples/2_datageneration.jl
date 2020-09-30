@@ -19,7 +19,7 @@ data, ψ = getsamples(N, gates, nshots)
 # Returns output state as MPS
 @show maxlinkdim(ψ)
 @show ψ 
-writedata(data, ψ, "data/qst_circuit.h5")
+writesamples(data, ψ, "data/qst_circuit.h5")
 
 # Note: the above is equivalent to:
 #> bases = randombases(N,nshots,localbasis=["X","Y","Z"])
@@ -32,7 +32,7 @@ data, ρ = getsamples(N, gates, nshots;
 # Return the mixed density operator as MPO
 @show maxlinkdim(ρ)
 @show ρ
-writedata(data, ρ, "data/qst_circuit_noisy.h5")
+writesamples(data, ρ, "data/qst_circuit_noisy.h5")
 
 # 2. Generation of measurerment data for quantum process
 # tomography. Each measurement consist of a input product 
@@ -44,7 +44,7 @@ data, U = getsamples(N, gates, nshots;
 # Return the MPO for the unitary circuit
 @show maxlinkdim(U)
 @show U
-writedata(data, U, "data/qpt_circuit.h5")
+writesamples(data, U, "data/qpt_circuit.h5")
 
 data, Λ = getsamples(N, gates, nshots;
                                   process = true,
@@ -52,5 +52,5 @@ data, Λ = getsamples(N, gates, nshots;
 # Return the Choi matrix `Λ` as MPO wiith `2N` sites
 @show maxlinkdim(Λ.M)
 @show Λ
-writedata(data, Λ, "data/qpt_circuit_noisy.h5")
+writesamples(data, Λ, "data/qpt_circuit_noisy.h5")
 

@@ -1,5 +1,5 @@
 """
-    writedata(data::Matrix, model::Union{MPS, MPO, LPDO, Choi},
+    writesamples(data::Matrix, model::Union{MPS, MPO, LPDO, Choi},
               output_path::String)
 
 Save data and model on file:
@@ -9,7 +9,7 @@ Save data and model on file:
   - `model`: MPS, MPO, or Choi
   - `output_path`: path to file
 """
-function writedata(data::Matrix,
+function writesamples(data::Matrix,
                    model::Union{MPS, MPO, LPDO, Choi},
                    output_path::String)
   # Make the path the file will sit in, if it doesn't exist
@@ -20,7 +20,7 @@ function writedata(data::Matrix,
   end
 end
 
-function writedata(data::Matrix{<: Pair},
+function writesamples(data::Matrix{<: Pair},
                    model::Union{MPS, MPO, LPDO, Choi},
                    output_path::String)
   # Make the path the file will sit in, if it doesn't exist
@@ -33,14 +33,14 @@ function writedata(data::Matrix{<: Pair},
 end
 
 """
-    readdata(input_path::String)
+    readsamples(input_path::String)
 
 Load data and model from file:
 
 # Arguments:
   - `input_path`: path to file
 """
-function readdata(input_path::String)
+function readsamples(input_path::String)
   fin = h5open(input_path, "r")
   g = g_open(fin, "model")
   typestring = read(attrs(g)["type"])
