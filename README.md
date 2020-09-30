@@ -181,14 +181,14 @@ unitary circuit (noiseless) or the Choi matrix (noisy).
 
 ```julia
 # 2c) Generate data for quantum process tomography, consisting of input states
-# (data_in) to a quantum channel, and the corresponding projective measurements
+# to a quantum channel, and the corresponding projective measurements
 # at the output. By defaul, the states prepared at the inputs are selected from
 # product states of eigenstates of Pauli operators, while measurements bases are
 # sampled from the Pauli group.
 
 # Unitary channel, returns the MPO unitary circuit
-data_in, data_out, U = getsamples(N, gates, nshots; process=true)
+data, U = getsamples(N, gates, nshots; process=true)
 
 # Noisy channel, returns the Choi matrix
-data_in, data_out, Λ = getsamples(N, gates, nshots; process = true, noise = ("amplitude_damping", (γ = 0.01,)))
+data, Λ = getsamples(N, gates, nshots; process = true, noise = ("amplitude_damping", (γ = 0.01,)))
 ```

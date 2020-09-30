@@ -5,6 +5,10 @@ using JLD
 using Test
 using LinearAlgebra
 
+#
+# Helper functions for tests
+#
+
 function state_to_int(state::Array)
   index = 0
   for j in 1:length(state)
@@ -12,8 +16,6 @@ function state_to_int(state::Array)
   end
   return index
 end
-
-
 
 function empiricalprobability(samples::Matrix)
   prob = zeros((1<<size(samples)[2]))
@@ -23,17 +25,6 @@ function empiricalprobability(samples::Matrix)
     prob[index+1] += 1
   end
   prob = prob / size(samples)[1]
-  return prob
-end
-
-function probability_of(data_in::Array,data_out::Array,target_in::Array,target_out::Array)
-  nshots = size(data_in)[1]
-  prob = 0.0
-  for n in 1:nshots
-    if data_in[n,:]==target_in && data_out[n,:]==target_out
-      prob += 1.0/nshots
-    end
-  end
   return prob
 end
 
@@ -307,21 +298,19 @@ end
                        localbasis = ["X","Y","Z"])
   
   # 4) Process tomography
-  data_in, data_out = getsamples(N, gates, nshots; process = true, build_process = false)
-  @test size(data_in) == (nshots,N)
-  @test size(data_out) == (nshots,N)
-  data_in,data_out = getsamples(N, gates, nshots;
-                                process = true,
-                                build_process = false,
-                                noise = ("amplitude_damping", (γ = 0.1,)))
-  @test size(data_in) == (nshots,N)
-  @test size(data_out) == (nshots,N)
-  data_in, data_out, Λ  = getsamples(N, gates, nshots; process = true, build_process = true)
+  data = getsamples(N, gates, nshots; process = true, build_process = false)
+  @test size(data) == (nshots,N)
+  data = getsamples(N, gates, nshots;
+                    process = true,
+                    build_process = false,
+                    noise = ("amplitude_damping", (γ = 0.1,)))
+  @test size(data) == (nshots,N)
+  data, Λ  = getsamples(N, gates, nshots; process = true, build_process = true)
   @test Λ isa MPO
-  data_in, data_out, Λ = getsamples(N, gates, nshots;
-                                    process = true,
-                                    build_process = true,
-                                    noise = ("amplitude_damping", (γ = 0.1,)))
+  data, Λ = getsamples(N, gates, nshots;
+                       process = true,
+                       build_process = true,
+                       noise = ("amplitude_damping", (γ = 0.1,)))
   @test Λ isa Choi{MPO}
 
 end
@@ -376,20 +365,24 @@ end
                        readout_errors = readout_errors)
   
   # 4) Process tomography
-  data_in, data_out = getsamples(N,gates,nshots;process=true,build_process=false, readout_errors = readout_errors)
-  @test size(data_in) == (nshots,N)
-  @test size(data_out) == (nshots,N)
-  data_in, data_out = getsamples(N, gates, nshots;
-                                 process = true,
-                                 build_process = false,
-                                 noise = ("amplitude_damping", (γ = 0.1,)),
-                                 readout_errors = readout_errors)
-  @test size(data_in) == (nshots,N)
-  @test size(data_out) == (nshots,N)
-  data_in, data_out, Λ = getsamples(N, gates, nshots; process = true, build_process = true, readout_errors = readout_errors)
-  data_in, data_out, Λ = getsamples(N, gates, nshots;
-                                    process = true,
-                                    build_process = true,
-                                    noise = ("amplitude_damping", (γ = 0.1,)),
-                                    readout_errors = readout_errors)
+  data = getsamples(N, gates, nshots;
+                    process = true,
+                    build_process = false,
+                    readout_errors = readout_errors)
+  @test size(data) == (nshots,N)
+  data = getsamples(N, gates, nshots;
+                    process = true,
+                    build_process = false,
+                    noise = ("amplitude_damping", (γ = 0.1,)),
+                    readout_errors = readout_errors)
+  @test size(data) == (nshots,N)
+  data, Λ = getsamples(N, gates, nshots;
+                       process = true,
+                       build_process = true,
+                       readout_errors = readout_errors)
+  data, Λ = getsamples(N, gates, nshots;
+                       process = true,
+                       build_process = true,
+                       noise = ("amplitude_damping", (γ = 0.1,)),
+                       readout_errors = readout_errors)
 end

@@ -62,5 +62,5 @@ export
   
 # utils.jl
   # Methods
-  savedata,
-  loaddata
+  writesamples,
+  readsamples

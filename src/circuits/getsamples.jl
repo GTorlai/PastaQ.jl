@@ -221,7 +221,6 @@ basis rotation is performed at the output of a quantum channel.
  - `prep`: a prepared input state (e.g. `["X+","Z-","Y+","X-"]`)
  - `basis`: a measuremement basis (e.g. `["Z","Z","Y","X"])
 """
-# Generate a single data point for process tomography
 function getsamples(M0::Union{MPS,MPO},
                     gate_tensors::Vector{<:ITensor},
                     prep::Array, basis::Array;
@@ -348,7 +347,7 @@ function getsamples(N::Int64, gates::Vector{<:Tuple}, nshots::Int64;
         measurement = getsamples!(M_meas; readout_errors = readout_errors)
         data[n,:] =  convertdatapoint(measurement,bases[n,:])
       end
-      return preps, data, M
+      return preps .=> data, M
     
     # Generate data with full state evolution
     else
@@ -363,7 +362,7 @@ function getsamples(N::Int64, gates::Vector{<:Tuple}, nshots::Int64;
                                maxdim = maxdim, readout_errors = readout_errors,
                                kwargs...)
       end
-      return preps, data
+      return preps .=> data
     end
   end
 end

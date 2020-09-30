@@ -18,7 +18,7 @@ include("choi.jl")
 include("circuits/gates.jl")
 include("circuits/circuits.jl")
 include("circuits/runcircuit.jl")
-include("circuits/datagen.jl")
+include("circuits/getsamples.jl")
 
 include("optimizers.jl")
 include("observer.jl")

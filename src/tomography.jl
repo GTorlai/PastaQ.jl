@@ -1,7 +1,6 @@
-
 """
-    gradlogZ(L::LPDO; sqrt_localnorms = nothing)
-    gradlogZ(ψ::MPS; localnorms = nothing)
+    PastaQ.gradlogZ(L::LPDO; sqrt_localnorms = nothing)
+    PastaQ.gradlogZ(ψ::MPS; localnorms = nothing)
 
 Compute the gradients of the log-normalization with respect
 to each LPDO tensor component:
@@ -48,8 +47,8 @@ end
 gradlogZ(ψ::MPS; localnorms = nothing) = gradlogZ(LPDO(ψ); sqrt_localnorms = localnorms)
 
 """
-    gradnll(L::LPDO{MPS}, data::Array; sqrt_localnorms = nothing, choi::Bool = false)
-    gradnll(ψ::MPS, data::Array; localnorms = nothing, choi::Bool = false)
+    PastaQ.gradnll(L::LPDO{MPS}, data::Array; sqrt_localnorms = nothing, choi::Bool = false)
+    PastaQ.gradnll(ψ::MPS, data::Array; localnorms = nothing, choi::Bool = false)
 
 Compute the gradients of the cross-entropy between the MPS probability
 distribution of the empirical data distribution for a set of projective 
@@ -71,7 +70,6 @@ If `choi=true`, `ψ` correspodns to a Choi matrix `Λ=|ψ⟩⟨ψ|`.
 The probability is then obtaining by transposing the input state, which 
 is equivalent to take the conjugate of the eigenstate projector.
 """
-#function gradnll(ψ::MPS,
 function gradnll(L::LPDO{MPS},
                  data::Array;
                  sqrt_localnorms = nothing,
@@ -198,7 +196,7 @@ gradnll(ψ::MPS, data::Array; localnorms = nothing, choi::Bool = false) =
   gradnll(LPDO(ψ), data; sqrt_localnorms = localnorms, choi = choi)
 
 """
-    gradnll(lpdo::LPDO{MPO}, data::Array; sqrt_localnorms = nothing, choi::Bool=false)
+    PastaQ.gradnll(lpdo::LPDO{MPO}, data::Array; sqrt_localnorms = nothing, choi::Bool=false)
 
 Compute the gradients of the cross-entropy between the LPDO probability 
 distribution of the empirical data distribution for a set of projective 
@@ -391,8 +389,8 @@ end
 
 
 """
-    gradients(L::LPDO, data::Array; sqrt_localnorms = nothing, choi::Bool = false)
-    gradients(ψ::MPS, data::Array; localnorms = nothing, choi::Bool = false)
+    PastaQ.gradients(L::LPDO, data::Array; sqrt_localnorms = nothing, choi::Bool = false)
+    PastaQ.gradients(ψ::MPS, data::Array; localnorms = nothing, choi::Bool = false)
 
 Compute the gradients of the cost function:
 `C = log(Z) - ⟨log P(σ)⟩_data`
@@ -414,14 +412,9 @@ gradients(ψ::MPS, data::Array; localnorms = nothing, choi::Bool = false) =
   gradients(LPDO(ψ), data; sqrt_localnorms = localnorms, choi = choi)
 
 
-"""
-    tomography(data::Array, L::LPDO; optimizer::Optimizer, kwargs...)
-
-TEMPORARY WRAPPER 
-This function is required as long as the process tomography is 
-using a split representation.
-"""
-
+#TEMPORARY WRAPPER 
+#This function is required as long as the process tomography is 
+#using a split representation.
 tomography(data::Array, L::LPDO; optimizer::Optimizer, kwargs...) =
   _tomography(data, L; optimizer = optimizer, kwargs...)
 
@@ -430,19 +423,34 @@ tomography(data::Array, ψ::MPS; optimizer::Optimizer, kwargs...) =
 
 
 """
-    tomography(data_in::Array, data_out::Array, L::LPDO; optimizer::Optimizer, kwargs...)
+    tomography(data::Array, L::LPDO; optimizer::Optimizer, kwargs...)
+    tomography(data::Array, ψ::MPS; optimizer::Optimizer, kwargs...)
 
-TEMPORARY WRAPPER FOR UNSPLIT PROCESS TOMOGRAPHY
+Run quantum state tomography using a the starting state `model` on `data`.
 
-This function take a model `L` and a `target` (is provided) in a unsplit
-representation, and run tomography with the split algorithm. Returns the unsplit result.
+# Arguments:
+  - `model`: starting LPDO state.
+  - `data`: training data set of projective measurements.
+  - `batchsize`: number of data-points used to compute one gradient iteration.
+  - `epochs`: total number of full sweeps over the dataset.
+  - `target`: target quantum state underlying the data
+  - `choi`: if true, compute probability using Choi matrix
+  - `record`: if true, keep track of measurements and fidelities.
+  - `outputpath`: write training metrics on file 
 """
-function tomography(data_in::Array, data_out::Array, L::LPDO; optimizer::Optimizer, kwargs...)
-
+function tomography(data::Matrix{Pair{String, String}}, L::LPDO;
+                    optimizer::Optimizer, kwargs...)
   target = get(kwargs,:target,nothing)
   mixed::Bool = get(kwargs,:mixed,false)
   record = get(kwargs,:record,false) 
-  
+
+  #
+  # TEMPORARY WRAPPER FOR UNSPLIT PROCESS TOMOGRAPHY
+  #
+  # This function take a model `L` and a `target` (is provided) in a unsplit
+  # representation, and run tomography with the split algorithm. Returns the unsplit result.
+  #
+
   # Target LPDO are currently not supported
   if target isa Choi{MPO}
     target = target.M
@@ -454,7 +462,7 @@ function tomography(data_in::Array, data_out::Array, L::LPDO; optimizer::Optimiz
   
   if isnothing(target)
 
-    M = _tomography(data_in, data_out, L; optimizer = optimizer, kwargs...)
+    M = _tomography(data, L; optimizer = optimizer, kwargs...)
     return (!mixed ? unsplitunitary(M.X) : unsplitchoi(M))
   end
   
@@ -467,7 +475,7 @@ function tomography(data_in::Array, data_out::Array, L::LPDO; optimizer::Optimiz
     target = splitunitary(target)
     # Run process tomography
 
-    output = _tomography(data_in, data_out, model;
+    output = _tomography(data, model;
                     optimizer = optimizer, kwargs..., target = target)
     if record
       V,observer = output
@@ -489,8 +497,8 @@ function tomography(data_in::Array, data_out::Array, L::LPDO; optimizer::Optimiz
     model = splitchoi(Choi(L))
     # Run process tomography
 
-    output = _tomography(data_in, data_out, model.M;
-                      optimizer = optimizer, kwargs..., target = target)
+    output = _tomography(data, model.M;
+                         optimizer = optimizer, kwargs..., target = target)
     if record
       Λ,observer = output
       Λ_unsplit = unsplitchoi(Choi(Λ))
@@ -503,30 +511,18 @@ function tomography(data_in::Array, data_out::Array, L::LPDO; optimizer::Optimiz
   end
 end
 
-tomography(data_in::Array, data_out::Array, U::MPO; optimizer::Optimizer, kwargs...) = 
-  tomography(data_in, data_out, LPDO(U); optimizer = optimizer, kwargs...)
+function tomography(data::Matrix{Pair{String, String}}, U::MPO;
+                    optimizer::Optimizer, kwargs...) 
+  return tomography(data, LPDO(U); optimizer = optimizer, kwargs...)
+end
 
-tomography(data_in::Array, data_out::Array, C::Choi; optimizer::Optimizer, kwargs...) = 
-  tomography(data_in, data_out, C.M; optimizer = optimizer, kwargs...)
+function tomography(data::Matrix{Pair{String, String}}, C::Choi;
+                    optimizer::Optimizer, kwargs...)
+  return tomography(data, C.M; optimizer = optimizer, kwargs...)
+end
 
-"""
-    tomography(data::Array, L::LPDO; optimizer::Optimizer, kwargs...)
-    tomography(data::Array, ψ::MPS; optimizer::Optimizer, kwargs...)
-
-Run quantum state tomography using a the starting state `model` on `data`.
-
-# Arguments:
-  - `model`: starting LPDO state.
-  - `data`: training data set of projective measurements.
-  - `batchsize`: number of data-points used to compute one gradient iteration.
-  - `epochs`: total number of full sweeps over the dataset.
-  - `target`: target quantum state underlying the data
-  - `choi`: if true, compute probability using Choi matrix
-  - `record`: if true, keep track of measurements and fidelities.
-  - `outputpath`: write training metrics on file 
-"""
-function _tomography(data::Array, L::LPDO; optimizer::Optimizer, kwargs...)
- 
+function _tomography(data::Array, L::LPDO;
+                     optimizer::Optimizer, kwargs...)
   # Read arguments
   use_localnorm::Bool = get(kwargs,:use_localnorm,true)
   use_globalnorm::Bool = get(kwargs,:use_globalnorm,false)
@@ -644,37 +640,30 @@ _tomography(data::Array, ψ::MPS; optimizer::Optimizer, kwargs...) =
   _tomography(data, LPDO(ψ); optimizer = optimizer, kwargs...)
 
 
-"""
-    tomography(data_in::Array, data_out::Array, model::Union{MPS, LPDO}; optimizer::Optimizer, kwargs...)
-
-Run quantum process tomography on `(data_in,data_out)` using `model` as s variational ansatz.
-
-The data is reshuffled so it takes the format: `(input1,output1,input2,output2,…)`.
-"""
-function _tomography(data_in::Array,
-                     data_out::Array,
+#Run quantum process tomography on measurement data `data` using `model` as s variational ansatz.
+#
+#The data is reshuffled so it takes the format: `(input1,output1,input2,output2,…)`.
+function _tomography(data::Matrix{Pair{String, String}},
                      L::LPDO;
                      optimizer::Optimizer,
                      kwargs...)
-  target = get(kwargs,:target,nothing)
-  N = size(data_in)[2]
-  @assert size(data_in) == size(data_out)
-  
-  data = Matrix{String}(undef, size(data_in)[1],2*N)
-  
-  for n in 1:size(data_in)[1]
+  N = size(data, 2)
+  nsamples = size(data, 1)
+  data_combined = Matrix{String}(undef, nsamples, 2*N)
+  for n in 1:nsamples
     for j in 1:N
-      data[n,2*j-1] = data_in[n,j]
-      data[n,2*j]   = data_out[n,j]
+      data_combined[n, 2*j-1] = first(data[n, j])
+      data_combined[n, 2*j] = last(data[n, j])
     end
   end
-
-  return _tomography(data, L; optimizer = optimizer, choi=true, kwargs...)
+  return _tomography(data_combined, L;
+                     optimizer = optimizer,
+                     choi = true,
+                     kwargs...)
 end
 
-
 """
-    nll(ψ::MPS,data::Array;choi::Bool=false)
+    PastaQ.nll(ψ::MPS,data::Array;choi::Bool=false)
 
 Compute the negative log-likelihood using an MPS ansatz
 over a dataset `data`:
@@ -709,7 +698,7 @@ end
 nll(ψ::MPS, args...; kwargs...) = nll(LPDO(ψ), args...; kwargs...)
 
 """
-    nll(lpdo::LPDO, data::Array; choi::Bool = false)
+    PastaQ.nll(lpdo::LPDO, data::Array; choi::Bool = false)
 
 Compute the negative log-likelihood using an LPDO ansatz
 over a dataset `data`:
@@ -743,15 +732,10 @@ end
 
 
 
-"""
-TEMPORARY FUNCTIONS
-"""
+#
+# TEMPORARY FUNCTIONS
+#
 
-
-"""
-  splitunitary(U::MPO;cutoff=1e-15,maxdim=1000)
-
-"""
 function splitunitary(U0::MPO;cutoff=1e-15,maxdim=1000)
   T = ITensor[]
   U = copy(U0)
@@ -827,8 +811,6 @@ splitchoi(Λ::Choi{MPO}; kwargs...) = splitchoi(Λ.M; kwargs...)
 
 splitchoi(Λ::Choi{LPDO{MPO}}; kwargs...) = splitchoi(Λ.M; kwargs...)
 
-
-
 function unsplitchoi(C::Choi{LPDO{MPO}})
   M = C.M.X
   T = ITensor[]
@@ -846,9 +828,7 @@ function unsplitchoi(C::Choi{MPO})
   return Choi(MPO(T))
 end
 
-
 function splitchoi(Λ::MPO;cutoff=1e-15,maxdim=10000)
-  
   choitag = any(x -> hastags(x,"Input") , Λ)
   if !choitag
     # Choi indices 
