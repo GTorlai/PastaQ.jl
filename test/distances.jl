@@ -5,7 +5,10 @@ using LinearAlgebra
 using Random
 
 @testset "fidelity" begin
-  """ F = |<PSI1|PSI2>|^2 """
+  
+  #
+  # F = |<PSI1|PSI2>|^2
+  #
   
   N = 3
   χ = 4
@@ -26,25 +29,25 @@ using Random
   F = fidelity(ψ1,ψ2)
   
   @test ex_F ≈ F
-  """ F = <PSI|RHO|PSI> """
+
+  #
+  # F = <PSI|RHO|PSI>
+  #
+ 
   N = 3
-  χ = 2
-  ψ = randomstate(N;χ=χ)
-  ψ_vec = PastaQ.fullvector(ψ)   
-  
-  K = sum(ψ_vec .* conj(ψ_vec))
-  ψ_vec ./= sqrt(K)
-  
-  ξ = 2
-  ρ = randomstate(ψ;mixed=true,χ=χ,ξ=ξ)
+  χ, ξ = 2, 2
+  ρ = randomstate(N; mixed = true, χ = χ, ξ = ξ)
+  σ = randomstate(ψ; mixed = true, χ = χ, ξ = ξ)
+  F = fidelity(prod(ρ), prod(ψ))
   
   ρ_mat = PastaQ.fullmatrix(ρ)
-  J = tr(ρ_mat)
-  ρ_mat ./= J
+  ρ_mat ./= tr(ρ_mat)
+  σ_mat = PastaQ.fullmatrix(σ)
+  σ_mat ./= tr(σ_mat)
+  F_mat = product(sqrt(ρ_mat), σ_mat, sqrt(ρ_mat))
+  F_mat = real(tr(sqrt(F_mat)))^2
 
-  ex_F = dot(ψ_vec, ρ_mat * ψ_vec)
-  F = fidelity(ρ, ψ)
-  @test F ≈ ex_F
+  @test F ≈ F_mat
 end
 
 @testset "frobenius distance" begin 

@@ -30,6 +30,17 @@ ket(L::LPDO, j::Int) = prime(L.X[j], !purifier_tag(L))
 bra(L::LPDO) = dag(L.X)
 bra(L::LPDO, j::Int) = dag(L.X[j])
 
+function Base.iterate(L::LPDO, state = 1) 
+  if state > 2*length(L)
+    return nothing
+  elseif isodd(state)
+    T = bra(L, (state+1)÷2)
+  else
+    T = ket(L, state÷2)
+  end
+  return T, state+1
+end
+
 LinearAlgebra.tr(L::LPDO) = inner(L.X, L.X)
 
 logtr(L::LPDO) = loginner(L.X, L.X)

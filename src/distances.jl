@@ -63,8 +63,7 @@ end
 # log_F̃ = lognorm(X, ψ) # = loginner(X, ψ, X, ψ)
 # log_K = 2.0 * (lognorm(ψ) + lognorm(L))
 # return exp(log_F̃ - log_K)
-fidelity(ψ::MPS, L::LPDO{MPO}) =
-  fidelity(ψ, MPO(L))
+fidelity(ψ::MPS, L::LPDO{MPO}) = fidelity(ψ, MPO(L))
 
 fidelity(ψ::MPS, L::LPDO{MPS}) = fidelity(ψ, L.X)
 
@@ -133,6 +132,21 @@ function fullfidelity(L::Union{MPO, LPDO}, σ::Union{LPDO, MPO})
   return F
 end
 
+"""
+    fidelity(ρ::ITensor, σ::ITensor)
+
+Compute the quantum fidelity between two ITensors, which are treated as density operators
+from the unprimed to the primed indices.
+
+The ITensors should be Hermitian and non-negative.
+"""
+function fidelity(ρ::ITensor, σ::ITensor)
+  ρ ./= tr(ρ)
+  σ ./= tr(σ)
+  F = product(sqrt(ρ), σ, sqrt(ρ))
+  F = real(tr(sqrt(F)))^2
+  return F
+end
 
 fullfidelity(L::LPDO{MPS},ϕ::MPS) = 
   fullfidelity(MPO(L.X),MPO(ϕ))
