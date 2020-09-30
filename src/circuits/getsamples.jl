@@ -117,7 +117,7 @@ function getsamples!(M::Union{MPS,MPO};
   orthogonalize!(M,1)
   measurement = sample(M)
   measurement .-= 1
-  if !isnothing(p1given0) | !isnothing(p0given1)
+  if !isnothing(p1given0) || !isnothing(p0given1)
     p1given0 = (isnothing(p1given0) ? 0.0 : p1given0)
     p0given1 = (isnothing(p0given1) ? 0.0 : p0given1)
     readouterror!(measurement,p1given0,p0given1)
@@ -232,6 +232,7 @@ function getsamples(M0::Union{MPS,MPO},
                     prep::Array, basis::Array;
                     cutoff::Float64 = 1e-15,
                     maxdim::Int64 = 10000,
+                    readout_errors = nothing,
                     kwargs...)
   # Generate preparation/measurement gates
   prep_gates = preparationgates(prep)
@@ -244,7 +245,7 @@ function getsamples(M0::Union{MPS,MPO},
   # Apply basis rotation
   M_meas = runcircuit(M_out, meas_gates)
   # Measure
-  measurement = getsamples!(M_meas; kwargs...)
+  measurement = getsamples!(M_meas; readout_errors = readout_errors)
   
   return convertdatapoint(measurement, basis)
 end
@@ -365,7 +366,8 @@ function getsamples(N::Int64, gates::Vector{<:Tuple}, nshots::Int64;
         data[n,:] = getsamples(ψ0, gate_tensors, preps[n,:], bases[n,:];
                                noise = noise, cutoff = cutoff,
                                build_process = false, # TODO: is this needed?
-                               maxdim = maxdim, readout_errors = readout_errors,
+                               maxdim = maxdim,
+                               readout_errors = readout_errors,
                                kwargs...)
       end
       return preps .=> data

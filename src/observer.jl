@@ -13,7 +13,9 @@ struct TomographyObserver <: AbstractObserver
   end
 end
 
-negative_loglikelihood(obs::TomographyObserver) = obs.negative_loglikelihood
+negative_loglikelihood(obs::TomographyObserver) =
+  obs.negative_loglikelihood
+
 fidelity(o::TomographyObserver) = o.fidelity
 fidelity_bound(o::TomographyObserver) = o.fidelity_bound
 frobenius_distance(o::TomographyObserver) = o.frobenius_distance
@@ -40,15 +42,16 @@ function measure!(obs::TomographyObserver;
   end
 end
 
-function saveobserver(obs::TomographyObserver,fout::String; M=nothing)
+function saveobserver(obs::TomographyObserver,
+                      fout::String; M=nothing)
   h5rewrite(fout,"w") do file
-    write(file,"nll",obs.negative_loglikelihood)
-    write(file,"fidelity",obs.fidelity)
-    write(file,"frobenius_distance",obs.frobenius_distance)
-    write(file,"fidelity_bound",obs.fidelity_bound)
-    write(file,"nll",obs.negative_loglikelihood)
+    write(file,"nll", obs.negative_loglikelihood)
+    write(file,"fidelity", obs.fidelity)
+    write(file,"frobenius_distance", obs.frobenius_distance)
+    write(file,"fidelity_bound", obs.fidelity_bound)
+    write(file,"nll", obs.negative_loglikelihood)
     if !isnothing(M)
-      write(file,"model",M)
+      write(file, "model", M)
     end
   end
 end

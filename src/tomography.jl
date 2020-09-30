@@ -415,11 +415,11 @@ gradients(ψ::MPS, data::Array; localnorms = nothing, choi::Bool = false) =
 #TEMPORARY WRAPPER 
 #This function is required as long as the process tomography is 
 #using a split representation.
-tomography(data::Array, L::LPDO; optimizer::Optimizer, kwargs...) =
-  _tomography(data, L; optimizer = optimizer, kwargs...)
+tomography(data::Array, L::LPDO; optimizer::Optimizer, observer! = nothing, kwargs...) =
+  _tomography(data, L; optimizer = optimizer, observer! = observer!, kwargs...)
 
-tomography(data::Array, ψ::MPS; optimizer::Optimizer, kwargs...) =
-  tomography(data, LPDO(ψ); optimizer = optimizer, kwargs...)
+tomography(data::Array, ψ::MPS; optimizer::Optimizer, observer! = nothing, kwargs...) =
+  tomography(data, LPDO(ψ); optimizer = optimizer, observer! = observer!, kwargs...)
 
 
 """
@@ -435,14 +435,15 @@ Run quantum state tomography using a the starting state `model` on `data`.
   - `epochs`: total number of full sweeps over the dataset.
   - `target`: target quantum state underlying the data
   - `choi`: if true, compute probability using Choi matrix
-  - `record`: if true, keep track of measurements and fidelities.
+  - `observer!`: pass an observer object (like `TomographyObserver()`) to keep track of measurements and fidelities.
   - `outputpath`: write training metrics on file 
 """
 function tomography(data::Matrix{Pair{String, String}}, L::LPDO;
-                    optimizer::Optimizer, kwargs...)
+                    optimizer::Optimizer,
+                    observer! = nothing,
+                    kwargs...)
   target = get(kwargs,:target,nothing)
   mixed::Bool = get(kwargs,:mixed,false)
-  record = get(kwargs,:record,false) 
 
   #
   # TEMPORARY WRAPPER FOR UNSPLIT PROCESS TOMOGRAPHY
@@ -458,56 +459,55 @@ function tomography(data::Matrix{Pair{String, String}}, L::LPDO;
     target = target.M.X
   end
   
-  @assert (target isa MPS) | (target isa MPO)
+  @assert (target isa MPS) || (target isa MPO)
   
   if isnothing(target)
-
-    M = _tomography(data, L; optimizer = optimizer, kwargs...)
+    M = _tomography(data, L;
+                    optimizer = optimizer,
+                    observer! = observer!,
+                    kwargs...)
     return (!mixed ? unsplitunitary(M.X) : unsplitchoi(M))
   end
   
-  # 1. Noiseless channel (unitary circuit)
   if !mixed
-    U = L.X
+    #
+    # 1. Noiseless channel (unitary circuit)
+    #
+
     # Split the variational state: MPO -> MPS (x2 sites)
+    U = L.X
     model = LPDO(splitunitary(U))
+
     # Split the target state: MPO -> MPS (x2 sites)
     target = splitunitary(target)
+
     # Run process tomography
+    V = _tomography(data, model;
+                    optimizer = optimizer,
+                    observer! = observer!,
+                    kwargs...,
+                    target = target)
 
-    output = _tomography(data, model;
-                    optimizer = optimizer, kwargs..., target = target)
-    if record
-      V,observer = output
-      ## Unsplit the learned state: MPS -> MPO (÷2 sites) 
-      V_unsplit = unsplitunitary(V.X)
-      return V_unsplit,observer
-    else
-      V = output
-      ## Unsplit the learned state: MPS -> MPO (÷2 sites) 
-      V_unsplit = unsplitunitary(V.X)
-      return V_unsplit
-    end
-
-  # 2. Noisy channel (choi matrix)
+    # Unsplit the learned state: MPS -> MPO (÷2 sites) 
+    return unsplitunitary(V.X)
   else
+    #
+    # 2. Noisy channel (choi matrix)
+    #
+
     # Split the target choi matrix: MPO -> MPS (x2 sites)
-    #@show target
     target = splitchoi(target).M
     model = splitchoi(Choi(L))
-    # Run process tomography
 
-    output = _tomography(data, model.M;
-                         optimizer = optimizer, kwargs..., target = target)
-    if record
-      Λ,observer = output
-      Λ_unsplit = unsplitchoi(Choi(Λ))
-      return Λ_unsplit,observer
-    else
-      Λ = output
-      Λ_unsplit = unsplitchoi(Choi(Λ))
-      return Λ_unsplit
-    end
+    # Run process tomography
+    Λ = _tomography(data, model.M;
+                    optimizer = optimizer,
+                    observer! = observer!,
+                    kwargs...,
+                    target = target)
+
+    # Split the target choi matrix: MPO -> MPS (x2 sites)
+    return unsplitchoi(Choi(Λ))
   end
 end
 
@@ -522,7 +522,9 @@ function tomography(data::Matrix{Pair{String, String}}, C::Choi;
 end
 
 function _tomography(data::Array, L::LPDO;
-                     optimizer::Optimizer, kwargs...)
+                     optimizer::Optimizer,
+                     observer! = nothing,
+                     kwargs...)
   # Read arguments
   use_localnorm::Bool = get(kwargs,:use_localnorm,true)
   use_globalnorm::Bool = get(kwargs,:use_globalnorm,false)
@@ -530,15 +532,11 @@ function _tomography(data::Array, L::LPDO;
   epochs::Int64 = get(kwargs,:epochs,1000)
   target = get(kwargs,:target,nothing)
   choi::Bool = get(kwargs,:choi,false)
-  record = get(kwargs,:record,false) 
   outputpath = get(kwargs,:fout,nothing)
   opt = get(kwargs,:optimizer,SGD(η=0.01))
 
-  if record
-    observer = TomographyObserver()
-  end
-  if (use_localnorm && use_globalnorm)
-    error("Both input norms are set to true")
+  if use_localnorm && use_globalnorm
+    error("Both use_localnorm and use_globalnorm are set to true, cannot use both local norm and global norm.")
   end
   
   # Convert data to projetors
@@ -546,7 +544,7 @@ function _tomography(data::Array, L::LPDO;
   
   model = copy(L)
   F = nothing
-  Fbound=nothing
+  Fbound = nothing
   frob_dist = nothing
   
   if batchsize > size(data)[1]
@@ -612,15 +610,15 @@ function _tomography(data::Array, L::LPDO;
     print("\n")
 
     # Measure
-    if record 
-      measure!(observer;
-               NLL=avg_loss,
-               F=F,
-               Fbound=Fbound,
-               frob_dist=frob_dist)
+    if !isnothing(observer!)
+      measure!(observer!;
+               NLL = avg_loss,
+               F = F,
+               Fbound = Fbound,
+               frob_dist = frob_dist)
       # Save on file
       if !isnothing(outputpath)
-        saveobserver(observer,outputpath; M = model)
+        saveobserver(observer, outputpath; M = model)
       end
     end
     
@@ -630,7 +628,7 @@ function _tomography(data::Array, L::LPDO;
   @printf("Total Time = %.3f sec\n",tot_time)
   normalize!(model)
 
-  return (record ? (model,observer) : model)
+  return model
 end
 
 _tomography(data::Array, C::Choi; optimizer::Optimizer, kwargs...) =
