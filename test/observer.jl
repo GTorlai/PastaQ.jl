@@ -11,12 +11,13 @@ using Test
   χ = maxlinkdim(Ψ) # Bond dimension of variational MPS
   ψ0 = randomstate(Ψ; χ = χ, σ = 0.1)
   opt = SGD(η = 0.01)
-  ψ, obs = tomography(data, ψ0;
-                      optimizer = opt,
-                      batchsize = 10,
-                      epochs = 3,
-                      target = Ψ,
-                      record = true);
+  obs = TomographyObserver()
+  ψ = tomography(data, ψ0;
+                 optimizer = opt,
+                 batchsize = 10,
+                 epochs = 3,
+                 target = Ψ,
+                 observer! = obs)
   
   @test length(obs.fidelity) == 3
   @test length(obs.fidelity_bound) == 0
@@ -29,12 +30,14 @@ using Test
   ξ = 2             # Kraus dimension of variational LPDO
   ρ0 = randomstate(ϱ; mixed = true, χ = χ, ξ = ξ, σ = 0.1)
   opt = SGD(η = 0.01)
-  ρ, obs = tomography(data,ρ0;
-                      optimizer = opt,
-                      batchsize = 10,
-                      epochs = 3,
-                      target = ϱ,
-                      record = true);
+  obs = TomographyObserver()
+  ρ = tomography(data, ρ0;
+                 optimizer = opt,
+                 batchsize = 10,
+                 epochs = 3,
+                 target = ϱ,
+                 observer! = obs)
+
   @test length(obs.fidelity) == 3
   @test length(obs.fidelity_bound) == 3
   @test length(obs.frobenius_distance) == 3
@@ -45,12 +48,13 @@ using Test
   χ = maxlinkdim(U) # Bond dimension of variational MPS
   opt = SGD(η = 0.1)
   V0 = randomprocess(U; mixed = false, χ = χ)
-  V, obs = tomography(data, V0;
-                      optimizer = opt,
-                      batchsize = 10,
-                      epochs = 3,
-                      target = U,
-                      record = true)
+  obs = TomographyObserver()
+  V = tomography(data, V0;
+                 optimizer = opt,
+                 batchsize = 10,
+                 epochs = 3,
+                 target = U,
+                 observer! = obs)
 
   @test length(obs.fidelity) == 3
   @test length(obs.fidelity_bound) == 0
@@ -65,13 +69,15 @@ using Test
   ξ = 2
   Λ0 = randomprocess(ϱ; mixed = true, χ = χ, ξ = ξ, σ = 0.1)
   opt = SGD(η = 0.1)
-  Λ, obs = tomography(data, Λ0;
-                      optimizer = opt,
-                      mixed = true,
-                      batchsize = 10,
-                      epochs = 3,
-                      target = ϱ,
-                      record = true);
+  obs = TomographyObserver()
+  Λ = tomography(data, Λ0;
+                 optimizer = opt,
+                 mixed = true,
+                 batchsize = 10,
+                 epochs = 3,
+                 target = ϱ,
+                 observer! = obs)
+
   @test length(obs.fidelity) == 3
   @test length(obs.fidelity_bound) == 3
   @test length(obs.frobenius_distance) == 3

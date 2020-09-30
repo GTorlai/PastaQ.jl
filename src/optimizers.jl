@@ -186,14 +186,10 @@ end
 
 update!(ψ::MPS,∇::Array,opt::AdaDelta; kwargs...) = update!(LPDO(ψ),∇,opt; kwargs...)
 
-
 function resetoptimizer!(opt::AdaDelta)
   empty!(opt.∇²)
   empty!(opt.Δθ²)
 end
-
-
-
 
 struct Adam <: Optimizer 
   η::Float64
