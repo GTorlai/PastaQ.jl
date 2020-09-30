@@ -1,5 +1,5 @@
 """
-    savedata(data::Matrix, model::Union{MPS,MPO,Choi},
+    writedata(data::Matrix, model::Union{MPS,MPO,Choi},
              output_path::String)
 
 Save data and model on file:
@@ -9,7 +9,7 @@ Save data and model on file:
   - `model`: MPS, MPO, or Choi
   - `output_path`: path to file
 """
-function savedata(data::Matrix,
+function writedata(data::Matrix,
                   model::Union{MPS,MPO,LPDO},
                   output_path::String)
   # Make the path the file will sit in, if it doesn't exist
@@ -21,14 +21,14 @@ function savedata(data::Matrix,
 end
 
 """
-    loaddata(input_path::String)
+    readdata(input_path::String)
 
 Load data and model from file:
 
 # Arguments:
   - `input_path`: path to file
 """
-function loaddata(input_path::String)
+function readdata(input_path::String)
   fin = h5open(input_path,"r")
   
   g = g_open(fin,"model")

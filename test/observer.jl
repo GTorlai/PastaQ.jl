@@ -6,7 +6,7 @@ using Test
 
 @testset "observer output" begin
   Random.seed!(1234)
-  data,Ψ = loaddata("../examples/data/qst_circuit_test.h5")
+  data,Ψ = readdata("../examples/data/qst_circuit_test.h5")
   N = length(Ψ)     # Number of qubits
   χ = maxlinkdim(Ψ) # Bond dimension of variational MPS
   ψ0 = randomstate(Ψ; χ = χ, σ = 0.1)
@@ -23,7 +23,7 @@ using Test
   @test length(obs.frobenius_distance) == 0
   @test length(obs.negative_loglikelihood) == 3
   
-  data, ϱ = loaddata("../examples/data/qst_circuit_noisy_test.h5")
+  data, ϱ = readdata("../examples/data/qst_circuit_noisy_test.h5")
   N = length(ϱ)     # Number of qubits
   χ = maxlinkdim(ϱ) # Bond dimension of variational LPDO
   ξ = 2             # Kraus dimension of variational LPDO
@@ -40,7 +40,7 @@ using Test
   @test length(obs.frobenius_distance) == 3
   @test length(obs.negative_loglikelihood) == 3
   
-  data, U = loaddata("../examples/data/qpt_circuit_test.h5")
+  data, U = readdata("../examples/data/qpt_circuit_test.h5")
   N = length(U)     # Number of qubits
   χ = maxlinkdim(U) # Bond dimension of variational MPS
   opt = SGD(η = 0.1)
@@ -59,7 +59,7 @@ using Test
   
   # Noisy circuit
   Random.seed!(1234)
-  data, ϱ = loaddata("../examples/data/qpt_circuit_noisy_test.h5")
+  data, ϱ = readdata("../examples/data/qpt_circuit_noisy_test.h5")
   N = length(ϱ)
   χ = 8
   ξ = 2

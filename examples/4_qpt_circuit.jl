@@ -9,7 +9,7 @@ Random.seed!(1234)
 # Load target state and measurements. Each samples is built out
 # of an input state (`first.(data)`) to the quantum channel, and the
 # measurement output (`last.(data)`) after a local basis rotation.
-data, Û = loaddata("data/qpt_circuit.h5")
+data, Û = readdata("data/qpt_circuit.h5")
 
 # Set parameters
 N = length(Û)     # Number of qubits
@@ -32,7 +32,7 @@ U = tomography(data, U0;
 # Noisy circuit
 Random.seed!(1234)
 # Load data and target Choi matrix
-data, Φ = loaddata("data/qpt_circuit_noisy.h5")
+data, Φ = readdata("data/qpt_circuit_noisy.h5")
 N = length(Φ)
 χ = 8
 ξ = 2
