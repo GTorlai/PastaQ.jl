@@ -4,6 +4,13 @@ using Test
 using LinearAlgebra
 using Random
 
+
+function convertdatapoint(datapoint::Array{Int64}, basis::Array{String})
+  data0 = PastaQ.convertdatapoint(datapoint,basis)
+  @show data0
+  return PastaQ.convertdatapoint(data0; state = true)
+end
+
 function splitstatewrapper(N::Int64,χ::Int64,ξ::Int64)
   split_version = true
   if split_version
@@ -239,7 +246,7 @@ end
   bases = randombases(N,nsamples)
   data = Matrix{String}(undef, nsamples,N)
   for n in 1:nsamples
-    data[n,:] = PastaQ.convertdatapoint(rawdata[n,:],bases[n,:],state=true)
+    data[n,:] = PastaQ.convertdatapoint(rawdata[n,:],bases[n,:]; state=true)
   end
   
   # 1. Unnormalized
@@ -280,7 +287,7 @@ end
   bases = randombases(N,nsamples)
   data = Matrix{String}(undef, nsamples,N)
   for n in 1:nsamples
-    data[n,:] = PastaQ.convertdatapoint(rawdata[n,:],bases[n,:],state=true)
+    data[n,:] = PastaQ.convertdatapoint(rawdata[n,:],bases[n,:]; state=true)
   end
   
   # 1. Unnormalized

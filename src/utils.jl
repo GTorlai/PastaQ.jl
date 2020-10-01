@@ -10,23 +10,27 @@ Save data and model on file:
   - `model`: (optional) MPS, MPO, or Choi
   - `output_path`: path to file
 """
-function writesamples(data::Matrix,
+function writesamples(data::Matrix{Pair{String, Int}},
                       model::Union{MPS, MPO, LPDO, Choi},
                       output_path::String)
   # Make the path the file will sit in, if it doesn't exist
   mkpath(dirname(output_path))
   h5rewrite(output_path) do fout
-    write(fout,"data",data)
+    #write(fout,"data",data)
+    write(fout, "bases", first.(data))
+    write(fout, "outcomes", last.(data))
     write(fout,"model",model)
   end
 end
 
-function writesamples(data::Matrix,
+function writesamples(data::Matrix{Pair{String, Int}},
                       output_path::String)
   # Make the path the file will sit in, if it doesn't exist
   mkpath(dirname(output_path))
   h5rewrite(output_path) do fout
-    write(fout,"data",data)
+    #write(fout,"data",data)
+    write(fout, "bases", first.(data))
+    write(fout, "outcomes", last.(data))
   end
 end
 
@@ -36,8 +40,10 @@ function writesamples(data::Matrix{<: Pair},
   # Make the path the file will sit in, if it doesn't exist
   mkpath(dirname(output_path))
   h5rewrite(output_path) do fout
-    write(fout, "data_first", first.(data))
-    write(fout, "data_last", last.(data))
+    write(fout, "inputs", first.(data))
+    #write(fout, "data_last", last.(data))
+    write(fout, "bases", first.(last.(data)))
+    write(fout, "outcomes", last.(last.(data)))
     write(fout, "model", model)
   end
 end
@@ -47,8 +53,10 @@ function writesamples(data::Matrix{<: Pair},
   # Make the path the file will sit in, if it doesn't exist
   mkpath(dirname(output_path))
   h5rewrite(output_path) do fout
-    write(fout, "data_first", first.(data))
-    write(fout, "data_last", last.(data))
+    write(fout, "inputs", first.(data))
+    #write(fout, "data_last", last.(data))
+    write(fout, "bases", first.(last.(data)))
+    write(fout, "outcomes", last.(last.(data)))
   end
 end
 
@@ -62,12 +70,22 @@ Load data and model from file:
 """
 function readsamples(input_path::String)
   fin = h5open(input_path, "r")
-
   # Check if the data is for state tomography or process tomography
-  if exists(fin, "data")
-    data = read(fin, "data")
-  elseif exists(fin, "data_first") && exists(fin, "data_last")
-    data = read(fin, "data_first") .=> read(fin, "data_last")
+  if exists(fin, "inputs")
+    inputs = read(fin, "inputs")
+    bases = read(fin, "bases")
+    outcomes = read(fin,"outcomes")
+    data = inputs .=> (bases .=> outcomes)
+    #data = read(fin, "data_first") .=> (read(fin, "data_last_Str") .=> read(fin, "data_last_Int"))
+   #elseif exists(fin, "data_first") && exists(fin, "data_last")
+  #  data = read(fin, "data_first") .=> read(fin, "data_last")
+  elseif exists(fin, "bases") 
+    bases = read(fin, "bases")
+    outcomes = read(fin,"outcomes")
+    data = bases .=> outcomes
+  elseif exists(fin, "outcomes")
+    data = read(fin,"outcomes")
+    #data = read(fin, "data")
   else
     close(fin)
     error("File must contain either \"data\" for quantum state tomography data or \"data_first\" and \"data_second\" for quantum process tomography.")
@@ -129,3 +147,183 @@ end
 
 hilbertspace(M::Union{MPS,MPO}) = hilbertspace(LPDO(M))
 
+
+
+
+"""
+    convertdatapoint(datapoint::Array,basis::Array;state::Bool=false)
+
+0 1 0 0 1 -> Z+ Z- Z+ Z+ Z-
+"""
+function convertdatapoint(datapoint::Array{Int64};
+                          state::Bool=false)
+  newdata = []
+  basis = ["Z" for _ in 1:length(datapoint)]
+  for j in 1:length(datapoint)
+    if datapoint[j] == 0
+      push!(newdata,"Z+")
+    elseif datapoint[j] == 1
+      push!(newdata,"Z-")
+    else
+      error("non-binary data")
+    end
+  end
+  return newdata
+end
+
+"""
+
+(Z+, X-) -> (Z => 0), (X => 1)   
+
+"""
+function convertdatapoint(datapoint::Array{String})
+  basis = []
+  outcome = []
+  for j in 1:length(datapoint)
+    push!(basis,string(datapoint[j][1]))
+    
+    if datapoint[j][2] == Char('+') 
+      push!(outcome,0)
+    elseif datapoint[j][2] == Char('-')
+      push!(outcome,1)
+    else
+      error("non-binary data")
+    end
+  end
+  return basis .=> outcome
+end
+
+"""
+
+(Z, 0), (X, 1)  / (Z+, X-)
+
+"""
+function convertdatapoint(outcome::Array{Int64}, basis::Array{String};
+                          state::Bool=false)
+  @assert length(outcome) == length(basis)
+  newdata = []
+  if state
+    basis = "state" .* basis
+  end
+  for j in 1:length(outcome)
+    if outcome[j] == 0 
+      push!(newdata, basis[j] * "+")
+    elseif outcome[j] == 1
+      push!(newdata, basis[j] * "-")
+    else
+      error("non-binary data")
+    end
+  end
+  return newdata
+end
+
+convertdatapoint(datapoint::Array{Pair{String,Int64}}; state::Bool=false) = 
+  convertdatapoint(last.(datapoint),first.(datapoint); state = state)
+
+
+function convertdatapoints(datapoints::Array{Pair{String,Int64}}; state::Bool=false)
+  nshots = size(datapoints)[1]
+  newdata = Matrix{String}(undef,nshots,size(datapoints)[2])
+
+  for n in 1:nshots
+    newdata[n,:] = convertdatapoint(datapoints[n,:]; state = state)
+  end
+  return newdata
+end
+
+function convertdatapoints(outcome::Matrix{Int64}, basis::Matrix{String}; state::Bool=false)
+  nshots = size(datapoints)[1]
+  newdata = Matrix{String}(undef,nshots,size(datapoints)[2])
+
+  for n in 1:nshots
+    newdata[n,:] = convertdatapoint(datapoints[n,:]; state = state)
+  end
+  return newdata
+end
+"""
+
+(Z => 0), (X => 1)  / (Z+, X-)
+
+"""
+
+
+
+
+
+
+#function convertdatapoint(datapoint::Array{Pair{String,Int64}}; state::Bool=false)
+#  newdata = []
+#  basis = first.(datapoint)
+#  outcome = last.(datapoint)
+#
+#  if state
+#    basis = "state" .* basis
+#  end
+#  for j in 1:length(datapoint)
+#    if outcome[j] == 0 
+#      push!(newdata, basis[j] * "+")
+#    elseif outcome[j] == 1
+#      push!(newdata, basis[j] * "-")
+#    else
+#      error("non-binary data")
+#    end
+#  end
+#  return newdata
+#end
+
+#function convertdatapoints(datapoints::Matrix{Pair{String,Int64}}; state::Bool=false)
+#  nshots = size(datapoints)[1]
+#  newdata = Matrix{String}(undef,nshots,size(datapoints)[2])
+#
+#  for n in 1:nshots
+#    newdata[n,:] = convertdatapoint(datapoints[n,:]; state = state)
+#  end
+#  return newdata
+#end
+
+
+
+#function convertdatapoint(datapoint::Array{Int64}, basis::Array{String};
+#                          state::Bool=false)
+#  newdata = []
+#  if state
+#    basis = "state" .* basis
+#  end
+#  for j in 1:length(datapoint)
+#    push!(newdata,basis[j] => datapoint[j])
+#  end
+#  return newdata
+#end
+#
+#"""
+#    convertdatapoint(datapoint::Array,basis::Array;state::Bool=false)
+#
+#("Z" => 0, "X" => 1) -> ("Z+","X-") 
+#"""
+
+#"""
+#    convertdatapoint(datapoint::Array,basis::Array;state::Bool=false)
+#
+#Many points: ("Z" => 0, "X" => 1) -> ("Z+","X-") 
+#"""
+#function convertdatapoints(datapoints::Matrix{Pair{String,Int64}}; state::Bool=false)
+#  nshots = size(datapoints)[1]
+#  newdata = Matrix{String}(undef,nshots,size(datapoints)[2])
+#
+#  for n in 1:nshots
+#    newdata[n,:] = convertdatapoint(datapoints[n,:]; state = state)
+#  end
+#  return newdata
+#end
+#
+##function convertdatapoints(datapoints::Array,
+##                           bases::Array;
+##                           state::Bool=false)
+##  newdata = Matrix{String}(undef, size(datapoints)[1],size(datapoints)[2]) 
+##  
+##  for n in 1:size(datapoints)[1]
+##    newdata[n,:] = convertdatapoint(datapoints[n,:],bases[n,:],state=state)
+##  end
+##  return newdata
+##end
+#

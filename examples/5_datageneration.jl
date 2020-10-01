@@ -16,7 +16,7 @@ gates = randomcircuit(N,depth)
 # is `["X","Y","Z"]`.
 # a) Unitary circuit
 println("Generate samples from random projective measurements of the state U|0,0,…>:")
-data, ψ = getsamples(N, gates, nshots)
+data, ψ = getsamples(N, gates, nshots; localbasis = ["X","Y","Z"])
 # Returns output state as MPS
 @show maxlinkdim(ψ)
 display(data)
@@ -29,7 +29,7 @@ println()
 
 # b) Noisy circuit
 println("Generate samples from random projective measurements of the state ρ = ε(|0,0,…⟩⟨0,0,…|) generated from noisy gate evolution:")
-data, ρ = getsamples(N, gates, nshots;
+data, ρ = getsamples(N, gates, nshots; localbasis = ["X","Y","Z"], 
                      noise = ("amplitude_damping", (γ = 0.01,)))
 writesamples(data, ρ, "data/qst_circuit_noisy.h5")
 # Return the mixed density operator as MPO
