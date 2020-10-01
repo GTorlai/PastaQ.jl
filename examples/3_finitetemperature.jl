@@ -21,30 +21,7 @@ end
 #
 # where B a the transverse magnetic field. 
 
-
-# 1a. Setting up the Hamiltonian
-
-N = 10    # Number of spins
-B = 1.0   # Transverse magnetic field
-
-# In order to generate the MPO for the Hamiltonian, we leverage
-# the `AutoMPO()` function of ITensors, which automatically generates
-# the local MPO tensors from a set of pre-definend operators..
-sites = siteinds("S=1/2",N)
-ampo = AutoMPO()
-for j in 1:N-1
-  # Ising ZZ interactions
-  ampo .+= -2.0, "Sz", j, "Sz", j+1
-end
-for j in 1:N
-  # Transverse field X
-  ampo .+= -B, "Sx", j
-end
-# Generate Hamilotnian MPO
-H = MPO(ampo,sites)
-
-
-# 1b. Custom gates 
+# 1a. Custom gates 
 #
 # In order to build the thermal density operator, we implement the 
 # simplest flavor of imaginary-time evolution, breaking the operator
@@ -64,8 +41,10 @@ gate(::GateName"τX"; τ::Float64, B::Float64) =
   exp(τ * B * gate("X"))
 
 
-# 1c. Generating the thermal state
- 
+# 1b. Generating the thermal state
+
+N = 10    # Number of spins
+B = 1.0   # Transverse magnetic field
 β = 1.0   # Inverse temperature
 τ = 0.005 # Trotter step
 
@@ -100,12 +79,30 @@ println("\n---------------------------------------\n")
 # 2. Run imaginary-time evolution towards the zero temperature
 # ground state.
 
-# Density-matrix renormalization group
+# 2a. Ground state energy with DMRG 
 #
-# First, we compute the ground state energy by running DMRG
-# on the Hamiltonian MPO, whose algoirthm is implemented in 
+# We compute the ground state energy by running DMRG
+# on the Hamiltonian MPO, whose algorithm is implemented in 
 # ITensors. 
 
+# In order to generate the MPO for the Hamiltonian, we leverage
+# the `AutoMPO()` function, which automatically generates
+# the local MPO tensors from a set of pre-definend operators..
+sites = siteinds("S=1/2",N)
+ampo = AutoMPO()
+for j in 1:N-1
+  # Ising ZZ interactions
+  ampo .+= -2.0, "Sz", j, "Sz", j+1
+end
+for j in 1:N
+  # Transverse field X
+  ampo .+= -B, "Sx", j
+end
+# Generate Hamilotnian MPO
+H = MPO(ampo,sites)
+
+
+# Density-matrix renormalization group
 dmrg_iter   = 5      # DMRG steps
 dmrg_cutoff = 1E-10   # Cutoff
 Ψ0 = randomMPS(sites) # Initial state
@@ -118,6 +115,8 @@ E , Ψ = dmrg(H, Ψ0, sweeps)
 @printf("\nGround state energy:  %.8f  \n",E)
 println("\n---------------------------------------\n")
 
+
+# 2b. Run the imaginary-time circuit
 
 β = 10.0 # Inverse temperature
 Δ = 0.5  # Intermediate time-step
