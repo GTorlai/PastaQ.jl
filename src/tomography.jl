@@ -419,7 +419,7 @@ tomography(data::Array, L::LPDO; optimizer::Optimizer, observer! = nothing, kwar
   _tomography(data, L; optimizer = optimizer, observer! = observer!, kwargs...)
 
 tomography(data::Array, ψ::MPS; optimizer::Optimizer, observer! = nothing, kwargs...) =
-  tomography(data, LPDO(ψ); optimizer = optimizer, observer! = observer!, kwargs...)
+  tomography(data, LPDO(ψ); optimizer = optimizer, observer! = observer!, kwargs...).X
 
 
 """
@@ -462,14 +462,6 @@ function tomography(data::Matrix{Pair{String, String}}, L::LPDO;
   end
   
   @assert (target isa MPS) || (target isa MPO)
-  
-  if isnothing(target)
-    M = _tomography(data, L;
-                    optimizer = optimizer,
-                    observer! = observer!,
-                    kwargs...)
-    return (!mixed ? unsplitunitary(M.X) : unsplitchoi(M))
-  end
   
   if !mixed
     #

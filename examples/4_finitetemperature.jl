@@ -20,7 +20,7 @@ using Printf
 #
 # In order to build the thermal density operator, we implement the 
 # simplest flavor of imaginary-time evolution, breaking the operator
-# exp(βĤ) into a set of two-qubit and single-qubit gates, corresponding
+# exp(-βĤ) into a set of two-qubit and single-qubit gates, corresponding
 # to the Ising interactions and the transverse field respetively. The 
 # time evolution to inverse temperature β is broken into elementary steps
 # of size τ, where a gate is applied for each term appearing in the Hamiltonian.
