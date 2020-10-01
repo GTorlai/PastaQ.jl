@@ -21,6 +21,8 @@ function SGD(;η::Float64=0.01,γ::Float64=0.0)
   return SGD(η,γ,v)
 end
 
+Base.copy(opt::SGD) = SGD(opt.η, opt.γ, copy(opt.v))
+
 #SGD(M::Union{MPS,MPO};η::Float64=0.01,γ::Float64=0.0) = SGD(LPDO(M);η=η,γ=γ)
 
 """
@@ -46,19 +48,13 @@ end
 
 update!(ψ::MPS,∇::Array,opt::SGD; kwargs...) = update!(LPDO(ψ),∇,opt;kwargs...)
 
-function resetoptimizer!(opt::SGD)
-  empty!(opt.v)
-end
-
-
-
-
-
 struct AdaGrad <: Optimizer 
   η::Float64
   ϵ::Float64
   ∇²::Vector{ITensor}
 end
+
+Base.copy(opt::AdaGrad) = AdaGrad(opt.η, opt.ϵ, copy(opt.∇²))
 
 """
     AdaGrad(L::LPDO;η::Float64=0.01,ϵ::Float64=1E-8)
@@ -106,19 +102,14 @@ end
 
 update!(ψ::MPS,∇::Array,opt::AdaGrad; kwargs...) = update!(LPDO(ψ),∇,opt; kwargs...)
 
-
-function resetoptimizer!(opt::AdaGrad)
-  empty!(opt.∇²)
-end
-
-
-
 struct AdaDelta <: Optimizer 
   γ::Float64
   ϵ::Float64
   ∇²::Vector{ITensor}
   Δθ²::Vector{ITensor}
 end
+
+Base.copy(opt::AdaDelta) = AdaDelta(opt.γ, opt.ϵ, copy(opt.∇²), copy(opt.Δθ²))
 
 """
     AdaDelta(L::LPDO;γ::Float64=0.9,ϵ::Float64=1E-8)
@@ -186,15 +177,6 @@ end
 
 update!(ψ::MPS,∇::Array,opt::AdaDelta; kwargs...) = update!(LPDO(ψ),∇,opt; kwargs...)
 
-
-function resetoptimizer!(opt::AdaDelta)
-  empty!(opt.∇²)
-  empty!(opt.Δθ²)
-end
-
-
-
-
 struct Adam <: Optimizer 
   η::Float64
   β₁::Float64
@@ -203,6 +185,8 @@ struct Adam <: Optimizer
   ∇::Vector{ITensor}    # m in the paper
   ∇²::Vector{ITensor}   # v in the paper
 end
+
+Base.copy(opt::Adam) = Adam(opt.η, opt.β₁, opt.β₂, opt.ϵ, copy(opt.∇), copy(opt.∇²))
 
 """
     Adam(L::LPDO;η::Float64=0.001,
@@ -262,9 +246,6 @@ function update!(L::LPDO,∇::Array,opt::Adam; kwargs...)
   end
 end
 
-update!(ψ::MPS,∇::Array,opt::Adam; kwargs...) = update!(LPDO(ψ),∇,opt; kwargs...)
+update!(ψ::MPS,∇::Array,opt::Adam; kwargs...) =
+  update!(LPDO(ψ),∇,opt; kwargs...)
 
-function resetoptimizer!(opt::Adam)
-  empty!(opt.∇)
-  empty!(opt.∇²)
-end

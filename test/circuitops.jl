@@ -276,24 +276,24 @@ end
   ϕ = 2π * rand()
   psi = qubits(1)
   PastaQ.applygate!(psi,"Rz",1,ϕ=ϕ)
-  @test array(psi[1]) ≈ [exp(-im*ϕ/2.), 0.]
+  @test array(psi[1]) ≈ [1.0, 0.0]
   psi = qubits(1)
   PastaQ.applygate!(psi,"X",1)
   PastaQ.applygate!(psi,"Rz",1,ϕ=ϕ)
-  @test array(psi[1]) ≈ [0.,exp(im*ϕ/2.)]
+  @test array(psi[1]) ≈ [0.0, exp(im*ϕ)]
   
   ϕ = 2π * rand()
   psi = qubits(1)
   gate_data = ("Rz",1,(ϕ=ϕ,))
   g = gate(psi,gate_data)
   PastaQ.applygate!(psi,g)
-  @test array(psi[1]) ≈ [exp(-im*ϕ/2.), 0.]
+  @test array(psi[1]) ≈ [1.0, 0.0]
   psi = qubits(1)
   PastaQ.applygate!(psi,"X",1)
   gate_data = ("Rz",1,(ϕ=ϕ,))
   g = gate(psi,gate_data)
   PastaQ.applygate!(psi,g)
-  @test array(psi[1]) ≈ [0.,exp(im*ϕ/2.)]
+  @test array(psi[1]) ≈ [0.0, exp(im*ϕ)]
 end
 
 @testset "apply gate: Rn" begin

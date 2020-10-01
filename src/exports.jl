@@ -1,12 +1,29 @@
 export 
-# quantumgates.jl
+# ITensors
+  maxlinkdim,
+
+# circuits/circuits.jl
+  appendlayer!,
+  gatelayer,
+  qft,
+  randomcircuit,
+
+# circuits/gates.jl
   # Methods
   gate,
 
-# circuits.jl
-  appendlayer!,
-  gatelayer,
-  randomcircuit,
+# circuits/getsamples.jl
+  # Methods
+  getsamples,
+  randombases,
+
+# circuits/runcircuit.jl
+  # Methods
+  qubits,
+  circuit,
+  resetqubits!,
+  buildcircuit,
+  runcircuit,
 
 # lpdo.jl
   LPDO,
@@ -16,25 +33,12 @@ export
 # choi.jl,
   Choi,
 
-# quantumcircuit.jl
-  # Methods
-  qubits,
-  circuit,
-  resetqubits!,
-  buildcircuit,
-  runcircuit,
-
-# datagen.jl
-  # Methods
-  getsamples,
-  randombases,
-
 # randomstates,jl
   # Methods
   randomstate,
   randomprocess,
 
-# quantumtomography,jl
+# tomography,jl
   # Methods
   normalize!,
   tomography,
@@ -45,21 +49,17 @@ export
   fidelity_bound,
   frobenius_distance,
 
-# optimizers/
+# optimizers.jl
   Optimizer,
   SGD,
   AdaGrad,
   AdaDelta,
   Adam,
   AdaMax,
-  # Methods
-  resetoptimizer!,
 
 # observer.jl
   TomographyObserver,
-  # Methods
-  writeobserver,
-  
+
 # utils.jl
   # Methods
   writesamples,

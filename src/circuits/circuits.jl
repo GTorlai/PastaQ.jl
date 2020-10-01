@@ -142,3 +142,30 @@ function randomcircuit(Lx::Int,Ly::Int,depth::Int;
                        onequbitgates=onequbitgates)
 end
 
+"""
+    qft(N::Int)
+
+Generate a list of gates for the quantum fourier transform circuit on `N` sites.
+"""
+function qft(N::Int; inverse::Bool = false)
+  gates = Tuple[]
+  if inverse
+    for j in N:-1:1
+      for k in N:-1:j+1
+        angle = -π / 2^(k-j)
+        push!(gates, ("CRz", (k, j), (ϕ=angle,)))
+      end
+      push!(gates, ("H", j))
+    end
+  else
+    for j in 1:N
+      push!(gates, ("H", j))
+      for k in j+1:N
+        angle = π / 2^(k-j)
+        push!(gates, ("CRz", (k,j), (ϕ=angle,)))
+      end
+    end
+  end
+  return gates
+end
+

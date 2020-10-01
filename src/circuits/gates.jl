@@ -113,8 +113,8 @@ gate(::GateName"Ry"; θ::Number) =
 
 # Rotation around Z-axis
 gate(::GateName"Rz"; ϕ::Number) =
-  [exp(-im*ϕ/2)           0
-   0            exp(im*ϕ/2)]
+  [1         0
+   0 exp(im*ϕ)]
 
 # Rotation around generic axis n̂
 gate(::GateName"Rn";
@@ -149,6 +149,20 @@ gate(::GateName"CZ") =
    0 1 0  0
    0 0 1  0
    0 0 0 -1]
+
+# Same as CRn with (θ = 0, λ = 0)
+gate(::GateName"CRz"; ϕ::Real) =
+  [1 0 0         0
+   0 1 0         0
+   0 0 1         0
+   0 0 0 exp(im*ϕ)]
+
+gate(::GateName"CRn";
+     θ::Real, ϕ::Real, λ::Real) =
+  [1 0                 0                       0
+   0 1                 0                       0
+   0 0           cos(θ/2)    -exp(im*λ)*sin(θ/2)
+   0 0 exp(im*ϕ)*sin(θ/2) exp(im*(ϕ+λ))*cos(θ/2)]
 
 gate(::GateName"SWAP") =
   [1 0 0 0
