@@ -42,6 +42,8 @@ circuit(sites::Vector{<:Index}) = MPO(sites, "Id")
 
 circuit(N::Int) = circuit(siteinds("Qubit", N))
 
+circuit(M::Union{MPS,MPO,LPDO}) =
+  circuit(hilbertspace(M))
 
 """----------------------------------------------
                   CIRCUIT FUNCTIONS 

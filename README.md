@@ -223,7 +223,7 @@ training iterations (`epochs`), the number of samples used for a single gradient
 the target quantum state (`target`) if available. During the training, the cost function
 is printed, as well as the fidelity against the target quantum state, if `target` is provided.
 
-![alt text](assets/quantumtomography.jpg)
+![alt text](docs/src/assets/statetomography.jpg)
 
 ```julia
 using PastaQ
@@ -259,6 +259,9 @@ process tomography reduces to quantum state tomography of the Choi matrix, where
 data consists of input states to the channel, and output projective measurements.
 For the special case of a unitary (noiseless) channel `U`, the Choi matrix has rank-1 and is
 equivalent to a pure state obtained by being the legs of the unitary operator `U`.
+
+![alt text](docs/src/assets/processtomography.jpg)
+
 
 ```julia
 using PastaQ
