@@ -7,15 +7,15 @@ N = 10  # Number of spins
 B = 1.0 # Transverse magnetic field
 
 # Build Ising Hamiltonian
-sites = siteinds("S=1/2",N)
+sites = siteinds("Qubit", N)
 ampo = AutoMPO()
 for j in 1:N-1
   # Ising ZZ interactions
-  ampo .+= -2.0, "Sz", j, "Sz", j+1
+  ampo .+= -1, "Z", j, "Z", j+1
 end
 for j in 1:N
   # Transverse field X
-  ampo .+= -B, "Sx", j
+  ampo .+= -B, "X", j
 end
 H = MPO(ampo,sites)
 
@@ -29,9 +29,11 @@ cutoff!(sweeps, dmrg_cutoff)
 # Run DMRG
 println("Running DMRG to get ground state of transverse field Ising model:")
 E , Ψ = dmrg(H, Ψ0, sweeps)
+@show maxlinkdim(Ψ)
+println()
 
 # Generate data
-nshots = 10000
+nshots = 10_000
 bases = randombases(N, nshots)
 data = getsamples(Ψ, bases)
 
@@ -40,9 +42,12 @@ data = getsamples(Ψ, bases)
 χ = maxlinkdim(Ψ)
 ψ0 = randomstate(Ψ0; χ = χ)
 # Run tomography
+println("Running tomography to learn the Ising model ground state from sample data")
 ψ = tomography(data, ψ0;
                optimizer = SGD(η = 0.01),
                batchsize = 500,
-               epochs = 20,
+               epochs = 10,
                target = Ψ)
-@show ψ
+@show maxlinkdim(ψ)
+println()
+

@@ -51,4 +51,3 @@ println("Running the circuit with amplitude damping to compute the Choi matrix �
 Λ = runcircuit(N, gates; process = true, noise = ("amplitude_damping", (γ = 0.01,)))
 @show maxlinkdim(Λ.M)
 
-
