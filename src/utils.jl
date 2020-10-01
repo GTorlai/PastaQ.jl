@@ -10,6 +10,28 @@ Save data and model on file:
   - `model`: (optional) MPS, MPO, or Choi
   - `output_path`: path to file
 """
+function writesamples(data::Matrix{Int64},
+                      model::Union{MPS, MPO, LPDO, Choi},
+                      output_path::String)
+  # Make the path the file will sit in, if it doesn't exist
+  mkpath(dirname(output_path))
+  h5rewrite(output_path) do fout
+    #write(fout,"data",data)
+    write(fout, "outcomes", data)
+    write(fout,"model",model)
+  end
+end
+
+function writesamples(data::Matrix{Pair{String, Int}},
+                      output_path::String)
+  # Make the path the file will sit in, if it doesn't exist
+  mkpath(dirname(output_path))
+  h5rewrite(output_path) do fout
+    #write(fout,"data",data)
+    write(fout, "bases", first.(data))
+    write(fout, "outcomes", last.(data))
+  end
+end
 function writesamples(data::Matrix{Pair{String, Int}},
                       model::Union{MPS, MPO, LPDO, Choi},
                       output_path::String)
@@ -71,18 +93,18 @@ Load data and model from file:
 function readsamples(input_path::String)
   fin = h5open(input_path, "r")
   # Check if the data is for state tomography or process tomography
+  # Process tomography
   if exists(fin, "inputs")
     inputs = read(fin, "inputs")
     bases = read(fin, "bases")
     outcomes = read(fin,"outcomes")
     data = inputs .=> (bases .=> outcomes)
-    #data = read(fin, "data_first") .=> (read(fin, "data_last_Str") .=> read(fin, "data_last_Int"))
-   #elseif exists(fin, "data_first") && exists(fin, "data_last")
-  #  data = read(fin, "data_first") .=> read(fin, "data_last")
+  # Measurements in bases
   elseif exists(fin, "bases") 
     bases = read(fin, "bases")
     outcomes = read(fin,"outcomes")
     data = bases .=> outcomes
+  # Measurements in Z basis
   elseif exists(fin, "outcomes")
     data = read(fin,"outcomes")
     #data = read(fin, "data")
