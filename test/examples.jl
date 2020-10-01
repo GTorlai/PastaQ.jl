@@ -82,4 +82,3 @@ opt = SGD(η = 0.1)
                batchsize = 10,
                epochs = 2,
                target = ϱ)
-@show Λ

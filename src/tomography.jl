@@ -440,13 +440,13 @@ Run quantum state tomography using a the starting state `model` on `data`.
 """
 function tomography(data::Matrix{Pair{String, String}}, L::LPDO;
                     optimizer::Optimizer,
+                    mixed::Bool=false,
                     observer! = nothing,
                     kwargs...)
   target = get(kwargs,:target,nothing)
   #mixed::Bool = get(kwargs,:mixed,false)
 
   optimizer = copy(optimizer)
-
   #
   # TEMPORARY WRAPPER FOR UNSPLIT PROCESS TOMOGRAPHY
   #
@@ -514,13 +514,13 @@ function tomography(data::Matrix{Pair{String, String}}, L::LPDO;
 end
 
 function tomography(data::Matrix{Pair{String, String}}, U::MPO;
-                    optimizer::Optimizer, kwargs...) 
-  return tomography(data, LPDO(U); optimizer = optimizer, kwargs...)
+                    optimizer::Optimizer, mixed::Bool=false, kwargs...) 
+  return tomography(data, LPDO(U); optimizer = optimizer, mixed = mixed, kwargs...)
 end
 
 function tomography(data::Matrix{Pair{String, String}}, C::Choi;
-                    optimizer::Optimizer, kwargs...)
-  return tomography(data, C.M; optimizer = optimizer, kwargs...)
+                    optimizer::Optimizer, mixed::Bool=true, kwargs...)
+  return tomography(data, C.M; optimizer = optimizer, mixed = mixed,  kwargs...)
 end
 
 function _tomography(data::Array, L::LPDO;
@@ -634,11 +634,11 @@ function _tomography(data::Array, L::LPDO;
   return model
 end
 
-_tomography(data::Array, C::Choi; optimizer::Optimizer, kwargs...) =
- _tomography(data, C.M; optimizer = optimizer, mixed = false, kwargs...)
+_tomography(data::Array, C::Choi; optimizer::Optimizer, mixed::Bool=false, kwargs...) =
+ _tomography(data, C.M; optimizer = optimizer, mixed = mixed, kwargs...)
 
-_tomography(data::Array, ψ::MPS; optimizer::Optimizer, kwargs...) =
-  _tomography(data, LPDO(ψ); optimizer = optimizer, mixed = true, kwargs...)
+_tomography(data::Array, ψ::MPS; optimizer::Optimizer, mixed::Bool, kwargs...) =
+  _tomography(data, LPDO(ψ); optimizer = optimizer, mixed = mixed, kwargs...)
 
 
 #Run quantum process tomography on measurement data `data` using `model` as s variational ansatz.

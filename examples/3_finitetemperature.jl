@@ -106,7 +106,8 @@ for b in 1:20
   
   # Initialize the density matrix
   ρ0 = circuit(H)
-  
+  orthogonalize!(ρ0,1)
+
   gate_tensors = ITensor[]
   for d in 1:depth
     # ising interaction
@@ -126,12 +127,12 @@ for b in 1:20
   end 
   
   # Generate density matrix
-  ρ = runcircuit(ρ0,gate_tensors)
+  ρ = runcircuit(ρ0,gate_tensors; cutoff = 1E-12)
   normalize!(ρ)
   
   # Measure the energy
   E_th = inner(ρ,H)
-  @printf("β = %.1f : Tr(ρ̂Ĥ) = %.8f  (GS: %.5f)",β,E_th,E)
-  println()
+  @printf("β = %.1f : Tr(ρ̂Ĥ) = %.8f ",β,E_th)
+  println("   $(maxlinkdim(ρ))")
 end
 
