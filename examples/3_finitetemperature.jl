@@ -1,6 +1,11 @@
 using PastaQ
 using ITensors
 using Printf
+import PastaQ.gate
+
+macro GateName_str(s)
+  OpName{ITensors.SmallString(s)}
+end
 
 # 1. Prepation of a thermal state 
 # 
@@ -16,17 +21,15 @@ using Printf
 #
 # where B a the transverse magnetic field. 
 
-# Parameters
+
+# 1a. Setting up the Hamiltonian
 
 N = 10    # Number of spins
 B = 1.0   # Transverse magnetic field
-β = 1.0   # Inverse temperature
-τ = 0.02  # trotter step
-
 
 # In order to generate the MPO for the Hamiltonian, we leverage
 # the `AutoMPO()` function of ITensors, which automatically generates
-# the local MPO tensor from a set of interactions.
+# the local MPO tensors from a set of pre-definend operators..
 sites = siteinds("S=1/2",N)
 ampo = AutoMPO()
 for j in 1:N-1
@@ -41,49 +44,67 @@ end
 H = MPO(ampo,sites)
 
 
+# 1b. Custom gates 
+#
+# In order to build the thermal density operator, we implement the 
+# simplest flavor of imaginary-time evolution, breaking the operator
+# exp(βĤ) into a set of two-qubit and single-qubit gates, corresponding
+# to the Ising interactions and the transverse field respetively. The 
+# time evolution to inverse temperature β is broken into elementary steps
+# of size τ, where a gate is applied for each term appearing in the Hamiltonian.
+#
+# In this example, the quantum gates are not contained in the gate set of PastaQ. 
+# In order to extend, it is ony required to define the gate matrices using a 
+# format analogous to standard gates defined in gates.jl.
+
+gate(::GateName"τZZ"; τ::Float64) = 
+  exp(τ * kron(gate("Z"), gate("Z")))
+
+gate(::GateName"τX"; τ::Float64, B::Float64) = 
+  exp(τ * B * gate("X"))
+
+
+# 1c. Generating the thermal state
+ 
+β = 1.0   # Inverse temperature
+τ = 0.005 # Trotter step
+
 # Depth of the circuit
 depth = β ÷ τ
+
+gates = Tuple[]
+
+# Ising interactions
+zz_layer = Tuple[("τZZ", (j, j+1), (τ = τ,)) for j in 1:N-1]
+# Transverse field
+x_layer = gatelayer("τX",N; τ = τ, B = B)
+
+# Build the gate structure
+for d in 1:depth
+  append!(gates,zz_layer)
+  append!(gates,x_layer)
+end 
 
 # Initialize the density matrix
 ρ0 = circuit(H)
 
-gate_tensors = ITensor[]
-for d in 1:depth
-  # ising interaction
-  for j in 1:N-1;
-    z1 = gate(ρ0,"Z",j)
-    z2 = gate(ρ0,"Z",j+1)
-    zz = z1 * z2
-    g  = exp(τ * zz) 
-    push!(gate_tensors,g)
-  end 
-  # transverse field
-  for j in 1:N 
-    x = gate(ρ0,"X",j)
-    g = exp(τ * B * x)
-    push!(gate_tensors,g)
-  end 
-end 
-
-# Generate density matrix
-ρ = runcircuit(ρ0,gate_tensors)
+ρ = runcircuit(ρ0,gates)
 normalize!(ρ)
 
 # Measure the energy
 E_th = inner(ρ,H)
-@printf("Inverse temperature β = %.1f : Tr(ρ̂Ĥ) = %.8f  ",β,E_th)
+@printf("\nInverse temperature β = %.1f : Tr(ρ̂Ĥ) = %.8f  \n",β,E_th)
 println("\n---------------------------------------\n")
 
 
-
-
-# 2. Run imaginary-time evolution to the ground state
+# 2. Run imaginary-time evolution towards the zero temperature
+# ground state.
 
 # Density-matrix renormalization group
 #
 # First, we compute the ground state energy by running DMRG
 # on the Hamiltonian MPO, whose algoirthm is implemented in 
-# ITensor. 
+# ITensors. 
 
 dmrg_iter   = 5      # DMRG steps
 dmrg_cutoff = 1E-10   # Cutoff
@@ -94,46 +115,29 @@ cutoff!(sweeps, dmrg_cutoff)
 # Run 
 println("Running DMRG to get ground state of transverse field Ising model:")
 E , Ψ = dmrg(H, Ψ0, sweeps)
-@printf("\nGround state energy:  %.8f  ",E)
+@printf("\nGround state energy:  %.8f  \n",E)
 println("\n---------------------------------------\n")
 
-τ = 0.005  # trotter step
-# Inverse temperature loop
-for b in 1:20
-  # Current inverse temperature
-  β = 0.5 * b
-  # Depth of the circuit 
-  depth = β ÷ τ
-  
-  # Initialize the density matrix
-  ρ0 = circuit(H)
-  orthogonalize!(ρ0,1)
 
-  gate_tensors = ITensor[]
-  for d in 1:depth
-    # ising interaction
-    for j in 1:N-1;
-      z1 = gate(ρ0,"Z",j)
-      z2 = gate(ρ0,"Z",j+1)
-      zz = z1 * z2
-      g  = exp(τ * zz) 
-      push!(gate_tensors,g)
-    end 
-    # transverse field
-    for j in 1:N 
-      x = gate(ρ0,"X",j)
-      g = exp(τ * B * x)
-      push!(gate_tensors,g)
-    end 
-  end 
+β = 10.0 # Inverse temperature
+Δ = 0.5  # Intermediate time-step
+depth = Δ ÷ τ # Depth of the circuit
+steps = β ÷ Δ # Total number of circuit application
+
+# Initialize the density operator
+ρ = circuit(H)
+
+for b in 1:steps
   
-  # Generate density matrix
-  ρ = runcircuit(ρ0,gate_tensors; cutoff = 1E-12)
+  # Run the circuit
+  global ρ = runcircuit(ρ,gates; cutoff = 1E-12)
+  
+  # Normalize the density operatorr
   normalize!(ρ)
   
   # Measure the energy
-  E_th = inner(ρ,H)
-  @printf("β = %.1f : Tr(ρ̂Ĥ) = %.8f ",β,E_th)
-  println("   $(maxlinkdim(ρ))")
+  E_th = inner(ρ, H)
+
+  @printf("β = %.1f : Tr(ρ̂Ĥ) = %.8f \n", (Δ * b), E_th)
 end
 
