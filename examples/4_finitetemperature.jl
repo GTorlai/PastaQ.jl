@@ -112,6 +112,7 @@ steps = β ÷ Δ # Total number of circuit application
 # Initialize the density operator
 ρ = circuit(H)
 
+println("Running imaginary time evolution to approximate the density matrix ρ = exp(-βH):")
 for b in 1:steps
   # Run the circuit
   global ρ = runcircuit(ρ, gates; cutoff = 1E-12)
@@ -122,6 +123,6 @@ for b in 1:steps
   # Measure the energy
   E_th = inner(ρ, H)
 
-  @printf("β = %.1f : Tr(ρ̂Ĥ) = %.8f \n", (Δ * b), E_th)
+  @printf("β = %.1f : tr(ρH) = %.8f \n", (Δ * b), E_th)
 end
 

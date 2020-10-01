@@ -9,8 +9,6 @@ Random.seed!(1234)
 # Initialize the MPS state ψ = |0,0,0⟩
 ψ = qubits(3)
 
-@show ψ
-
 # Apply the X gate on qubit 2
 ψ = applygate(ψ, "X", 2)
 
