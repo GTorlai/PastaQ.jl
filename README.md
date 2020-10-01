@@ -230,7 +230,7 @@ using PastaQ
 
 # Load the training data, as well as the target quantum state from file.
 data, target = loadsamples("PATH_TO_DATAFILE.h5")
-N = size(data)[2] # Number of qubits
+N = size(data, 2) # Number of qubits
 
 # 1. Reconstruction with a variational wavefunction:
 #
@@ -268,7 +268,7 @@ using PastaQ
 
 # Load the training data, as well as the target quantum state from file.
 data, target = loadsamples("PATH_TO_DATAFILE.h5")
-N = size(data)[2] # Number of qubits
+N = size(data, 2) # Number of qubits
 
 # 1. Reconstruction with a variational MPO:
 #
