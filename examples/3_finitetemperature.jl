@@ -21,7 +21,7 @@ using Printf
 N = 10    # Number of spins
 B = 1.0   # Transverse magnetic field
 β = 1.0   # Inverse temperature
-τ = 0.02  # Trotter step
+τ = 0.02  # trotter step
 
 
 # In order to generate the MPO for the Hamiltonian, we leverage
@@ -97,6 +97,7 @@ E , Ψ = dmrg(H, Ψ0, sweeps)
 @printf("\nGround state energy:  %.8f  ",E)
 println("\n---------------------------------------\n")
 
+τ = 0.005  # trotter step
 # Inverse temperature loop
 for b in 1:20
   # Current inverse temperature
