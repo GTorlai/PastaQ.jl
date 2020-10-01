@@ -193,7 +193,8 @@ is drawn from the probability distribution:
 """
 function getsamples(M0::Union{MPS,MPO}, bases::Array; kwargs...)
   @assert length(M0) == size(bases)[2]
-  data = Matrix{String}(undef, size(bases)[1],length(M0))
+  #data = Matrix{String}(undef, size(bases)[1],length(M0))
+  data = Matrix{Pair{String, Int}}(undef, size(bases)[1],length(M0))
   for n in 1:size(bases)[1]
     meas_gates = measurementgates(bases[n,:])
     M = runcircuit(M0,meas_gates)
@@ -321,7 +322,7 @@ function getsamples(N::Int64, gates::Vector{<:Tuple}, nshots::Int64;
                     noise = nothing,
                     build_process::Bool = true,
                     process::Bool = false,
-                    localbasis::Array = ["X","Y","Z"],
+                    localbasis = nothing,#::Array = ["X","Y","Z"],
                     inputstates::Array = ["X+","X-","Y+","Y-","Z+","Z-"],
                     ndistinctbases = nothing,
                     ndistinctstates = nothing,
@@ -329,10 +330,9 @@ function getsamples(N::Int64, gates::Vector{<:Tuple}, nshots::Int64;
                     maxdim::Int64 = 10000,
                     readout_errors = (p1given0 = nothing, p0given1 = nothing),
                     kwargs...)
-  data = Matrix{String}(undef, nshots,N)
-  bases = randombases(N, nshots;
-                      localbasis = localbasis,
-                      ndistinctbases = ndistinctbases)
+  #data = Matrix{String}(undef, nshots,N)
+  
+  data = Matrix{Pair{String, Int}}(undef,nshots,N)
   if !process
     # Apply the quantum channel
     M = runcircuit(N, gates; process = false, noise = noise,
@@ -341,6 +341,9 @@ function getsamples(N::Int64, gates::Vector{<:Tuple}, nshots::Int64;
     return data, M
   else
     # Generate a set of prepared input state to the channel
+    bases = randombases(N, nshots;
+                      localbasis = localbasis,
+                      ndistinctbases = ndistinctbases)
     preps = randompreparations(N, nshots, inputstates = inputstates,
                                ndistinctstates = ndistinctstates)
     # Generate data using circuit MPO (noiseless) or Choi matrix (noisy)
@@ -385,42 +388,45 @@ Ex: (0,1,0,0) (X,Z,Y,X) -> (X+,Z-,Y+,X+)
 function convertdatapoint(datapoint::Array, basis::Array;
                           state::Bool=false)
   newdata = []
-  # TODO: simplify with:
-  # if state
-  #   basis = "state" .* basis
-  # end
+  if state
+    basis = "state" .* basis
+  end
+
+  for j in 1:length(datapoint)
+    push!(newdata,basis[j] => datapoint[j])
+  end
   # if datapoint[j] == 0
   #   newdata[j] = basis[j] * "+"
   # elseif datapoint[j] == 1
   #   newdata[j] = basis[j] * "-"
   # end
-  for j in 1:length(datapoint)
-    if basis[j] == "X"
-      if datapoint[j] == 0
-        dat = (state ? "stateX+" : "X+")
-        push!(newdata,dat)
-      else
-        dat = (state ? "stateX-" : "X-")
-        push!(newdata,dat)
-      end
-    elseif basis[j] == "Y"
-      if datapoint[j] == 0
-        dat = (state ? "stateY+" : "Y+")
-        push!(newdata,dat)
-      else
-        dat = (state ? "stateY-" : "Y-")
-        push!(newdata,dat)
-      end
-    elseif basis[j] == "Z"
-      if datapoint[j] == 0
-        dat = (state ? "stateZ+" : "Z+")
-        push!(newdata,dat)
-      else
-        dat = (state ? "stateZ-" : "Z-")
-        push!(newdata,dat)
-      end
-    end
-  end
+  #for j in 1:length(datapoint)
+  #  if basis[j] == "X"
+  #    if datapoint[j] == 0
+  #      dat = (state ? "stateX+" : "X+")
+  #      push!(newdata,dat)
+  #    else
+  #      dat = (state ? "stateX-" : "X-")
+  #      push!(newdata,dat)
+  #    end
+  #  elseif basis[j] == "Y"
+  #    if datapoint[j] == 0
+  #      dat = (state ? "stateY+" : "Y+")
+  #      push!(newdata,dat)
+  #    else
+  #      dat = (state ? "stateY-" : "Y-")
+  #      push!(newdata,dat)
+  #    end
+  #  elseif basis[j] == "Z"
+  #    if datapoint[j] == 0
+  #      dat = (state ? "stateZ+" : "Z+")
+  #      push!(newdata,dat)
+  #    else
+  #      dat = (state ? "stateZ-" : "Z-")
+  #      push!(newdata,dat)
+  #    end
+  #  end
+  #end
   return newdata
 end
 
