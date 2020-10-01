@@ -1,11 +1,6 @@
 using PastaQ
 using ITensors
 using Printf
-import PastaQ.gate
-
-macro GateName_str(s)
-  OpName{ITensors.SmallString(s)}
-end
 
 # 1. Prepation of a thermal state 
 # 
@@ -34,10 +29,12 @@ end
 # In order to extend, it is ony required to define the gate matrices using a 
 # format analogous to standard gates defined in gates.jl.
 
-gate(::GateName"τZZ"; τ::Float64) = 
+import PastaQ: gate
+
+gate(::GateName"expτZZ"; τ::Float64) = 
   exp(τ * kron(gate("Z"), gate("Z")))
 
-gate(::GateName"τX"; τ::Float64, B::Float64) = 
+gate(::GateName"expτX"; τ::Float64, B::Float64) = 
   exp(τ * B * gate("X"))
 
 
@@ -51,56 +48,44 @@ B = 1.0   # Transverse magnetic field
 # Depth of the circuit
 depth = β ÷ τ
 
-gates = Tuple[]
-
 # Ising interactions
-zz_layer = Tuple[("τZZ", (j, j+1), (τ = τ,)) for j in 1:N-1]
+zz_layer = [("expτZZ", (j, j+1), (τ = τ,)) for j in 1:N-1]
 # Transverse field
-x_layer = gatelayer("τX",N; τ = τ, B = B)
+x_layer = [("expτX", j, (τ = τ, B = B)) for j in 1:N]
 
 # Build the gate structure
+gates = Tuple[]
 for d in 1:depth
-  append!(gates,zz_layer)
-  append!(gates,x_layer)
+  append!(gates, zz_layer)
+  append!(gates, x_layer)
 end 
 
-# Initialize the density matrix
-ρ0 = circuit(H)
-
-ρ = runcircuit(ρ0,gates)
-normalize!(ρ)
-
-# Measure the energy
-E_th = inner(ρ,H)
-@printf("\nInverse temperature β = %.1f : Tr(ρ̂Ĥ) = %.8f  \n",β,E_th)
-println("\n---------------------------------------\n")
-
-
+#
 # 2. Run imaginary-time evolution towards the zero temperature
 # ground state.
+#
 
 # 2a. Ground state energy with DMRG 
 #
 # We compute the ground state energy by running DMRG
 # on the Hamiltonian MPO, whose algorithm is implemented in 
-# ITensors. 
+# ITensors.jl.
 
 # In order to generate the MPO for the Hamiltonian, we leverage
-# the `AutoMPO()` function, which automatically generates
-# the local MPO tensors from a set of pre-definend operators..
-sites = siteinds("S=1/2",N)
+# the ITensors.jl `AutoMPO()` function, which automatically
+# generates the local MPO tensors from a set of pre-definend operators..
+sites = siteinds("Qubit", N)
 ampo = AutoMPO()
 for j in 1:N-1
   # Ising ZZ interactions
-  ampo .+= -2.0, "Sz", j, "Sz", j+1
+  ampo .+= -1, "Z", j, "Z", j+1
 end
 for j in 1:N
   # Transverse field X
-  ampo .+= -B, "Sx", j
+  ampo .+= -B, "X", j
 end
 # Generate Hamilotnian MPO
-H = MPO(ampo,sites)
-
+H = MPO(ampo, sites)
 
 # Density-matrix renormalization group
 dmrg_iter   = 5      # DMRG steps
@@ -115,10 +100,11 @@ E , Ψ = dmrg(H, Ψ0, sweeps)
 @printf("\nGround state energy:  %.8f  \n",E)
 println("\n---------------------------------------\n")
 
-
+#
 # 2b. Run the imaginary-time circuit
+#
 
-β = 10.0 # Inverse temperature
+β = 5.0 # Inverse temperature
 Δ = 0.5  # Intermediate time-step
 depth = Δ ÷ τ # Depth of the circuit
 steps = β ÷ Δ # Total number of circuit application
@@ -127,9 +113,8 @@ steps = β ÷ Δ # Total number of circuit application
 ρ = circuit(H)
 
 for b in 1:steps
-  
   # Run the circuit
-  global ρ = runcircuit(ρ,gates; cutoff = 1E-12)
+  global ρ = runcircuit(ρ, gates; cutoff = 1E-12)
   
   # Normalize the density operatorr
   normalize!(ρ)

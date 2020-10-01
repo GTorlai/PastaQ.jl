@@ -1,4 +1,9 @@
 using PastaQ
+using Random
+
+# Set the random seed so the results are the same
+# each time it is run
+Random.seed!(1234)
 
 N = 4
 
@@ -55,7 +60,7 @@ println()
 gates⁻¹ = qft(N; inverse = true)
 ψ = runcircuit(ψ, gates⁻¹)
 
-println("Sample from QFT⁻¹ QFT|$(number_bin_st)⟩:")
+println("Sample from QFT⁻¹QFT|$(number_bin_st)⟩:")
 samples = getsamples(ψ, 5)
 display(samples)
 

@@ -11,6 +11,8 @@ export
 # circuits/gates.jl
   # Methods
   gate,
+  # Macros
+  @GateName_str,
 
 # circuits/getsamples.jl
   # Methods
@@ -23,7 +25,7 @@ export
   circuit,
   resetqubits!,
   buildcircuit,
-  applygate!,
+  applygate,
   runcircuit,
 
 # lpdo.jl

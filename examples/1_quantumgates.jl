@@ -2,11 +2,8 @@ using PastaQ
 using ITensors
 using Random
 
-import PastaQ.gate
-macro GateName_str(s)
-  OpName{ITensors.SmallString(s)}
-end
-
+# Set the random seed so the results are the same
+# each time it is run
 Random.seed!(1234)
 
 # Initialize the MPS state ψ = |0,0,0⟩
@@ -15,7 +12,7 @@ Random.seed!(1234)
 @show ψ
 
 # Apply the X gate on qubit 2
-applygate!(ψ,"X",2)
+ψ = applygate(ψ, "X", 2)
 
 # Show samples from P(x) = |⟨x|ψ⟩|²
 println("Sample from |ψ⟩ = X₂|0,0,0⟩:")
@@ -30,15 +27,19 @@ println()
 # defined in gates.jl.
 #
 
-gate(::GateName"myX") = 
-  [0  1
-   1  0]
+# Import gate so it can be overloaded
+import PastaQ: gate
 
+gate(::GateName"iX") = 
+  [ 0 im
+   im  0]
+
+# Set the state back to |0,0,0⟩
 resetqubits!(ψ)
 
 # Show samples from P(x) = |⟨x|ψ⟩|²
-println("Sample from |ψ⟩ = X̃₁|0,0,0⟩:")
-applygate!(ψ,"myX",1)
+println("Sample from |ψ⟩ = iX₁|0,0,0⟩:")
+ψ = applygate(ψ, "iX", 1)
 display(getsamples(ψ, 3))
 println()
 

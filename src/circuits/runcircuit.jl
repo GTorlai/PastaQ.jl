@@ -117,6 +117,9 @@ function applygate!(M::Union{MPS,MPO},
   return M
 end
 
+applygate(M::Union{MPS, MPO}, args...; kwargs...) =
+  applygate!(copy(M), args...; kwargs...)
+
 """
     buildcircuit(M::Union{MPS,MPO}, gates::Vector{<:Tuple};
                  noise = nothing)
