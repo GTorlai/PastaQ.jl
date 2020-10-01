@@ -23,6 +23,7 @@ export
   circuit,
   resetqubits!,
   buildcircuit,
+  applygate!,
   runcircuit,
 
 # lpdo.jl
