@@ -79,7 +79,6 @@ N = length(ϱ)
 opt = SGD(η = 0.1)
 Λ = tomography(data, Λ0;
                optimizer = opt,
-               mixed = true,
                batchsize = 10,
                epochs = 2,
                target = ϱ)

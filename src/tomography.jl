@@ -443,7 +443,7 @@ function tomography(data::Matrix{Pair{String, String}}, L::LPDO;
                     observer! = nothing,
                     kwargs...)
   target = get(kwargs,:target,nothing)
-  mixed::Bool = get(kwargs,:mixed,false)
+  #mixed::Bool = get(kwargs,:mixed,false)
 
   optimizer = copy(optimizer)
 
@@ -635,10 +635,10 @@ function _tomography(data::Array, L::LPDO;
 end
 
 _tomography(data::Array, C::Choi; optimizer::Optimizer, kwargs...) =
- _tomography(data, C.M; optimizer = optimizer, kwargs...)
+ _tomography(data, C.M; optimizer = optimizer, mixed = false, kwargs...)
 
 _tomography(data::Array, ψ::MPS; optimizer::Optimizer, kwargs...) =
-  _tomography(data, LPDO(ψ); optimizer = optimizer, kwargs...)
+  _tomography(data, LPDO(ψ); optimizer = optimizer, mixed = true, kwargs...)
 
 
 #Run quantum process tomography on measurement data `data` using `model` as s variational ansatz.
