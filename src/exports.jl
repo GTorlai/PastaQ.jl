@@ -63,4 +63,5 @@ export
 # utils.jl
   # Methods
   writesamples,
-  readsamples
+  readsamples,
+  maxlinkdim
