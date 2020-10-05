@@ -228,7 +228,7 @@ function runcircuit(M::Union{MPS, MPO}, gates::Vector{<:Tuple};
                     noise = nothing,
                     apply_dag = nothing, 
                     cutoff = 1e-15,
-                    maxdim = 10000)
+                    maxdim = 10_000)
   gate_tensors = buildcircuit(M, gates; noise = noise) 
   return runcircuit(M, gate_tensors;
                     cutoff = cutoff,

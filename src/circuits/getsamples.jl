@@ -18,20 +18,42 @@ function randombases(N::Int,numshots::Int;
     bases = rand(localbasis,numshots,N)
   # Some number of shots per basis
   else
-    @assert(numshots%ndistinctbases ==0)
-    shotsperbasis = numshots÷ndistinctbases
-    bases = repeat(rand(localbasis,1,N),shotsperbasis)
+    @assert numshots % ndistinctbases == 0
+    shotsperbasis = numshots ÷ ndistinctbases
+    bases = repeat(rand(localbasis, 1, N), shotsperbasis)
     for n in 1:ndistinctbases-1
-      newbases = repeat(rand(localbasis,1,N),shotsperbasis)
+      newbases = repeat(rand(localbasis, 1, N), shotsperbasis)
       bases = vcat(bases,newbases)
     end
   end
   return bases
 end
 
+function phase(v::AbstractVector{ElT}) where {ElT <: Number}
+  for x in v
+    absx = abs(x)
+    if absx > 1e-3
+      return x / abs(x)
+    end
+  end
+  return one(ElT)
+end
+
+function eigenbasis(meas::String)
+  _, U = eigen(Hermitian(gate(meas)))
+  # Sort eigenvalues largest to smallest (defaults to smallest to largest)
+  U = reverse(U; dims = 2)
+  # Fix the sign of the eigenvectors
+  for n in 1:size(U, 2)
+    v = @view U[:, n]
+    p = phase(v)
+    v ./= p
+  end
+  return U
+end
 
 """
-    measurementgates(basis::Array)
+    measurementgates(meas::Array)
 
 Given as input a measurement basis, returns the corresponding
 gate data structure. If the basis is `"Z"`, no action is required.
@@ -39,16 +61,24 @@ If not, a quantum gate corresponding to the given basis rotation
 is added to the list.
 
 Example:
-  basis = ["X","Z","Z","Y"]
-  -> gate_list = [("measX", 1),
-                  ("measY", 4)]
+  meas = ["X","Z","Z","Y"]
+  -> gate_list = [("basisX", 1),
+                  ("basisZ", 2),
+                  ("basesZ", 3),
+                  ("basisY", 4)]
 """
-function measurementgates(basis::Array)
+function measurementgates(meas::Array)
+  basis = "basis" .* meas
+  # Define the basis if it doesn't exist
+  for j in 1:length(meas)
+    GN = GateName{ITensors.SmallString(basis[j])}
+    hasmethod(gate, Tuple{GN}) && continue
+    U = copy(eigenbasis(meas[j])')
+    @eval gate(::$GN) = $U
+  end
   gate_list = Tuple[]
-  for j in 1:length(basis)
-    if (basis[j]!= "Z")
-      push!(gate_list,("meas$(basis[j])", j))
-    end
+  for j in 1:length(meas)
+    push!(gate_list, (basis[j], j))
   end
   return gate_list
 end
@@ -73,7 +103,7 @@ function randompreparations(N::Int,nshots::Int;
   if isnothing(ndistinctstates)
     preparations = rand(inputstates,nshots,N)
   else
-    @assert(nshots%ndistinctstates == 0 )
+    @assert nshots % ndistinctstates == 0
     shotsperstate = nshots÷ndistinctstates
     preparations = repeat(rand(inputstates,1,N),shotsperstate)
     for n in 1:ndistinctstates-1
@@ -172,6 +202,7 @@ end
 
 """
     getsamples(M::Union{MPS,MPO}, bases::Array)
+
 Generate a dataset of `nshots` measurements acccording to a set
 of input `bases`. For a single measurement, tf `Û` is the depth-1 
 local circuit rotating each qubit, the  data-point `σ = (σ₁,σ₂,…)
@@ -184,8 +215,8 @@ function getsamples(M0::Union{MPS,MPO}, bases::Array; kwargs...)
   data = Matrix{Pair{String, Int}}(undef, size(bases)[1],length(M0))
   for n in 1:size(bases)[1]
     meas_gates = measurementgates(bases[n,:])
-    M = runcircuit(M0,meas_gates)
-    measurement = getsamples!(M;kwargs...)
+    M = runcircuit(M0, meas_gates)
+    measurement = getsamples!(M; kwargs...)
     data[n,:] .= bases[n,:] .=> measurement
     #data[n,:] = convertdatapoint(measurement,bases[n,:])
   end

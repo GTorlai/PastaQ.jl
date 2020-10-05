@@ -1,4 +1,8 @@
 #
+# TODO: delete meas gates
+#
+
+#
 # Qubit site type
 #
 
@@ -322,24 +326,6 @@ function gate(::GateName"randU", N::Int = 2;
 end
 
 #
-# Measurement gates
-#
-
-# Measurement rotation: |sX> -> |sZ>
-gate(::GateName"measX") =
-  gate("H")
-
-# Measurement rotation: |sY> -> |sZ>
-gate(::GateName"measY") =
-  [1/sqrt(2) -im/sqrt(2)
-   1/sqrt(2)  im/sqrt(2)]
-
-# Measurement rotation: |sZ> -> |sZ>
-gate(::GateName"measZ") =
-  gate("I")
-
-
-#
 # Noise model gate definitions
 #
 
@@ -404,14 +390,17 @@ gate(::GateName"noisePD"; kwargs...) =
 gate(::GateName{gn}; kwargs...) where {gn} =
   error("A gate with the name \"$gn\" has not been implemented yet. You can define it by overloading `gate(::GateName\"$gn\") = [...]`.")
 
-gate(s::String) = gate(GateName(s))
+# This uses Base.invokelatest since certain gate overloads
+# are made on the fly with @eval
+gate(s::String) = Base.invokelatest(gate, GateName(s))
 
 # Version that accepts a dimension for the gate,
 # for n-qubit gates
 gate(gn::GateName, N::Int; kwargs...) =
   gate(gn; kwargs...)
 
-function gate(gn::GateName, s::Index...; kwargs...)
+function gate(gn::GateName, s1::Index, ss::Index...; kwargs...)
+  s = tuple(s1, ss...)
   rs = reverse(s)
   g = gate(gn, dim(s); kwargs...) 
   if ndims(g) == 1
@@ -447,4 +436,22 @@ function ITensors.op(gn::GateName,
                      kwargs...)
   return gate(gn, s...; kwargs...)
 end
+
+#
+# Basis definitions (eigenbases of measurement gates)
+# These are kept as a reference
+#
+
+## Measurement rotation: |sX> -> |sZ>
+#gate(::GateName"basisX") =
+#  gate("H")
+#
+## Measurement rotation: |sY> -> |sZ>
+#gate(::GateName"basisY") =
+#  [1/sqrt(2) -im/sqrt(2)
+#   1/sqrt(2)  im/sqrt(2)]
+#
+## Measurement rotation: |sZ> -> |sZ>
+#gate(::GateName"basisZ") =
+#  gate("I")
 
