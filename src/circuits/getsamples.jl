@@ -143,18 +143,6 @@ function getsamples!(M::Union{MPS,MPO},nshots::Int; kwargs...)
   return measurements
 end
 
-"""
-    getsamples(M::Union{MPS,MPO}, nshots::Int; kwargs...)
-
-Perform a projective measurement of a wavefunction 
-`|ψ⟩` or density operator `ρ`. The measurement consist of
-a binary vector `σ = (σ₁,σ₂,…)`, drawn from the probabilty
-distribution:
-- P(σ) = |⟨σ|ψ⟩|² : if `M = ψ is MPS`
-- P(σ) = ⟨σ|ρ|σ⟩  : if `M = ρ is MPO`
-"""
-getsamples(M::Union{MPS,MPO}, nshots::Int; kwargs...) =
-  getsamples!(copy(M), nshots; kwargs...)
 
 """
     readouterror!(measurement::Array;probs::Array=[0.0,0.0])
@@ -193,14 +181,42 @@ is drawn from the probability distribution:
 """
 function getsamples(M0::Union{MPS,MPO}, bases::Array; kwargs...)
   @assert length(M0) == size(bases)[2]
-  data = Matrix{String}(undef, size(bases)[1],length(M0))
+  data = Matrix{Pair{String, Int}}(undef, size(bases)[1],length(M0))
   for n in 1:size(bases)[1]
     meas_gates = measurementgates(bases[n,:])
     M = runcircuit(M0,meas_gates)
     measurement = getsamples!(M;kwargs...)
-    data[n,:] = convertdatapoint(measurement,bases[n,:])
+    data[n,:] .= bases[n,:] .=> measurement
+    #data[n,:] = convertdatapoint(measurement,bases[n,:])
   end
   return data 
+end
+
+"""
+    getsamples(M::Union{MPS,MPO}, nshots::Int; kwargs...)
+
+Perform a projective measurement of a wavefunction 
+`|ψ⟩` or density operator `ρ`. The measurement consist of
+a binary vector `σ = (σ₁,σ₂,…)`, drawn from the probabilty
+distribution:
+- P(σ) = |⟨σ|ψ⟩|² : if `M = ψ is MPS`
+- P(σ) = ⟨σ|ρ|σ⟩  : if `M = ρ is MPO`
+"""
+function getsamples(M::Union{MPS,MPO}, nshots::Int64;
+                    localbasis = nothing,ndistinctbases = nothing,
+                    readout_errors = (p1given0 = nothing, p0given1 = nothing)
+                   )
+  
+  if isnothing(localbasis)
+    data = getsamples!(copy(M), nshots; readout_errors = readout_errors)
+  else
+    bases = randombases(length(M), nshots;
+                        localbasis = localbasis,
+                        ndistinctbases = ndistinctbases)
+
+    data = getsamples(M, bases; readout_errors = readout_errors)
+  end
+  return data
 end
 
 #
@@ -227,7 +243,7 @@ basis rotation is performed at the output of a quantum channel.
  - `prep`: a prepared input state (e.g. `["X+","Z-","Y+","X-"]`)
  - `basis`: a measuremement basis (e.g. `["Z","Z","Y","X"])
 """
-function getsamples(M0::Union{MPS,MPO},
+function getsamples(hilbert0::Vector{<:Index},
                     gate_tensors::Vector{<:ITensor},
                     prep::Array, basis::Array;
                     cutoff::Float64 = 1e-15,
@@ -238,6 +254,7 @@ function getsamples(M0::Union{MPS,MPO},
   prep_gates = preparationgates(prep)
   meas_gates = measurementgates(basis)
   # Prepare quantum state
+  M0 = qubits(hilbert0)
   M_in  = runcircuit(M0, prep_gates)
   # Apply the quantum channel
   M_out = runcircuit(M_in, gate_tensors,
@@ -247,7 +264,8 @@ function getsamples(M0::Union{MPS,MPO},
   # Measure
   measurement = getsamples!(M_meas; readout_errors = readout_errors)
   
-  return convertdatapoint(measurement, basis)
+  return basis .=> measurement
+  #return convertdatapoint(measurement, basis)
 end
 
 
@@ -321,7 +339,7 @@ function getsamples(N::Int64, gates::Vector{<:Tuple}, nshots::Int64;
                     noise = nothing,
                     build_process::Bool = true,
                     process::Bool = false,
-                    localbasis::Array = ["X","Y","Z"],
+                    localbasis = nothing,
                     inputstates::Array = ["X+","X-","Y+","Y-","Z+","Z-"],
                     ndistinctbases = nothing,
                     ndistinctstates = nothing,
@@ -329,109 +347,86 @@ function getsamples(N::Int64, gates::Vector{<:Tuple}, nshots::Int64;
                     maxdim::Int64 = 10000,
                     readout_errors = (p1given0 = nothing, p0given1 = nothing),
                     kwargs...)
-  data = Matrix{String}(undef, nshots,N)
-  bases = randombases(N, nshots;
-                      localbasis = localbasis,
-                      ndistinctbases = ndistinctbases)
+  
+  # Generate data on the quantum state at the output of the channel/circuit
   if !process
     # Apply the quantum channel
     M = runcircuit(N, gates; process = false, noise = noise,
                    cutoff = cutoff, maxdim = maxdim, kwargs...)
-    data = getsamples(M, bases; readout_errors = readout_errors)
+    
+    # Generate projective measurements
+    data = getsamples(M,nshots; 
+                      localbasis = localbasis, 
+                      ndistinctbases = ndistinctbases,
+                      readout_errors = readout_errors)
     return data, M
+                      
   else
-    # Generate a set of prepared input state to the channel
+    
+    localbasis = (isnothing(localbasis) ? ["X","Y","Z"] : localbasis)
+    
+    bases = randombases(N, nshots;
+                      localbasis = localbasis,
+                      ndistinctbases = ndistinctbases)
+    
     preps = randompreparations(N, nshots, inputstates = inputstates,
                                ndistinctstates = ndistinctstates)
-    # Generate data using circuit MPO (noiseless) or Choi matrix (noisy)
+    
+    # Generate the unitary MPO / Choi matrix, then sample from it
     if build_process
-      # Get unitary MPO / Choi matrix
-      M = runcircuit(N,gates;process=true,noise=noise, cutoff=cutoff,maxdim=maxdim,kwargs...)
-      for n in 1:nshots
-        M′= (isnothing(noise) ? projectunitary(M,preps[n,:]) : projectchoi(M,preps[n,:]))
-        meas_gates = measurementgates(bases[n,:])
-        M_meas = runcircuit(M′,meas_gates)
-        measurement = getsamples!(M_meas; readout_errors = readout_errors)
-        data[n,:] =  convertdatapoint(measurement,bases[n,:])
-      end
-      return preps .=> data, M
+      M = runcircuit(N, gates; process = true, noise = noise, 
+                     cutoff = cutoff,maxdim = maxdim, kwargs...)
+      data = getsamples(M, preps, bases; readout_errors = readout_errors)
+      return data, M
     
     # Generate data with full state evolution
     else
-      # Initialize state and indices
-      ψ0 = qubits(N)
-      # Pre-compile quantum channel
-      gate_tensors = buildcircuit(ψ0, gates; noise=noise, kwargs...)
-      for n in 1:nshots
-        data[n,:] = getsamples(ψ0, gate_tensors, preps[n,:], bases[n,:];
-                               noise = noise, cutoff = cutoff,
-                               build_process = false, # TODO: is this needed?
-                               maxdim = maxdim,
-                               readout_errors = readout_errors,
-                               kwargs...)
-      end
-      return preps .=> data
+      return getsamples(gates,preps,bases; noise = noise, cutoff = cutoff, maxdim = maxdim,
+                        readout_errors = readout_errors, kwargs...)
     end
   end
 end
 
 
-"""
-    convertdatapoint(datapoint::Array,basis::Array;state::Bool=false)
-
-Convert a data point from (sample,basis) -> data
-Ex: (0,1,0,0) (X,Z,Y,X) -> (X+,Z-,Y+,X+)
-"""
-function convertdatapoint(datapoint::Array, basis::Array;
-                          state::Bool=false)
-  newdata = []
-  # TODO: simplify with:
-  # if state
-  #   basis = "state" .* basis
-  # end
-  # if datapoint[j] == 0
-  #   newdata[j] = basis[j] * "+"
-  # elseif datapoint[j] == 1
-  #   newdata[j] = basis[j] * "-"
-  # end
-  for j in 1:length(datapoint)
-    if basis[j] == "X"
-      if datapoint[j] == 0
-        dat = (state ? "stateX+" : "X+")
-        push!(newdata,dat)
-      else
-        dat = (state ? "stateX-" : "X-")
-        push!(newdata,dat)
-      end
-    elseif basis[j] == "Y"
-      if datapoint[j] == 0
-        dat = (state ? "stateY+" : "Y+")
-        push!(newdata,dat)
-      else
-        dat = (state ? "stateY-" : "Y-")
-        push!(newdata,dat)
-      end
-    elseif basis[j] == "Z"
-      if datapoint[j] == 0
-        dat = (state ? "stateZ+" : "Z+")
-        push!(newdata,dat)
-      else
-        dat = (state ? "stateZ-" : "Z-")
-        push!(newdata,dat)
-      end
-    end
-  end
-  return newdata
-end
-
-function convertdatapoints(datapoints::Array,
-                           bases::Array;
-                           state::Bool=false)
-  newdata = Matrix{String}(undef, size(datapoints)[1],size(datapoints)[2]) 
+function getsamples(gates::Array,preps::Array, bases::Array ;
+                    noise = nothing,cutoff::Float64 = 1e-15,maxdim::Int64 = 10000,
+                    readout_errors = (p1given0 = nothing, p0given1 = nothing),
+                    kwargs...)
+  @assert size(preps) == size(bases)
+  N = size(preps)[2]
+  nshots = size(preps)[1]
   
-  for n in 1:size(datapoints)[1]
-    newdata[n,:] = convertdatapoint(datapoints[n,:],bases[n,:],state=state)
+  ψ0 = qubits(N)
+  hilbert = hilbertspace(ψ0) 
+  # Pre-compile quantum channel
+  gate_tensors = buildcircuit(ψ0, gates; noise=noise, kwargs...)
+  
+  data = Matrix{Pair{String, Int}}(undef,nshots,length(ψ0))
+  for n in 1:nshots
+    data[n,:] = getsamples(hilbert, gate_tensors, preps[n,:], bases[n,:];
+                           noise = noise, cutoff = cutoff, maxdim = maxdim,
+                           readout_errors = readout_errors, kwargs...)
   end
-  return newdata
+  return preps .=> data
 end
+
+
+function getsamples(M::Union{Choi,MPO}, preps::Array, bases::Array;
+                    readout_errors = (p1given0 = nothing, p0given1 = nothing))
+  
+  @assert size(preps) == size(bases)
+  nshots = size(preps)[1]
+  data = Matrix{Pair{String, Int}}(undef,nshots,length(M))
+  # Get unitary MPO / Choi matrix
+  for n in 1:nshots
+    M′= (M isa Choi ? projectchoi(M,preps[n,:]) : projectunitary(M,preps[n,:]))
+    meas_gates = measurementgates(bases[n,:])
+    M_meas = runcircuit(M′,meas_gates)
+    measurement = getsamples!(M_meas; readout_errors = readout_errors)
+    data[n,:] .= bases[n,:] .=> measurement
+    #data[n,:] =  convertdatapoint(measurement,bases[n,:])
+  end
+  return preps .=> data 
+end
+
 

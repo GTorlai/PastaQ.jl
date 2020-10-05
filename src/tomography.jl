@@ -415,10 +415,10 @@ gradients(ψ::MPS, data::Array; localnorms = nothing, choi::Bool = false) =
 #TEMPORARY WRAPPER 
 #This function is required as long as the process tomography is 
 #using a split representation.
-tomography(data::Array, L::LPDO; optimizer::Optimizer, observer! = nothing, kwargs...) =
+tomography(data::Matrix{Pair{String, Int}}, L::LPDO; optimizer::Optimizer, observer! = nothing, kwargs...) =
   _tomography(data, L; optimizer = optimizer, observer! = observer!, kwargs...)
 
-tomography(data::Array, ψ::MPS; optimizer::Optimizer, observer! = nothing, kwargs...) =
+tomography(data::Matrix{Pair{String, Int}}, ψ::MPS; optimizer::Optimizer, observer! = nothing, kwargs...) =
   tomography(data, LPDO(ψ); optimizer = optimizer, observer! = observer!, kwargs...).X
 
 
@@ -438,7 +438,7 @@ Run quantum state tomography using a the starting state `model` on `data`.
   - `observer!`: pass an observer object (like `TomographyObserver()`) to keep track of measurements and fidelities.
   - `outputpath`: write training metrics on file 
 """
-function tomography(data::Matrix{Pair{String, String}}, L::LPDO;
+function tomography(data::Matrix{Pair{String, Pair{String, Int}}}, L::LPDO;
                     optimizer::Optimizer,
                     mixed::Bool=false,
                     observer! = nothing,
@@ -505,17 +505,17 @@ function tomography(data::Matrix{Pair{String, String}}, L::LPDO;
   end
 end
 
-function tomography(data::Matrix{Pair{String, String}}, U::MPO;
+function tomography(data::Matrix{Pair{String, Pair{String, Int}}}, U::MPO;
                     optimizer::Optimizer, mixed::Bool=false, kwargs...) 
   return tomography(data, LPDO(U); optimizer = optimizer, mixed = mixed, kwargs...)
 end
 
-function tomography(data::Matrix{Pair{String, String}}, C::Choi;
+function tomography(data::Matrix{Pair{String, Pair{String, Int}}}, C::Choi;
                     optimizer::Optimizer, mixed::Bool=true, kwargs...)
   return tomography(data, C.M; optimizer = optimizer, mixed = mixed,  kwargs...)
 end
 
-function _tomography(data::Array, L::LPDO;
+function _tomography(data::Matrix{Pair{String, Int}}, L::LPDO;
                      optimizer::Optimizer,
                      observer! = nothing,
                      kwargs...)
@@ -535,8 +535,9 @@ function _tomography(data::Array, L::LPDO;
   end
   
   # Convert data to projectors
-  data = "state" .* data
-  
+  #data = "state" .* data
+  data = convertdatapoints(data; state = true)
+
   model = copy(L)
   F = nothing
   Fbound = nothing
@@ -626,26 +627,30 @@ function _tomography(data::Array, L::LPDO;
   return model
 end
 
-_tomography(data::Array, C::Choi; optimizer::Optimizer, mixed::Bool=false, kwargs...) =
+_tomography(data::Matrix{Pair{String, Int}}, C::Choi; optimizer::Optimizer, mixed::Bool=false, kwargs...) =
  _tomography(data, C.M; optimizer = optimizer, mixed = mixed, kwargs...)
 
-_tomography(data::Array, ψ::MPS; optimizer::Optimizer, mixed::Bool, kwargs...) =
+_tomography(data::Matrix{Pair{String, Int}}, ψ::MPS; optimizer::Optimizer, mixed::Bool, kwargs...) =
   _tomography(data, LPDO(ψ); optimizer = optimizer, mixed = mixed, kwargs...)
 
 
 #Run quantum process tomography on measurement data `data` using `model` as s variational ansatz.
 #
 #The data is reshuffled so it takes the format: `(input1,output1,input2,output2,…)`.
-function _tomography(data::Matrix{Pair{String, String}},
+function _tomography(data::Matrix{Pair{String, Pair{String, Int}}},
                      L::LPDO;
                      optimizer::Optimizer,
                      kwargs...)
   N = size(data, 2)
   nsamples = size(data, 1)
-  data_combined = Matrix{String}(undef, nsamples, 2*N)
+  inputs0 = first.(data)
+  bases = first.(last.(data))
+  outcomes = last.(last.(data))
+  data_combined = Matrix{Pair{String, Int}}(undef, nsamples, 2*N)
   for n in 1:nsamples
+    inputstate = convertdatapoint(inputs0[n,:])
     for j in 1:N
-      data_combined[n, 2*j-1] = first(data[n, j])
+      data_combined[n, 2*j-1] = inputstate[j] 
       data_combined[n, 2*j] = last(data[n, j])
     end
   end
