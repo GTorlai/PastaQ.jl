@@ -10,35 +10,32 @@ Save data and model on file:
   - `model`: (optional) MPS, MPO, or Choi
   - `output_path`: path to file
 """
-function writesamples(data::Matrix{Int64},
+function writesamples(data::Matrix{Int},
                       model::Union{MPS, MPO, LPDO, Choi},
                       output_path::String)
   # Make the path the file will sit in, if it doesn't exist
   mkpath(dirname(output_path))
   h5rewrite(output_path) do fout
-    #write(fout,"data",data)
     write(fout, "outcomes", data)
-    write(fout,"model",model)
+    write(fout,"model", model)
   end
 end
 
-function writesamples(data::Matrix{Pair{String, Int}},
+function writesamples(data::Matrix{Int},
                       output_path::String)
   # Make the path the file will sit in, if it doesn't exist
   mkpath(dirname(output_path))
   h5rewrite(output_path) do fout
-    #write(fout,"data",data)
-    write(fout, "bases", first.(data))
-    write(fout, "outcomes", last.(data))
+    write(fout, "outcomes", data)
   end
 end
+
 function writesamples(data::Matrix{Pair{String, Int}},
                       model::Union{MPS, MPO, LPDO, Choi},
                       output_path::String)
   # Make the path the file will sit in, if it doesn't exist
   mkpath(dirname(output_path))
   h5rewrite(output_path) do fout
-    #write(fout,"data",data)
     write(fout, "bases", first.(data))
     write(fout, "outcomes", last.(data))
     write(fout,"model",model)
@@ -50,33 +47,30 @@ function writesamples(data::Matrix{Pair{String, Int}},
   # Make the path the file will sit in, if it doesn't exist
   mkpath(dirname(output_path))
   h5rewrite(output_path) do fout
-    #write(fout,"data",data)
     write(fout, "bases", first.(data))
     write(fout, "outcomes", last.(data))
   end
 end
 
-function writesamples(data::Matrix{<: Pair},
+function writesamples(data::Matrix{Pair{String, Pair{String, Int}}},
                       model::Union{MPS, MPO, LPDO, Choi},
                       output_path::String)
   # Make the path the file will sit in, if it doesn't exist
   mkpath(dirname(output_path))
   h5rewrite(output_path) do fout
     write(fout, "inputs", first.(data))
-    #write(fout, "data_last", last.(data))
     write(fout, "bases", first.(last.(data)))
     write(fout, "outcomes", last.(last.(data)))
     write(fout, "model", model)
   end
 end
 
-function writesamples(data::Matrix{<: Pair},
+function writesamples(data::Matrix{Pair{String, Pair{String, Int}}},
                       output_path::String)
   # Make the path the file will sit in, if it doesn't exist
   mkpath(dirname(output_path))
   h5rewrite(output_path) do fout
     write(fout, "inputs", first.(data))
-    #write(fout, "data_last", last.(data))
     write(fout, "bases", first.(last.(data)))
     write(fout, "outcomes", last.(last.(data)))
   end
@@ -107,7 +101,6 @@ function readsamples(input_path::String)
   # Measurements in Z basis
   elseif exists(fin, "outcomes")
     data = read(fin,"outcomes")
-    #data = read(fin, "data")
   else
     close(fin)
     error("File must contain either \"data\" for quantum state tomography data or \"data_first\" and \"data_second\" for quantum process tomography.")
@@ -225,7 +218,7 @@ function convertdatapoint(outcome::Array{Int64}, basis::Array{String};
   @assert length(outcome) == length(basis)
   newdata = []
   if state
-    basis = "state" .* basis
+    basis = basis
   end
   for j in 1:length(outcome)
     if outcome[j] == 0 
@@ -273,14 +266,11 @@ end
 
 
 
-#function convertdatapoint(datapoint::Array{Pair{String,Int64}}; state::Bool=false)
+#function convertdatapoint(datapoint::Array{Pair{String,Int64}})
 #  newdata = []
 #  basis = first.(datapoint)
 #  outcome = last.(datapoint)
 #
-#  if state
-#    basis = "state" .* basis
-#  end
 #  for j in 1:length(datapoint)
 #    if outcome[j] == 0 
 #      push!(newdata, basis[j] * "+")
@@ -293,24 +283,20 @@ end
 #  return newdata
 #end
 
-#function convertdatapoints(datapoints::Matrix{Pair{String,Int64}}; state::Bool=false)
+#function convertdatapoints(datapoints::Matrix{Pair{String,Int64}})
 #  nshots = size(datapoints)[1]
 #  newdata = Matrix{String}(undef,nshots,size(datapoints)[2])
 #
 #  for n in 1:nshots
-#    newdata[n,:] = convertdatapoint(datapoints[n,:]; state = state)
+#    newdata[n,:] = convertdatapoint(datapoints[n,:])
 #  end
 #  return newdata
 #end
 
 
 
-#function convertdatapoint(datapoint::Array{Int64}, basis::Array{String};
-#                          state::Bool=false)
+#function convertdatapoint(datapoint::Array{Int64}, basis::Array{String})
 #  newdata = []
-#  if state
-#    basis = "state" .* basis
-#  end
 #  for j in 1:length(datapoint)
 #    push!(newdata,basis[j] => datapoint[j])
 #  end

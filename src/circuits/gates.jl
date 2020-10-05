@@ -2,22 +2,77 @@
 # Qubit site type
 #
 
-ITensors.space(::SiteType"Qubit") = 2
+import ITensors: space
 
-ITensors.state(::SiteType"Qubit", ::StateName"0") = 1
+space(::SiteType"Qubit") = 2
 
-ITensors.state(::SiteType"Qubit", ::StateName"1") = 2
+#
+# Single qubit states used for making product states
+#
 
-const GateName = OpName
+import ITensors: state
 
-macro GateName_str(s)
-  GateName{ITensors.SmallString(s)}
+state(::SiteType"Qubit", ::StateName"0") = 1
+
+state(::SiteType"Qubit", ::StateName"1") = 2
+
+state(::StateName"X+") =
+  [1/sqrt(2)
+   1/sqrt(2)]
+
+state(::StateName"X-") =
+  [ 1/sqrt(2)
+   -1/sqrt(2)]
+
+state(::StateName"Y+") =
+  [  1/sqrt(2)
+   im/sqrt(2)]
+
+state(::StateName"Y-") =
+  [  1/sqrt(2)
+   -im/sqrt(2)]
+
+state(::StateName"Z+") =
+  [1
+   0]
+
+state(::StateName"0") =
+  state("Z+")
+
+state(::StateName"Z-") =
+  [0
+   1]
+
+state(::StateName"1") =
+  state("Z-")
+
+# Version that accepts a dimension for the gate,
+# for qudits or other more general states
+state(sn::StateName, N::Int; kwargs...) =
+  state(sn; kwargs...)
+
+function state(sn::StateName, s::Index; kwargs...)
+  st = state(sn, dim(s); kwargs...)
+  return itensor(st, s)
+end
+
+function state(sn::String, s::Index; kwargs...)
+  if length(sn) > 8
+    sn = sn[1:8]
+  end
+  return state(StateName(sn), s; kwargs...)
 end
 
 #
 # Gate definitions.
 # Gate names must not start with "state".
 #
+
+const GateName = OpName
+
+macro GateName_str(s)
+  GateName{ITensors.SmallString(s)}
+end
 
 #
 # 1-qubit gates
@@ -267,37 +322,6 @@ function gate(::GateName"randU", N::Int = 2;
 end
 
 #
-# State preparation gates
-#
-
-# State preparation: |0> -> |+>
-gate(::GateName"prepX+") =
-  gate("H")
-
-# State preparation: |0> -> |->
-gate(::GateName"prepX-") =
-  [ 1/sqrt(2) 1/sqrt(2)
-   -1/sqrt(2) 1/sqrt(2)]
-
-# State preparation: |0> -> |r>
-gate(::GateName"prepY+") =
-  [ 1/sqrt(2)   1/sqrt(2)
-   im/sqrt(2) -im/sqrt(2)]
-
-# State preparation: |0> -> |l>
-gate(::GateName"prepY-") =
-  [  1/sqrt(2)  1/sqrt(2)
-   -im/sqrt(2) im/sqrt(2)]
-
-# State preparation: |0> -> |0>
-gate(::GateName"prepZ+") =
-  gate("I")
-
-# State preparation: |0> -> |1>
-gate(::GateName"prepZ-") =
-  gate("X")
-
-#
 # Measurement gates
 #
 
@@ -314,41 +338,6 @@ gate(::GateName"measY") =
 gate(::GateName"measZ") =
   gate("I")
 
-
-#
-# Measurement projections onto a state.
-# State projector names must start with "state".
-#
-
-gate(::GateName"stateX+") =
-  [1/sqrt(2)
-   1/sqrt(2)]
-
-gate(::GateName"stateX-") =
-  [ 1/sqrt(2)
-   -1/sqrt(2)]
-
-gate(::GateName"stateY+") =
-  [  1/sqrt(2)
-   im/sqrt(2)]
-
-gate(::GateName"stateY-") =
-  [  1/sqrt(2)
-   -im/sqrt(2)]
-
-gate(::GateName"stateZ+") =
-  [1
-   0]
-
-gate(::GateName"state0") =
-  gate("stateZ+")
-
-gate(::GateName"stateZ-") =
-  [0
-   1]
-
-gate(::GateName"state1") =
-  gate("stateZ-")
 
 #
 # Noise model gate definitions
@@ -426,7 +415,8 @@ function gate(gn::GateName, s::Index...; kwargs...)
   rs = reverse(s)
   g = gate(gn, dim(s); kwargs...) 
   if ndims(g) == 1
-    return itensor(g, rs...)
+    #return itensor(g, rs...)
+    error("gate must have more than one dimension, use state(...) for state vectors.")
   elseif ndims(g) == 2
     return itensor(g, prime.(rs)..., dag.(rs)...)
   elseif ndims(g) == 3

@@ -51,59 +51,23 @@ using LinearAlgebra
   ggdag = g * prime(dag(g),plev=1,1)
   @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
    
-  g = gate("prepX+",i) 
-  @test plev(inds(g)[1]) == 1 
-  @test plev(inds(g)[2]) == 0 
-  ggdag = g * prime(dag(g),plev=1,1)
-  @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
+  g = state("X+",i) 
+  @test plev(ind(g, 1)) == 0
   
-  g = gate("prepX-",i) 
-  @test plev(inds(g)[1]) == 1 
-  @test plev(inds(g)[2]) == 0 
-  ggdag = g * prime(dag(g),plev=1,1)
-  @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
+  g = state("X-",i) 
+  @test plev(ind(g, 1)) == 0
   
-  g = gate("prepY+",i) 
-  @test plev(inds(g)[1]) == 1 
-  @test plev(inds(g)[2]) == 0 
-  ggdag = g * prime(dag(g),plev=1,1)
-  @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
+  g = state("Y+",i) 
+  @test plev(ind(g, 1)) == 0
   
-  g = gate("prepY-",i) 
-  @test plev(inds(g)[1]) == 1 
-  @test plev(inds(g)[2]) == 0 
-  ggdag = g * prime(dag(g),plev=1,1)
-  @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
+  g = state("Y-",i) 
+  @test plev(ind(g, 1)) == 0
   
-  g = gate("prepZ+",i) 
-  @test plev(inds(g)[1]) == 1 
-  @test plev(inds(g)[2]) == 0 
-  ggdag = g * prime(dag(g),plev=1,1)
-  @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
-  
-  g = gate("prepZ-",i) 
-  @test plev(inds(g)[1]) == 1 
-  @test plev(inds(g)[2]) == 0 
-  ggdag = g * prime(dag(g),plev=1,1)
-  @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
-  
-  g = gate("measX",i) 
-  @test plev(inds(g)[1]) == 1 
-  @test plev(inds(g)[2]) == 0 
-  ggdag = g * prime(dag(g),plev=1,1)
-  @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
-  
-  g = gate("measY",i) 
-  @test plev(inds(g)[1]) == 1 
-  @test plev(inds(g)[2]) == 0 
-  ggdag = g * prime(dag(g),plev=1,1)
-  @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
-  
-  g = gate("measZ",i) 
-  @test plev(inds(g)[1]) == 1 
-  @test plev(inds(g)[2]) == 0 
-  ggdag = g * prime(dag(g),plev=1,1)
-  @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
+  g = state("Z+",i) 
+  @test plev(ind(g, 1)) == 0
+
+  g = state("Z-",i) 
+  @test plev(ind(g, 1)) == 0 
   
   θ = π * rand()
   g = gate("Rx",i,θ=θ)

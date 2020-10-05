@@ -31,7 +31,7 @@ opt = SGD(η = 0.01)
 # Run quantum state tomography, where a variational MPS `|ψ(θ)⟩`
 # is optimized to mimimize the cross entropy between the data and 
 # the tensor-network distribution `P(x) = |⟨x|ψ(θ)⟩|²`.
-println("Running tomography on to learn a pure state ψ:")
+println("Running tomography to learn a pure state ψ:")
 ψ = tomography(data, ψ0;
                optimizer = opt,
                batchsize = 1000,
@@ -65,7 +65,7 @@ opt = SGD(η = 0.1)
 # Run quantum state tomography, where a variational LPDO `ρ(θ)`
 # is optimized to mimimize the cross entropy between the data and 
 # the tensor-network distribution `P(x) = ⟨x|ρ(θ)|x⟩`.
-println("Running tomography on to learn a mixed state ρ:")
+println("Running tomography to learn a mixed state ρ:")
 ρ = tomography(data, ρ0;
                optimizer = opt,
                batchsize = 1000,
