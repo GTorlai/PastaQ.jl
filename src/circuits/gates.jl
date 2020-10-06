@@ -12,39 +12,6 @@ end
 
 ########################################################################
 # TODO: DELETE
-# Measurement projections onto a state.
-# State projector names must start with "state".
-#
-
-#gate(::GateName"X+") =
-#  [1/sqrt(2)
-#   1/sqrt(2)]
-#
-#gate(::GateName"X-") =
-#  [ 1/sqrt(2)
-#   -1/sqrt(2)]
-#
-#gate(::GateName"Y+") =
-#  [  1/sqrt(2)
-#   im/sqrt(2)]
-#
-#gate(::GateName"Y-") =
-#  [  1/sqrt(2)
-#   -im/sqrt(2)]
-#
-#gate(::GateName"Z+") =
-#  [1
-#   0]
-#
-#gate(::GateName"0") =
-#  gate("Z+")
-#
-#gate(::GateName"Z-") =
-#  [0
-#   1]
-#
-#gate(::GateName"1") =
-#  gate("Z-")
 
 #
 # Measurement gates
@@ -66,69 +33,38 @@ gate(::GateName"measZ") =
 ########################################################################
 
 #
-# Qubit site type
+# State-like gates, used to define product input states
 #
 
-import ITensors: space
-
-space(::SiteType"Qubit") = 2
-
-#
-# Single qubit states used for making product states
-#
-
-import ITensors: state
-
-state(::SiteType"Qubit", ::StateName"0") = 1
-
-state(::SiteType"Qubit", ::StateName"1") = 2
-
-state(::StateName"X+") =
+gate(::GateName"X+") =
   [1/sqrt(2)
    1/sqrt(2)]
 
-state(::StateName"X-") =
+gate(::GateName"X-") =
   [ 1/sqrt(2)
    -1/sqrt(2)]
 
-state(::StateName"Y+") =
-  [ 1/sqrt(2)
+gate(::GateName"Y+") =
+  [  1/sqrt(2)
    im/sqrt(2)]
 
-state(::StateName"Y-") =
+gate(::GateName"Y-") =
   [  1/sqrt(2)
    -im/sqrt(2)]
 
-state(::StateName"Z+") =
+gate(::GateName"Z+") =
   [1
    0]
 
-state(::StateName"0") =
-  state("Z+")
+gate(::GateName"0") =
+  gate("Z+")
 
-state(::StateName"Z-") =
+gate(::GateName"Z-") =
   [0
    1]
 
-state(::StateName"1") =
-  state("Z-")
-
-# Version that accepts a dimension for the gate,
-# for qudits or other more general states
-state(sn::StateName, N::Int; kwargs...) =
-  state(sn; kwargs...)
-
-function state(sn::StateName, s::Index; kwargs...)
-  st = state(sn, dim(s); kwargs...)
-  return itensor(st, s)
-end
-
-function state(sn::String, s::Index; kwargs...)
-  if length(sn) > 8
-    sn = sn[1:8]
-  end
-  return state(StateName(sn), s; kwargs...)
-end
+gate(::GateName"1") =
+  gate("Z-")
 
 #
 # 1-qubit gates
@@ -432,6 +368,20 @@ gate(::GateName"noiseAD"; kwargs...) =
 
 gate(::GateName"noisePD"; kwargs...) =
   gate("PD";kwargs...)
+
+#
+# Qubit site type
+#
+
+import ITensors: space
+
+space(::SiteType"Qubit") = 2
+
+import ITensors: state
+
+state(::SiteType"Qubit", ::StateName"0") = 1
+
+state(::SiteType"Qubit", ::StateName"1") = 2
 
 #
 # Basis definitions (eigenbases of measurement gates)
