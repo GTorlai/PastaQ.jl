@@ -120,7 +120,7 @@ end
 
 
 """
-    readouterror!(measurement::Matrix, p1given0, p0given1)
+    readouterror!(measurement::Union{Vector, Matrix}, p1given0, p0given1)
 
 Add readout error to a single measurement
 
@@ -129,7 +129,7 @@ Add readout error to a single measurement
   - `p1given0`: readout error probability 0 -> 1
   - `p0given1`: readout error probability 1 -> 0
 """
-function readouterror!(measurement::Matrix,
+function readouterror!(measurement::Union{Vector, Matrix},
                        p1given0::Float64,
                        p0given1::Float64)
 
