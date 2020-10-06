@@ -36,35 +36,40 @@ gate(::GateName"measZ") =
 # State-like gates, used to define product input states
 #
 
-gate(::GateName"X+") =
+initstate(::StateName"X+") =
   [1/sqrt(2)
    1/sqrt(2)]
 
-gate(::GateName"X-") =
+initstate(::StateName"X-") =
   [ 1/sqrt(2)
    -1/sqrt(2)]
 
-gate(::GateName"Y+") =
+initstate(::StateName"Y+") =
   [  1/sqrt(2)
    im/sqrt(2)]
 
-gate(::GateName"Y-") =
+initstate(::StateName"Y-") =
   [  1/sqrt(2)
    -im/sqrt(2)]
 
-gate(::GateName"Z+") =
+initstate(::StateName"Z+") =
   [1
    0]
 
-gate(::GateName"0") =
-  gate("Z+")
+initstate(::StateName"0") =
+  initstate("Z+")
 
-gate(::GateName"Z-") =
+initstate(::StateName"Z-") =
   [0
    1]
 
-gate(::GateName"1") =
-  gate("Z-")
+initstate(::StateName"1") =
+  initstate("Z-")
+
+initstate(sn::String; kwargs...) = initstate(StateName(sn); kwargs...)
+
+initstate(sn::String, i::Index; kwargs...) =
+  itensor(initstate(sn; kwargs...), i)
 
 #
 # 1-qubit gates
