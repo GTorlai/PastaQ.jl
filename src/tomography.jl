@@ -680,11 +680,11 @@ function nll(L::LPDO{MPS}, data::Array; choi::Bool = false)
   
   for n in 1:size(data)[1]
     x = data[n,:]
-    ψx = (choi ? dag(ψ[1]) * dag(gate(x[1],s[1])) :
-                 dag(ψ[1]) * gate(x[1],s[1]))
+    ψx = (choi ? dag(ψ[1]) * dag(state(x[1],s[1])) :
+                 dag(ψ[1]) * state(x[1],s[1]))
     for j in 2:N
-      ψ_r = (isodd(j) & choi ? ψ_r = dag(ψ[j]) * dag(gate(x[j],s[j])) :
-                               ψ_r = dag(ψ[j]) * gate(x[j],s[j]))
+      ψ_r = (isodd(j) & choi ? ψ_r = dag(ψ[j]) * dag(state(x[j],s[j])) :
+                               ψ_r = dag(ψ[j]) * state(x[j],s[j]))
       ψx = ψx * ψ_r
     end
     prob = abs2(ψx[])
@@ -717,8 +717,8 @@ function nll(L::LPDO{MPO}, data::Array; choi::Bool = false)
     # Project LPDO into the measurement eigenstates
     Φdag = dag(copy(lpdo))
     for j in 1:N
-      Φdag[j] = (isodd(j) & choi ? Φdag[j] = Φdag[j] * dag(gate(x[j],s[j])) :
-                                   Φdag[j] = Φdag[j] * gate(x[j],s[j]))
+      Φdag[j] = (isodd(j) & choi ? Φdag[j] = Φdag[j] * dag(state(x[j],s[j])) :
+                                   Φdag[j] = Φdag[j] * state(x[j],s[j]))
     end
     
     # Compute overlap

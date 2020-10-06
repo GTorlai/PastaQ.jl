@@ -16,35 +16,35 @@ end
 # State projector names must start with "state".
 #
 
-gate(::GateName"X+") =
-  [1/sqrt(2)
-   1/sqrt(2)]
-
-gate(::GateName"X-") =
-  [ 1/sqrt(2)
-   -1/sqrt(2)]
-
-gate(::GateName"Y+") =
-  [  1/sqrt(2)
-   im/sqrt(2)]
-
-gate(::GateName"Y-") =
-  [  1/sqrt(2)
-   -im/sqrt(2)]
-
-gate(::GateName"Z+") =
-  [1
-   0]
-
-gate(::GateName"0") =
-  gate("Z+")
-
-gate(::GateName"Z-") =
-  [0
-   1]
-
-gate(::GateName"1") =
-  gate("Z-")
+#gate(::GateName"X+") =
+#  [1/sqrt(2)
+#   1/sqrt(2)]
+#
+#gate(::GateName"X-") =
+#  [ 1/sqrt(2)
+#   -1/sqrt(2)]
+#
+#gate(::GateName"Y+") =
+#  [  1/sqrt(2)
+#   im/sqrt(2)]
+#
+#gate(::GateName"Y-") =
+#  [  1/sqrt(2)
+#   -im/sqrt(2)]
+#
+#gate(::GateName"Z+") =
+#  [1
+#   0]
+#
+#gate(::GateName"0") =
+#  gate("Z+")
+#
+#gate(::GateName"Z-") =
+#  [0
+#   1]
+#
+#gate(::GateName"1") =
+#  gate("Z-")
 
 #
 # Measurement gates
