@@ -9,25 +9,6 @@ macro GateName_str(s)
   GateName{ITensors.SmallString(s)}
 end
 
-##################################################################
-# TODO: DELETE
-#
-#
-## Measurement rotation: |sX> -> |sZ>
-#gate(::GateName"basisX") =
-#  gate("H")
-#
-## Measurement rotation: |sY> -> |sZ>
-#gate(::GateName"basisY") =
-#  [1/sqrt(2) -im/sqrt(2)
-#   1/sqrt(2)  im/sqrt(2)]
-#
-## Measurement rotation: |sZ> -> |sZ>
-#gate(::GateName"basisZ") =
-#  gate("I")
-#
-##################################################################
-
 #
 # State-like gates, used to define product input states
 #

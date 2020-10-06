@@ -85,29 +85,28 @@ function randompreparations(N::Int,nshots::Int;
 end
 
 
-"""
-    preparationgates(prep::Array)
-
-Given as input a prepared input state, returns the corresponding
-gate data structure. If the state is `"Z+"`, no action is required.
-If not, a quantum gate for state preparation is added to the list.
-
-Example:
-prep = ["X+","Z+","Z+","Y+"]
--> gate_list = [("prepX+", 1),
-                ("prepY+", 4)]
-"""
-function preparationgates(prep::Array)
-  gate_list = Tuple[]
-  for j in 1:length(prep)
-    if (prep[j]!= "Z+")
-      gatename = "prep$(prep[j])"
-      push!(gate_list, (gatename, j))
-    end
-  end
-  return gate_list
-end
-
+#"""
+#    preparationgates(prep::Array)
+#
+#Given as input a prepared input state, returns the corresponding
+#gate data structure. If the state is `"Z+"`, no action is required.
+#If not, a quantum gate for state preparation is added to the list.
+#
+#Example:
+#prep = ["X+","Z+","Z+","Y+"]
+#-> gate_list = [("prepX+", 1),
+#                ("prepY+", 4)]
+#"""
+#function preparationgates(prep::Array)
+#  gate_list = Tuple[]
+#  for j in 1:length(prep)
+#    if (prep[j]!= "Z+")
+#      gatename = "prep$(prep[j])"
+#      push!(gate_list, (gatename, j))
+#    end
+#  end
+#  return gate_list
+#end
 
 function getsamples!(M::Union{MPS,MPO};
                      readout_errors = (p1given0 = nothing,
@@ -251,11 +250,15 @@ function getsamples(hilbert0::Vector{<:Index},
                     readout_errors = nothing,
                     kwargs...)
   # Generate preparation/measurement gates
-  prep_gates = preparationgates(prep)
   meas_gates = measurementgates(basis)
   # Prepare quantum state
-  M0 = qubits(hilbert0)
-  M_in  = runcircuit(M0, prep_gates)
+  M_in = qubits(hilbert0, prep)
+
+  # TODO: delete
+  #M0 = qubits(hilbert0)
+  #prep_gates = preparationgates(prep)
+  #M_in  = runcircuit(M0, prep_gates)
+
   # Apply the quantum channel
   M_out = runcircuit(M_in, gate_tensors,
                      cutoff = cutoff, maxdim = maxdim) 
