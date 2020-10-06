@@ -160,9 +160,9 @@ end
       end
     end
   
-    ψ2 = ψ_out[1] * dag(initstate(x2[1],s[1]))
+    ψ2 = ψ_out[1] * dag(inputstate(x2[1],s[1]))
     for j in 2:N
-      ψ_r = ψ_out[j] * dag(initstate(x2[j],s[j]))
+      ψ_r = ψ_out[j] * dag(inputstate(x2[j],s[j]))
       ψ2 = ψ2 * ψ_r
     end
     ψ2 = ψ2[]
@@ -192,9 +192,9 @@ end
       ψ1 = (ψ1 * noprime!(ψ_r) * setelt(s[N]=>x1[N]))[]
     end
   
-    ψ2 = dag(ψ_out[1]) * initstate(x2[1],s[1])
+    ψ2 = dag(ψ_out[1]) * inputstate(x2[1],s[1])
     for j in 2:N
-      ψ_r = dag(ψ_out[j]) * initstate(x2[j],s[j])
+      ψ_r = dag(ψ_out[j]) * inputstate(x2[j],s[j])
       ψ2 = ψ2 * ψ_r
     end
     ψ2 = ψ2[]

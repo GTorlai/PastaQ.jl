@@ -56,7 +56,7 @@ end
 
 """
     randompreparations(N::Int,nshots::Int;
-                       states::Array=["X+","X-","Y+","Y-","Z+","Z-"],
+                       inputstates::Array=["X+","X-","Y+","Y-","Z+","Z-"],
                        ndistinctstates=nothing)
 
 Generate `nshots` input states to a quantum circuit. By default, each
@@ -171,6 +171,7 @@ end
 
 """
     getsamples(M::Union{MPS,MPO}, bases::Array)
+
 Generate a dataset of `nshots` measurements acccording to a set
 of input `bases`. For a single measurement, tf `Û` is the depth-1 
 local circuit rotating each qubit, the  data-point `σ = (σ₁,σ₂,…)
@@ -202,10 +203,8 @@ distribution:
 - P(σ) = ⟨σ|ρ|σ⟩  : if `M = ρ is MPO`
 """
 function getsamples(M::Union{MPS,MPO}, nshots::Int64;
-                    localbasis = nothing,ndistinctbases = nothing,
-                    readout_errors = (p1given0 = nothing, p0given1 = nothing)
-                   )
-  
+                    localbasis = nothing, ndistinctbases = nothing,
+                    readout_errors = (p1given0 = nothing, p0given1 = nothing))
   if isnothing(localbasis)
     data = getsamples!(copy(M), nshots; readout_errors = readout_errors)
   else
@@ -289,8 +288,8 @@ function projectchoi(Λ0::Choi{MPO}, prep::Array)
   
   for j in 1:length(choi)
     # No conjugate on the gate (transpose input!)
-    choi[j] = choi[j] * dag(initstate(st[j],s[j]))
-    choi[j] = choi[j] * prime(initstate(st[j],s[j]))
+    choi[j] = choi[j] * dag(inputstate(st[j],s[j]))
+    choi[j] = choi[j] * prime(inputstate(st[j],s[j]))
   end
   return choi
 end
@@ -310,7 +309,7 @@ function projectunitary(U::MPO,prep::Array)
   M = ITensor[]
   s = firstsiteinds(U)
   for j in 1:length(U)
-    push!(M,U[j] * initstate(st[j],s[j]))
+    push!(M,U[j] * inputstate(st[j],s[j]))
   end
   return noprime!(MPS(M))
 end
@@ -371,8 +370,8 @@ function getsamples(N::Int64, gates::Vector{<:Tuple}, nshots::Int64;
     localbasis = (isnothing(localbasis) ? ["X","Y","Z"] : localbasis)
     
     bases = randombases(N, nshots;
-                      localbasis = localbasis,
-                      ndistinctbases = ndistinctbases)
+                        localbasis = localbasis,
+                        ndistinctbases = ndistinctbases)
     
     preps = randompreparations(N, nshots, inputstates = inputstates,
                                ndistinctstates = ndistinctstates)
