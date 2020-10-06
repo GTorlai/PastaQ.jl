@@ -1,7 +1,7 @@
 """
-    randombases(N::Int,nshots::Int;
-                localbasis::Array=["X","Y","Z"],
-                ndistinctbases=nothing)
+    randombases(N::Int, nshots::Int;
+                local_basis = ["X","Y","Z"],
+                ndistinctbases = nothing)
 
 Generate `nshots` measurement bases. By default, each
 local basis is randomly selected between `["X","Y","Z"]`, with
@@ -10,19 +10,19 @@ If `ndistinctbases` is provided, the output consist of `ndistinctbases`
 different measurement basis, each being repeated `nshots÷ndistinctbases`
 times.
 """
-function randombases(N::Int,numshots::Int;
-                     localbasis::Array=["X","Y","Z"],
-                     ndistinctbases=nothing)
+function randombases(N::Int, numshots::Int;
+                     local_basis = ["X","Y","Z"],
+                     ndistinctbases = nothing)
   # One shot per basis
   if isnothing(ndistinctbases)
-    bases = rand(localbasis,numshots,N)
+    bases = rand(local_basis,numshots,N)
   # Some number of shots per basis
   else
     @assert(numshots%ndistinctbases ==0)
     shotsperbasis = numshots÷ndistinctbases
-    bases = repeat(rand(localbasis,1,N),shotsperbasis)
+    bases = repeat(rand(local_basis,1,N),shotsperbasis)
     for n in 1:ndistinctbases-1
-      newbases = repeat(rand(localbasis,1,N),shotsperbasis)
+      newbases = repeat(rand(local_basis,1,N),shotsperbasis)
       bases = vcat(bases,newbases)
     end
   end
@@ -31,7 +31,7 @@ end
 
 
 """
-    measurementgates(basis::Array)
+    measurementgates(basis::Vector)
 
 Given as input a measurement basis, returns the corresponding
 gate data structure. If the basis is `"Z"`, no action is required.
@@ -43,7 +43,7 @@ Example:
   -> gate_list = [("basisX", 1),
                   ("basisY", 4)]
 """
-function measurementgates(basis::Array)
+function measurementgates(basis::Vector)
   gate_list = Tuple[]
   for j in 1:length(basis)
     if basis[j] ≠ "Z"
@@ -55,9 +55,9 @@ end
 
 
 """
-    randompreparations(N::Int,nshots::Int;
-                       local_input_states::Array=["X+","X-","Y+","Y-","Z+","Z-"],
-                       ndistinctstates=nothing)
+    randompreparations(N::Int, nshots::Int;
+                       local_inputstate = ["X+","X-","Y+","Y-","Z+","Z-"],
+                       ndistinctstates = nothing)
 
 Generate `nshots` input states to a quantum circuit. By default, each
 single-qubit state is randomly selected between the 6 eigenstates of
@@ -66,47 +66,23 @@ If `ndistinctstates` is provided, the output consist of `numprep`
 different input states, each being repeated `nshots÷ndistinctstates`
 times.
 """
-function randompreparations(N::Int,nshots::Int;
-                            local_input_states::Array=["X+","X-","Y+","Y-","Z+","Z-"],
-                            ndistinctstates=nothing)
+function randompreparations(N::Int, nshots::Int;
+                            local_inputstate = ["X+","X-","Y+","Y-","Z+","Z-"],
+                            ndistinctstates = nothing)
   # One shot per basis
   if isnothing(ndistinctstates)
-    preparations = rand(local_input_states,nshots,N)
+    preparations = rand(local_inputstate,nshots,N)
   else
     @assert(nshots%ndistinctstates == 0 )
     shotsperstate = nshots÷ndistinctstates
-    preparations = repeat(rand(local_input_states,1,N),shotsperstate)
+    preparations = repeat(rand(local_inputstate,1,N),shotsperstate)
     for n in 1:ndistinctstates-1
-      newstates = repeat(rand(local_input_states,1,N),shotsperstate)
+      newstates = repeat(rand(local_inputstate,1,N),shotsperstate)
       preparations = vcat(preparations,newstates)
     end
   end
   return preparations
 end
-
-
-#"""
-#    preparationgates(prep::Array)
-#
-#Given as input a prepared input state, returns the corresponding
-#gate data structure. If the state is `"Z+"`, no action is required.
-#If not, a quantum gate for state preparation is added to the list.
-#
-#Example:
-#prep = ["X+","Z+","Z+","Y+"]
-#-> gate_list = [("prepX+", 1),
-#                ("prepY+", 4)]
-#"""
-#function preparationgates(prep::Array)
-#  gate_list = Tuple[]
-#  for j in 1:length(prep)
-#    if (prep[j]!= "Z+")
-#      gatename = "prep$(prep[j])"
-#      push!(gate_list, (gatename, j))
-#    end
-#  end
-#  return gate_list
-#end
 
 function getsamples!(M::Union{MPS,MPO};
                      readout_errors = (p1given0 = nothing,
@@ -144,7 +120,7 @@ end
 
 
 """
-    readouterror!(measurement::Array;probs::Array=[0.0,0.0])
+    readouterror!(measurement::Matrix, p1given0, p0given1)
 
 Add readout error to a single measurement
 
@@ -153,7 +129,9 @@ Add readout error to a single measurement
   - `p1given0`: readout error probability 0 -> 1
   - `p0given1`: readout error probability 1 -> 0
 """
-function readouterror!(measurement::Array,p1given0::Float64,p0given1::Float64)
+function readouterror!(measurement::Matrix,
+                       p1given0::Float64,
+                       p0given1::Float64)
 
   for j in 1:size(measurement)[1]
     if measurement[j] == 0
@@ -173,7 +151,7 @@ end
     getsamples(M::Union{MPS,MPO}, bases::Array)
 
 Generate a dataset of `nshots` measurements acccording to a set
-of input `bases`. For a single measurement, tf `Û` is the depth-1 
+of input `bases`. For a single measurement, `Û` is the depth-1 
 local circuit rotating each qubit, the  data-point `σ = (σ₁,σ₂,…)
 is drawn from the probability distribution:
 - P(σ) = |⟨σ|Û|ψ⟩|²   : if M = ψ is MPS
@@ -187,31 +165,39 @@ function getsamples(M0::Union{MPS,MPO}, bases::Array; kwargs...)
     M = runcircuit(M0,meas_gates)
     measurement = getsamples!(M;kwargs...)
     data[n,:] .= bases[n,:] .=> measurement
-    #data[n,:] = convertdatapoint(measurement,bases[n,:])
   end
   return data 
 end
 
 """
-    getsamples(M::Union{MPS,MPO}, nshots::Int; kwargs...)
+    getsamples(M::Union{MPS,MPO}, nshots::Int;
+               local_basis = ["X", "Y", "Z"],
+               ndistinctbases = nothing)
 
-Perform a projective measurement of a wavefunction 
-`|ψ⟩` or density operator `ρ`. The measurement consist of
+Perform `nshots` projective measurements of a wavefunction 
+`|ψ⟩` or density operator `ρ`. The measurement consists of
 a binary vector `σ = (σ₁,σ₂,…)`, drawn from the probabilty
 distribution:
-- P(σ) = |⟨σ|ψ⟩|² : if `M = ψ is MPS`
-- P(σ) = ⟨σ|ρ|σ⟩  : if `M = ρ is MPO`
+- P(σ) = |⟨σ|Û|ψ⟩|² : if `M = ψ is MPS`
+- P(σ) = ⟨σ|Û ρ Û†|σ⟩  : if `M = ρ is MPO`
+
+For a single measurement, `Û` is the depth-1
+local circuit rotating each qubit, where the rotations are determined by
+randomly choosing from the bases specified by `local_basis`
+keyword argument (i.e. if `"X"` is chosen out of `["X", "Y", "Z"]`,
+the rotation is the eigenbasis of `"X"`).
 """
 function getsamples(M::Union{MPS,MPO}, nshots::Int64;
-                    localbasis = nothing, ndistinctbases = nothing,
-                    readout_errors = (p1given0 = nothing, p0given1 = nothing))
-  if isnothing(localbasis)
+                    local_basis = ["X", "Y", "Z"],
+                    ndistinctbases = nothing,
+                    readout_errors = (p1given0 = nothing,
+                                      p0given1 = nothing))
+  if isnothing(local_basis)
     data = getsamples!(copy(M), nshots; readout_errors = readout_errors)
   else
     bases = randombases(length(M), nshots;
-                        localbasis = localbasis,
+                        local_basis = local_basis,
                         ndistinctbases = ndistinctbases)
-
     data = getsamples(M, bases; readout_errors = readout_errors)
   end
   return data
@@ -320,8 +306,8 @@ end
                noise = nothing,
                process::Bool = false,              
                build_process::Bool = false,
-               localbasis::Array = ["X","Y","Z"],                   
-               local_input_states::Array = ["X+","X-","Y+","Y-","Z+","Z-"],
+               local_basis::Array = ["X","Y","Z"],                   
+               local_inputstate::Array = ["X+","X-","Y+","Y-","Z+","Z-"],
                ndistinctbases = nothing,
                ndistinctstates = nothing,
                cutoff::Float64 = 1e-15,
@@ -336,15 +322,15 @@ quantum channel corresponding to a set of quantum `gates` and a `noise` model.
   - `noise`: apply a noise model after each quantum gate in the circuit
   - `process`: if false, generate data for state tomography, where the state is defined by the gates applied to the state `|0,0,...,⟩`. If true, generate data for process tomography.
   - `build_process`: if true, generate data by building the full unitary circuit or Choi matrix, and then sampling from that unitary circuit or Choi matrix (as opposed to running the circuit many times on different initial states). It is only used if `process = true`.
-  - `local_input_states`: a set of input states (e.g. `["X+","X-","Y+","Y-","Z+","Z-"]`) which are chosen randomly to genarate input states.
-  - `localbasis`: the local bases used (e.g. `["X","Y","Z"]) which are chosen randomly to perform measurements in a random basis.
+  - `local_inputstate`: a set of input states (e.g. `["X+","X-","Y+","Y-","Z+","Z-"]`) which are sampled randomly to generate input states.
+  - `local_basis`: the local bases (e.g. `["X","Y","Z"]) which are sampled randomly to perform measurements in a random basis.
 """
 function getsamples(N::Int64, gates::Vector{<:Tuple}, nshots::Int64;
                     noise = nothing,
                     build_process::Bool = true,
                     process::Bool = false,
-                    localbasis = nothing,
-                    local_input_states::Array = ["X+","X-","Y+","Y-","Z+","Z-"],
+                    local_basis = ["X", "Y", "Z"],
+                    local_inputstate = ["X+","X-","Y+","Y-","Z+","Z-"],
                     ndistinctbases = nothing,
                     ndistinctstates = nothing,
                     cutoff::Float64 = 1e-15,
@@ -360,20 +346,20 @@ function getsamples(N::Int64, gates::Vector{<:Tuple}, nshots::Int64;
     
     # Generate projective measurements
     data = getsamples(M,nshots; 
-                      localbasis = localbasis, 
+                      local_basis = local_basis, 
                       ndistinctbases = ndistinctbases,
                       readout_errors = readout_errors)
     return data, M
                       
   else
     
-    localbasis = (isnothing(localbasis) ? ["X","Y","Z"] : localbasis)
+    local_basis = (isnothing(local_basis) ? ["X","Y","Z"] : local_basis)
     
     bases = randombases(N, nshots;
-                        localbasis = localbasis,
+                        local_basis = local_basis,
                         ndistinctbases = ndistinctbases)
     
-    preps = randompreparations(N, nshots, local_input_states = local_input_states,
+    preps = randompreparations(N, nshots, local_inputstate = local_inputstate,
                                ndistinctstates = ndistinctstates)
     
     # Generate the unitary MPO / Choi matrix, then sample from it

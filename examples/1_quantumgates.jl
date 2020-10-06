@@ -14,7 +14,7 @@ Random.seed!(1234)
 
 # Show samples from P(x) = |⟨x|ψ⟩|²
 println("Sample from |ψ⟩ = X₂|0,0,0⟩:")
-display(getsamples(ψ, 3))
+display(getsamples(ψ, 3; local_basis = nothing))
 println()
 
 # Custom gates
@@ -38,6 +38,6 @@ resetqubits!(ψ)
 # Show samples from P(x) = |⟨x|ψ⟩|²
 println("Sample from |ψ⟩ = iX₁|0,0,0⟩:")
 ψ = applygate(ψ, "iX", 1)
-display(getsamples(ψ, 3))
+display(getsamples(ψ, 3; local_basis = nothing))
 println()
 

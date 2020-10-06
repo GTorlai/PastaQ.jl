@@ -268,11 +268,11 @@ end
   @test size(data) == (nshots,N)
   
   # 2a) Generate data with a MPS on multiple bases
-  bases = randombases(N,nshots;localbasis=["X","Y","Z"])
+  bases = randombases(N,nshots;local_basis=["X","Y","Z"])
   data = getsamples(ψ,bases)
   @test size(data) == (nshots,N)
   # 2b) Generate data with a MPO on multiple bases
-  bases = randombases(N,nshots;localbasis=["X","Y","Z"])
+  bases = randombases(N,nshots;local_basis=["X","Y","Z"])
   data = getsamples(ρ,bases)
   @test size(data) == (nshots,N)
 
@@ -282,18 +282,18 @@ end
   data, _ = getsamples(N, gates, nshots;
                        noise = ("amplitude_damping", (γ = 0.1,)))
   @test size(data) == (nshots, N)
-  data, _ = getsamples(N, gates, nshots; localbasis = ["X","Y","Z"])
+  data, _ = getsamples(N, gates, nshots; local_basis = ["X","Y","Z"])
   @test size(data) == (nshots,N)
   data, _ = getsamples(N, gates, nshots;
                        noise = ("amplitude_damping", (γ = 0.1,)),
-                       localbasis = ["X","Y","Z"])
+                       local_basis = ["X","Y","Z"])
   @test size(data) == (nshots,N)
   data, M = getsamples(N, gates, nshots;)
   data, M = getsamples(N, gates, nshots; noise = ("amplitude_damping", (γ = 0.1,)))
-  data, M = getsamples(N, gates, nshots; localbasis = ["X","Y","Z"])
+  data, M = getsamples(N, gates, nshots; local_basis = ["X","Y","Z"])
   data, M = getsamples(N, gates, nshots;
                        noise = ("amplitude_damping", (γ = 0.1,)),
-                       localbasis = ["X","Y","Z"])
+                       local_basis = ["X","Y","Z"])
   
   # 4) Process tomography
   data = getsamples(N, gates, nshots; process = true, build_process = false)
@@ -331,11 +331,11 @@ end
   @test size(data) == (nshots,N)
   
   # 2a) Generate data with a MPS on multiple bases
-  bases = randombases(N,nshots;localbasis=["X","Y","Z"])
+  bases = randombases(N,nshots;local_basis=["X","Y","Z"])
   data = getsamples(ψ,bases;readout_errors = readout_errors)
   @test size(data) == (nshots,N)
   # 2b) Generate data with a MPO on multiple bases
-  bases = randombases(N,nshots;localbasis=["X","Y","Z"])
+  bases = randombases(N,nshots;local_basis=["X","Y","Z"])
   data = getsamples(ρ,bases;readout_errors = readout_errors)
   @test size(data) == (nshots,N)
 
@@ -346,20 +346,20 @@ end
                        noise = ("amplitude_damping", (γ = 0.1,)),
                        readout_errors = readout_errors)
   @test size(data) == (nshots,N)
-  data, _ = getsamples(N, gates, nshots; localbasis = ["X","Y","Z"], readout_errors = readout_errors)
+  data, _ = getsamples(N, gates, nshots; local_basis = ["X","Y","Z"], readout_errors = readout_errors)
   @test size(data) == (nshots,N)
   data, _ = getsamples(N, gates, nshots;
                        noise = ("amplitude_damping", (γ = 0.1,)),
-                       localbasis = ["X","Y","Z"],
+                       local_basis = ["X","Y","Z"],
                        readout_errors = readout_errors)
   @test size(data) == (nshots,N)
   data, M = getsamples(N, gates, nshots; readout_errors = readout_errors)
   data, M = getsamples(N, gates, nshots;
                        noise = ("amplitude_damping", (γ = 0.1,)), readout_errors = readout_errors)
-  data, M = getsamples(N, gates, nshots; localbasis = ["X","Y","Z"], readout_errors = readout_errors)
+  data, M = getsamples(N, gates, nshots; local_basis = ["X","Y","Z"], readout_errors = readout_errors)
   data, M = getsamples(N, gates, nshots;
                        noise = ("amplitude_damping", (γ=0.1,)),
-                       localbasis = ["X","Y","Z"],
+                       local_basis = ["X","Y","Z"],
                        readout_errors = readout_errors)
   
   # 4) Process tomography

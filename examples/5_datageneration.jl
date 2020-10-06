@@ -12,26 +12,24 @@ gates = randomcircuit(N,depth)
 
 # 1. Generation of measurement data on the quantum states
 # at the output of a circuit. Each data-point is a projetive
-# measurement in an arbitrary local basis.Default local basis 
+# measurement in an arbitrary local basis. The default local basis 
 # is `["X","Y","Z"]`.
 # a) Unitary circuit
 println("Generate samples from random projective measurements of the state U|0,0,…>:")
-data, ψ = getsamples(N, gates, nshots;
-                     localbasis = ["X","Y","Z"])
+data, ψ = getsamples(N, gates, nshots)
 # Returns output state as MPS
 @show maxlinkdim(ψ)
 display(data)
 println()
 
 # Note: the above is equivalent to:
-#> bases = randombases(N,nshots,localbasis=["X","Y","Z"])
+#> bases = randombases(N,nshots)
 #> ψ = runcircuit(N,gates)
 #> data = getsamples(ψ,nshots,bases)
 
 # b) Noisy circuit
 println("Generate samples from random projective measurements of the state ρ = ε(|0,0,…⟩⟨0,0,…|) generated from noisy gate evolution:")
 data, ρ = getsamples(N, gates, nshots;
-                     localbasis = ["X","Y","Z"], 
                      noise = ("amplitude_damping", (γ = 0.01,)))
 writesamples(data, ρ, "data/qst_circuit_noisy.h5")
 # Return the mixed density operator as MPO
