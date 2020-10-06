@@ -9,28 +9,24 @@ macro GateName_str(s)
   GateName{ITensors.SmallString(s)}
 end
 
-
-########################################################################
+##################################################################
 # TODO: DELETE
-
 #
-# Measurement gates
 #
-
-# Measurement rotation: |sX> -> |sZ>
-gate(::GateName"measX") =
-  gate("H")
-
-# Measurement rotation: |sY> -> |sZ>
-gate(::GateName"measY") =
-  [1/sqrt(2) -im/sqrt(2)
-   1/sqrt(2)  im/sqrt(2)]
-
-# Measurement rotation: |sZ> -> |sZ>
-gate(::GateName"measZ") =
-  gate("I")
-
-########################################################################
+## Measurement rotation: |sX> -> |sZ>
+#gate(::GateName"basisX") =
+#  gate("H")
+#
+## Measurement rotation: |sY> -> |sZ>
+#gate(::GateName"basisY") =
+#  [1/sqrt(2) -im/sqrt(2)
+#   1/sqrt(2)  im/sqrt(2)]
+#
+## Measurement rotation: |sZ> -> |sZ>
+#gate(::GateName"basisZ") =
+#  gate("I")
+#
+##################################################################
 
 #
 # State-like gates, used to define product input states
@@ -403,7 +399,7 @@ function phase(v::AbstractVector{ElT}) where {ElT <: Number}
   return one(ElT)
 end
 
-function eigenbasis(GN::GateName; kwargs...)
+function eigenbasis(GN::GateName; dag::Bool = false, kwargs...)
   _, U = eigen(Hermitian(gate(GN; kwargs...)))
   # Sort eigenvalues largest to smallest (defaults to smallest to largest)
   U = reverse(U; dims = 2)
@@ -413,23 +409,11 @@ function eigenbasis(GN::GateName; kwargs...)
     p = phase(v)
     v ./= p
   end
+  if dag
+    return copy(U')
+  end
   return U
 end
-
-basisgate(GN::GateName; kwargs...) = copy(eigenbasis(GN; kwargs...)')
-
-## Measurement rotation: |sX> -> |sZ>
-#gate(::GateName"basisX") =
-#  gate("H")
-#
-## Measurement rotation: |sY> -> |sZ>
-#gate(::GateName"basisY") =
-#  [1/sqrt(2) -im/sqrt(2)
-#   1/sqrt(2)  im/sqrt(2)]
-#
-## Measurement rotation: |sZ> -> |sZ>
-#gate(::GateName"basisZ") =
-#  gate("I")
 
 #
 # Get an ITensor gate from a gate definition
@@ -448,14 +432,14 @@ function gate(::GateName{gn}; kwargs...) where {gn}
   gn_st = String(gn)
   if startswith(gn_st, "basis")
     GN = GateName(replace(gn_st, "basis" => ""))
-    return basisgate(GN; kwargs...)
+    return eigenbasis(GN; kwargs...)
   end
   error("A gate with the name \"$gn\" has not been implemented yet. You can define it by overloading `gate(::GateName\"$gn\") = [...]`.")
 end
 
 # Maybe use Base.invokelatest since certain gate overloads
 # may be made on the fly with @eval
-gate(s::String) = gate(GateName(s))
+gate(s::String; kwargs...) = gate(GateName(s); kwargs...)
 
 # Version that accepts a dimension for the gate,
 # for n-qubit gates

@@ -40,14 +40,14 @@ is added to the list.
 
 Example:
   basis = ["X","Z","Z","Y"]
-  -> gate_list = [("measX", 1),
-                  ("measY", 4)]
+  -> gate_list = [("basisX", 1),
+                  ("basisY", 4)]
 """
 function measurementgates(basis::Array)
   gate_list = Tuple[]
   for j in 1:length(basis)
-    if (basis[j]!= "Z")
-      push!(gate_list,("meas$(basis[j])", j))
+    if basis[j] ≠ "Z"
+      push!(gate_list, ("basis$(basis[j])", j, (dag = true,)))
     end
   end
   return gate_list
