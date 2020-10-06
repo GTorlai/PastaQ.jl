@@ -11,11 +11,77 @@ Initialize qubits to:
 qubits(N::Int; mixed::Bool=false) =
   qubits(siteinds("Qubit", N); mixed=mixed)
 
-qubits(sites::Vector{<:Index}; mixed::Bool=false) = 
-  mixed ? MPO(productMPS(sites, "0")) : productMPS(sites, "0") 
+function qubits(sites::Vector{<:Index}; mixed::Bool = false)
+  ψ = productMPS(sites, "0")
+  mixed && return MPO(ψ)
+  return ψ
+end
 
 qubits(M::Union{MPS,MPO,LPDO}; mixed::Bool=false) =
-  qubits(hilbertspace(M); mixed=mixed)
+  qubits(hilbertspace(M); mixed = mixed)
+
+qubits(N::Int, states::Vector{String}; mixed::Bool=false) =
+  qubits(siteinds("Qubit", N), states; mixed=mixed)
+
+function qubits(sites::Vector{<:Index}, states::Vector{String};
+                mixed::Bool = false)
+  N = length(sites)
+  @assert N == length(states)
+
+  ψ = productMPS(sites, "0")
+
+  if N == 1
+    s1 = sites[1]
+    state1 = inputstate(states[1])
+    if eltype(state1) <: Complex
+      ψ[1] = complex(ψ[1])
+    end
+    for j in 1:dim(s1)
+      ψ[1][s1 => j] = state1[j]
+    end
+    mixed && return MPO(ψ)
+    return ψ
+  end
+
+  # Set first site
+  s1 = sites[1]
+  l1 = linkind(ψ, 1)
+  state1 = inputstate(states[1])
+  if eltype(state1) <: Complex
+    ψ[1] = complex(ψ[1])
+  end
+  for j in 1:dim(s1)
+    ψ[1][s1 => j, l1 => 1] = state1[j]
+  end
+
+  # Set sites 2:N-1
+  for n in 2:N-1
+    sn = sites[n]
+    ln_1 = linkind(ψ, n-1)
+    ln = linkind(ψ, n)
+    state_n = inputstate(states[n])
+    if eltype(state_n) <: Complex
+      ψ[n] = complex(ψ[n])
+    end
+    for j in 1:dim(sn)
+      ψ[n][sn => j, ln_1 => 1, ln => 1] = state_n[j]
+    end
+  end
+  
+  # Set last site N
+  sN = sites[N]
+  lN_1 = linkind(ψ, N-1)
+  state_N = inputstate(states[N])
+  if eltype(state_N) <: Complex
+    ψ[N] = complex(ψ[N])
+  end
+  for j in 1:dim(sN)
+    ψ[N][sN => j, lN_1 => 1] = state_N[j]
+  end
+  
+  mixed && return MPO(ψ)
+  return ψ
+end
 
 """ 
     resetqubits!(M::Union{MPS,MPO})
@@ -228,7 +294,7 @@ function runcircuit(M::Union{MPS, MPO}, gates::Vector{<:Tuple};
                     noise = nothing,
                     apply_dag = nothing, 
                     cutoff = 1e-15,
-                    maxdim = 10000)
+                    maxdim = 10_000)
   gate_tensors = buildcircuit(M, gates; noise = noise) 
   return runcircuit(M, gate_tensors;
                     cutoff = cutoff,

@@ -1,12 +1,7 @@
 #
-# Qubit site type
+# Gate definitions.
+# Gate names must not start with "basis".
 #
-
-ITensors.space(::SiteType"Qubit") = 2
-
-ITensors.state(::SiteType"Qubit", ::StateName"0") = 1
-
-ITensors.state(::SiteType"Qubit", ::StateName"1") = 2
 
 const GateName = OpName
 
@@ -15,9 +10,45 @@ macro GateName_str(s)
 end
 
 #
-# Gate definitions.
-# Gate names must not start with "state".
+# State-like gates, used to define product input states
 #
+
+# TODO: add an arbitrary state specified by angles
+
+inputstate(::StateName"X+") =
+  [1/sqrt(2)
+   1/sqrt(2)]
+
+inputstate(::StateName"X-") =
+  [ 1/sqrt(2)
+   -1/sqrt(2)]
+
+inputstate(::StateName"Y+") =
+  [  1/sqrt(2)
+   im/sqrt(2)]
+
+inputstate(::StateName"Y-") =
+  [  1/sqrt(2)
+   -im/sqrt(2)]
+
+inputstate(::StateName"Z+") =
+  [1
+   0]
+
+inputstate(::StateName"0") =
+  inputstate("Z+")
+
+inputstate(::StateName"Z-") =
+  [0
+   1]
+
+inputstate(::StateName"1") =
+  inputstate("Z-")
+
+inputstate(sn::String; kwargs...) = inputstate(StateName(sn); kwargs...)
+
+inputstate(sn::String, i::Index; kwargs...) =
+  itensor(inputstate(sn; kwargs...), i)
 
 #
 # 1-qubit gates
@@ -267,90 +298,6 @@ function gate(::GateName"randU", N::Int = 2;
 end
 
 #
-# State preparation gates
-#
-
-# State preparation: |0> -> |+>
-gate(::GateName"prepX+") =
-  gate("H")
-
-# State preparation: |0> -> |->
-gate(::GateName"prepX-") =
-  [ 1/sqrt(2) 1/sqrt(2)
-   -1/sqrt(2) 1/sqrt(2)]
-
-# State preparation: |0> -> |r>
-gate(::GateName"prepY+") =
-  [ 1/sqrt(2)   1/sqrt(2)
-   im/sqrt(2) -im/sqrt(2)]
-
-# State preparation: |0> -> |l>
-gate(::GateName"prepY-") =
-  [  1/sqrt(2)  1/sqrt(2)
-   -im/sqrt(2) im/sqrt(2)]
-
-# State preparation: |0> -> |0>
-gate(::GateName"prepZ+") =
-  gate("I")
-
-# State preparation: |0> -> |1>
-gate(::GateName"prepZ-") =
-  gate("X")
-
-#
-# Measurement gates
-#
-
-# Measurement rotation: |sX> -> |sZ>
-gate(::GateName"measX") =
-  gate("H")
-
-# Measurement rotation: |sY> -> |sZ>
-gate(::GateName"measY") =
-  [1/sqrt(2) -im/sqrt(2)
-   1/sqrt(2)  im/sqrt(2)]
-
-# Measurement rotation: |sZ> -> |sZ>
-gate(::GateName"measZ") =
-  gate("I")
-
-
-#
-# Measurement projections onto a state.
-# State projector names must start with "state".
-#
-
-gate(::GateName"stateX+") =
-  [1/sqrt(2)
-   1/sqrt(2)]
-
-gate(::GateName"stateX-") =
-  [ 1/sqrt(2)
-   -1/sqrt(2)]
-
-gate(::GateName"stateY+") =
-  [  1/sqrt(2)
-   im/sqrt(2)]
-
-gate(::GateName"stateY-") =
-  [  1/sqrt(2)
-   -im/sqrt(2)]
-
-gate(::GateName"stateZ+") =
-  [1
-   0]
-
-gate(::GateName"state0") =
-  gate("stateZ+")
-
-gate(::GateName"stateZ-") =
-  [0
-   1]
-
-gate(::GateName"state1") =
-  gate("stateZ-")
-
-#
 # Noise model gate definitions
 #
 
@@ -406,26 +353,88 @@ gate(::GateName"noiseAD"; kwargs...) =
 gate(::GateName"noisePD"; kwargs...) =
   gate("PD";kwargs...)
 
+#
+# Qubit site type
+#
+
+import ITensors: space
+
+space(::SiteType"Qubit") = 2
+
+import ITensors: state
+
+state(::SiteType"Qubit", ::StateName"0") = 1
+
+state(::SiteType"Qubit", ::StateName"1") = 2
+
+#
+# Basis definitions (eigenbases of measurement gates)
+#
+
+function phase(v::AbstractVector{ElT}) where {ElT <: Number}
+  for x in v
+    absx = abs(x)
+    if absx > 1e-3
+      return x / abs(x)
+    end
+  end
+  return one(ElT)
+end
+
+function eigenbasis(GN::GateName; dag::Bool = false, kwargs...)
+  _, U = eigen(Hermitian(gate(GN; kwargs...)))
+  # Sort eigenvalues largest to smallest (defaults to smallest to largest)
+  U = reverse(U; dims = 2)
+  # Fix the sign of the eigenvectors
+  for n in 1:size(U, 2)
+    v = @view U[:, n]
+    p = phase(v)
+    v ./= p
+  end
+  if dag
+    return copy(U')
+  end
+  return U
+end
 
 #
 # Get an ITensor gate from a gate definition
 #
 
+function Base.startswith(ss::ITensors.SmallString, st::String)
+  for j in 1:length(st)
+    if ss[j] ≠ st[j]
+      return false
+    end
+  end
+  return true
+end
 
-gate(::GateName{gn}; kwargs...) where {gn} =
+function gate(::GateName{gn}; kwargs...) where {gn}
+  gn_st = String(gn)
+  if startswith(gn_st, "basis")
+    GN = GateName(replace(gn_st, "basis" => ""))
+    return eigenbasis(GN; kwargs...)
+  end
   error("A gate with the name \"$gn\" has not been implemented yet. You can define it by overloading `gate(::GateName\"$gn\") = [...]`.")
+end
 
-gate(s::String) = gate(GateName(s))
+# Maybe use Base.invokelatest since certain gate overloads
+# may be made on the fly with @eval
+gate(s::String; kwargs...) = gate(GateName(s); kwargs...)
 
 # Version that accepts a dimension for the gate,
 # for n-qubit gates
 gate(gn::GateName, N::Int; kwargs...) =
   gate(gn; kwargs...)
 
-function gate(gn::GateName, s::Index...; kwargs...)
+function gate(gn::GateName, s1::Index, ss::Index...; kwargs...)
+  s = tuple(s1, ss...)
   rs = reverse(s)
   g = gate(gn, dim(s); kwargs...) 
   if ndims(g) == 1
+    # TODO:
+    #error("gate must have more than one dimension, use state(...) for state vectors.")
     return itensor(g, rs...)
   elseif ndims(g) == 2
     return itensor(g, prime.(rs)..., dag.(rs)...)
@@ -443,7 +452,7 @@ function gate(gn::String, s::Index...; kwargs...)
   return gate(GateName(gn), s...; kwargs...)
 end
 
-gate(gn::String, s::Vector{<:Index}, ns::Int...; kwargs...) =
+gate(gn::String, s::Vector{<: Index}, ns::Int...; kwargs...) =
   gate(gn, s[[ns...]]...; kwargs...)
 
 #

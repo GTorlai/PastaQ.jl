@@ -168,7 +168,7 @@ gates = randomcircuit(N, depth) # Build gates
 data, ψ = getsamples(N, gates, nshots)
 
 #  Note: the above is equivalent to:
-# > bases = randombases(N, nshots; localbasis = ["X","Y","Z"])
+# > bases = randombases(N, nshots; local_basis = ["X","Y","Z"])
 # > ψ = runcircuit(N, gates)
 # > data = getsamples(ψ, bases)
 

@@ -115,7 +115,7 @@ end
     if (basis[1] == "Z")
       ψ1 = ψ_out[1] * setelt(s[1]=>x1[1])
     else
-      rotation = gate(ψ_out,"meas$(basis[1])",1)
+      rotation = gate(ψ_out,"basis$(basis[1])",1; dag = true)
       ψ_r = ψ_out[1] * rotation
       ψ1 = noprime!(ψ_r) * setelt(s[1]=>x1[1])
     end
@@ -123,7 +123,7 @@ end
       if (basis[j] == "Z")
         ψ1 = ψ1 * ψ_out[j] * setelt(s[j]=>x1[j])
       else
-        rotation = gate(ψ_out,"meas$(basis[j])",j)
+        rotation = gate(ψ_out,"basis$(basis[j])",j; dag = true)
         ψ_r = ψ_out[j] * rotation
         ψ1 = ψ1 * noprime!(ψ_r) * setelt(s[j]=>x1[j])
       end
@@ -131,7 +131,7 @@ end
     if (basis[N] == "Z")
       ψ1 = (ψ1 * ψ_out[N] * setelt(s[N]=>x1[N]))[]
     else
-      rotation = gate(ψ_out,"meas$(basis[N])",N)
+      rotation = gate(ψ_out,"basis$(basis[N])",N, dag = true)
       ψ_r = ψ_out[N] * rotation
       ψ1 = (ψ1 * noprime!(ψ_r) * setelt(s[N]=>x1[N]))[]
     end
@@ -141,28 +141,28 @@ end
     for j in 1:N
       if basis[j] == "X"
         if x1[j] == 1
-          push!(x2,"stateX+")
+          push!(x2,"X+")
         else
-          push!(x2,"stateX-")
+          push!(x2,"X-")
         end
       elseif basis[j] == "Y"
         if x1[j] == 1
-          push!(x2,"stateY+")
+          push!(x2,"Y+")
         else
-          push!(x2,"stateY-")
+          push!(x2,"Y-")
         end
       elseif basis[j] == "Z"
         if x1[j] == 1
-          push!(x2,"stateZ+")
+          push!(x2,"Z+")
         else
-          push!(x2,"stateZ-")
+          push!(x2,"Z-")
         end
       end
     end
   
-    ψ2 = ψ_out[1] * dag(gate(x2[1],s[1]))
+    ψ2 = ψ_out[1] * dag(inputstate(x2[1],s[1]))
     for j in 2:N
-      ψ_r = ψ_out[j] * dag(gate(x2[j],s[j]))
+      ψ_r = ψ_out[j] * dag(inputstate(x2[j],s[j]))
       ψ2 = ψ2 * ψ_r
     end
     ψ2 = ψ2[]
@@ -171,7 +171,7 @@ end
     if (basis[1] == "Z")
       ψ1 = dag(ψ_out[1]) * setelt(s[1]=>x1[1])
     else
-      rotation = gate(ψ_out,"meas$(basis[1])",1)
+      rotation = gate(ψ_out,"basis$(basis[1])",1; dag = true)
       ψ_r = dag(ψ_out[1]) * dag(rotation)
       ψ1 = noprime!(ψ_r) * setelt(s[1]=>x1[1])
     end
@@ -179,7 +179,7 @@ end
       if (basis[j] == "Z")
         ψ1 = ψ1 * dag(ψ_out[j]) * setelt(s[j]=>x1[j])
       else
-        rotation = gate(ψ_out,"meas$(basis[j])",j)
+        rotation = gate(ψ_out,"basis$(basis[j])",j; dag = true)
         ψ_r = dag(ψ_out[j]) * dag(rotation)
         ψ1 = ψ1 * noprime!(ψ_r) * setelt(s[j]=>x1[j])
       end
@@ -187,14 +187,14 @@ end
     if (basis[N] == "Z")
       ψ1 = (ψ1 * dag(ψ_out[N]) * setelt(s[N]=>x1[N]))[]
     else
-      rotation = gate(ψ_out,"meas$(basis[N])",N)
+      rotation = gate(ψ_out,"basis$(basis[N])",N; dag = true)
       ψ_r = dag(ψ_out[N]) * dag(rotation)
       ψ1 = (ψ1 * noprime!(ψ_r) * setelt(s[N]=>x1[N]))[]
     end
   
-    ψ2 = dag(ψ_out[1]) * gate(x2[1],s[1])
+    ψ2 = dag(ψ_out[1]) * inputstate(x2[1],s[1])
     for j in 2:N
-      ψ_r = dag(ψ_out[j]) * gate(x2[j],s[j])
+      ψ_r = dag(ψ_out[j]) * inputstate(x2[j],s[j])
       ψ2 = ψ2 * ψ_r
     end
     ψ2 = ψ2[]
@@ -214,9 +214,8 @@ end
   preps = PastaQ.randompreparations(N,ntrial)
   
   for n in 1:ntrial
-    pgates = PastaQ.preparationgates(preps[n,:])
     mgates = PastaQ.measurementgates(bases[n,:])
-    ψ_in  = runcircuit(N,pgates)
+    ψ_in  = qubits(N, preps[n,:])
     ψ_out = runcircuit(ψ_in,gates)
     
     Ψ_out = PastaQ.projectunitary(U,preps[n,:])
@@ -240,9 +239,8 @@ end
   bases = randombases(N,ntrial)
   preps = PastaQ.randompreparations(N,ntrial)
   for n in 1:ntrial
-    pgates = PastaQ.preparationgates(preps[n,:])
     mgates = PastaQ.measurementgates(bases[n,:])
-    ψ_in  = runcircuit(N,pgates)
+    ψ_in  = qubits(N, preps[n,:])
     ρ_out = runcircuit(ψ_in, gates; noise = ("amplitude_damping", (γ = 0.1,)))
     
     Λ_out = PastaQ.projectchoi(Λ,preps[n,:])
@@ -270,11 +268,11 @@ end
   @test size(data) == (nshots,N)
   
   # 2a) Generate data with a MPS on multiple bases
-  bases = randombases(N,nshots;localbasis=["X","Y","Z"])
+  bases = randombases(N,nshots;local_basis=["X","Y","Z"])
   data = getsamples(ψ,bases)
   @test size(data) == (nshots,N)
   # 2b) Generate data with a MPO on multiple bases
-  bases = randombases(N,nshots;localbasis=["X","Y","Z"])
+  bases = randombases(N,nshots;local_basis=["X","Y","Z"])
   data = getsamples(ρ,bases)
   @test size(data) == (nshots,N)
 
@@ -284,18 +282,18 @@ end
   data, _ = getsamples(N, gates, nshots;
                        noise = ("amplitude_damping", (γ = 0.1,)))
   @test size(data) == (nshots, N)
-  data, _ = getsamples(N, gates, nshots; localbasis = ["X","Y","Z"])
+  data, _ = getsamples(N, gates, nshots; local_basis = ["X","Y","Z"])
   @test size(data) == (nshots,N)
   data, _ = getsamples(N, gates, nshots;
                        noise = ("amplitude_damping", (γ = 0.1,)),
-                       localbasis = ["X","Y","Z"])
+                       local_basis = ["X","Y","Z"])
   @test size(data) == (nshots,N)
   data, M = getsamples(N, gates, nshots;)
   data, M = getsamples(N, gates, nshots; noise = ("amplitude_damping", (γ = 0.1,)))
-  data, M = getsamples(N, gates, nshots; localbasis = ["X","Y","Z"])
+  data, M = getsamples(N, gates, nshots; local_basis = ["X","Y","Z"])
   data, M = getsamples(N, gates, nshots;
                        noise = ("amplitude_damping", (γ = 0.1,)),
-                       localbasis = ["X","Y","Z"])
+                       local_basis = ["X","Y","Z"])
   
   # 4) Process tomography
   data = getsamples(N, gates, nshots; process = true, build_process = false)
@@ -333,11 +331,11 @@ end
   @test size(data) == (nshots,N)
   
   # 2a) Generate data with a MPS on multiple bases
-  bases = randombases(N,nshots;localbasis=["X","Y","Z"])
+  bases = randombases(N,nshots;local_basis=["X","Y","Z"])
   data = getsamples(ψ,bases;readout_errors = readout_errors)
   @test size(data) == (nshots,N)
   # 2b) Generate data with a MPO on multiple bases
-  bases = randombases(N,nshots;localbasis=["X","Y","Z"])
+  bases = randombases(N,nshots;local_basis=["X","Y","Z"])
   data = getsamples(ρ,bases;readout_errors = readout_errors)
   @test size(data) == (nshots,N)
 
@@ -348,20 +346,20 @@ end
                        noise = ("amplitude_damping", (γ = 0.1,)),
                        readout_errors = readout_errors)
   @test size(data) == (nshots,N)
-  data, _ = getsamples(N, gates, nshots; localbasis = ["X","Y","Z"], readout_errors = readout_errors)
+  data, _ = getsamples(N, gates, nshots; local_basis = ["X","Y","Z"], readout_errors = readout_errors)
   @test size(data) == (nshots,N)
   data, _ = getsamples(N, gates, nshots;
                        noise = ("amplitude_damping", (γ = 0.1,)),
-                       localbasis = ["X","Y","Z"],
+                       local_basis = ["X","Y","Z"],
                        readout_errors = readout_errors)
   @test size(data) == (nshots,N)
   data, M = getsamples(N, gates, nshots; readout_errors = readout_errors)
   data, M = getsamples(N, gates, nshots;
                        noise = ("amplitude_damping", (γ = 0.1,)), readout_errors = readout_errors)
-  data, M = getsamples(N, gates, nshots; localbasis = ["X","Y","Z"], readout_errors = readout_errors)
+  data, M = getsamples(N, gates, nshots; local_basis = ["X","Y","Z"], readout_errors = readout_errors)
   data, M = getsamples(N, gates, nshots;
                        noise = ("amplitude_damping", (γ=0.1,)),
-                       localbasis = ["X","Y","Z"],
+                       local_basis = ["X","Y","Z"],
                        readout_errors = readout_errors)
   
   # 4) Process tomography

@@ -324,131 +324,65 @@ end
 end
 
 
-@testset "apply gate: prep X+" begin
-  psi = qubits(1)
-  PastaQ.applygate!(psi,"prepX+",1)
+@testset "apply gate: prep X+/X-" begin
+  psi = qubits(1, ["X+"])
   @test PastaQ.fullvector(psi) ≈ 1/sqrt(2.)*[1.,1.]
   
-  psi = qubits(1)
-  gate_data = ("prepX+", 1)
-  g = gate(psi,gate_data)
-  PastaQ.applygate!(psi,g)
-  @test PastaQ.fullvector(psi) ≈ 1/sqrt(2.)*[1.,1.]
-end
-
-
-@testset "apply gate: prep X-" begin
-  psi = qubits(1)
-  PastaQ.applygate!(psi,"prepX-",1)
-  @test PastaQ.fullvector(psi) ≈ 1/sqrt(2.)*[1.,-1.]
-  
-  psi = qubits(1)
-  gate_data = ("prepX-", 1)
-  g = gate(psi,gate_data)
-  PastaQ.applygate!(psi,g)
+  psi = qubits(1, ["X-"])
   @test PastaQ.fullvector(psi) ≈ 1/sqrt(2.)*[1.,-1.]
 end
 
-@testset "apply gate: prep Y+" begin
-  psi = qubits(1)
-  PastaQ.applygate!(psi,"prepY+",1)
+@testset "apply gate: prep Y+/Y-" begin
+  psi = qubits(1, ["Y+"])
   @test PastaQ.fullvector(psi) ≈ 1/sqrt(2.)*[1.,im]
   
-  psi = qubits(1)
-  gate_data = ("prepY+", 1)
-  g = gate(psi,gate_data)
-  PastaQ.applygate!(psi,g)
-  @test PastaQ.fullvector(psi) ≈ 1/sqrt(2.)*[1.,im]
-end
-
-
-@testset "apply gate: prep Y-" begin
-  psi = qubits(1)
-  PastaQ.applygate!(psi,"prepY-",1)
-  @test PastaQ.fullvector(psi) ≈ 1/sqrt(2.)*[1.,-im]
-  
-  psi = qubits(1)
-  gate_data = ("prepY-", 1)
-  g = gate(psi,gate_data)
-  PastaQ.applygate!(psi,g)
+  psi = qubits(1, ["Y-"])
   @test PastaQ.fullvector(psi) ≈ 1/sqrt(2.)*[1.,-im]
 end
 
-@testset "apply gate: prep Z+" begin
-  psi = qubits(1)
-  PastaQ.applygate!(psi,"prepZ+",1)
+@testset "apply gate: prep Z+/Z-" begin
+  psi = qubits(1, ["Z+"])
   @test PastaQ.fullvector(psi) ≈ [1.,0.]
   
-  psi = qubits(1)
-  gate_data = ("prepZ+", 1)
-  g = gate(psi,gate_data)
-  PastaQ.applygate!(psi,g)
-  @test PastaQ.fullvector(psi) ≈ [1.,0.]
-end
-
-@testset "apply gate: prep Z-" begin
-  psi = qubits(1)
-  PastaQ.applygate!(psi,"prepZ-",1)
-  @test PastaQ.fullvector(psi) ≈ [0.,1.]
-  
-  psi = qubits(1)
-  gate_data = ("prepZ-", 1)
-  g = gate(psi,gate_data)
-  PastaQ.applygate!(psi,g)
+  psi = qubits(1, ["Z-"])
   @test PastaQ.fullvector(psi) ≈ [0.,1.]
 end
 
 @testset "apply gate: meas X" begin
-  psi = qubits(1)
-  PastaQ.applygate!(psi,"prepX+",1)
-  PastaQ.applygate!(psi,"measX",1)
+  psi = qubits(1, ["X+"])
+  PastaQ.applygate!(psi,"basisX",1; dag = true)
   @test PastaQ.fullvector(psi) ≈ [1.,0.]
-  psi = qubits(1)
-  PastaQ.applygate!(psi,"prepX-",1)
-  PastaQ.applygate!(psi,"measX",1)
+  psi = qubits(1, ["X-"])
+  PastaQ.applygate!(psi,"basisX",1; dag = true)
   @test PastaQ.fullvector(psi) ≈ [0.,1.]
 
-  psi = qubits(1)
-  gate_data = ("prepX+", 1)
-  g = gate(psi,gate_data)
-  PastaQ.applygate!(psi,g)
-  gate_data = ("measX", 1)
+  psi = qubits(1, ["X+"])
+  gate_data = ("basisX", 1, (dag = true,))
   g = gate(psi,gate_data)
   PastaQ.applygate!(psi,g)
   @test PastaQ.fullvector(psi) ≈ [1.,0.]
-  psi = qubits(1)
-  gate_data = ("prepX-", 1)
-  g = gate(psi,gate_data)
-  PastaQ.applygate!(psi,g)
-  gate_data = ("measX", 1)
+  psi = qubits(1, ["X-"])
+  gate_data = ("basisX", 1, (dag = true,))
   g = gate(psi,gate_data)
   PastaQ.applygate!(psi,g)
   @test PastaQ.fullvector(psi) ≈ [0.,1.]
 end
 
 @testset "apply gate: meas Y" begin
-  psi = qubits(1)
-  PastaQ.applygate!(psi,"prepY+",1)
-  PastaQ.applygate!(psi,"measY",1)
+  psi = qubits(1, ["Y+"])
+  PastaQ.applygate!(psi,"basisY",1; dag = true)
   @test PastaQ.fullvector(psi) ≈ [1.,0.]
-  psi = qubits(1)
-  PastaQ.applygate!(psi,"prepY-",1)
-  PastaQ.applygate!(psi,"measY",1)
+  psi = qubits(1, ["Y-"])
+  PastaQ.applygate!(psi,"basisY",1; dag = true)
   @test PastaQ.fullvector(psi) ≈ [0.,1.]
 
-  psi = qubits(1)
-  gate_data = ("prepY+", 1)
-  g = gate(psi,gate_data)
-  PastaQ.applygate!(psi,g)
-  gate_data = ("measY", 1)
+  psi = qubits(1, ["Y+"])
+  gate_data = ("basisY", 1, (dag = true,))
   g = gate(psi,gate_data)
   PastaQ.applygate!(psi,g)
   @test PastaQ.fullvector(psi) ≈ [1.,0.]
-  psi = qubits(1)
-  gate_data = ("prepY-", 1)
-  g = gate(psi,gate_data)
-  PastaQ.applygate!(psi,g)
-  gate_data = ("measY", 1)
+  psi = qubits(1, ["Y-"])
+  gate_data = ("basisY", 1, (dag = true,))
   g = gate(psi,gate_data)
   PastaQ.applygate!(psi,g)
   @test PastaQ.fullvector(psi) ≈ [0.,1.]
@@ -456,23 +390,19 @@ end
 
 @testset "apply gate: meas Z" begin
   psi = qubits(1)
-  PastaQ.applygate!(psi,"measZ",1)
+  PastaQ.applygate!(psi,"basisZ",1; dag = true)
   @test PastaQ.fullvector(psi) ≈ [1.,0.]
-  psi = qubits(1)
-  PastaQ.applygate!(psi,"prepZ-",1)
-  PastaQ.applygate!(psi,"measZ",1)
+  psi = qubits(1, ["Z-"])
+  PastaQ.applygate!(psi,"basisZ",1; dag = true)
   @test PastaQ.fullvector(psi) ≈ [0.,1.]
 
   psi = qubits(1)
-  gate_data = ("measZ", 1)
+  gate_data = ("basisZ", 1, (dag = true,))
   g = gate(psi,gate_data)
   PastaQ.applygate!(psi,g)
   @test PastaQ.fullvector(psi) ≈ [1.,0.]
-  psi = qubits(1)
-  gate_data = ("prepZ-", 1)
-  g = gate(psi,gate_data)
-  PastaQ.applygate!(psi,g)
-  gate_data = ("measZ", 1)
+  psi = qubits(1, ["Z-"])
+  gate_data = ("basisZ", 1, (dag = true,))
   g = gate(psi,gate_data)
   PastaQ.applygate!(psi,g)
   @test PastaQ.fullvector(psi) ≈ [0.,1.]

@@ -16,10 +16,10 @@ U = runcircuit(N, gates; process = true)
 Random.seed!(1234)
 nshots = 100
 
-data, ψ = getsamples(N, gates, nshots; localbasis = ["X","Y","Z"])
+data, ψ = getsamples(N, gates, nshots)
 writesamples(data, ψ, "../examples/data/qst_circuit_test.h5")
 
-data, ρ = getsamples(N, gates, nshots; localbasis = ["X","Y","Z"],
+data, ρ = getsamples(N, gates, nshots,
                      noise = ("amplitude_damping", (γ = 0.01,)))
 writesamples(data, ρ, "../examples/data/qst_circuit_noisy_test.h5")
 

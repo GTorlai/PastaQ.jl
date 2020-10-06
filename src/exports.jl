@@ -11,6 +11,7 @@ export
 # circuits/gates.jl
   # Methods
   gate,
+  inputstate,
   # Macros
   @GateName_str,
 
