@@ -13,6 +13,8 @@ end
 # State-like gates, used to define product input states
 #
 
+# TODO: add an arbitrary state specified by angles
+
 inputstate(::StateName"X+") =
   [1/sqrt(2)
    1/sqrt(2)]
@@ -367,7 +369,6 @@ state(::SiteType"Qubit", ::StateName"1") = 2
 
 #
 # Basis definitions (eigenbases of measurement gates)
-# TODO: remove these in favor of a generic solution
 #
 
 function phase(v::AbstractVector{ElT}) where {ElT <: Number}
