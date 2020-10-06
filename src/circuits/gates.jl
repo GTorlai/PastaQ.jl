@@ -37,14 +37,14 @@ gate(::GateName"Z+") =
    0]
 
 gate(::GateName"0") =
-  gate("stateZ+")
+  gate("Z+")
 
 gate(::GateName"Z-") =
   [0
    1]
 
 gate(::GateName"1") =
-  gate("stateZ-")
+  gate("Z-")
 
 #
 # Measurement gates

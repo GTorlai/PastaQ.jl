@@ -286,8 +286,8 @@ function projectchoi(Λ0::Choi{MPO}, prep::Array)
   
   for j in 1:length(choi)
     # No conjugate on the gate (transpose input!)
-    choi[j] = choi[j] * dag(gate(st[j],s[j]))
-    choi[j] = choi[j] * prime(gate(st[j],s[j]))
+    choi[j] = choi[j] * dag(state(st[j],s[j]))
+    choi[j] = choi[j] * prime(state(st[j],s[j]))
   end
   return choi
 end
@@ -307,7 +307,7 @@ function projectunitary(U::MPO,prep::Array)
   M = ITensor[]
   s = firstsiteinds(U)
   for j in 1:length(U)
-    push!(M,U[j] * gate(st[j],s[j]))
+    push!(M,U[j] * state(st[j],s[j]))
   end
   return noprime!(MPS(M))
 end
