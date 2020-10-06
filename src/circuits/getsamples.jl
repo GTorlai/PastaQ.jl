@@ -280,14 +280,14 @@ the quantum channel underlying the Choi matrix to `|ϕ⟩`.
 function projectchoi(Λ0::Choi{MPO}, prep::Array)
   Λ = copy(Λ0)
   choi = Λ.M
-  #state = "state" .* copy(prep) 
-  state = prep
+  #st = "state" .* copy(prep) 
+  st = prep
   s = firstsiteinds(choi, tags="Input")
   
   for j in 1:length(choi)
     # No conjugate on the gate (transpose input!)
-    choi[j] = choi[j] * dag(gate(state[j],s[j]))
-    choi[j] = choi[j] * prime(gate(state[j],s[j]))
+    choi[j] = choi[j] * dag(gate(st[j],s[j]))
+    choi[j] = choi[j] * prime(gate(st[j],s[j]))
   end
   return choi
 end
@@ -302,12 +302,12 @@ The resulting MPS describes the quantum state obtained by applying
 the quantum circuit to `|ϕ⟩`.
 """
 function projectunitary(U::MPO,prep::Array)
-  #state = "state" .* copy(prep) 
-  state = prep
+  #st = "state" .* copy(prep) 
+  st = prep
   M = ITensor[]
   s = firstsiteinds(U)
   for j in 1:length(U)
-    push!(M,U[j] * gate(state[j],s[j]))
+    push!(M,U[j] * gate(st[j],s[j]))
   end
   return noprime!(MPS(M))
 end
