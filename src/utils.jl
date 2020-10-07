@@ -11,13 +11,17 @@ Save data and model on file:
   - `output_path`: path to file
 """
 function writesamples(data::Matrix{Int},
-                      model::Union{MPS, MPO, LPDO, Choi},
+                      model::Union{MPS, MPO, LPDO, Choi, Nothing},
                       output_path::String)
   # Make the path the file will sit in, if it doesn't exist
   mkpath(dirname(output_path))
   h5rewrite(output_path) do fout
     write(fout, "outcomes", data)
-    write(fout,"model", model)
+    if isnothing(model)
+      write(fout, "model", "nothing")
+    else
+      write(fout, "model", model)
+    end
   end
 end
 
@@ -31,14 +35,18 @@ function writesamples(data::Matrix{Int},
 end
 
 function writesamples(data::Matrix{Pair{String, Int}},
-                      model::Union{MPS, MPO, LPDO, Choi},
+                      model::Union{MPS, MPO, LPDO, Choi, Nothing},
                       output_path::String)
   # Make the path the file will sit in, if it doesn't exist
   mkpath(dirname(output_path))
   h5rewrite(output_path) do fout
     write(fout, "bases", first.(data))
     write(fout, "outcomes", last.(data))
-    write(fout,"model",model)
+    if isnothing(model)
+      write(fout, "model", "nothing")
+    else
+      write(fout, "model", model)
+    end
   end
 end
 
@@ -53,7 +61,7 @@ function writesamples(data::Matrix{Pair{String, Int}},
 end
 
 function writesamples(data::Matrix{Pair{String, Pair{String, Int}}},
-                      model::Union{MPS, MPO, LPDO, Choi},
+                      model::Union{MPS, MPO, LPDO, Choi, Nothing},
                       output_path::String)
   # Make the path the file will sit in, if it doesn't exist
   mkpath(dirname(output_path))
@@ -61,7 +69,11 @@ function writesamples(data::Matrix{Pair{String, Pair{String, Int}}},
     write(fout, "inputs", first.(data))
     write(fout, "bases", first.(last.(data)))
     write(fout, "outcomes", last.(last.(data)))
-    write(fout, "model", model)
+    if isnothing(model)
+      write(fout, "model", "nothing")
+    else
+      write(fout, "model", model)
+    end
   end
 end
 
@@ -100,7 +112,7 @@ function readsamples(input_path::String)
     data = bases .=> outcomes
   # Measurements in Z basis
   elseif exists(fin, "outcomes")
-    data = read(fin,"outcomes")
+    data = read(fin, "outcomes")
   else
     close(fin)
     error("File must contain either \"data\" for quantum state tomography data or \"data_first\" and \"data_second\" for quantum process tomography.")
@@ -108,10 +120,20 @@ function readsamples(input_path::String)
 
   # Check if a model is saved, if so read it and return it
   if exists(fin, "model")
-    g = g_open(fin, "model")
-    typestring = read(attrs(g)["type"])
-    modeltype = eval(Meta.parse(typestring))
-    model = read(fin, "model", modeltype)
+    g = fin["model"]
+
+    if exists(attrs(g), "type")
+      typestring = read(attrs(g)["type"])
+      modeltype = eval(Meta.parse(typestring))
+      model = read(fin, "model", modeltype)
+    else
+      model = read(fin, "model")
+      if model == "nothing"
+        model = nothing
+      else
+        error("model must be MPS, LPDO, Choi, or Nothing")
+      end
+    end
     close(fin)
     return data, model
   end

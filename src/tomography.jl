@@ -125,54 +125,54 @@ function gradnll(L::LPDO{MPS},
     
     """ LEFT ENVIRONMENTS """
     if choi
-      L[nthread][1] .= ψdag[1] .* dag(inputstate(x[1],s[1]))
+      L[nthread][1] .= ψdag[1] .* dag(state(x[1],s[1]))
     else
-      L[nthread][1] .= ψdag[1] .* inputstate(x[1],s[1])
+      L[nthread][1] .= ψdag[1] .* state(x[1],s[1])
     end
     for j in 2:N-1
       Lpsi[nthread][j] .= L[nthread][j-1] .* ψdag[j]
       if isodd(j) & choi
-        L[nthread][j] .= Lpsi[nthread][j] .* dag(inputstate(x[j],s[j]))
+        L[nthread][j] .= Lpsi[nthread][j] .* dag(state(x[j],s[j]))
       else
-        L[nthread][j] .= Lpsi[nthread][j] .* inputstate(x[j],s[j])
+        L[nthread][j] .= Lpsi[nthread][j] .* state(x[j],s[j])
       end
     end
     Lpsi[nthread][N] .= L[nthread][N-1] .* ψdag[N]
-    ψx = (Lpsi[nthread][N] * inputstate(x[N],s[N]))[]
+    ψx = (Lpsi[nthread][N] * state(x[N],s[N]))[]
     prob = abs2(ψx)
     loss[nthread] -= log(prob)/size(data)[1]
     
     """ RIGHT ENVIRONMENTS """
-    R[nthread][N] .= ψdag[N] .* inputstate(x[N],s[N])
+    R[nthread][N] .= ψdag[N] .* state(x[N],s[N])
     for j in reverse(2:N-1)
       Rpsi[nthread][j] .= ψdag[j] .* R[nthread][j+1]
       if isodd(j) & choi
-        R[nthread][j] .= Rpsi[nthread][j] .* dag(inputstate(x[j],s[j]))
+        R[nthread][j] .= Rpsi[nthread][j] .* dag(state(x[j],s[j]))
       else
-        R[nthread][j] .= Rpsi[nthread][j] .* inputstate(x[j],s[j])
+        R[nthread][j] .= Rpsi[nthread][j] .* state(x[j],s[j])
       end
     end
 
     """ GRADIENTS """
     # TODO: fuse into one call to mul!
     if choi
-      grads[nthread][1] .= dag(inputstate(x[1],s[1])) .* R[nthread][2]
+      grads[nthread][1] .= dag(state(x[1],s[1])) .* R[nthread][2]
     else
-      grads[nthread][1] .= inputstate(x[1],s[1]) .* R[nthread][2]
+      grads[nthread][1] .= state(x[1],s[1]) .* R[nthread][2]
     end
     gradients[nthread][1] .+= (1 / (sqrt_localnorms[1] * ψx)) .* grads[nthread][1]
     for j in 2:N-1
       if isodd(j) & choi
-        Rpsi[nthread][j] .= L[nthread][j-1] .* dag(inputstate(x[j],s[j]))
+        Rpsi[nthread][j] .= L[nthread][j-1] .* dag(state(x[j],s[j]))
       else
-        Rpsi[nthread][j] .= L[nthread][j-1] .* inputstate(x[j],s[j])
+        Rpsi[nthread][j] .= L[nthread][j-1] .* state(x[j],s[j])
       end
         
       # TODO: fuse into one call to mul!
       grads[nthread][j] .= Rpsi[nthread][j] .* R[nthread][j+1]
       gradients[nthread][j] .+= (1 / (sqrt_localnorms[j] * ψx)) .* grads[nthread][j]
     end
-    grads[nthread][N] .= L[nthread][N-1] .* inputstate(x[N], s[N])
+    grads[nthread][N] .= L[nthread][N-1] .* state(x[N], s[N])
     gradients[nthread][N] .+= (1 / (sqrt_localnorms[N] * ψx)) .* grads[nthread][N]
   end
   
@@ -308,22 +308,22 @@ function gradnll(L::LPDO{MPO}, data::Array;
     
     """ LEFT ENVIRONMENTS """
     if choi
-      T[nthread][1] .= lpdo[1] .* inputstate(x[1],s[1])
+      T[nthread][1] .= lpdo[1] .* state(x[1],s[1])
       L[nthread][1] .= prime(T[nthread][1],"Link") .* dag(T[nthread][1])
     else
-      T[nthread][1] .= lpdo[1] .* dag(inputstate(x[1],s[1]))
+      T[nthread][1] .= lpdo[1] .* dag(state(x[1],s[1]))
       L[nthread][1] .= prime(T[nthread][1],"Link") .* dag(T[nthread][1])
     end
     for j in 2:N-1
       if isodd(j) & choi
-        T[nthread][j] .= lpdo[j] .* inputstate(x[j],s[j])
+        T[nthread][j] .= lpdo[j] .* state(x[j],s[j])
       else
-        T[nthread][j] .= lpdo[j] .* dag(inputstate(x[j],s[j]))
+        T[nthread][j] .= lpdo[j] .* dag(state(x[j],s[j]))
       end
       Llpdo[nthread][j] .= prime(T[nthread][j],"Link") .* L[nthread][j-1]
       L[nthread][j] .= Llpdo[nthread][j] .* dag(T[nthread][j])
     end
-    T[nthread][N] .= lpdo[N] .* dag(inputstate(x[N],s[N]))
+    T[nthread][N] .= lpdo[N] .* dag(state(x[N],s[N]))
     prob = L[nthread][N-1] * prime(T[nthread][N],"Link")
     prob = prob * dag(T[nthread][N])
     prob = real(prob[])
@@ -338,30 +338,30 @@ function gradnll(L::LPDO{MPO}, data::Array;
     
     """ GRADIENTS """
     if choi
-      Tp[nthread][1] .= prime(lpdo[1],"Link") .* inputstate(x[1],s[1])
-      Agrad[nthread][1] .=  Tp[nthread][1] .* dag(inputstate(x[1],s[1]))
+      Tp[nthread][1] .= prime(lpdo[1],"Link") .* state(x[1],s[1])
+      Agrad[nthread][1] .=  Tp[nthread][1] .* dag(state(x[1],s[1]))
     else
-      Tp[nthread][1] .= prime(lpdo[1],"Link") .* dag(inputstate(x[1],s[1]))
-      Agrad[nthread][1] .=  Tp[nthread][1] .* inputstate(x[1],s[1])
+      Tp[nthread][1] .= prime(lpdo[1],"Link") .* dag(state(x[1],s[1]))
+      Agrad[nthread][1] .=  Tp[nthread][1] .* state(x[1],s[1])
     end
     grads[nthread][1] .= R[nthread][2] .* Agrad[nthread][1]
     gradients[nthread][1] .+= (1 / (sqrt_localnorms[1] * prob)) .* grads[nthread][1]
     for j in 2:N-1
       if isodd(j) & choi
-        Tp[nthread][j] .= prime(lpdo[j],"Link") .* inputstate(x[j],s[j])
+        Tp[nthread][j] .= prime(lpdo[j],"Link") .* state(x[j],s[j])
         Lgrad[nthread][j-1] .= L[nthread][j-1] .* Tp[nthread][j]
-        Agrad[nthread][j] .= Lgrad[nthread][j-1] .* dag(inputstate(x[j],s[j]))
+        Agrad[nthread][j] .= Lgrad[nthread][j-1] .* dag(state(x[j],s[j]))
       else
-        Tp[nthread][j] .= prime(lpdo[j],"Link") .* dag(inputstate(x[j],s[j]))
+        Tp[nthread][j] .= prime(lpdo[j],"Link") .* dag(state(x[j],s[j]))
         Lgrad[nthread][j-1] .= L[nthread][j-1] .* Tp[nthread][j]
-        Agrad[nthread][j] .= Lgrad[nthread][j-1] .* inputstate(x[j],s[j])
+        Agrad[nthread][j] .= Lgrad[nthread][j-1] .* state(x[j],s[j])
       end
       grads[nthread][j] .= R[nthread][j+1] .* Agrad[nthread][j] 
       gradients[nthread][j] .+= (1 / (sqrt_localnorms[j] * prob)) .* grads[nthread][j]
     end
-    Tp[nthread][N] .= prime(lpdo[N],"Link") .* dag(inputstate(x[N],s[N]))
+    Tp[nthread][N] .= prime(lpdo[N],"Link") .* dag(state(x[N],s[N]))
     Lgrad[nthread][N-1] .= L[nthread][N-1] .* Tp[nthread][N]
-    grads[nthread][N] .= Lgrad[nthread][N-1] .* inputstate(x[N],s[N])
+    grads[nthread][N] .= Lgrad[nthread][N-1] .* state(x[N],s[N])
     gradients[nthread][N] .+= (1 / (sqrt_localnorms[N] * prob)) .* grads[nthread][N]
   end
   
@@ -648,9 +648,9 @@ function _tomography(data::Matrix{Pair{String, Pair{String, Int}}},
   outcomes = last.(last.(data))
   data_combined = Matrix{Pair{String, Int}}(undef, nsamples, 2*N)
   for n in 1:nsamples
-    inputstate = convertdatapoint(inputs0[n,:])
+    instate = convertdatapoint(inputs0[n,:])
     for j in 1:N
-      data_combined[n, 2*j-1] = inputstate[j] 
+      data_combined[n, 2*j-1] = instate[j] 
       data_combined[n, 2*j] = last(data[n, j])
     end
   end
@@ -680,11 +680,11 @@ function nll(L::LPDO{MPS}, data::Array; choi::Bool = false)
   
   for n in 1:size(data)[1]
     x = data[n,:]
-    ψx = (choi ? dag(ψ[1]) * dag(inputstate(x[1],s[1])) :
-                 dag(ψ[1]) * inputstate(x[1],s[1]))
+    ψx = (choi ? dag(ψ[1]) * dag(state(x[1],s[1])) :
+                 dag(ψ[1]) * state(x[1],s[1]))
     for j in 2:N
-      ψ_r = (isodd(j) & choi ? ψ_r = dag(ψ[j]) * dag(inputstate(x[j],s[j])) :
-                               ψ_r = dag(ψ[j]) * inputstate(x[j],s[j]))
+      ψ_r = (isodd(j) & choi ? ψ_r = dag(ψ[j]) * dag(state(x[j],s[j])) :
+                               ψ_r = dag(ψ[j]) * state(x[j],s[j]))
       ψx = ψx * ψ_r
     end
     prob = abs2(ψx[])
@@ -717,8 +717,8 @@ function nll(L::LPDO{MPO}, data::Array; choi::Bool = false)
     # Project LPDO into the measurement eigenstates
     Φdag = dag(copy(lpdo))
     for j in 1:N
-      Φdag[j] = (isodd(j) & choi ? Φdag[j] = Φdag[j] * dag(inputstate(x[j],s[j])) :
-                                   Φdag[j] = Φdag[j] * inputstate(x[j],s[j]))
+      Φdag[j] = (isodd(j) & choi ? Φdag[j] = Φdag[j] * dag(state(x[j],s[j])) :
+                                   Φdag[j] = Φdag[j] * state(x[j],s[j]))
     end
     
     # Compute overlap

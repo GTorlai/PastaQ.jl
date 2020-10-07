@@ -14,6 +14,7 @@ gates = randomcircuit(N, depth)
 
 # Generate samples
 data, U = getsamples(N, gates, nshots;
+                     build_process = false,
                      process = true)
 writesamples(data, U, "data/qpt_circuit.h5")
 

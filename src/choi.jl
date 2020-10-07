@@ -1,6 +1,6 @@
 
-struct Choi{MPOT <: Union{MPO, LPDO}}
-  M::MPOT
+struct Choi{MT <: Union{MPO, LPDO}}
+  M::MT
 end
 
 Base.length(C::Choi) = length(C.M)
@@ -18,33 +18,16 @@ end
 function HDF5.write(parent::Union{HDF5File,HDF5Group},
                     name::AbstractString,
                     C::Choi)
-  g = g_create(parent,name)
-  attrs(g)["type"] = "Choi"
-  if C.M isa MPO
-    M = C.M
-  elseif C.M isa LPDO
-    M = C.M.X
-  end
-  attrs(g)["version"] = 1
-  N = length(M)
-  write(g, "rlim", M.rlim)
-  write(g, "llim", M.llim)
-  write(g, "length", N)
-  for n=1:N
-    write(g,"MPO[$(n)]", M[n])
-  end
+  g = g_create(parent, name)
+  attrs(g)["type"] = String(Symbol(typeof(C)))
+  write(g, "M", C.M)
 end
 
-function HDF5.read(parent::Union{HDF5File,HDF5Group},
+function HDF5.read(parent::Union{HDF5File, HDF5Group},
                    name::AbstractString,
-                   ::Type{Choi})
-  g = g_open(parent,name)
-  if read(attrs(g)["type"]) != "Choi"
-    error("HDF5 group or file does not contain MPO data")
-  end
-  N = read(g, "length")
-  rlim = read(g, "rlim")
-  llim = read(g, "llim")
-  v = [read(g,"MPO[$(i)]",ITensor) for i in 1:N]
-  return Choi(LPDO(MPO( v, llim, rlim)))
+                   ::Type{Choi{MT}}) where {MT}
+  g = g_open(parent, name)
+  M = read(g, "M", MT)
+  return Choi(M)
 end
+
