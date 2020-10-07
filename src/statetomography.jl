@@ -369,10 +369,10 @@ gradients(ψ::MPS, data::Array; localnorms = nothing) =
   gradients(LPDO(ψ), data; sqrt_localnorms = localnorms)
 
 
-function _tomography(data::Matrix{Pair{String, Int}}, L::LPDO;
-                     optimizer::Optimizer,
-                     observer! = nothing,
-                     kwargs...)
+function tomography(data::Matrix{Pair{String, Int}}, L::LPDO;
+                    optimizer::Optimizer,
+                    observer! = nothing,
+                    kwargs...)
   # Read arguments
   use_localnorm::Bool = get(kwargs,:use_localnorm,true)
   use_globalnorm::Bool = get(kwargs,:use_globalnorm,false)
