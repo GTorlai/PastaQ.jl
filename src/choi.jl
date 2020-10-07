@@ -15,6 +15,26 @@ function Base.setindex!(C::Choi, args...)
   error("setindex!(C::Choi, args...) is purposefully not implemented yet.")
 end
 
+
+function makeChoi(U0::MPO)
+  M = MPS(ITensor[copy(U0[j]) for j in 1:length(U0)])
+  addtags!(M, "Input", plev = 0, tags = "Qubit")
+  addtags!(M, "Output", plev = 1, tags = "Qubit")
+  noprime!(M)
+  return Choi(LPDO(M,ts""))
+end
+
+function LinearAlgebra.normalize!(C::Choi{LPDO{MPO}}; sqrt_localnorms! = [])
+  normalize!(C.M; sqrt_localnorms! = sqrt_localnorms!)
+  return C
+end
+
+function LinearAlgebra.normalize!(C::Choi{LPDO{MPS}}; localnorms! = [])
+  normalize!(C.M.X; localnorms! = localnorms!)
+  return C
+end
+
+
 function HDF5.write(parent::Union{HDF5File,HDF5Group},
                     name::AbstractString,
                     C::Choi)

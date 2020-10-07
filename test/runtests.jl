@@ -11,9 +11,10 @@ using Test
     "optimizers.jl",
     "distances.jl",
     "randomstates.jl",
-    "tomography.jl",
-    "examples.jl",
-    "observer.jl",
+    "statetomography.jl",
+    "processtomography.jl",
+    #"examples.jl",
+    #"observer.jl",
     #"benchmark_qiskit.jl"
   )
     println("Running $filename")

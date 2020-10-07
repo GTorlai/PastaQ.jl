@@ -19,6 +19,7 @@ export
   # Methods
   getsamples,
   randombases,
+  randompreparations,
 
 # circuits/runcircuit.jl
   # Methods
@@ -37,12 +38,12 @@ export
 # choi.jl,
   Choi,
 
-# randomstates,jl
+# randomstates.jl
   # Methods
   randomstate,
   randomprocess,
 
-# tomography,jl
+# statetomography.jl/processtomography.jl
   # Methods
   normalize!,
   tomography,

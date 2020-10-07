@@ -92,15 +92,15 @@ function random_mpo(ElT::Type{<:Number},sites::Vector{<: Index},χ::Int64,σ::Fl
   end
   push!(M,ITensor(rand_mat,sites[N]',links[N-1],sites[N]))
  
+  U = MPO(M)
+  
   proc_tagcheck = (any(x -> hastags(x,"Input") , sites))
-  if processtags & !proc_tagcheck
-    U = MPO(M)
-    addtags!(U, "Input", plev = 0, tags = "Qubit")
-    addtags!(U, "Output", plev = 1, tags = "Qubit")
-    return U
-  else
-    return MPO(M)
+  if proc_tagcheck
+    removetags!(U,"Input")
+  #  addtags!(U, "Input", plev = 0, tags = "Qubit")
+  #  addtags!(U, "Output", plev = 1, tags = "Qubit")
   end
+  return U
 end
 
 

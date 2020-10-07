@@ -6,7 +6,7 @@ Compute the gradients of the log-normalization with respect
 to each LPDO tensor component:
 
 - `∇ᵢ = ∂ᵢlog⟨ψ|ψ⟩` for `ψ = M = MPS`
-- `∇ᵢ = ∂ᵢlogTr(ρ)` for `ρ = M M†` , `M = LPDO`
+- `∇ᵢ = ∂ᵢlogTr(ρ)` for `ρ = M M†` , `ρ = LPDO`
 """
 function gradlogZ(lpdo::LPDO; sqrt_localnorms = nothing)
   M = lpdo.X
@@ -72,8 +72,7 @@ is equivalent to take the conjugate of the eigenstate projector.
 """
 function gradnll(L::LPDO{MPS},
                  data::Array;
-                 sqrt_localnorms = nothing,
-                 choi::Bool = false)
+                 sqrt_localnorms = nothing)
   ψ = L.X
   N = length(ψ)
 
@@ -124,18 +123,10 @@ function gradnll(L::LPDO{MPS},
     x = data[n,:] 
     
     """ LEFT ENVIRONMENTS """
-    if choi
-      L[nthread][1] .= ψdag[1] .* dag(inputstate(x[1],s[1]))
-    else
-      L[nthread][1] .= ψdag[1] .* inputstate(x[1],s[1])
-    end
+    L[nthread][1] .= ψdag[1] .* inputstate(x[1],s[1])
     for j in 2:N-1
       Lpsi[nthread][j] .= L[nthread][j-1] .* ψdag[j]
-      if isodd(j) & choi
-        L[nthread][j] .= Lpsi[nthread][j] .* dag(inputstate(x[j],s[j]))
-      else
-        L[nthread][j] .= Lpsi[nthread][j] .* inputstate(x[j],s[j])
-      end
+      L[nthread][j] .= Lpsi[nthread][j] .* inputstate(x[j],s[j])
     end
     Lpsi[nthread][N] .= L[nthread][N-1] .* ψdag[N]
     ψx = (Lpsi[nthread][N] * inputstate(x[N],s[N]))[]
@@ -146,28 +137,15 @@ function gradnll(L::LPDO{MPS},
     R[nthread][N] .= ψdag[N] .* inputstate(x[N],s[N])
     for j in reverse(2:N-1)
       Rpsi[nthread][j] .= ψdag[j] .* R[nthread][j+1]
-      if isodd(j) & choi
-        R[nthread][j] .= Rpsi[nthread][j] .* dag(inputstate(x[j],s[j]))
-      else
-        R[nthread][j] .= Rpsi[nthread][j] .* inputstate(x[j],s[j])
-      end
+      R[nthread][j] .= Rpsi[nthread][j] .* inputstate(x[j],s[j])
     end
 
     """ GRADIENTS """
     # TODO: fuse into one call to mul!
-    if choi
-      grads[nthread][1] .= dag(inputstate(x[1],s[1])) .* R[nthread][2]
-    else
-      grads[nthread][1] .= inputstate(x[1],s[1]) .* R[nthread][2]
-    end
+    grads[nthread][1] .= inputstate(x[1],s[1]) .* R[nthread][2]
     gradients[nthread][1] .+= (1 / (sqrt_localnorms[1] * ψx)) .* grads[nthread][1]
     for j in 2:N-1
-      if isodd(j) & choi
-        Rpsi[nthread][j] .= L[nthread][j-1] .* dag(inputstate(x[j],s[j]))
-      else
-        Rpsi[nthread][j] .= L[nthread][j-1] .* inputstate(x[j],s[j])
-      end
-        
+      Rpsi[nthread][j] .= L[nthread][j-1] .* inputstate(x[j],s[j])
       # TODO: fuse into one call to mul!
       grads[nthread][j] .= Rpsi[nthread][j] .* R[nthread][j+1]
       gradients[nthread][j] .+= (1 / (sqrt_localnorms[j] * ψx)) .* grads[nthread][j]
@@ -192,8 +170,8 @@ function gradnll(L::LPDO{MPS},
   return gradients_tot, loss_tot
 end
 
-gradnll(ψ::MPS, data::Array; localnorms = nothing, choi::Bool = false) = 
-  gradnll(LPDO(ψ), data; sqrt_localnorms = localnorms, choi = choi)
+gradnll(ψ::MPS, data::Array; localnorms = nothing) = 
+  gradnll(LPDO(ψ), data; sqrt_localnorms = localnorms)
 
 """
     PastaQ.gradnll(lpdo::LPDO{MPO}, data::Array; sqrt_localnorms = nothing, choi::Bool=false)
@@ -218,7 +196,7 @@ If `choi=true`, the probability is then obtaining by transposing the
 input state, which is equivalent to take the conjugate of the eigenstate projector.
 """
 function gradnll(L::LPDO{MPO}, data::Array;
-                 sqrt_localnorms = nothing, choi::Bool = false)
+                 sqrt_localnorms = nothing)
   lpdo = L.X
   N = length(lpdo)
 
@@ -307,19 +285,10 @@ function gradnll(L::LPDO{MPO}, data::Array;
     x = data[n,:]
     
     """ LEFT ENVIRONMENTS """
-    if choi
-      T[nthread][1] .= lpdo[1] .* inputstate(x[1],s[1])
-      L[nthread][1] .= prime(T[nthread][1],"Link") .* dag(T[nthread][1])
-    else
-      T[nthread][1] .= lpdo[1] .* dag(inputstate(x[1],s[1]))
-      L[nthread][1] .= prime(T[nthread][1],"Link") .* dag(T[nthread][1])
-    end
+    T[nthread][1] .= lpdo[1] .* dag(inputstate(x[1],s[1]))
+    L[nthread][1] .= prime(T[nthread][1],"Link") .* dag(T[nthread][1])
     for j in 2:N-1
-      if isodd(j) & choi
-        T[nthread][j] .= lpdo[j] .* inputstate(x[j],s[j])
-      else
-        T[nthread][j] .= lpdo[j] .* dag(inputstate(x[j],s[j]))
-      end
+      T[nthread][j] .= lpdo[j] .* dag(inputstate(x[j],s[j]))
       Llpdo[nthread][j] .= prime(T[nthread][j],"Link") .* L[nthread][j-1]
       L[nthread][j] .= Llpdo[nthread][j] .* dag(T[nthread][j])
     end
@@ -337,25 +306,14 @@ function gradnll(L::LPDO{MPO}, data::Array;
     end
     
     """ GRADIENTS """
-    if choi
-      Tp[nthread][1] .= prime(lpdo[1],"Link") .* inputstate(x[1],s[1])
-      Agrad[nthread][1] .=  Tp[nthread][1] .* dag(inputstate(x[1],s[1]))
-    else
-      Tp[nthread][1] .= prime(lpdo[1],"Link") .* dag(inputstate(x[1],s[1]))
-      Agrad[nthread][1] .=  Tp[nthread][1] .* inputstate(x[1],s[1])
-    end
+    Tp[nthread][1] .= prime(lpdo[1],"Link") .* dag(inputstate(x[1],s[1]))
+    Agrad[nthread][1] .=  Tp[nthread][1] .* inputstate(x[1],s[1])
     grads[nthread][1] .= R[nthread][2] .* Agrad[nthread][1]
     gradients[nthread][1] .+= (1 / (sqrt_localnorms[1] * prob)) .* grads[nthread][1]
     for j in 2:N-1
-      if isodd(j) & choi
-        Tp[nthread][j] .= prime(lpdo[j],"Link") .* inputstate(x[j],s[j])
-        Lgrad[nthread][j-1] .= L[nthread][j-1] .* Tp[nthread][j]
-        Agrad[nthread][j] .= Lgrad[nthread][j-1] .* dag(inputstate(x[j],s[j]))
-      else
-        Tp[nthread][j] .= prime(lpdo[j],"Link") .* dag(inputstate(x[j],s[j]))
-        Lgrad[nthread][j-1] .= L[nthread][j-1] .* Tp[nthread][j]
-        Agrad[nthread][j] .= Lgrad[nthread][j-1] .* inputstate(x[j],s[j])
-      end
+      Tp[nthread][j] .= prime(lpdo[j],"Link") .* dag(inputstate(x[j],s[j]))
+      Lgrad[nthread][j-1] .= L[nthread][j-1] .* Tp[nthread][j]
+      Agrad[nthread][j] .= Lgrad[nthread][j-1] .* inputstate(x[j],s[j])
       grads[nthread][j] .= R[nthread][j+1] .* Agrad[nthread][j] 
       gradients[nthread][j] .+= (1 / (sqrt_localnorms[j] * prob)) .* grads[nthread][j]
     end
@@ -398,122 +356,18 @@ Compute the gradients of the cost function:
 If `choi=true`, add the Choi normalization `trace(Λ)=d^N` to the cost function.
 """
 function gradients(L::LPDO, data::Array;
-                   sqrt_localnorms = nothing, choi::Bool = false)
+                   sqrt_localnorms = nothing)
   g_logZ,logZ = gradlogZ(L; sqrt_localnorms = sqrt_localnorms)
-  g_nll, nll  = gradnll(L, data; sqrt_localnorms = sqrt_localnorms, choi = choi)
+  g_nll, nll  = gradnll(L, data; sqrt_localnorms = sqrt_localnorms)
   
   grads = g_logZ + g_nll
   loss = logZ + nll
-  loss += (choi ? -0.5 * length(L) * log(2) : 0.0)
   return grads,loss
 end
 
-gradients(ψ::MPS, data::Array; localnorms = nothing, choi::Bool = false) = 
-  gradients(LPDO(ψ), data; sqrt_localnorms = localnorms, choi = choi)
+gradients(ψ::MPS, data::Array; localnorms = nothing) = 
+  gradients(LPDO(ψ), data; sqrt_localnorms = localnorms)
 
-
-#TEMPORARY WRAPPER 
-#This function is required as long as the process tomography is 
-#using a split representation.
-tomography(data::Matrix{Pair{String, Int}}, L::LPDO; optimizer::Optimizer, observer! = nothing, kwargs...) =
-  _tomography(data, L; optimizer = optimizer, observer! = observer!, kwargs...)
-
-tomography(data::Matrix{Pair{String, Int}}, ψ::MPS; optimizer::Optimizer, observer! = nothing, kwargs...) =
-  tomography(data, LPDO(ψ); optimizer = optimizer, observer! = observer!, kwargs...).X
-
-
-"""
-    tomography(data::Array, L::LPDO; optimizer::Optimizer, kwargs...)
-    tomography(data::Array, ψ::MPS; optimizer::Optimizer, kwargs...)
-
-Run quantum state tomography using a the starting state `model` on `data`.
-
-# Arguments:
-  - `model`: starting LPDO state.
-  - `data`: training data set of projective measurements.
-  - `batchsize`: number of data-points used to compute one gradient iteration.
-  - `epochs`: total number of full sweeps over the dataset.
-  - `target`: target quantum state underlying the data
-  - `choi`: if true, compute probability using Choi matrix
-  - `observer!`: pass an observer object (like `TomographyObserver()`) to keep track of measurements and fidelities.
-  - `outputpath`: write training metrics on file 
-"""
-function tomography(data::Matrix{Pair{String, Pair{String, Int}}}, L::LPDO;
-                    optimizer::Optimizer,
-                    mixed::Bool=false,
-                    observer! = nothing,
-                    kwargs...)
-  target = get(kwargs,:target,nothing)
-  #mixed::Bool = get(kwargs,:mixed,false)
-
-  optimizer = copy(optimizer)
-  #
-  # TEMPORARY WRAPPER FOR UNSPLIT PROCESS TOMOGRAPHY
-  #
-  # This function take a model `L` and a `target` (is provided) in a unsplit
-  # representation, and run tomography with the split algorithm. Returns the unsplit result.
-  #
-
-  # Target LPDO are currently not supported
-  if target isa Choi{MPO}
-    target = target.M
-  elseif target isa Choi{LPDO{MPO}}
-    target = target.M.X
-  end
-  
-  @assert (target isa MPS) || (target isa MPO)
-  
-  if !mixed
-    #
-    # 1. Noiseless channel (unitary circuit)
-    #
-
-    # Split the variational state: MPO -> MPS (x2 sites)
-    U = L.X
-    model = LPDO(splitunitary(U))
-
-    # Split the target state: MPO -> MPS (x2 sites)
-    target = splitunitary(target)
-
-    # Run process tomography
-    V = _tomography(data, model;
-                    optimizer = optimizer,
-                    observer! = observer!,
-                    kwargs...,
-                    target = target)
-
-    # Unsplit the learned state: MPS -> MPO (÷2 sites) 
-    return unsplitunitary(V.X)
-  else
-    #
-    # 2. Noisy channel (choi matrix)
-    #
-
-    # Split the target choi matrix: MPO -> MPS (x2 sites)
-    target = splitchoi(target).M
-    model = splitchoi(Choi(L))
-
-    # Run process tomography
-    Λ = _tomography(data, model.M;
-                    optimizer = optimizer,
-                    observer! = observer!,
-                    kwargs...,
-                    target = target)
-
-    # Split the target choi matrix: MPO -> MPS (x2 sites)
-    return unsplitchoi(Choi(Λ))
-  end
-end
-
-function tomography(data::Matrix{Pair{String, Pair{String, Int}}}, U::MPO;
-                    optimizer::Optimizer, mixed::Bool=false, kwargs...) 
-  return tomography(data, LPDO(U); optimizer = optimizer, mixed = mixed, kwargs...)
-end
-
-function tomography(data::Matrix{Pair{String, Pair{String, Int}}}, C::Choi;
-                    optimizer::Optimizer, mixed::Bool=true, kwargs...)
-  return tomography(data, C.M; optimizer = optimizer, mixed = mixed,  kwargs...)
-end
 
 function _tomography(data::Matrix{Pair{String, Int}}, L::LPDO;
                      optimizer::Optimizer,
@@ -525,7 +379,6 @@ function _tomography(data::Matrix{Pair{String, Int}}, L::LPDO;
   batchsize::Int64 = get(kwargs,:batchsize,500)
   epochs::Int64 = get(kwargs,:epochs,1000)
   target = get(kwargs,:target,nothing)
-  choi::Bool = get(kwargs,:choi,false)
   outputpath = get(kwargs,:fout,nothing)
 
   optimizer = copy(optimizer)
@@ -567,14 +420,14 @@ function _tomography(data::Matrix{Pair{String, Int}}, L::LPDO;
         modelcopy = copy(model)
         sqrt_localnorms = []
         normalize!(modelcopy; sqrt_localnorms! = sqrt_localnorms)
-        grads,loss = gradients(modelcopy, batch, sqrt_localnorms = sqrt_localnorms, choi = choi)
+        grads,loss = gradients(modelcopy, batch, sqrt_localnorms = sqrt_localnorms)
       # Global normalization
       elseif use_globalnorm
         normalize!(model)
-        grads,loss = gradients(model,batch,choi=choi)
+        grads,loss = gradients(model,batch)
       # Unnormalized
       else
-        grads,loss = gradients(model,batch,choi=choi)
+        grads,loss = gradients(model,batch)
       end
 
       nupdate = ep * num_batches + b
@@ -627,38 +480,9 @@ function _tomography(data::Matrix{Pair{String, Int}}, L::LPDO;
   return model
 end
 
-_tomography(data::Matrix{Pair{String, Int}}, C::Choi; optimizer::Optimizer, mixed::Bool=false, kwargs...) =
- _tomography(data, C.M; optimizer = optimizer, mixed = mixed, kwargs...)
-
 _tomography(data::Matrix{Pair{String, Int}}, ψ::MPS; optimizer::Optimizer, mixed::Bool, kwargs...) =
   _tomography(data, LPDO(ψ); optimizer = optimizer, mixed = mixed, kwargs...)
 
-
-#Run quantum process tomography on measurement data `data` using `model` as s variational ansatz.
-#
-#The data is reshuffled so it takes the format: `(input1,output1,input2,output2,…)`.
-function _tomography(data::Matrix{Pair{String, Pair{String, Int}}},
-                     L::LPDO;
-                     optimizer::Optimizer,
-                     kwargs...)
-  N = size(data, 2)
-  nsamples = size(data, 1)
-  inputs0 = first.(data)
-  bases = first.(last.(data))
-  outcomes = last.(last.(data))
-  data_combined = Matrix{Pair{String, Int}}(undef, nsamples, 2*N)
-  for n in 1:nsamples
-    inputstate = convertdatapoint(inputs0[n,:])
-    for j in 1:N
-      data_combined[n, 2*j-1] = inputstate[j] 
-      data_combined[n, 2*j] = last(data[n, j])
-    end
-  end
-  return _tomography(data_combined, L;
-                     optimizer = optimizer,
-                     choi = true,
-                     kwargs...)
-end
 
 """
     PastaQ.nll(ψ::MPS,data::Array;choi::Bool=false)
@@ -671,7 +495,7 @@ over a dataset `data`:
 If `choi=true`, the probability is then obtaining by transposing the 
 input state, which is equivalent to take the conjugate of the eigenstate projector.
 """
-function nll(L::LPDO{MPS}, data::Array; choi::Bool = false)
+function nll(L::LPDO{MPS}, data::Array)
   ψ = L.X
   N = length(ψ)
   @assert N==size(data)[2]
@@ -680,11 +504,9 @@ function nll(L::LPDO{MPS}, data::Array; choi::Bool = false)
   
   for n in 1:size(data)[1]
     x = data[n,:]
-    ψx = (choi ? dag(ψ[1]) * dag(inputstate(x[1],s[1])) :
-                 dag(ψ[1]) * inputstate(x[1],s[1]))
+    ψx = dag(ψ[1]) * inputstate(x[1],s[1])
     for j in 2:N
-      ψ_r = (isodd(j) & choi ? ψ_r = dag(ψ[j]) * dag(inputstate(x[j],s[j])) :
-                               ψ_r = dag(ψ[j]) * inputstate(x[j],s[j]))
+      ψ_r = dag(ψ[j]) * inputstate(x[j],s[j])
       ψx = ψx * ψ_r
     end
     prob = abs2(ψx[])
@@ -706,7 +528,7 @@ over a dataset `data`:
 If `choi=true`, the probability is then obtaining by transposing the 
 input state, which is equivalent to take the conjugate of the eigenstate projector.
 """
-function nll(L::LPDO{MPO}, data::Array; choi::Bool = false)
+function nll(L::LPDO{MPO}, data::Array)
   lpdo = L.X
   N = length(lpdo)
   loss = 0.0
@@ -717,8 +539,7 @@ function nll(L::LPDO{MPO}, data::Array; choi::Bool = false)
     # Project LPDO into the measurement eigenstates
     Φdag = dag(copy(lpdo))
     for j in 1:N
-      Φdag[j] = (isodd(j) & choi ? Φdag[j] = Φdag[j] * dag(inputstate(x[j],s[j])) :
-                                   Φdag[j] = Φdag[j] * inputstate(x[j],s[j]))
+      Φdag[j] = Φdag[j] = Φdag[j] * inputstate(x[j],s[j])
     end
     
     # Compute overlap
@@ -729,131 +550,4 @@ function nll(L::LPDO{MPO}, data::Array; choi::Bool = false)
 end
 
 
-
-#
-# TEMPORARY FUNCTIONS
-#
-
-function splitunitary(U0::MPO;cutoff=1e-15,maxdim=1000)
-  T = ITensor[]
-  U = copy(U0)
-  
-  # Check if appropriate choi tags are present
-  choitag = any(x -> hastags(x,"Input") , U)
-  
-  if !choitag
-    # Choi indices 
-    addtags!(U, "Input", plev = 0, tags = "Qubit")
-    addtags!(U, "Output", plev = 1, tags = "Qubit")
-  end
-  noprime!(U)
-  u,S,v = svd(U[1],inds(U[1],tags="Input"), 
-              cutoff=cutoff, maxdim=maxdim)
-  push!(T,u*S)
-  push!(T,v)
-  for j in 2:length(U)
-    u,S,v = svd(U[j],inds(U[j],tags="Input")[1],
-                commonind(U[j-1],U[j]),cutoff=cutoff,maxdim=maxdim) 
-    push!(T,u*S)
-    push!(T,v)
-  end
-  return MPS(T)
-end
-
-function unsplitunitary(ψ0::MPS)
-  ψ = copy(ψ0)
-  # Check if appropriate choi tags are present
-  choitag = any(x -> hastags(x,"Input") , ψ)
-  if !choitag
-    for j in 1:1:length(ψ)
-      if isodd(j)
-        addtags!(ψ[j],"Input",tags = "Qubit")
-      else
-        addtags!(ψ[j],"Output",tags = "Qubit")
-      end
-    end
-  end
-  T = ITensor[ψ[j]*ψ[j+1] for j in 1:2:length(ψ)]
-  U = MPO(T)
-  for j in 1:length(U)
-    prime!(U[j],tags="Output,Qubit,Site")
-  end
-  return U
-end
-
-function splitchoi(L::LPDO{MPO};cutoff=1e-15,maxdim=1000)
-  X = copy(L.X)
-  T = ITensor[]
-  
-  u,S,v = svd(X[1],firstind(X[1],tags="Input"),firstind(X[1],tags="Purifier"),
-              cutoff=cutoff, maxdim=maxdim)
-  push!(T,u*S)
-  push!(T,v)
-  purification_index = Index(1,tags="Purifier,k=2")
-  T[2] = T[2] * ITensor(1,purification_index)
-  for j in 2:length(X)
-    u,S,v = svd(X[j],inds(X[j],tags="Input")[1],firstind(X[j],tags="Purifier"),
-                commonind(X[j-1],X[j]),cutoff=cutoff,maxdim=maxdim,
-                righttags="Link,l=$(j)")
-
-    push!(T,u*S)
-    push!(T,v)
-    replacetags!(T[end-1],"k=$j","k=$(2*j-1)")
-    purification_index = Index(1,tags="Purifier,k=$(2*j)")
-    T[end] = T[end] * ITensor(1,purification_index)
-  end
-  return Choi(LPDO(MPO(T)))
-end
-
-splitchoi(Λ::Choi{MPO}; kwargs...) = splitchoi(Λ.M; kwargs...)
-
-splitchoi(Λ::Choi{LPDO{MPO}}; kwargs...) = splitchoi(Λ.M; kwargs...)
-
-function unsplitchoi(C::Choi{LPDO{MPO}})
-  M = C.M.X
-  T = ITensor[]
-  for j in 1:2:length(M)
-    t = M[j]*M[j+1]
-    t = t * combiner(inds(t,tags="Purifier"),tags="Purifier,k=$(j÷2+1)")
-    push!(T,t)
-  end
-  return Choi(LPDO(MPO(T)))
-end
-
-function unsplitchoi(C::Choi{MPO})
-  M = C.M
-  T = ITensor[M[j]*M[j+1] for j in 1:2:length(M)]
-  return Choi(MPO(T))
-end
-
-function splitchoi(Λ::MPO;cutoff=1e-15,maxdim=10000)
-  choitag = any(x -> hastags(x,"Input") , Λ)
-  if !choitag
-    # Choi indices 
-    addtags!(Λ, "Input", plev = 0, tags = "Qubit")
-    addtags!(Λ, "Output", plev = 1, tags = "Qubit")
-    noprime!(Λ)
-  end
-  T = ITensor[]
-  u,S,v = svd(Λ[1],inds(Λ[1],tags="Input"),
-              cutoff=cutoff, maxdim=maxdim)
-  push!(T,u*S)
-  push!(T,v)
-
-  for j in 2:length(Λ)
-    if length(inds(Λ[j],tags="Input")) == 1
-      u,S,v = svd(Λ[j],inds(Λ[j],tags="Input")[1],
-                  commonind(Λ[j-1],Λ[j]),cutoff=cutoff,maxdim=maxdim)
-    elseif length(inds(Λ[j],tags="Input")) == 2
-      u,S,v = svd(Λ[j],inds(Λ[j],tags="Input")[1],inds(Λ[j],tags="Input")[2],
-                  commonind(Λ[j-1],Λ[j]),cutoff=cutoff,maxdim=maxdim)
-    else
-      error("input cannot be split")
-    end
-    push!(T,u*S)
-    push!(T,v)
-  end
-  Λ_split = MPO(T)
-  return Choi(Λ_split)
-end
 
