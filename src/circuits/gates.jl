@@ -15,40 +15,40 @@ end
 
 # TODO: add an arbitrary state specified by angles
 
-inputstate(::StateName"X+") =
+state(::StateName"X+") =
   [1/sqrt(2)
    1/sqrt(2)]
 
-inputstate(::StateName"X-") =
+state(::StateName"X-") =
   [ 1/sqrt(2)
    -1/sqrt(2)]
 
-inputstate(::StateName"Y+") =
+state(::StateName"Y+") =
   [  1/sqrt(2)
    im/sqrt(2)]
 
-inputstate(::StateName"Y-") =
+state(::StateName"Y-") =
   [  1/sqrt(2)
    -im/sqrt(2)]
 
-inputstate(::StateName"Z+") =
+state(::StateName"Z+") =
   [1
    0]
 
-inputstate(::StateName"0") =
-  inputstate("Z+")
+state(::StateName"0") =
+  state("Z+")
 
-inputstate(::StateName"Z-") =
+state(::StateName"Z-") =
   [0
    1]
 
-inputstate(::StateName"1") =
-  inputstate("Z-")
+state(::StateName"1") =
+  state("Z-")
 
-inputstate(sn::String; kwargs...) = inputstate(StateName(sn); kwargs...)
+state(sn::String; kwargs...) = state(StateName(sn); kwargs...)
 
-inputstate(sn::String, i::Index; kwargs...) =
-  itensor(inputstate(sn; kwargs...), i)
+state(sn::String, i::Index; kwargs...) =
+  itensor(state(sn; kwargs...), i)
 
 #
 # 1-qubit gates
@@ -357,11 +357,7 @@ gate(::GateName"noisePD"; kwargs...) =
 # Qubit site type
 #
 
-import ITensors: space
-
 space(::SiteType"Qubit") = 2
-
-import ITensors: state
 
 state(::SiteType"Qubit", ::StateName"0") = 1
 

@@ -51,22 +51,22 @@ using LinearAlgebra
   ggdag = g * prime(dag(g),plev=1,1)
   @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
    
-  g = inputstate("X+",i) 
+  g = state("X+",i) 
   @test plev(ind(g, 1)) == 0
   
-  g = inputstate("X-",i) 
+  g = state("X-",i) 
   @test plev(ind(g, 1)) == 0
   
-  g = inputstate("Y+",i) 
+  g = state("Y+",i) 
   @test plev(ind(g, 1)) == 0
   
-  g = inputstate("Y-",i) 
+  g = state("Y-",i) 
   @test plev(ind(g, 1)) == 0
   
-  g = inputstate("Z+",i) 
+  g = state("Z+",i) 
   @test plev(ind(g, 1)) == 0
 
-  g = inputstate("Z-",i) 
+  g = state("Z-",i) 
   @test plev(ind(g, 1)) == 0 
   
   θ = π * rand()

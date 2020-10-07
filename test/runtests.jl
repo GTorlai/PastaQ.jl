@@ -13,7 +13,7 @@ using Test
     "randomstates.jl",
     "statetomography.jl",
     "processtomography.jl",
-    #"examples.jl",
+    "examples.jl",
     #"observer.jl",
     #"benchmark_qiskit.jl"
   )

@@ -56,7 +56,7 @@ end
 
 """
     randompreparations(N::Int, nshots::Int;
-                       local_inputstate = ["X+","X-","Y+","Y-","Z+","Z-"],
+                       local_input_state = ["X+","X-","Y+","Y-","Z+","Z-"],
                        ndistinctstates = nothing)
 
 Generate `nshots` input states to a quantum circuit. By default, each
@@ -67,17 +67,17 @@ different input states, each being repeated `nshots÷ndistinctstates`
 times.
 """
 function randompreparations(N::Int, nshots::Int;
-                            local_inputstate = ["X+","X-","Y+","Y-","Z+","Z-"],
+                            local_input_state = ["X+","X-","Y+","Y-","Z+","Z-"],
                             ndistinctstates = nothing)
   # One shot per basis
   if isnothing(ndistinctstates)
-    preparations = rand(local_inputstate,nshots,N)
+    preparations = rand(local_input_state,nshots,N)
   else
     @assert(nshots%ndistinctstates == 0 )
     shotsperstate = nshots÷ndistinctstates
-    preparations = repeat(rand(local_inputstate,1,N),shotsperstate)
+    preparations = repeat(rand(local_input_state,1,N),shotsperstate)
     for n in 1:ndistinctstates-1
-      newstates = repeat(rand(local_inputstate,1,N),shotsperstate)
+      newstates = repeat(rand(local_input_state,1,N),shotsperstate)
       preparations = vcat(preparations,newstates)
     end
   end
@@ -253,7 +253,6 @@ function getsamples(hilbert0::Vector{<:Index},
   measurement = getsamples!(M_meas; readout_errors = readout_errors)
   
   return basis .=> measurement
-  #return convertdatapoint(measurement, basis)
 end
 
 
@@ -274,8 +273,8 @@ function projectchoi(Λ0::Choi{MPO}, prep::Array)
   
   for j in 1:length(choi)
     # No conjugate on the gate (transpose input!)
-    choi[j] = choi[j] * dag(inputstate(st[j],s[j]))
-    choi[j] = choi[j] * prime(inputstate(st[j],s[j]))
+    choi[j] = choi[j] * dag(state(st[j],s[j]))
+    choi[j] = choi[j] * prime(state(st[j],s[j]))
   end
   return choi
 end
@@ -295,7 +294,7 @@ function projectunitary(U::MPO,prep::Array)
   M = ITensor[]
   s = firstsiteinds(U)
   for j in 1:length(U)
-    push!(M,U[j] * inputstate(st[j],s[j]))
+    push!(M,U[j] * state(st[j],s[j]))
   end
   return noprime!(MPS(M))
 end
@@ -307,7 +306,7 @@ end
                process::Bool = false,              
                build_process::Bool = false,
                local_basis::Array = ["X","Y","Z"],                   
-               local_inputstate::Array = ["X+","X-","Y+","Y-","Z+","Z-"],
+               local_input_state::Array = ["X+","X-","Y+","Y-","Z+","Z-"],
                ndistinctbases = nothing,
                ndistinctstates = nothing,
                cutoff::Float64 = 1e-15,
@@ -322,7 +321,7 @@ quantum channel corresponding to a set of quantum `gates` and a `noise` model.
   - `noise`: apply a noise model after each quantum gate in the circuit
   - `process`: if false, generate data for state tomography, where the state is defined by the gates applied to the state `|0,0,...,⟩`. If true, generate data for process tomography.
   - `build_process`: if true, generate data by building the full unitary circuit or Choi matrix, and then sampling from that unitary circuit or Choi matrix (as opposed to running the circuit many times on different initial states). It is only used if `process = true`.
-  - `local_inputstate`: a set of input states (e.g. `["X+","X-","Y+","Y-","Z+","Z-"]`) which are sampled randomly to generate input states.
+  - `local_input_state`: a set of input states (e.g. `["X+","X-","Y+","Y-","Z+","Z-"]`) which are sampled randomly to generate input states.
   - `local_basis`: the local bases (e.g. `["X","Y","Z"]) which are sampled randomly to perform measurements in a random basis.
 """
 function getsamples(N::Int64, gates::Vector{<:Tuple}, nshots::Int64;
@@ -330,7 +329,7 @@ function getsamples(N::Int64, gates::Vector{<:Tuple}, nshots::Int64;
                     build_process::Bool = true,
                     process::Bool = false,
                     local_basis = ["X", "Y", "Z"],
-                    local_inputstate = ["X+","X-","Y+","Y-","Z+","Z-"],
+                    local_input_state = ["X+","X-","Y+","Y-","Z+","Z-"],
                     ndistinctbases = nothing,
                     ndistinctstates = nothing,
                     cutoff::Float64 = 1e-15,
@@ -359,7 +358,7 @@ function getsamples(N::Int64, gates::Vector{<:Tuple}, nshots::Int64;
                         local_basis = local_basis,
                         ndistinctbases = ndistinctbases)
     
-    preps = randompreparations(N, nshots, local_inputstate = local_inputstate,
+    preps = randompreparations(N, nshots, local_input_state = local_input_state,
                                ndistinctstates = ndistinctstates)
     
     # Generate the unitary MPO / Choi matrix, then sample from it
@@ -371,8 +370,9 @@ function getsamples(N::Int64, gates::Vector{<:Tuple}, nshots::Int64;
     
     # Generate data with full state evolution
     else
-      return getsamples(gates,preps,bases; noise = noise, cutoff = cutoff, maxdim = maxdim,
+      data = getsamples(gates,preps,bases; noise = noise, cutoff = cutoff, maxdim = maxdim,
                         readout_errors = readout_errors, kwargs...)
+      return data, nothing
     end
   end
 end

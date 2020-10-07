@@ -32,7 +32,7 @@ function qubits(sites::Vector{<:Index}, states::Vector{String};
 
   if N == 1
     s1 = sites[1]
-    state1 = inputstate(states[1])
+    state1 = state(states[1])
     if eltype(state1) <: Complex
       ψ[1] = complex(ψ[1])
     end
@@ -46,7 +46,7 @@ function qubits(sites::Vector{<:Index}, states::Vector{String};
   # Set first site
   s1 = sites[1]
   l1 = linkind(ψ, 1)
-  state1 = inputstate(states[1])
+  state1 = state(states[1])
   if eltype(state1) <: Complex
     ψ[1] = complex(ψ[1])
   end
@@ -59,7 +59,7 @@ function qubits(sites::Vector{<:Index}, states::Vector{String};
     sn = sites[n]
     ln_1 = linkind(ψ, n-1)
     ln = linkind(ψ, n)
-    state_n = inputstate(states[n])
+    state_n = state(states[n])
     if eltype(state_n) <: Complex
       ψ[n] = complex(ψ[n])
     end
@@ -71,7 +71,7 @@ function qubits(sites::Vector{<:Index}, states::Vector{String};
   # Set last site N
   sN = sites[N]
   lN_1 = linkind(ψ, N-1)
-  state_N = inputstate(states[N])
+  state_N = state(states[N])
   if eltype(state_N) <: Complex
     ψ[N] = complex(ψ[N])
   end
