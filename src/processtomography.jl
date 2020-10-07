@@ -345,8 +345,6 @@ function tomography(data::Matrix{Pair{String,Pair{String, Int}}}, C::Choi;
   elseif target isa MPO
     target = makeChoi(target).M.X
   end  
-  @show target
-  @show model
   F = nothing
   Fbound = nothing
   frob_dist = nothing
@@ -434,6 +432,7 @@ function tomography(data::Matrix{Pair{String,Pair{String, Int}}}, C::Choi;
     tot_time += ep_time
   end
   @printf("Total Time = %.3f sec\n",tot_time)
+  
   normalize!(model)
   
   return model
