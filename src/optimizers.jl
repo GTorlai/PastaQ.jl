@@ -47,6 +47,7 @@ function update!(L::LPDO,∇::Array,opt::SGD; kwargs...)
 end
 
 update!(ψ::MPS,∇::Array,opt::SGD; kwargs...) = update!(LPDO(ψ),∇,opt;kwargs...)
+update!(C::Choi,∇::Array,opt::SGD; kwargs...) = update!(C.M,∇,opt;kwargs...)
 
 struct AdaGrad <: Optimizer 
   η::Float64
@@ -101,6 +102,7 @@ function update!(L::LPDO,∇::Array,opt::AdaGrad; kwargs...)
 end
 
 update!(ψ::MPS,∇::Array,opt::AdaGrad; kwargs...) = update!(LPDO(ψ),∇,opt; kwargs...)
+update!(C::Choi,∇::Array,opt::AdaGrad; kwargs...) = update!(C.M,∇,opt;kwargs...)
 
 struct AdaDelta <: Optimizer 
   γ::Float64
@@ -176,6 +178,7 @@ function update!(L::LPDO,∇::Array,opt::AdaDelta; kwargs...)
 end
 
 update!(ψ::MPS,∇::Array,opt::AdaDelta; kwargs...) = update!(LPDO(ψ),∇,opt; kwargs...)
+update!(C::Choi,∇::Array,opt::AdaDelta; kwargs...) = update!(C.M,∇,opt;kwargs...)
 
 struct Adam <: Optimizer 
   η::Float64
@@ -248,4 +251,7 @@ end
 
 update!(ψ::MPS,∇::Array,opt::Adam; kwargs...) =
   update!(LPDO(ψ),∇,opt; kwargs...)
+
+update!(C::Choi,∇::Array,opt::Adam; kwargs...) =
+  update!(C.M,∇,opt; kwargs...)
 

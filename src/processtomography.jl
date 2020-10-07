@@ -1,9 +1,11 @@
-gradlogZ(C::Choi{LPDO{MPS}}; sqrt_localnorms = nothing) = 
-  gradlogZ(C.M.X; localnorms = sqrt_localnorms)
+#gradlogZ(C::Choi{LPDO{MPS}}; sqrt_localnorms = nothing) = 
+#  gradlogZ(C.M.X; localnorms = sqrt_localnorms)
+#
+#gradlogZ(C::Choi{LPDO{MPO}}; sqrt_localnorms = nothing) = 
+#  gradlogZ(C.M; sqrt_localnorms = sqrt_localnorms)
 
-gradlogZ(C::Choi{LPDO{MPO}}; sqrt_localnorms = nothing) = 
+gradlogZ(C::Choi; sqrt_localnorms = nothing) = 
   gradlogZ(C.M; sqrt_localnorms = sqrt_localnorms)
-
   
 function gradnll(C::Choi{LPDO{MPS}},
                  data_in::Array,
@@ -307,215 +309,138 @@ function gradients(C::Choi, data_in::Array, data_out::Array;
   return grads,loss
 end
 
-#gradients(ψ::MPS, data::Array; localnorms = nothing, choi::Bool = false) = 
-#  gradients(LPDO(ψ), data; sqrt_localnorms = localnorms, choi = choi)
-#
-#
-#"""
-#    tomography(data::Array, L::LPDO; optimizer::Optimizer, kwargs...)
-#    tomography(data::Array, ψ::MPS; optimizer::Optimizer, kwargs...)
-#
-#Run quantum state tomography using a the starting state `model` on `data`.
-#
-## Arguments:
-#  - `model`: starting LPDO state.
-#  - `data`: training data set of projective measurements.
-#  - `batchsize`: number of data-points used to compute one gradient iteration.
-#  - `epochs`: total number of full sweeps over the dataset.
-#  - `target`: target quantum state underlying the data
-#  - `choi`: if true, compute probability using Choi matrix
-#  - `observer!`: pass an observer object (like `TomographyObserver()`) to keep track of measurements and fidelities.
-#  - `outputpath`: write training metrics on file 
-#"""
-#function tomography(data::Matrix{Pair{String, Pair{String, Int}}}, L::LPDO;
-#                    optimizer::Optimizer,
-#                    mixed::Bool=false,
-#                    observer! = nothing,
-#                    kwargs...)
-#  target = get(kwargs,:target,nothing)
-#  #mixed::Bool = get(kwargs,:mixed,false)
-#
-#  optimizer = copy(optimizer)
-#  #
-#  # TEMPORARY WRAPPER FOR UNSPLIT PROCESS TOMOGRAPHY
-#  #
-#  # This function take a model `L` and a `target` (is provided) in a unsplit
-#  # representation, and run tomography with the split algorithm. Returns the unsplit result.
-#  #
-#
-#  # Target LPDO are currently not supported
-#  if target isa Choi{MPO}
-#    target = target.M
-#  elseif target isa Choi{LPDO{MPO}}
-#    target = target.M.X
-#  end
-#  
-#  @assert (target isa MPS) || (target isa MPO)
-#  
-#  if !mixed
-#    #
-#    # 1. Noiseless channel (unitary circuit)
-#    #
-#
-#    # Split the variational state: MPO -> MPS (x2 sites)
-#    U = L.X
-#    model = LPDO(splitunitary(U))
-#
-#    # Split the target state: MPO -> MPS (x2 sites)
-#    target = splitunitary(target)
-#
-#    # Run process tomography
-#    V = _tomography(data, model;
-#                    optimizer = optimizer,
-#                    observer! = observer!,
-#                    kwargs...,
-#                    target = target)
-#
-#    # Unsplit the learned state: MPS -> MPO (÷2 sites) 
-#    return unsplitunitary(V.X)
-#  else
-#    #
-#    # 2. Noisy channel (choi matrix)
-#    #
-#
-#    # Split the target choi matrix: MPO -> MPS (x2 sites)
-#    target = splitchoi(target).M
-#    model = splitchoi(Choi(L))
-#
-#    # Run process tomography
-#    Λ = _tomography(data, model.M;
-#                    optimizer = optimizer,
-#                    observer! = observer!,
-#                    kwargs...,
-#                    target = target)
-#
-#    # Split the target choi matrix: MPO -> MPS (x2 sites)
-#    return unsplitchoi(Choi(Λ))
-#  end
-#end
-#
-#function tomography(data::Matrix{Pair{String, Pair{String, Int}}}, U::MPO;
-#                    optimizer::Optimizer, mixed::Bool=false, kwargs...) 
-#  return tomography(data, LPDO(U); optimizer = optimizer, mixed = mixed, kwargs...)
-#end
-#
-#function tomography(data::Matrix{Pair{String, Pair{String, Int}}}, C::Choi;
-#                    optimizer::Optimizer, mixed::Bool=true, kwargs...)
-#  return tomography(data, C.M; optimizer = optimizer, mixed = mixed,  kwargs...)
-#end
-#
-#function _tomography(data::Matrix{Pair{String, Int}}, L::LPDO;
-#                     optimizer::Optimizer,
-#                     observer! = nothing,
-#                     kwargs...)
-#  # Read arguments
-#  use_localnorm::Bool = get(kwargs,:use_localnorm,true)
-#  use_globalnorm::Bool = get(kwargs,:use_globalnorm,false)
-#  batchsize::Int64 = get(kwargs,:batchsize,500)
-#  epochs::Int64 = get(kwargs,:epochs,1000)
-#  target = get(kwargs,:target,nothing)
-#  choi::Bool = get(kwargs,:choi,false)
-#  outputpath = get(kwargs,:fout,nothing)
-#
-#  optimizer = copy(optimizer)
-#
-#  if use_localnorm && use_globalnorm
-#    error("Both use_localnorm and use_globalnorm are set to true, cannot use both local norm and global norm.")
-#  end
-#  
-#  # Convert data to projectors
-#  #data = "state" .* data
-#  data = convertdatapoints(data; state = true)
-#
-#  model = copy(L)
-#  F = nothing
-#  Fbound = nothing
-#  frob_dist = nothing
-#  
-#  if batchsize > size(data)[1]
-#    error("Batch size larger than dataset size")
-#  end
-#
-#  # Number of training batches
-#  num_batches = Int(floor(size(data)[1]/batchsize))
-#  
-#  tot_time = 0.0
-#  # Training iterations
-#  for ep in 1:epochs
-#    ep_time = @elapsed begin
-#  
-#    data = data[shuffle(1:end),:]
-#    
-#    avg_loss = 0.0
-#
-#    # Sweep over the data set
-#    for b in 1:num_batches
-#      batch = data[(b-1)*batchsize+1:b*batchsize,:]
-#      # Local normalization
-#      if use_localnorm
-#        modelcopy = copy(model)
-#        sqrt_localnorms = []
-#        normalize!(modelcopy; sqrt_localnorms! = sqrt_localnorms)
-#        grads,loss = gradients(modelcopy, batch, sqrt_localnorms = sqrt_localnorms, choi = choi)
-#      # Global normalization
-#      elseif use_globalnorm
-#        normalize!(model)
-#        grads,loss = gradients(model,batch,choi=choi)
-#      # Unnormalized
-#      else
-#        grads,loss = gradients(model,batch,choi=choi)
-#      end
-#
-#      nupdate = ep * num_batches + b
-#      avg_loss += loss/Float64(num_batches)
-#      update!(model,grads,optimizer;step=nupdate)
-#    end
-#    end # end @elapsed
-#    
-#    print("Ep = $ep  ")
-#    @printf("Loss = %.5E  ",avg_loss)
-#    if !isnothing(target)
-#      if ((model.X isa MPO) & (target isa MPO)) 
-#        frob_dist = frobenius_distance(model,target)
-#        Fbound = fidelity_bound(model,target)
-#        @printf("Trace distance = %.3E  ",frob_dist)
-#        @printf("Fidelity bound = %.3E  ",Fbound)
-#        if (length(model) <= 8)
-#          disable_warn_order!()
-#          F = fullfidelity(model,target)
-#          reset_warn_order!()
-#          @printf("Fidelity = %.3E  ",F)
-#        end
-#      else
-#        F = fidelity(model,target)
-#        @printf("Fidelity = %.3E  ",F)
-#      end
-#    end
-#    @printf("Time = %.3f sec",ep_time)
-#    print("\n")
-#
-#    # Measure
-#    if !isnothing(observer!)
-#      measure!(observer!;
-#               NLL = avg_loss,
-#               F = F,
-#               Fbound = Fbound,
-#               frob_dist = frob_dist)
-#      # Save on file
-#      if !isnothing(outputpath)
-#        saveobserver(observer, outputpath; M = model)
-#      end
-#    end
-#    
-#
-#    tot_time += ep_time
-#  end
-#  @printf("Total Time = %.3f sec\n",tot_time)
-#  normalize!(model)
-#
-#  return model
-#end
-#
+
+function tomography(data::Matrix{Pair{String,Pair{String, Int}}}, U::MPO; optimizer::Optimizer, observer! = nothing, kwargs...)
+  V = tomography(data, makeChoi(U); optimizer = optimizer, observer! = nothing, kwargs...)
+  return makeUnitary(V)
+end
+
+
+function tomography(data::Matrix{Pair{String,Pair{String, Int}}}, C::Choi;
+                    optimizer::Optimizer,
+                    observer! = nothing,
+                    kwargs...)
+  # Read arguments
+  use_localnorm::Bool = get(kwargs,:use_localnorm,true)
+  use_globalnorm::Bool = get(kwargs,:use_globalnorm,false)
+  batchsize::Int64 = get(kwargs,:batchsize,500)
+  epochs::Int64 = get(kwargs,:epochs,1000)
+  target = get(kwargs,:target,nothing)
+  outputpath = get(kwargs,:fout,nothing)
+
+  optimizer = copy(optimizer)
+
+  if use_localnorm && use_globalnorm
+    error("Both use_localnorm and use_globalnorm are set to true, cannot use both local norm and global norm.")
+  end
+ 
+  # Convert data to projectors
+  data_in = first.(data)
+  data_out = convertdatapoints(last.(data)) 
+  model = copy(C)
+  
+  # Target LPDO are currently not supported
+  if target isa Choi{MPO}
+    target = target.M
+  elseif target isa MPO
+    target = makeChoi(target).M.X
+  end  
+  @show target
+  @show model
+  F = nothing
+  Fbound = nothing
+  frob_dist = nothing
+  
+  if batchsize > size(data)[1]
+    error("Batch size larger than dataset size")
+  end
+
+  # Number of training batches
+  num_batches = Int(floor(size(data)[1]/batchsize))
+  
+  tot_time = 0.0
+  # Training iterations
+  for ep in 1:epochs
+    ep_time = @elapsed begin
+    
+    randomperm = shuffle(1:size(data_in)[1])
+    data_in = data_in[randomperm,:]
+    data_out = data_out[randomperm,:]
+
+    
+    avg_loss = 0.0
+
+    # Sweep over the data set
+    for b in 1:num_batches
+      batch_in = data_in[(b-1)*batchsize+1:b*batchsize,:]
+      batch_out = data_out[(b-1)*batchsize+1:b*batchsize,:]
+      
+      # Local normalization
+      if use_localnorm
+        modelcopy = copy(model)
+        sqrt_localnorms = []
+        normalize!(modelcopy; sqrt_localnorms! = sqrt_localnorms)
+        grads,loss = gradients(modelcopy, batch_in,batch_out; sqrt_localnorms = sqrt_localnorms)
+      # Global normalization
+      elseif use_globalnorm
+        normalize!(model)
+        grads,loss = gradients(model,batch_in,batch_out)
+      # Unnormalized
+      else
+        grads,loss = gradients(model,batch_in,batch_out)
+      end
+
+      nupdate = ep * num_batches + b
+      avg_loss += loss/Float64(num_batches)
+      update!(model,grads,optimizer;step=nupdate)
+    end
+    end # end @elapsed
+    
+    print("Ep = $ep  ")
+    @printf("Loss = %.5E  ",avg_loss)
+    if !isnothing(target)
+      if ((model.M.X isa MPO) & (target isa MPO)) 
+        frob_dist = frobenius_distance(model.M,target)
+        Fbound = fidelity_bound(model.M,target)
+        @printf("Trace distance = %.3E  ",frob_dist)
+        @printf("Fidelity bound = %.3E  ",Fbound)
+        #if (length(model) <= 8)
+        #  disable_warn_order!()
+        #  F = fullfidelity(model.M,target)
+        #  reset_warn_order!()
+        #  @printf("Fidelity = %.3E  ",F)
+        #end
+      else
+        F = fidelity(model.M,target)
+        @printf("Fidelity = %.3E  ",F)
+      end
+    end
+    @printf("Time = %.3f sec",ep_time)
+    print("\n")
+
+    # Measure
+    if !isnothing(observer!)
+      measure!(observer!;
+               NLL = avg_loss,
+               F = F,
+               Fbound = Fbound,
+               frob_dist = frob_dist)
+      # Save on file
+      if !isnothing(outputpath)
+        saveobserver(observer, outputpath; M = model)
+      end
+    end
+
+    tot_time += ep_time
+  end
+  @printf("Total Time = %.3f sec\n",tot_time)
+  normalize!(model)
+  
+  return model
+end
+
+
+
 #_tomography(data::Matrix{Pair{String, Int}}, C::Choi; optimizer::Optimizer, mixed::Bool=false, kwargs...) =
 # _tomography(data, C.M; optimizer = optimizer, mixed = mixed, kwargs...)
 #

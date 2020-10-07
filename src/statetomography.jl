@@ -480,8 +480,8 @@ function tomography(data::Matrix{Pair{String, Int}}, L::LPDO;
   return model
 end
 
-_tomography(data::Matrix{Pair{String, Int}}, ψ::MPS; optimizer::Optimizer, mixed::Bool, kwargs...) =
-  _tomography(data, LPDO(ψ); optimizer = optimizer, mixed = mixed, kwargs...)
+tomography(data::Matrix{Pair{String, Int}}, ψ::MPS; optimizer::Optimizer, kwargs...) =
+  tomography(data, LPDO(ψ); optimizer = optimizer, kwargs...).X
 
 
 """

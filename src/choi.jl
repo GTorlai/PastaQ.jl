@@ -16,6 +16,15 @@ function Base.setindex!(C::Choi, args...)
 end
 
 
+function makeUnitary(C::Choi{LPDO{MPS}})
+  ψ = C.M.X
+  U = MPO(ITensor[copy(ψ[j]) for j in 1:length(ψ)])
+  prime!(U,tags="Output")
+  removetags!(U, "Input")
+  removetags!(U, "Output")
+  return U
+end
+
 function makeChoi(U0::MPO)
   M = MPS(ITensor[copy(U0[j]) for j in 1:length(U0)])
   addtags!(M, "Input", plev = 0, tags = "Qubit")
@@ -29,11 +38,10 @@ function LinearAlgebra.normalize!(C::Choi{LPDO{MPO}}; sqrt_localnorms! = [])
   return C
 end
 
-function LinearAlgebra.normalize!(C::Choi{LPDO{MPS}}; localnorms! = [])
-  normalize!(C.M.X; localnorms! = localnorms!)
+function LinearAlgebra.normalize!(C::Choi{LPDO{MPS}}; sqrt_localnorms! = [])
+  normalize!(C.M.X; localnorms! = sqrt_localnorms!)
   return C
 end
-
 
 function HDF5.write(parent::Union{HDF5File,HDF5Group},
                     name::AbstractString,
@@ -66,5 +74,5 @@ function HDF5.read(parent::Union{HDF5File,HDF5Group},
   rlim = read(g, "rlim")
   llim = read(g, "llim")
   v = [read(g,"MPO[$(i)]",ITensor) for i in 1:N]
-  return Choi(LPDO(MPO( v, llim, rlim)))
+  return Choi(MPO( v, llim, rlim))
 end
