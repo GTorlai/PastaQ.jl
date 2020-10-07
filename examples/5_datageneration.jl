@@ -50,7 +50,6 @@ println()
 # Return the MPO for the unitary circuit
 println("Generate samples from random input states and random project measurements of the circuit U:")
 data, U = getsamples(N, gates, nshots;
-                     build_process = false,
                      process = true)
 # Example of writing and reading
 writesamples(data, U, "data/qpt_circuit.h5")
@@ -65,7 +64,6 @@ println("Generate samples from random input states and random project measuremen
 # Returns the Choi matrix `Λ` as MPO wiith `2N` sites
 data, Λ = getsamples(N, gates, nshots;
                      process = true,
-                     build_process = false,
                      noise = ("amplitude_damping", (γ = 0.01,)))
 # Example of writing and reading
 writesamples(data, Λ, "data/qpt_circuit_noisy.h5")
