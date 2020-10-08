@@ -91,11 +91,11 @@ function update!(L::LPDO,∇::Array,opt::AdaGrad; kwargs...)
     end
   end
   for j in 1:length(M)
-    #opt.∇²[j] += ∇[j] .^ 2 
-    Re∇ = real.(∇[j])
-    Im∇ = imag.(∇[j])
-    opt.∇²[j] += Re∇ .^ 2
-    opt.∇²[j] += im * Im∇ .^ 2
+    #Re∇ = real.(∇[j])
+    #Im∇ = imag.(∇[j])
+    #opt.∇²[j] += Re∇ .^ 2
+    #opt.∇²[j] += im * Im∇ .^ 2
+    opt.∇²[j] += abs2.(∇[j])
     ∇² = copy(opt.∇²[j])
     ∇² .+= opt.ϵ
     g = sqrt.(∇²)    
@@ -158,10 +158,10 @@ function update!(L::LPDO,∇::Array,opt::AdaDelta; kwargs...)
     Re∇ = real.(∇[j])
     Im∇ = imag.(∇[j])
     
-    opt.∇²[j] =  opt.γ * opt.∇²[j]
-    opt.∇²[j] += (1-opt.γ) * Re∇ .^2
-    opt.∇²[j] += im * (1-opt.γ) * Im∇ .^2
-    #opt.∇²[j] = opt.γ * opt.∇²[j] + (1-opt.γ) * ∇[j] .^ 2
+    #opt.∇²[j] =  opt.γ * opt.∇²[j]
+    #opt.∇²[j] += (1-opt.γ) * Re∇ .^2
+    #opt.∇²[j] += im * (1-opt.γ) * Im∇ .^2
+    opt.∇²[j] = opt.γ * opt.∇²[j] + (1-opt.γ) * abs2.(∇[j])# .^ 2
     
     # Get RMS signal for square gradients
     ∇² = copy(opt.∇²[j])
@@ -183,10 +183,10 @@ function update!(L::LPDO,∇::Array,opt::AdaDelta; kwargs...)
     # Update square updates
     ReΔθ = real.(Δθ)
     ImΔθ = imag.(Δθ)
-    opt.Δθ²[j] =  opt.γ * opt.Δθ²[j]
-    opt.Δθ²[j] += (1-opt.γ) * ReΔθ .^2
-    opt.Δθ²[j] += im * (1-opt.γ) * ImΔθ .^2
-    #opt.Δθ²[j] = opt.γ * opt.Δθ²[j] + (1-opt.γ) * Δθ .^ 2
+    #opt.Δθ²[j] =  opt.γ * opt.Δθ²[j]
+    #opt.Δθ²[j] += (1-opt.γ) * ReΔθ .^2
+    #opt.Δθ²[j] += im * (1-opt.γ) * ImΔθ .^2
+    opt.Δθ²[j] = opt.γ * opt.Δθ²[j] + (1-opt.γ) * abs2.(Δθ)
   end
 end
 
@@ -247,12 +247,12 @@ function update!(L::LPDO,∇::Array,opt::Adam; kwargs...)
     # Update square gradients
     opt.∇[j]  = opt.β₁ * opt.∇[j]  + (1-opt.β₁) * ∇[j]
     
-    Re∇ = real.(∇[j])
-    Im∇ = imag.(∇[j])
-    opt.∇²[j] =  opt.β₂ * opt.∇²[j]
-    opt.∇²[j] += (1-opt.β₂) * Re∇ .^2
-    opt.∇²[j] += im * (1-opt.β₂) * Im∇ .^2
-    #opt.∇²[j] = opt.β₂ * opt.∇²[j] + (1-opt.β₂) * ∇[j] .^ 2
+    #Re∇ = real.(∇[j])
+    #Im∇ = imag.(∇[j])
+    #opt.∇²[j] =  opt.β₂ * opt.∇²[j]
+    #opt.∇²[j] += (1-opt.β₂) * Re∇ .^2
+    #opt.∇²[j] += im * (1-opt.β₂) * Im∇ .^2
+    opt.∇²[j] = opt.β₂ * opt.∇²[j] + (1-opt.β₂) * abs2.(∇[j])
     
     g1 = opt.∇[j]  ./ (1-opt.β₁^t)
     g2 = opt.∇²[j] ./ (1-opt.β₂^t)
