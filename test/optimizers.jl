@@ -53,7 +53,6 @@ function generategradients(sites,links,kraus,χ,ξ,d)
 end
   
 
-
 @testset "sgd" begin
   N = 3
   χ = 4
@@ -134,7 +133,7 @@ end
     PastaQ.update!(ψ,∇,opt)
     ψ′_alg_flat = flatten_tensorarray(ψ)
     # exact
-    ∇²_flat += ∇_flat .^ 2
+    ∇²_flat += abs2.(∇_flat)# .^ 2
     g_flat = sqrt.(∇²_flat .+ ϵ)
     ψ′_flat = ψ_flat - η * (∇_flat ./ g_flat)
     @test ψ′_flat ≈ ψ′_alg_flat rtol = 1e-4
@@ -163,7 +162,7 @@ end
     PastaQ.update!(ρ,∇,opt)
     ρ′_alg_flat = flatten_tensorarray(ρ.X)
     # exact
-    ∇²_flat += ∇_flat .^ 2
+    ∇²_flat += abs2.(∇_flat)
     g_flat = sqrt.(∇²_flat .+ ϵ)
     ρ′_flat = ρ_flat - η * (∇_flat ./ g_flat)
     @test ρ′_flat ≈ ρ′_alg_flat rtol = 1e-4
@@ -193,15 +192,16 @@ end
     PastaQ.update!(ψ,∇,opt)
     ψ′_alg_flat = flatten_tensorarray(ψ)
     # exact
-    ∇²_flat = γ * ∇²_flat + (1-γ) * ∇_flat .^2
+    ∇²_flat = γ * ∇²_flat + (1-γ) * abs2.(∇_flat)# .^2
     g1_flat = sqrt.(∇²_flat .+ ϵ)
     g2_flat = sqrt.(Δθ²_flat .+ ϵ)
     Δ_flat = ∇_flat ./ g1_flat
     Δθ_flat =  Δ_flat .* g2_flat
     ψ′_flat = ψ_flat - Δθ_flat
-    Δθ²_flat = γ * Δθ²_flat + (1-γ) * Δθ_flat .^2
+    Δθ²_flat = γ * Δθ²_flat + (1-γ) * abs2.(Δθ_flat)# .^2
     @test ψ′_flat ≈ ψ′_alg_flat rtol = 1e-4
   end
+  
   N = 3
   χ = 4
   ξ = 3
@@ -225,13 +225,13 @@ end
     PastaQ.update!(ρ,∇,opt)
     ρ′_alg_flat = flatten_tensorarray(ρ.X)
     # exact
-    ∇²_flat = γ * ∇²_flat + (1-γ) * ∇_flat .^2
+    ∇²_flat = γ * ∇²_flat + (1-γ) * abs2.(∇_flat)# .^2
     g1_flat = sqrt.(∇²_flat .+ ϵ)
     g2_flat = sqrt.(Δθ²_flat .+ ϵ)
     Δ_flat = ∇_flat ./ g1_flat
     Δθ_flat =  Δ_flat .* g2_flat
     ρ′_flat = ρ_flat - Δθ_flat
-    Δθ²_flat = γ * Δθ²_flat + (1-γ) * Δθ_flat .^2
+    Δθ²_flat = γ * Δθ²_flat + (1-γ) * abs2.(Δθ_flat)# .^2
     @test ρ′_flat ≈ ρ′_alg_flat rtol = 1e-4
   end
 end
@@ -263,7 +263,7 @@ end
     ψ′_alg_flat = flatten_tensorarray(ψ)
     # exact
     g_flat  = β₁ * g_flat  + (1-β₁) * ∇_flat
-    g²_flat = β₂ * g²_flat + (1-β₂) * (∇_flat .^2)
+    g²_flat = β₂ * g²_flat + (1-β₂) * (abs2.(∇_flat))# .^2)
     ĝ_flat  = g_flat  / (1-β₁^n)
     ĝ²_flat = g²_flat / (1-β₂^n)
     g1_flat = sqrt.(ĝ²_flat) .+ ϵ
@@ -298,7 +298,7 @@ end
     ρ′_alg_flat = flatten_tensorarray(ρ.X)
     # exact
     g_flat  = β₁ * g_flat  + (1-β₁) * ∇_flat
-    g²_flat = β₂ * g²_flat + (1-β₂) * (∇_flat .^2)
+    g²_flat = β₂ * g²_flat + (1-β₂) * (abs2.(∇_flat))# .^2)
     ĝ_flat  = g_flat  / (1-β₁^n)
     ĝ²_flat = g²_flat / (1-β₂^n)
     g1_flat = sqrt.(ĝ²_flat) .+ ϵ
