@@ -14,6 +14,6 @@ StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
 [compat]
 HDF5 = "0.13.1"
-ITensors = "0.1.23"
+ITensors = "0.1.24"
 JLD = "0.10.0"
 julia = "1.4"

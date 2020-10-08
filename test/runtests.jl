@@ -2,6 +2,7 @@ using Test
 
 @testset "PastaQ.jl" begin
   @testset "$filename" for filename in (
+    "choi.jl",
     "utils.jl",
     "gates.jl",
     "circuits.jl",

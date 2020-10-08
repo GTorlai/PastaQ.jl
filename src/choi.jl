@@ -3,18 +3,17 @@ struct Choi{MT <: Union{MPO, LPDO}}
   M::MT
 end
 
-Base.length(C::Choi) = length(C.M)
+Base.length(Λ::Choi) = length(Λ.M)
 
-Base.copy(C::Choi) = Choi(copy(C.M))
+Base.copy(Λ::Choi) = Choi(copy(Λ.M))
 
-function Base.getindex(C::Choi, args...)
-  error("getindex(C::Choi, args...) is purposefully not implemented yet.")
+function Base.getindex(Λ::Choi, args...)
+  error("getindex(Λ::Choi, args...) is purposefully not implemented yet.")
 end
 
-function Base.setindex!(C::Choi, args...)
-  error("setindex!(C::Choi, args...) is purposefully not implemented yet.")
+function Base.setindex!(Λ::Choi, args...)
+  error("setindex!(Λ::Choi, args...) is purposefully not implemented yet.")
 end
-
 
 function makeUnitary(C::Choi{LPDO{MPS}})
   ψ = C.M.X
@@ -42,13 +41,21 @@ function LinearAlgebra.normalize!(C::Choi{LPDO{MPS}}; sqrt_localnorms! = [])
   normalize!(C.M.X; localnorms! = sqrt_localnorms!)
   return C
 end
+#
+# Linear algebra/distance measures
+#
+
+tr(Λ::Choi; kwargs...) = tr(Λ.M; kwargs...)
+
+fidelity_bound(Λ1::Choi, Λ2::Choi) =
+  fidelity_bound(Λ1.M, Λ2.M)
 
 function HDF5.write(parent::Union{HDF5File,HDF5Group},
                     name::AbstractString,
-                    C::Choi)
+                    Λ::Choi)
   g = g_create(parent, name)
-  attrs(g)["type"] = String(Symbol(typeof(C)))
-  write(g, "M", C.M)
+  attrs(g)["type"] = String(Symbol(typeof(Λ)))
+  write(g, "M", Λ.M)
 end
 
 function HDF5.read(parent::Union{HDF5File, HDF5Group},
