@@ -330,7 +330,7 @@ function tomography(data::Matrix{Pair{String,Pair{String, Int}}}, C::Choi;
 
   optimizer = copy(optimizer)
   
-  batchsize = min(size(data)[1],batch_size)
+  batchsize = min(size(data)[1],batchsize)
 
   if use_localnorm && use_globalnorm
     error("Both use_localnorm and use_globalnorm are set to true, cannot use both local norm and global norm.")

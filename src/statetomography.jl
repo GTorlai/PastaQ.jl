@@ -391,7 +391,7 @@ function tomography(data::Matrix{Pair{String, Int}}, L::LPDO;
   #data = "state" .* data
   data = convertdatapoints(data; state = true)
   
-  batchsize = min(size(data)[1],batch_size)
+  batchsize = min(size(data)[1],batchsize)
 
   model = copy(L)
   F = nothing
