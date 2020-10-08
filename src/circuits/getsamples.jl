@@ -160,10 +160,12 @@ is drawn from the probability distribution:
 function getsamples(M0::Union{MPS,MPO}, bases::Array; kwargs...)
   @assert length(M0) == size(bases)[2]
   data = Matrix{Pair{String, Int}}(undef, size(bases)[1],length(M0))
+  M = copy(M0)
+  orthogonalize!(M,1)
   for n in 1:size(bases)[1]
     meas_gates = measurementgates(bases[n,:])
-    M = runcircuit(M0,meas_gates)
-    measurement = getsamples!(M;kwargs...)
+    M_meas = runcircuit(M,meas_gates)
+    measurement = getsamples!(M_meas;kwargs...)
     data[n,:] .= bases[n,:] .=> measurement
   end
   return data 
