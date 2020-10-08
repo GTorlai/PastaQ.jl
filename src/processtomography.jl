@@ -329,6 +329,8 @@ function tomography(data::Matrix{Pair{String,Pair{String, Int}}}, C::Choi;
   outputpath = get(kwargs,:fout,nothing)
 
   optimizer = copy(optimizer)
+  
+  batchsize = min(size(data)[1],batch_size)
 
   if use_localnorm && use_globalnorm
     error("Both use_localnorm and use_globalnorm are set to true, cannot use both local norm and global norm.")
@@ -348,10 +350,6 @@ function tomography(data::Matrix{Pair{String,Pair{String, Int}}}, C::Choi;
   F = nothing
   Fbound = nothing
   frob_dist = nothing
-
-  if batchsize > size(data)[1]
-    error("Batch size larger than dataset size")
-  end
 
   # Number of training batches
   num_batches = Int(floor(size(data)[1]/batchsize))

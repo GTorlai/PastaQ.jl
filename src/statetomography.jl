@@ -390,15 +390,13 @@ function tomography(data::Matrix{Pair{String, Int}}, L::LPDO;
   # Convert data to projectors
   #data = "state" .* data
   data = convertdatapoints(data; state = true)
+  
+  batchsize = min(size(data)[1],batch_size)
 
   model = copy(L)
   F = nothing
   Fbound = nothing
   frob_dist = nothing
-
-  if batchsize > size(data)[1]
-    error("Batch size larger than dataset size")
-  end
 
   # Number of training batches
   num_batches = Int(floor(size(data)[1]/batchsize))
