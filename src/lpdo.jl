@@ -30,7 +30,7 @@ ket(L::LPDO, j::Int) = prime(L.X[j], !purifier_tag(L))
 bra(L::LPDO) = dag(L.X)
 bra(L::LPDO, j::Int) = dag(L.X[j])
 
-LinearAlgebra.tr(L::LPDO) = inner(L.X, L.X)
+tr(L::LPDO) = inner(L.X, L.X)
 
 logtr(L::LPDO) = loginner(L.X, L.X)
 
@@ -51,10 +51,10 @@ An LPDO `L = X X†` is normalized by `tr(L) = tr(X X†)`, so each `X` is norma
 
 Passing a vector `v` as the keyword arguments `localnorms!` (`sqrt_localnorms!`) will fill the vector with the (square root) of the normalization factor per site. For an MPS `ψ`, `prod(v) ≈ norm(ψ)`. For an MPO `M`, `prod(v) ≈ tr(M). For an LPDO `L`, `prod(v)^2 ≈ tr(L)`.
 """
-function LinearAlgebra.normalize!(M::MPO;
-                                  plev = 0 => 1,
-                                  tags = ts"" => ts"",
-                                  localnorms! = [])
+function normalize!(M::MPO;
+                    plev = 0 => 1,
+                    tags = ts"" => ts"",
+                    localnorms! = [])
   N = length(M)
   resize!(localnorms!, N)
   blob = tr(M[1]; plev = plev, tags = tags)
@@ -77,7 +77,7 @@ function LinearAlgebra.normalize!(M::MPO;
   return M
 end
 
-function LinearAlgebra.normalize!(L::LPDO; sqrt_localnorms! = [])
+function normalize!(L::LPDO; sqrt_localnorms! = [])
   N = length(L)
   resize!(sqrt_localnorms!, N)
   # TODO: replace with:
@@ -107,7 +107,7 @@ function LinearAlgebra.normalize!(L::LPDO; sqrt_localnorms! = [])
   return L
 end
 
-function LinearAlgebra.normalize!(ψ::MPS; localnorms! = [])
+function normalize!(ψ::MPS; localnorms! = [])
   normalize!(LPDO(ψ); sqrt_localnorms! = localnorms!)
   return ψ
 end
