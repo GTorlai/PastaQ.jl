@@ -1,9 +1,3 @@
-#gradlogZ(C::Choi{LPDO{MPS}}; sqrt_localnorms = nothing) =
-#  gradlogZ(C.M.X; localnorms = sqrt_localnorms)
-#
-#gradlogZ(C::Choi{LPDO{MPO}}; sqrt_localnorms = nothing) =
-#  gradlogZ(C.M; sqrt_localnorms = sqrt_localnorms)
-
 gradlogZ(C::Choi; sqrt_localnorms = nothing) =
   gradlogZ(C.M; sqrt_localnorms = sqrt_localnorms)
 
@@ -124,7 +118,6 @@ end
 function gradnll(C::Choi{LPDO{MPO}}, data_in::Array, data_out::Array;
                  sqrt_localnorms = nothing, choi::Bool = false)
   ρ = C.M.X
-  #lpdo = L.X
   N = length(ρ)
 
   s_in  = [firstind(ρ[j], tags = "Input") for j in 1:length(ρ)]
@@ -365,7 +358,6 @@ function tomography(data::Matrix{Pair{String,Pair{String, Int}}}, C::Choi;
     data_in = data_in[randomperm,:]
     data_out = data_out[randomperm,:]
 
-
     avg_loss = 0.0
 
     # Sweep over the data set
@@ -487,3 +479,104 @@ function nll(C::Choi{LPDO{MPO}}, data_in::Array, data_out::Array)
   end
   return loss
 end
+
+
+function traceoutput(C::Choi{LPDO{MPS}})
+  Ψ = copy(C.M.X)
+  N = length(Ψ)
+  Θ = ITensor[]
+  Ψdag = dag(Ψ)
+
+  tmp = noprime(Ψ[1]',tags="Output") * Ψdag[1]
+  Cdn = combiner(commonind(tmp,Ψ[2]),commonind(tmp,Ψ[2]'))
+  push!(Θ,tmp * Cdn)
+
+  for j in 2:N-1
+    tmp = noprime(Ψ[j]',tags="Output") * Ψdag[j]
+    Cup = Cdn
+    Cdn = combiner(commonind(tmp,Ψ[j+1]),commonind(tmp,Ψ[j+1]'))
+    push!(Θ,tmp * Cup * Cdn)
+  end
+  tmp = noprime(Ψ[N]',tags="Output") * Ψdag[N]
+  Cup = Cdn
+  push!(Θ,tmp * Cup)
+  return MPO(Θ)
+end
+
+function TP(C::Choi{LPDO{MPS}})
+  Θ = traceoutput(C)
+  N = length(Θ)
+  s = [firstind(Θ[j],tags="Input", plev = 0) for j in 1:N]
+  idMPO = MPO(s,"Id")
+  Δ = Θ + (-idMPO)
+  return real(sqrt(inner(Δ,Δ)))
+end
+
+function gradTP(C::Choi{LPDO{MPS}})
+  
+  Θ = traceoutput(C)
+  N = length(Θ)
+  Θdag = dag(Θ)
+  
+  tp = TP(C)
+
+  L = Vector{ITensor}(undef, N-1)
+  R = Vector{ITensor}(undef, N)
+  
+  # ∇ Tr(Θ†)
+  L[1] = Θdag[1] * δ(dag(siteinds(Θ,1)))
+  for j in 2:N-1
+    L[j] = L[j-1] * Θdag[j] * δ(dag(siteinds(Θ,j)))
+  end
+  
+  R[N] = Θdag[N] * δ(dag(siteinds(Θ,N)))
+  for j in reverse(2:N-1)
+    R[j] = R[j+1] * Θdag[j] * δ(dag(siteinds(Θ,j)))
+  end
+  gradients1 = Vector{ITensor}(undef, N)
+  
+  gradients1[1] = (δ(dag(siteinds(Θ,1))) * R[2])/tp
+  for j in 2:N-1
+    gradients1[j] = (L[j-1] * δ(dag(siteinds(Θ,j))) * R[j+1])/tp
+  end
+  gradients1[N] = (L[N-1] * δ(dag(siteinds(Θ,N))))/tp
+  
+  # ∇ Tr(ΘΘ†)
+  L = Vector{ITensor}(undef, N-1)
+  R = Vector{ITensor}(undef, N)
+  gradients2 = Vector{ITensor}(undef, N)
+  
+  L[1] = Θdag[1] * prime(Θ[1],"Link")
+  for j in 2:N-1
+    L[j] = L[j-1] * Θdag[j] * prime(Θ[j],"Link")
+  end
+
+  R[N] = Θdag[N] * prime(Θ[N],"Link")
+  for j in reverse(2:N-1)
+    R[j] = R[j+1] * Θdag[j] * prime(Θ[j],"Link")
+  end
+  gradients2[1] = (prime(Θ[1],"Link") * R[2])/(2 * tp) 
+  for j in 2:N-1
+    gradients2[j] = (L[j-1] * prime(Θ[j],"Link") * R[j+1])/(2 * tp)
+  end
+  gradients2[N] = (L[N-1] * prime(Θ[N],"Link"))/(2 * tp) 
+  gradients = gradients1 - gradients2
+  return gradients, tp
+end
+
+
+
+function traceoutput(C::Choi{LPDO{MPO}})
+  
+end
+
+function TP(C::Choi{LPDO{MPO}})
+
+end
+
+function gradTP(C::Choi{LPDO{MPO}})
+
+end
+
+
+
