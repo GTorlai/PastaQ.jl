@@ -30,7 +30,7 @@ ket(L::LPDO, j::Int) = prime(L.X[j], !purifier_tag(L))
 bra(L::LPDO) = dag(L.X)
 bra(L::LPDO, j::Int) = dag(L.X[j])
 
-LinearAlgebra.tr(L::LPDO) = inner(L.X, L.X)
+tr(L::LPDO) = inner(L.X, L.X)
 
 logtr(L::LPDO) = loginner(L.X, L.X)
 
@@ -51,33 +51,37 @@ An LPDO `L = X X†` is normalized by `tr(L) = tr(X X†)`, so each `X` is norma
 
 Passing a vector `v` as the keyword arguments `localnorms!` (`sqrt_localnorms!`) will fill the vector with the (square root) of the normalization factor per site. For an MPS `ψ`, `prod(v) ≈ norm(ψ)`. For an MPO `M`, `prod(v) ≈ tr(M). For an LPDO `L`, `prod(v)^2 ≈ tr(L)`.
 """
-function LinearAlgebra.normalize!(M::MPO; localnorms! = [])
+function normalize!(M::MPO;
+                    plev = 0 => 1,
+                    tags = ts"" => ts"",
+                    localnorms! = [])
   N = length(M)
   resize!(localnorms!, N)
-  blob = M[1] * δ(dag(siteinds(M, 1)))
+  blob = tr(M[1]; plev = plev, tags = tags)
   localZ = norm(blob)
   blob /= localZ
   M[1] /= localZ
   localnorms![1] = localZ
   for j in 2:N-1
-    blob *= (M[j] * δ(dag(siteinds(M, j))))
+    blob *= M[j]
+    blob = tr(blob; plev = plev, tags = tags)
     localZ = norm(blob)
     blob /= localZ
     M[j] /= localZ
     localnorms![j] = localZ
   end
-  blob *= (M[N] * δ(dag(siteinds(M, N))))
-  localZ = blob[]
+  blob *= M[N]
+  localZ = tr(blob; plev = plev, tags = tags)
   M[N] /= localZ
   localnorms![N] = localZ
   return M
 end
 
-function LinearAlgebra.normalize!(L::LPDO; sqrt_localnorms! = [])
+function normalize!(L::LPDO; sqrt_localnorms! = [])
   N = length(L)
   resize!(sqrt_localnorms!, N)
   # TODO: replace with:
-  #blob = ket(L, 1) * δ(siteinds(L, 1)) * bra(L, 1)
+  #blob = noprime(ket(L, 1) * siteind(L, 1)) * bra(L, 1)
   blob = noprime(ket(L, 1), "Site") * bra(L, 1)
   localZ = norm(blob)
   blob /= sqrt(localZ)
@@ -103,7 +107,7 @@ function LinearAlgebra.normalize!(L::LPDO; sqrt_localnorms! = [])
   return L
 end
 
-function LinearAlgebra.normalize!(ψ::MPS; localnorms! = [])
+function normalize!(ψ::MPS; localnorms! = [])
   normalize!(LPDO(ψ); sqrt_localnorms! = localnorms!)
   return ψ
 end
