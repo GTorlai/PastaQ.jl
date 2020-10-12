@@ -109,19 +109,17 @@ end
   
   # Real-valued with randpars
   Λ = randomprocess(Float64, N; χ = χ, ξ = ξ, mixed = true)
-  ρ = Λ.M
-  @test length(ρ) == N
-  @test maxlinkdim(ρ.X) == χ 
-  for j in 1:length(ρ)
-    @test eltype(ρ.X[j]) == Float64
+  @test length(Λ) == N
+  @test maxlinkdim(Λ.X) == χ 
+  for j in 1:length(Λ)
+    @test eltype(Λ.X[j]) == Float64
   end
   # Complex-valued with randpars
   Λ = randomprocess(N; χ = χ, ξ = ξ, mixed = true)
-  ρ = Λ.M
-  @test length(ρ) == N
-  @test maxlinkdim(ρ.X) == χ 
-  for j in 1:length(ρ)
-    @test eltype(ρ.X[j]) == Complex{Float64}
+  @test length(Λ) == N
+  @test maxlinkdim(Λ.X) == χ 
+  for j in 1:length(Λ)
+    @test eltype(Λ.X[j]) == Complex{Float64}
   end
 end
 
@@ -176,11 +174,10 @@ end
   end
   # to Choi
   Λ = randomprocess(U0;mixed=true)
-  ρ = Λ.M
   Γ0 = PastaQ.makeChoi(U0)
   for j in 1:length(N)
-    @test firstind(ρ.X[j],tags="Input") == firstind(Γ0.M.X[j],tags="Input")
-    @test firstind(ρ.X[j],tags="Output") == firstind(Γ0.M.X[j],tags="Output")
+    @test firstind(Λ.X[j],tags="Input") == firstind(Γ0.X[j],tags="Input")
+    @test firstind(Λ.X[j],tags="Output") == firstind(Γ0.X[j],tags="Output")
   end
   
   # 1. Given a Choi
@@ -188,15 +185,15 @@ end
   # to MPO
   U = randomprocess(Λ0;mixed=false)
   for j in 1:length(N)
-    @test firstind(U[j],tags="Site",plev=0).id == firstind(Λ0.M.X[j],tags="Output").id
-    @test firstind(U[j],tags="Site",plev=1).id == firstind(Λ0.M.X[j],tags="Input").id
+    @test firstind(U[j],tags="Site",plev=0).id == firstind(Λ0.X[j],tags="Output").id
+    @test firstind(U[j],tags="Site",plev=1).id == firstind(Λ0.X[j],tags="Input").id
   end
   
   # to Choi
   Λ = randomprocess(Λ0;mixed=true)
   for j in 1:length(N)
-    @test firstind(Λ.M.X[j],tags="Input") == firstind(Λ0.M.X[j],tags="Input")
-    @test firstind(Λ.M.X[j],tags="Output") == firstind(Λ0.M.X[j],tags="Output")
+    @test firstind(Λ.X[j],tags="Input") == firstind(Λ0.X[j],tags="Input")
+    @test firstind(Λ.X[j],tags="Output") == firstind(Λ0.X[j],tags="Output")
   end
   
 end

@@ -266,19 +266,19 @@ made out of single-qubit Pauli eigenstates (e.g. `|ϕ⟩ =|+⟩⊗|0⟩⊗|r⟩�
 The resulting MPO describes the quantum state obtained by applying
 the quantum channel underlying the Choi matrix to `|ϕ⟩`.
 """
-function projectchoi(Λ0::Choi{MPO}, prep::Array)
+function projectchoi(Λ0::MPO, prep::Array)
   Λ = copy(Λ0)
-  choi = Λ.M
+  #choi = Λ.M
   #st = "state" .* copy(prep) 
   st = prep
-  s = firstsiteinds(choi, tags="Input")
+  s = firstsiteinds(Λ, tags="Input")
   
-  for j in 1:length(choi)
+  for j in 1:length(Λ)
     # No conjugate on the gate (transpose input!)
-    choi[j] = choi[j] * dag(state(st[j],s[j]))
-    choi[j] = choi[j] * prime(state(st[j],s[j]))
+    Λ[j] = Λ[j] * dag(state(st[j],s[j]))
+    Λ[j] = Λ[j] * prime(state(st[j],s[j]))
   end
-  return choi
+  return Λ
 end
 
 
@@ -403,7 +403,7 @@ function getsamples(gates::Array,preps::Array, bases::Array ;
 end
 
 
-function getsamples(M::Union{Choi,MPO}, preps::Array, bases::Array;
+function getsamples(M::Union{LPDO,MPO}, preps::Array, bases::Array;
                     readout_errors = (p1given0 = nothing, p0given1 = nothing))
   
   @assert size(preps) == size(bases)
@@ -411,7 +411,8 @@ function getsamples(M::Union{Choi,MPO}, preps::Array, bases::Array;
   data = Matrix{Pair{String, Int}}(undef,nshots,length(M))
   # Get unitary MPO / Choi matrix
   for n in 1:nshots
-    M′= (M isa Choi ? projectchoi(M,preps[n,:]) : projectunitary(M,preps[n,:]))
+    #M′= (M isa Choi ? projectchoi(M,preps[n,:]) : projectunitary(M,preps[n,:]))
+    M′= (ischoi(M) ? projectchoi(M,preps[n,:]) : projectunitary(M,preps[n,:]))
     meas_gates = measurementgates(bases[n,:])
     M_meas = runcircuit(M′,meas_gates)
     measurement = getsamples!(M_meas; readout_errors = readout_errors)

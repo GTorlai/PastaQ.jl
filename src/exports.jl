@@ -68,4 +68,5 @@ export
   # Methods
   writesamples,
   readsamples,
-  maxlinkdim
+  maxlinkdim,
+  ischoi
