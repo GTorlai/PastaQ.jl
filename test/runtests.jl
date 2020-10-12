@@ -2,7 +2,7 @@ using Test
 
 @testset "PastaQ.jl" begin
   @testset "$filename" for filename in (
-    "choi.jl",
+    #"choi.jl",
     "utils.jl",
     "gates.jl",
     "circuits.jl",
@@ -12,9 +12,10 @@ using Test
     "optimizers.jl",
     "distances.jl",
     "randomstates.jl",
-    "tomography.jl",
+    "statetomography.jl",
+    "processtomography.jl",
     "examples.jl",
-    "observer.jl",
+    #"observer.jl",
     #"benchmark_qiskit.jl"
   )
     println("Running $filename")

@@ -1,4 +1,5 @@
 using PastaQ
+ 
 using ITensors
 using HDF5
 using JLD
@@ -309,7 +310,7 @@ end
                        process = true,
                        build_process = true,
                        noise = ("amplitude_damping", (γ = 0.1,)))
-  @test Λ isa Choi{MPO}
+  @test ischoi(Λ) == true #isa Choi{MPO}
 
 end
 

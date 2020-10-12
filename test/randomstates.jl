@@ -85,18 +85,18 @@ end
   χ = 3
   
   # Real-valued with randpars
-  ρ = randomprocess(Float64, N; χ = χ, mixed = false)
-  @test length(ρ) == N
-  @test maxlinkdim(ρ) == χ 
-  for j in 1:length(ρ)
-    @test eltype(ρ[j]) == Float64
+  U = randomprocess(Float64, N; χ = χ, mixed = false)
+  @test length(U) == N
+  @test maxlinkdim(U) == χ 
+  for j in 1:length(U)
+    @test eltype(U[j]) == Float64
   end
   # Complex-valued with randpars
-  ρ = randomstate(N; χ = χ, mixed = false)
-  @test length(ρ) == N
-  @test maxlinkdim(ρ) == χ 
-  for j in 1:length(ρ)
-    @test eltype(ρ[j]) == Complex{Float64}
+  U = randomprocess(N; χ = χ, mixed = false)
+  @test length(U) == N
+  @test maxlinkdim(U) == χ 
+  for j in 1:length(U)
+    @test eltype(U[j]) == Complex{Float64}
   end
   
 end
@@ -109,19 +109,17 @@ end
   
   # Real-valued with randpars
   Λ = randomprocess(Float64, N; χ = χ, ξ = ξ, mixed = true)
-  ρ = Λ.M
-  @test length(ρ) == N
-  @test maxlinkdim(ρ.X) == χ 
-  for j in 1:length(ρ)
-    @test eltype(ρ.X[j]) == Float64
+  @test length(Λ) == N
+  @test maxlinkdim(Λ.X) == χ 
+  for j in 1:length(Λ)
+    @test eltype(Λ.X[j]) == Float64
   end
   # Complex-valued with randpars
   Λ = randomprocess(N; χ = χ, ξ = ξ, mixed = true)
-  ρ = Λ.M
-  @test length(ρ) == N
-  @test maxlinkdim(ρ.X) == χ 
-  for j in 1:length(ρ)
-    @test eltype(ρ.X[j]) == Complex{Float64}
+  @test length(Λ) == N
+  @test maxlinkdim(Λ.X) == χ 
+  for j in 1:length(Λ)
+    @test eltype(Λ.X[j]) == Complex{Float64}
   end
 end
 
@@ -167,34 +165,35 @@ end
   χ = 3
 
   # 1. Given a MPO
-  ρ0 = randomprocess(N;mixed=false,χ=χ)
+  U0 = randomprocess(N;mixed=false,χ=χ)
 
-  ## to MPO
-  ρ = randomprocess(ρ0;mixed=false)
+  # to MPO
+  U = randomprocess(U0;mixed=false)
   for j in 1:length(N)
-    @test firstind(ρ[j],tags="Site",plev=0) == firstind(ρ0[j],tags="Site",plev=0)
+    @test firstind(U[j],tags="Site",plev=0) == firstind(U0[j],tags="Site",plev=0)
   end
-
-  Λ = randomprocess(ρ0;mixed=true)
-  ρ = Λ.M
+  # to Choi
+  Λ = randomprocess(U0;mixed=true)
+  Γ0 = PastaQ.makeChoi(U0)
   for j in 1:length(N)
-    @test firstind(ρ.X[j],tags="Site",plev=0) == firstind(ρ0[j],tags="Site",plev=0)
+    @test firstind(Λ.X[j],tags="Input") == firstind(Γ0.X[j],tags="Input")
+    @test firstind(Λ.X[j],tags="Output") == firstind(Γ0.X[j],tags="Output")
   end
-
-  ## 1. Given a LPDO
+  
+  # 1. Given a Choi
   Λ0 = randomprocess(N;mixed=true,χ=χ)
-  ρ0 = Λ0.M 
-
-  ## to MPO
-  ρ = randomprocess(ρ0;mixed=false)
+  # to MPO
+  U = randomprocess(Λ0;mixed=false)
   for j in 1:length(N)
-    @test firstind(ρ[j],tags="Site",plev=0) == firstind(ρ0.X[j],tags="Site",plev=0)
+    @test firstind(U[j],tags="Site",plev=0).id == firstind(Λ0.X[j],tags="Output").id
+    @test firstind(U[j],tags="Site",plev=1).id == firstind(Λ0.X[j],tags="Input").id
   end
-  ## to LPDO
-  Λ = randomprocess(ρ0;mixed=true)
-  ρ = Λ.M
+  
+  # to Choi
+  Λ = randomprocess(Λ0;mixed=true)
   for j in 1:length(N)
-    @test firstind(ρ.X[j],tags="Site",plev=0) == firstind(ρ0.X[j],tags="Site",plev=0)
+    @test firstind(Λ.X[j],tags="Input") == firstind(Λ0.X[j],tags="Input")
+    @test firstind(Λ.X[j],tags="Output") == firstind(Λ0.X[j],tags="Output")
   end
-
+  
 end

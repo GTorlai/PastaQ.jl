@@ -6,7 +6,8 @@ struct LPDO{XT <: Union{MPS, MPO}}
   purifier_tag::TagSet
 end
 
-LPDO(X::Union{MPS, MPO}) = LPDO(X, ts"Purifier")
+LPDO(X::MPO) = LPDO(X, ts"Purifier")
+LPDO(X::MPS) = LPDO(X, ts"")
 
 Base.length(L::LPDO) = length(L.X)
 
@@ -29,6 +30,11 @@ ket(L::LPDO) = prime(L.X, !purifier_tag(L))
 ket(L::LPDO, j::Int) = prime(L.X[j], !purifier_tag(L))
 bra(L::LPDO) = dag(L.X)
 bra(L::LPDO, j::Int) = dag(L.X[j])
+
+ket(L::LPDO{MPS}) = prime(L.X)
+ket(L::LPDO{MPS}, j::Int) = prime(L.X[j])
+bra(L::LPDO{MPS}) = dag(L.X)
+bra(L::LPDO{MPS}, j::Int) = dag(L.X[j])
 
 tr(L::LPDO) = inner(L.X, L.X)
 

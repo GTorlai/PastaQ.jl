@@ -14,7 +14,7 @@ U = runcircuit(N, gates; process = true)
 Λ = runcircuit(N, gates; process = true, noise = ("amplitude_damping", (γ = 0.01,)))
 
 Random.seed!(1234)
-nshots = 100
+nshots = 50
 
 data, ψ = getsamples(N, gates, nshots)
 writesamples(data, ψ, "../examples/data/qst_circuit_test.h5")
@@ -41,7 +41,6 @@ N = length(Ψ)     # Number of qubits
 opt = SGD(η = 0.01)
 ψ = tomography(data, ψ0;
                optimizer = opt,
-               batchsize = 100,
                epochs = 2,
                target = Ψ)
 
@@ -54,7 +53,6 @@ opt = SGD(η = 0.01)
 
 ρ = tomography(data, ρ0;
                optimizer = opt,
-               batchsize = 100,
                epochs = 2,
                target = ϱ)
 
@@ -66,7 +64,6 @@ V0 = randomprocess(U; χ = χ)
 opt = SGD(η = 0.1)
 V = tomography(data, V0;
                optimizer = opt,
-               batchsize = 100,
                epochs = 2,
                target = U)
 
@@ -80,6 +77,5 @@ N = length(ϱ)
 opt = SGD(η = 0.1)
 Λ = tomography(data, Λ0;
                optimizer = opt,
-               batchsize = 10,
                epochs = 2,
                target = ϱ)
