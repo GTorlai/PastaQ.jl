@@ -1,9 +1,11 @@
 function gradnll(L::LPDO{MPS},
-                 data_in::Array,
-                 data_out::Array;
+                 data::Matrix{Pair{String,Pair{String, Int}}};
                  sqrt_localnorms = nothing)
+  
+  data_in = first.(data)
+  data_out = convertdatapoints(last.(data))
+  
   ψ = L.X
-  #ψ = C.M.X
   N = length(ψ)
 
   s_in  = [firstind(ψ[j], tags = "Input") for j in 1:length(ψ)]
@@ -112,8 +114,13 @@ function gradnll(L::LPDO{MPS},
 end
 
 
-function gradnll(L::LPDO{MPO}, data_in::Array, data_out::Array;
+function gradnll(L::LPDO{MPO}, 
+                 data::Matrix{Pair{String,Pair{String, Int}}};
                  sqrt_localnorms = nothing, choi::Bool = false)
+  
+  data_in = first.(data)
+  data_out = convertdatapoints(last.(data))
+  
   ρ = L.X
   N = length(ρ)
 
@@ -288,10 +295,11 @@ Compute the gradients of the cost function:
 
 If `choi=true`, add the Choi normalization `trace(Λ)=d^N` to the cost function.
 """
-function gradients(L::LPDO, data_in::Array, data_out::Array;
+function gradients(L::LPDO, 
+                   data::Matrix{Pair{String,Pair{String, Int}}};
                    sqrt_localnorms = nothing)
   g_logZ,logZ = gradlogZ(L; sqrt_localnorms = sqrt_localnorms)
-  g_nll, nll  = gradnll(L, data_in, data_out; sqrt_localnorms = sqrt_localnorms)
+  g_nll, nll  = gradnll(L, data; sqrt_localnorms = sqrt_localnorms)
 
   grads = g_logZ + g_nll
   loss = logZ + nll
@@ -315,6 +323,7 @@ function tomography(data::Matrix{Pair{String,Pair{String, Int}}}, L::LPDO;
   use_globalnorm::Bool = get(kwargs,:use_globalnorm,false)
   batchsize::Int64 = get(kwargs,:batchsize,500)
   epochs::Int64 = get(kwargs,:epochs,1000)
+  split_ratio::Float64 = get(kwargs,:split_ratio,0.9)
   target = get(kwargs,:target,nothing)
   outputpath = get(kwargs,:fout,nothing)
 
@@ -326,13 +335,14 @@ function tomography(data::Matrix{Pair{String,Pair{String, Int}}}, L::LPDO;
     error("Both use_localnorm and use_globalnorm are set to true, cannot use both local norm and global norm.")
   end
 
-  # Convert data to projectors
-  data_in = first.(data)
-  data_out = convertdatapoints(last.(data))
   model = copy(L)
-  @assert length(model) == size(data_in)[2]
-  @assert length(model) == size(data_out)[2]
-  @assert size(data_in)[1] == size(data_out)[1]
+  @assert length(model) == size(data)[2]
+  # Set up data
+  ndata = size(data)[1]
+  ntrain = Int(ndata * split_ratio)
+  ntest = ndata - ntrain
+  train_data = data[1:ntrain,:]
+  test_data  = data[(ntrain+1):end,:]
 
   # Target LPDO are currently not supported
   if !ischoi(target)
@@ -344,54 +354,51 @@ function tomography(data::Matrix{Pair{String,Pair{String, Int}}}, L::LPDO;
   frob_dist = nothing
 
   # Number of training batches
-  num_batches = Int(floor(size(data)[1]/batchsize))
+  num_batches = Int(floor(size(train_data)[1]/batchsize))
 
   tot_time = 0.0
   # Training iterations
   for ep in 1:epochs
     ep_time = @elapsed begin
 
-    randomperm = shuffle(1:size(data_in)[1])
-    data_in = data_in[randomperm,:]
-    data_out = data_out[randomperm,:]
+    train_data = train_data[shuffle(1:end),:]
 
-
-    avg_loss = 0.0
+    train_loss = 0.0
 
     # Sweep over the data set
     for b in 1:num_batches
-      batch_in = data_in[(b-1)*batchsize+1:b*batchsize,:]
-      batch_out = data_out[(b-1)*batchsize+1:b*batchsize,:]
+      batch = train_data[(b-1)*batchsize+1:b*batchsize,:]
 
       # Local normalization
       if use_localnorm
         modelcopy = copy(model)
         sqrt_localnorms = []
         normalize!(modelcopy; sqrt_localnorms! = sqrt_localnorms)
-        grads,loss = gradients(modelcopy, batch_in,batch_out; sqrt_localnorms = sqrt_localnorms)
+        grads,loss = gradients(modelcopy, batch; sqrt_localnorms = sqrt_localnorms)
       # Global normalization
       elseif use_globalnorm
         normalize!(model)
-        grads,loss = gradients(model,batch_in,batch_out)
+        grads,loss = gradients(model,batch)
       # Unnormalized
       else
-        grads,loss = gradients(model,batch_in,batch_out)
+        grads,loss = gradients(model,batch)
       end
 
       nupdate = ep * num_batches + b
-      avg_loss += loss/Float64(num_batches)
+      train_loss += loss/Float64(num_batches)
       update!(model,grads,optimizer;step=nupdate)
     end
     end # end @elapsed
-
+    test_loss = nll(model,test_data) 
     print("Ep = $ep  ")
-    @printf("Loss = %.5E  ",avg_loss)
+    @printf("Train Loss = %.5E  ",train_loss)
+    @printf("Test Loss = %.5E  ",test_loss)
     if !isnothing(target)
       if ((model.X isa MPO) & (target isa MPO))
         frob_dist = frobenius_distance(model,target)
         Fbound = fidelity_bound(model,target)
-        @printf("Trace distance = %.3E  ",frob_dist)
-        @printf("Fidelity bound = %.3E  ",Fbound)
+        @printf("Tr dist = %.3E  ",frob_dist)
+        @printf("F bound = %.3E  ",Fbound)
         #if (length(model) <= 8)
         #  disable_warn_order!()
         #  F = fullfidelity(model.M,target)
@@ -428,9 +435,13 @@ function tomography(data::Matrix{Pair{String,Pair{String, Int}}}, L::LPDO;
   return model
 end
 
+nll(ψ::MPS, data::Matrix{Pair{String,Pair{String, Int}}}) = nll(LPDO(ψ), data)
 
-
-function nll(L::LPDO{MPS}, data_in::Array, data_out::Array)
+function nll(L::LPDO{MPS},data::Matrix{Pair{String,Pair{String, Int}}})
+  
+  data_in = first.(data)
+  data_out = convertdatapoints(last.(data))
+  
   ψ = L.X
   N = length(ψ)
   loss = 0.0
@@ -454,7 +465,11 @@ function nll(L::LPDO{MPS}, data_in::Array, data_out::Array)
   return loss
 end
 
-function nll(L::LPDO{MPO}, data_in::Array, data_out::Array)
+function nll(L::LPDO{MPO},data::Matrix{Pair{String,Pair{String, Int}}})
+  
+  data_in = first.(data)
+  data_out = convertdatapoints(last.(data))
+  
   ρ = L.X
   N = length(ρ)
   loss = 0.0

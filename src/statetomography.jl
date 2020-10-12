@@ -71,8 +71,10 @@ The probability is then obtaining by transposing the input state, which
 is equivalent to take the conjugate of the eigenstate projector.
 """
 function gradnll(L::LPDO{MPS},
-                 data::Array;
+                 data::Matrix{Pair{String,Int}};
                  sqrt_localnorms = nothing)
+  data = convertdatapoints(copy(data); state = true)
+  
   ψ = L.X
   N = length(ψ)
 
@@ -170,7 +172,7 @@ function gradnll(L::LPDO{MPS},
   return gradients_tot, loss_tot
 end
 
-gradnll(ψ::MPS, data::Array; localnorms = nothing) =
+gradnll(ψ::MPS, data::Matrix{Pair{String,Int}};localnorms = nothing) =
   gradnll(LPDO(ψ), data; sqrt_localnorms = localnorms)
 
 """
@@ -195,8 +197,10 @@ where `∑ᵢ` runs over the measurement data. Returns the gradients:
 If `choi=true`, the probability is then obtaining by transposing the
 input state, which is equivalent to take the conjugate of the eigenstate projector.
 """
-function gradnll(L::LPDO{MPO}, data::Array;
+function gradnll(L::LPDO{MPO},
+                 data::Matrix{Pair{String,Int}};
                  sqrt_localnorms = nothing)
+  data = convertdatapoints(copy(data); state = true)
   lpdo = L.X
   N = length(lpdo)
 
@@ -355,7 +359,8 @@ Compute the gradients of the cost function:
 
 If `choi=true`, add the Choi normalization `trace(Λ)=d^N` to the cost function.
 """
-function gradients(L::LPDO, data::Array;
+function gradients(L::LPDO, 
+                   data::Matrix{Pair{String,Int}};
                    sqrt_localnorms = nothing)
   g_logZ,logZ = gradlogZ(L; sqrt_localnorms = sqrt_localnorms)
   g_nll, nll  = gradnll(L, data; sqrt_localnorms = sqrt_localnorms)
@@ -365,7 +370,7 @@ function gradients(L::LPDO, data::Array;
   return grads,loss
 end
 
-gradients(ψ::MPS, data::Array; localnorms = nothing) =
+gradients(ψ::MPS,data::Matrix{Pair{String,Int}};localnorms = nothing)=
   gradients(LPDO(ψ), data; sqrt_localnorms = localnorms)
 
 
@@ -378,6 +383,7 @@ function tomography(data::Matrix{Pair{String, Int}}, L::LPDO;
   use_globalnorm::Bool = get(kwargs,:use_globalnorm,false)
   batchsize::Int64 = get(kwargs,:batchsize,500)
   epochs::Int64 = get(kwargs,:epochs,1000)
+  split_ratio::Float64 = get(kwargs,:split_ratio,0.9)
   target = get(kwargs,:target,nothing)
   outputpath = get(kwargs,:fout,nothing)
 
@@ -387,11 +393,15 @@ function tomography(data::Matrix{Pair{String, Int}}, L::LPDO;
     error("Both use_localnorm and use_globalnorm are set to true, cannot use both local norm and global norm.")
   end
 
-  # Convert data to projectors
-  #data = "state" .* data
-  data = convertdatapoints(data; state = true)
+  # Set up data
+  #data = convertdatapoints(data; state = true)
+  ndata = size(data)[1]
+  ntrain = Int(ndata * split_ratio)
+  ntest = ndata - ntrain
+  train_data = data[1:ntrain,:]
+  test_data  = data[(ntrain+1):end,:]
   
-  batchsize = min(size(data)[1],batchsize)
+  batchsize = min(size(train_data)[1],batchsize)
 
   model = copy(L)
   F = nothing
@@ -399,20 +409,20 @@ function tomography(data::Matrix{Pair{String, Int}}, L::LPDO;
   frob_dist = nothing
 
   # Number of training batches
-  num_batches = Int(floor(size(data)[1]/batchsize))
+  num_batches = Int(floor(size(train_data)[1]/batchsize))
 
   tot_time = 0.0
   # Training iterations
   for ep in 1:epochs
     ep_time = @elapsed begin
 
-    data = data[shuffle(1:end),:]
+    train_data = train_data[shuffle(1:end),:]
 
-    avg_loss = 0.0
+    train_loss = 0.0
 
     # Sweep over the data set
     for b in 1:num_batches
-      batch = data[(b-1)*batchsize+1:b*batchsize,:]
+      batch = train_data[(b-1)*batchsize+1:b*batchsize,:]
       # Local normalization
       if use_localnorm
         modelcopy = copy(model)
@@ -429,19 +439,20 @@ function tomography(data::Matrix{Pair{String, Int}}, L::LPDO;
       end
 
       nupdate = ep * num_batches + b
-      avg_loss += loss/Float64(num_batches)
+      train_loss += loss/Float64(num_batches)
       update!(model,grads,optimizer;step=nupdate)
     end
     end # end @elapsed
-
+    test_loss = nll(model,test_data) 
     print("Ep = $ep  ")
-    @printf("Loss = %.5E  ",avg_loss)
+    @printf("Train Loss = %.5E  ",train_loss)
+    @printf("Test Loss = %.5E  ",test_loss)
     if !isnothing(target)
       if ((model.X isa MPO) & (target isa MPO))
         frob_dist = frobenius_distance(model,target)
         Fbound = fidelity_bound(model,target)
-        @printf("Trace distance = %.3E  ",frob_dist)
-        @printf("Fidelity bound = %.3E  ",Fbound)
+        @printf("Tr dist = %.3E  ",frob_dist)
+        @printf("F bound = %.3E  ",Fbound)
         if (length(model) <= 8)
           disable_warn_order!()
           F = fullfidelity(model,target)
@@ -492,7 +503,8 @@ over a dataset `data`:
 If `choi=true`, the probability is then obtaining by transposing the
 input state, which is equivalent to take the conjugate of the eigenstate projector.
 """
-function nll(L::LPDO{MPS}, data::Array)
+function nll(L::LPDO{MPS}, data::Matrix{Pair{String,Int}})
+  data = convertdatapoints(copy(data); state = true)
   ψ = L.X
   N = length(ψ)
   @assert N==size(data)[2]
@@ -512,7 +524,7 @@ function nll(L::LPDO{MPS}, data::Array)
   return loss
 end
 
-nll(ψ::MPS, args...; kwargs...) = nll(LPDO(ψ), args...; kwargs...)
+nll(ψ::MPS, data::Matrix{Pair{String,Int}}) = nll(LPDO(ψ), data)
 
 """
     PastaQ.nll(lpdo::LPDO, data::Array; choi::Bool = false)
@@ -525,7 +537,8 @@ over a dataset `data`:
 If `choi=true`, the probability is then obtaining by transposing the
 input state, which is equivalent to take the conjugate of the eigenstate projector.
 """
-function nll(L::LPDO{MPO}, data::Array)
+function nll(L::LPDO{MPO}, data::Matrix{Pair{String,Int}})
+  data = convertdatapoints(copy(data); state = true)
   lpdo = L.X
   N = length(lpdo)
   loss = 0.0
@@ -545,3 +558,4 @@ function nll(L::LPDO{MPO}, data::Array)
   end
   return loss
 end
+
