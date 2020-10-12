@@ -14,7 +14,6 @@ gates = randomcircuit(N, depth)
 
 # Generate samples
 data, U = getsamples(N, gates, nshots;
-                     build_process = false,
                      process = true)
 writesamples(data, U, "data/qpt_circuit.h5")
 
@@ -44,9 +43,7 @@ U = tomography(data, U0;
 println()
 
 
- Noisy circuit
-
-
+# Noisy circuit
 # Generate samples
 data, Λ = getsamples(N, gates, nshots;
                      process = true,
@@ -72,7 +69,7 @@ println("Run process tomography to learn noisy process Λ")
                batchsize = 500,
                epochs = 5,
                target = Φ)
-@show maxlinkdim(Λ.M.X)
+@show maxlinkdim(Λ.X)
 println()
 
 
