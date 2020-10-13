@@ -393,17 +393,18 @@ function tomography(data::Matrix{Pair{String, Int}}, L::LPDO;
     error("Both use_localnorm and use_globalnorm are set to true, cannot use both local norm and global norm.")
   end
 
+  model = copy(L)
+  
   # Set up data
-  #data = convertdatapoints(data; state = true)
   ndata = size(data)[1]
   ntrain = Int(ndata * split_ratio)
   ntest = ndata - ntrain
   train_data = data[1:ntrain,:]
   test_data  = data[(ntrain+1):end,:]
-  
+  @assert length(model) == size(data)[2]
+
   batchsize = min(size(train_data)[1],batchsize)
 
-  model = copy(L)
   F = nothing
   Fbound = nothing
   frob_dist = nothing

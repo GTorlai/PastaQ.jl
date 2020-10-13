@@ -328,22 +328,23 @@ function tomography(data::Matrix{Pair{String,Pair{String, Int}}}, L::LPDO;
   outputpath = get(kwargs,:fout,nothing)
 
   optimizer = copy(optimizer)
-  
-  batchsize = min(size(data)[1],batchsize)
 
   if use_localnorm && use_globalnorm
     error("Both use_localnorm and use_globalnorm are set to true, cannot use both local norm and global norm.")
   end
 
   model = copy(L)
-  @assert length(model) == size(data)[2]
+
   # Set up data
   ndata = size(data)[1]
   ntrain = Int(ndata * split_ratio)
   ntest = ndata - ntrain
   train_data = data[1:ntrain,:]
   test_data  = data[(ntrain+1):end,:]
+  @assert length(model) == size(data)[2]
 
+  batchsize = min(size(train_data)[1],batchsize)
+  
   # Target LPDO are currently not supported
   if !ischoi(target)
     target = makeChoi(target).X
