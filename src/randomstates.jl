@@ -219,7 +219,7 @@ function random_choi(ElT::Type{<: Number},
     end
   end
   noprime!(Λ)
-  return Choi(LPDO(Λ))#, purifier_tag)
+  return LPDO(Λ)
 end
 
 
@@ -339,7 +339,7 @@ function randomprocess(ElT::Type{<: Number}, sites::Vector{<:Index};
                        kwargs...)
   mixed::Bool = get(kwargs,:mixed,false)
   if mixed 
-    return randomprocess(ElT, Choi, sites; kwargs...)
+    return randomprocess(ElT, LPDO, sites; kwargs...)
   end
   return randomprocess(ElT, MPO, sites; kwargs...)
 end
@@ -361,7 +361,7 @@ function randomprocess(ElT::Type{<: Number}, T::Type,
     else
       error("randomMPO with circuit initialization not implemented yet")
     end
-  elseif T == Choi
+  elseif T == LPDO
     M = random_choi(ElT,sites,χ,ξ,σ;purifier_tag=purifier_tag)
   else
     error("ansatz type not recognized")
@@ -392,12 +392,6 @@ end
 
 randomprocess(M::Union{MPS,MPO}; kwargs...) =
   randomprocess(ComplexF64, M; kwargs...)
-
-randomprocess(ElT::Type{<: Number}, C::Choi; kwargs...) = 
-  randomprocess(ElT, C.M; kwargs...)
-
-randomprocess(C::Choi; kwargs...) = 
-  randomprocess(ComplexF64, C; kwargs...)
 
 randomprocess(ElT::Type{<: Number}, L::LPDO; kwargs...) = 
   randomprocess(ElT, L.X; kwargs...)

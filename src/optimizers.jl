@@ -23,8 +23,6 @@ end
 
 Base.copy(opt::SGD) = SGD(opt.η, opt.γ, copy(opt.v))
 
-#SGD(M::Union{MPS,MPO};η::Float64=0.01,γ::Float64=0.0) = SGD(LPDO(M);η=η,γ=γ)
-
 """
     update!(L::LPDO,∇::Array,opt::SGD; kwargs...)
 
@@ -47,7 +45,6 @@ function update!(L::LPDO,∇::Array,opt::SGD; kwargs...)
 end
 
 update!(ψ::MPS,∇::Array,opt::SGD; kwargs...) = update!(LPDO(ψ),∇,opt;kwargs...)
-update!(C::Choi,∇::Array,opt::SGD; kwargs...) = update!(C.M,∇,opt;kwargs...)
 
 struct AdaGrad <: Optimizer 
   η::Float64
@@ -71,8 +68,6 @@ function AdaGrad(;η::Float64=0.01,ϵ::Float64=1E-8)
   return AdaGrad(η,ϵ,∇²)
 end
 
-#AdaGrad(ψ::Union{MPS,MPO};η::Float64=0.01,ϵ::Float64=1E-8) = AdaGrad(LPDO(ψ);η=η,ϵ=ϵ)
-
 """
     update!(L::LPDO,∇::Array,opt::AdaGrad; kwargs...)
 
@@ -92,7 +87,7 @@ function update!(L::LPDO,∇::Array,opt::AdaGrad; kwargs...)
     end
   end
   for j in 1:length(M)
-    opt.∇²[j] += ∇[j] .^ 2 
+    opt.∇²[j] += abs2.(∇[j])
     ∇² = copy(opt.∇²[j])
     ∇² .+= opt.ϵ
     g = sqrt.(∇²)    
@@ -102,7 +97,6 @@ function update!(L::LPDO,∇::Array,opt::AdaGrad; kwargs...)
 end
 
 update!(ψ::MPS,∇::Array,opt::AdaGrad; kwargs...) = update!(LPDO(ψ),∇,opt; kwargs...)
-update!(C::Choi,∇::Array,opt::AdaGrad; kwargs...) = update!(C.M,∇,opt;kwargs...)
 
 struct AdaDelta <: Optimizer 
   γ::Float64
@@ -128,8 +122,6 @@ function AdaDelta(;γ::Float64=0.9,ϵ::Float64=1E-8)
   return AdaDelta(γ,ϵ,∇²,Δθ²)
 end
 
-#AdaDelta(ψ::Union{MPS,MPO};γ::Float64=0.9,ϵ::Float64=1E-8) = AdaDelta(LPDO(ψ);γ=γ,ϵ=ϵ) 
-
 """
     update!(L::LPDO,∇::Array,opt::AdaDelta; kwargs...)
     
@@ -153,7 +145,7 @@ function update!(L::LPDO,∇::Array,opt::AdaDelta; kwargs...)
   end
   for j in 1:length(M)
     # Update square gradients
-    opt.∇²[j] = opt.γ * opt.∇²[j] + (1-opt.γ) * ∇[j] .^ 2
+    opt.∇²[j] = opt.γ * opt.∇²[j] + (1-opt.γ) * abs2.(∇[j])
     
     # Get RMS signal for square gradients
     ∇² = copy(opt.∇²[j])
@@ -165,20 +157,18 @@ function update!(L::LPDO,∇::Array,opt::AdaDelta; kwargs...)
     Δθ² = copy(opt.Δθ²[j])
     Δθ² .+= opt.ϵ
     g2 = sqrt.(Δθ²)
-    #g2 = sqrt.(opt.Δθ²[j] .+ opt.ϵ)
     Δ = noprime(∇[j]) ⊙ δ1
     Δθ = noprime(Δ) ⊙ g2
 
-    ## Update parameters
+    # Update parameters
     M[j] = M[j] - Δθ
 
     # Update square updates
-    opt.Δθ²[j] = opt.γ * opt.Δθ²[j] + (1-opt.γ) * Δθ .^ 2
+    opt.Δθ²[j] = opt.γ * opt.Δθ²[j] + (1-opt.γ) * abs2.(Δθ)
   end
 end
 
 update!(ψ::MPS,∇::Array,opt::AdaDelta; kwargs...) = update!(LPDO(ψ),∇,opt; kwargs...)
-update!(C::Choi,∇::Array,opt::AdaDelta; kwargs...) = update!(C.M,∇,opt;kwargs...)
 
 struct Adam <: Optimizer 
   η::Float64
@@ -213,7 +203,6 @@ function Adam(;η::Float64=0.001,
   return Adam(η,β₁,β₂,ϵ,∇,∇²)
 end
 
-#Adam(ψ::Union{MPS,MPO};η::Float64=0.001,β₁::Float64=0.9,β₂::Float64=0.999,ϵ::Float64=1E-7) = Adam(LPDO(ψ);η=η,β₁=β₁,β₂=β₂,ϵ=ϵ)
 
 """
     update!(L::LPDO,∇::Array,opt::Adam; kwargs...)
@@ -234,7 +223,7 @@ function update!(L::LPDO,∇::Array,opt::Adam; kwargs...)
   for j in 1:length(M)
     # Update square gradients
     opt.∇[j]  = opt.β₁ * opt.∇[j]  + (1-opt.β₁) * ∇[j]
-    opt.∇²[j] = opt.β₂ * opt.∇²[j] + (1-opt.β₂) * ∇[j] .^ 2
+    opt.∇²[j] = opt.β₂ * opt.∇²[j] + (1-opt.β₂) * abs2.(∇[j])
     
     g1 = opt.∇[j]  ./ (1-opt.β₁^t)
     g2 = opt.∇²[j] ./ (1-opt.β₂^t)
@@ -251,7 +240,4 @@ end
 
 update!(ψ::MPS,∇::Array,opt::Adam; kwargs...) =
   update!(LPDO(ψ),∇,opt; kwargs...)
-
-update!(C::Choi,∇::Array,opt::Adam; kwargs...) =
-  update!(C.M,∇,opt; kwargs...)
 

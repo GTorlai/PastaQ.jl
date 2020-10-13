@@ -1,12 +1,9 @@
-gradlogZ(C::Choi; sqrt_localnorms = nothing) =
-  gradlogZ(C.M; sqrt_localnorms = sqrt_localnorms)
-
-function gradnll(C::Choi{LPDO{MPS}},
+function gradnll(L::LPDO{MPS},
                  data_in::Array,
                  data_out::Array;
                  sqrt_localnorms = nothing)
-
-  ψ = C.M.X
+  ψ = L.X
+  #ψ = C.M.X
   N = length(ψ)
 
   s_in  = [firstind(ψ[j], tags = "Input") for j in 1:length(ψ)]
@@ -115,9 +112,9 @@ function gradnll(C::Choi{LPDO{MPS}},
 end
 
 
-function gradnll(C::Choi{LPDO{MPO}}, data_in::Array, data_out::Array;
+function gradnll(L::LPDO{MPO}, data_in::Array, data_out::Array;
                  sqrt_localnorms = nothing, choi::Bool = false)
-  ρ = C.M.X
+  ρ = L.X
   N = length(ρ)
 
   s_in  = [firstind(ρ[j], tags = "Input") for j in 1:length(ρ)]
@@ -291,14 +288,14 @@ Compute the gradients of the cost function:
 
 If `choi=true`, add the Choi normalization `trace(Λ)=d^N` to the cost function.
 """
-function gradients(C::Choi, data_in::Array, data_out::Array;
+function gradients(L::LPDO, data_in::Array, data_out::Array;
                    sqrt_localnorms = nothing)
-  g_logZ,logZ = gradlogZ(C; sqrt_localnorms = sqrt_localnorms)
-  g_nll, nll  = gradnll(C, data_in, data_out; sqrt_localnorms = sqrt_localnorms)
+  g_logZ,logZ = gradlogZ(L; sqrt_localnorms = sqrt_localnorms)
+  g_nll, nll  = gradnll(L, data_in, data_out; sqrt_localnorms = sqrt_localnorms)
 
   grads = g_logZ + g_nll
   loss = logZ + nll
-  loss -= length(C) * log(2)
+  loss -= length(L) * log(2)
   return grads,loss
 end
 
@@ -309,7 +306,7 @@ function tomography(data::Matrix{Pair{String,Pair{String, Int}}}, U::MPO; optimi
 end
 
 
-function tomography(data::Matrix{Pair{String,Pair{String, Int}}}, C::Choi;
+function tomography(data::Matrix{Pair{String,Pair{String, Int}}}, L::LPDO;
                     optimizer::Optimizer,
                     observer! = nothing,
                     kwargs...)
@@ -322,6 +319,8 @@ function tomography(data::Matrix{Pair{String,Pair{String, Int}}}, C::Choi;
   outputpath = get(kwargs,:fout,nothing)
 
   optimizer = copy(optimizer)
+  
+  batchsize = min(size(data)[1],batchsize)
 
   if use_localnorm && use_globalnorm
     error("Both use_localnorm and use_globalnorm are set to true, cannot use both local norm and global norm.")
@@ -330,21 +329,19 @@ function tomography(data::Matrix{Pair{String,Pair{String, Int}}}, C::Choi;
   # Convert data to projectors
   data_in = first.(data)
   data_out = convertdatapoints(last.(data))
-  model = copy(C)
+  model = copy(L)
+  @assert length(model) == size(data_in)[2]
+  @assert length(model) == size(data_out)[2]
+  @assert size(data_in)[1] == size(data_out)[1]
 
   # Target LPDO are currently not supported
-  if target isa Choi{MPO}
-    target = target.M
-  elseif target isa MPO
-    target = makeChoi(target).M.X
+  if !ischoi(target)
+    target = makeChoi(target).X
   end
+  
   F = nothing
   Fbound = nothing
   frob_dist = nothing
-
-  if batchsize > size(data)[1]
-    error("Batch size larger than dataset size")
-  end
 
   # Number of training batches
   num_batches = Int(floor(size(data)[1]/batchsize))
@@ -389,9 +386,9 @@ function tomography(data::Matrix{Pair{String,Pair{String, Int}}}, C::Choi;
     print("Ep = $ep  ")
     @printf("Loss = %.5E  ",avg_loss)
     if !isnothing(target)
-      if ((model.M.X isa MPO) & (target isa MPO))
-        frob_dist = frobenius_distance(model.M,target)
-        Fbound = fidelity_bound(model.M,target)
+      if ((model.X isa MPO) & (target isa MPO))
+        frob_dist = frobenius_distance(model,target)
+        Fbound = fidelity_bound(model,target)
         @printf("Trace distance = %.3E  ",frob_dist)
         @printf("Fidelity bound = %.3E  ",Fbound)
         #if (length(model) <= 8)
@@ -401,7 +398,7 @@ function tomography(data::Matrix{Pair{String,Pair{String, Int}}}, C::Choi;
         #  @printf("Fidelity = %.3E  ",F)
         #end
       else
-        F = fidelity(model.M,target)
+        F = fidelity(model,target)
         @printf("Fidelity = %.3E  ",F)
       end
     end
@@ -432,12 +429,9 @@ end
 
 
 
-function nll(C::Choi{LPDO{MPS}}, data_in::Array, data_out::Array)
-  ψ = C.M.X
+function nll(L::LPDO{MPS}, data_in::Array, data_out::Array)
+  ψ = L.X
   N = length(ψ)
-  @assert N==size(data_in)[2]
-  @assert N==size(data_out)[2]
-  @assert size(data_in)[1] == size(data_out)[1]
   loss = 0.0
   s_in  = [firstind(ψ[j],tags="Input") for j in 1:length(ψ)]
   s_out = [firstind(ψ[j],tags="Output") for j in 1:length(ψ)]
@@ -459,8 +453,8 @@ function nll(C::Choi{LPDO{MPS}}, data_in::Array, data_out::Array)
   return loss
 end
 
-function nll(C::Choi{LPDO{MPO}}, data_in::Array, data_out::Array)
-  ρ = C.M.X
+function nll(L::LPDO{MPO}, data_in::Array, data_out::Array)
+  ρ = L.X
   N = length(ρ)
   loss = 0.0
   s_in  = [firstind(ρ[j],tags="Input") for j in 1:N]
@@ -480,9 +474,8 @@ function nll(C::Choi{LPDO{MPO}}, data_in::Array, data_out::Array)
   return loss
 end
 
-
-function traceoutput(C::Choi{LPDO{MPS}})
-  Ψ = copy(C.M.X)
+function traceoutput(L::LPDO{MPS})
+  ψ = copy(L.X)
   N = length(Ψ)
   Θ = ITensor[]
   Ψdag = dag(Ψ)
@@ -503,8 +496,8 @@ function traceoutput(C::Choi{LPDO{MPS}})
   return MPO(Θ)
 end
 
-function TP(C::Choi{LPDO{MPS}})
-  Θ = traceoutput(C)
+function TP(L::LPDO{MPS})
+  Θ = traceoutput(L)
   N = length(Θ)
   s = [firstind(Θ[j],tags="Input", plev = 0) for j in 1:N]
   idMPO = MPO(s,"Id")
@@ -512,71 +505,69 @@ function TP(C::Choi{LPDO{MPS}})
   return real(sqrt(inner(Δ,Δ)))
 end
 
-function gradTP(C::Choi{LPDO{MPS}})
-  
-  Θ = traceoutput(C)
-  N = length(Θ)
-  Θdag = dag(Θ)
-  
-  tp = TP(C)
-
-  L = Vector{ITensor}(undef, N-1)
-  R = Vector{ITensor}(undef, N)
-  
-  # ∇ Tr(Θ†)
-  L[1] = Θdag[1] * δ(dag(siteinds(Θ,1)))
-  for j in 2:N-1
-    L[j] = L[j-1] * Θdag[j] * δ(dag(siteinds(Θ,j)))
-  end
-  
-  R[N] = Θdag[N] * δ(dag(siteinds(Θ,N)))
-  for j in reverse(2:N-1)
-    R[j] = R[j+1] * Θdag[j] * δ(dag(siteinds(Θ,j)))
-  end
-  gradients1 = Vector{ITensor}(undef, N)
-  
-  gradients1[1] = (δ(dag(siteinds(Θ,1))) * R[2])/tp
-  for j in 2:N-1
-    gradients1[j] = (L[j-1] * δ(dag(siteinds(Θ,j))) * R[j+1])/tp
-  end
-  gradients1[N] = (L[N-1] * δ(dag(siteinds(Θ,N))))/tp
-  
-  # ∇ Tr(ΘΘ†)
-  L = Vector{ITensor}(undef, N-1)
-  R = Vector{ITensor}(undef, N)
-  gradients2 = Vector{ITensor}(undef, N)
-  
-  L[1] = Θdag[1] * prime(Θ[1],"Link")
-  for j in 2:N-1
-    L[j] = L[j-1] * Θdag[j] * prime(Θ[j],"Link")
-  end
-
-  R[N] = Θdag[N] * prime(Θ[N],"Link")
-  for j in reverse(2:N-1)
-    R[j] = R[j+1] * Θdag[j] * prime(Θ[j],"Link")
-  end
-  gradients2[1] = (prime(Θ[1],"Link") * R[2])/(2 * tp) 
-  for j in 2:N-1
-    gradients2[j] = (L[j-1] * prime(Θ[j],"Link") * R[j+1])/(2 * tp)
-  end
-  gradients2[N] = (L[N-1] * prime(Θ[N],"Link"))/(2 * tp) 
-  gradients = gradients1 - gradients2
-  return gradients, tp
-end
-
-
-
-function traceoutput(C::Choi{LPDO{MPO}})
-  
-end
-
-function TP(C::Choi{LPDO{MPO}})
-
-end
-
-function gradTP(C::Choi{LPDO{MPO}})
-
-end
-
-
-
+#function gradTP(L::LPDO{MPS})
+#  
+#  Θ = traceoutput(C)
+#  N = length(Θ)
+#  Θdag = dag(Θ)
+#  
+#  tp = TP(C)
+#
+#  L = Vector{ITensor}(undef, N-1)
+#  R = Vector{ITensor}(undef, N)
+#  
+#  # ∇ Tr(Θ†)
+#  L[1] = Θdag[1] * δ(dag(siteinds(Θ,1)))
+#  for j in 2:N-1
+#    L[j] = L[j-1] * Θdag[j] * δ(dag(siteinds(Θ,j)))
+#  end
+#  
+#  R[N] = Θdag[N] * δ(dag(siteinds(Θ,N)))
+#  for j in reverse(2:N-1)
+#    R[j] = R[j+1] * Θdag[j] * δ(dag(siteinds(Θ,j)))
+#  end
+#  gradients1 = Vector{ITensor}(undef, N)
+#  
+#  gradients1[1] = (δ(dag(siteinds(Θ,1))) * R[2])/tp
+#  for j in 2:N-1
+#    gradients1[j] = (L[j-1] * δ(dag(siteinds(Θ,j))) * R[j+1])/tp
+#  end
+#  gradients1[N] = (L[N-1] * δ(dag(siteinds(Θ,N))))/tp
+#  
+#  # ∇ Tr(ΘΘ†)
+#  L = Vector{ITensor}(undef, N-1)
+#  R = Vector{ITensor}(undef, N)
+#  gradients2 = Vector{ITensor}(undef, N)
+#  
+#  L[1] = Θdag[1] * prime(Θ[1],"Link")
+#  for j in 2:N-1
+#    L[j] = L[j-1] * Θdag[j] * prime(Θ[j],"Link")
+#  end
+#
+#  R[N] = Θdag[N] * prime(Θ[N],"Link")
+#  for j in reverse(2:N-1)
+#    R[j] = R[j+1] * Θdag[j] * prime(Θ[j],"Link")
+#  end
+#  gradients2[1] = (prime(Θ[1],"Link") * R[2])/(2 * tp) 
+#  for j in 2:N-1
+#    gradients2[j] = (L[j-1] * prime(Θ[j],"Link") * R[j+1])/(2 * tp)
+#  end
+#  gradients2[N] = (L[N-1] * prime(Θ[N],"Link"))/(2 * tp) 
+#  gradients = gradients1 - gradients2
+#  return gradients, tp
+#end
+#
+#
+#
+#function traceoutput(C::Choi{LPDO{MPO}})
+#  
+#end
+#
+#function TP(C::Choi{LPDO{MPO}})
+#
+#end
+#
+#function gradTP(C::Choi{LPDO{MPO}})
+#
+#end
+#

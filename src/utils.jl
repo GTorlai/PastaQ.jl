@@ -11,7 +11,7 @@ Save data and model on file:
   - `output_path`: path to file
 """
 function writesamples(data::Matrix{Int},
-                      model::Union{MPS, MPO, LPDO, Choi, Nothing},
+                      model::Union{MPS, MPO, LPDO, Nothing},
                       output_path::String)
   # Make the path the file will sit in, if it doesn't exist
   mkpath(dirname(output_path))
@@ -35,7 +35,7 @@ function writesamples(data::Matrix{Int},
 end
 
 function writesamples(data::Matrix{Pair{String, Int}},
-                      model::Union{MPS, MPO, LPDO, Choi, Nothing},
+                      model::Union{MPS, MPO, LPDO, Nothing},
                       output_path::String)
   # Make the path the file will sit in, if it doesn't exist
   mkpath(dirname(output_path))
@@ -61,7 +61,7 @@ function writesamples(data::Matrix{Pair{String, Int}},
 end
 
 function writesamples(data::Matrix{Pair{String, Pair{String, Int}}},
-                      model::Union{MPS, MPO, LPDO, Choi, Nothing},
+                      model::Union{MPS, MPO, LPDO, Nothing},
                       output_path::String)
   # Make the path the file will sit in, if it doesn't exist
   mkpath(dirname(output_path))
@@ -283,9 +283,31 @@ end
 
 """
 
+function ischoi(M::LPDO)
+  return (length(inds(M.X[1],"Site")) == 2 ? true : false)
+end
 
+function ischoi(M::MPO)
+  return (length(inds(M[1],"Site")) == 4 ? true : false)
+  #return ( length(inds(M[1])) == 5 ? true : false)
+end
 
+function makeUnitary(L::LPDO{MPS})
+  ψ = L.X
+  U = MPO(ITensor[copy(ψ[j]) for j in 1:length(ψ)])
+  prime!(U,tags="Output")
+  removetags!(U, "Input")
+  removetags!(U, "Output")
+  return U
+end
 
+function makeChoi(U0::MPO)
+  M = MPS(ITensor[copy(U0[j]) for j in 1:length(U0)])
+  addtags!(M, "Input", plev = 0, tags = "Qubit")
+  addtags!(M, "Output", plev = 1, tags = "Qubit")
+  noprime!(M)
+  return LPDO(M)
+end
 
 
 #function convertdatapoint(datapoint::Array{Pair{String,Int64}})

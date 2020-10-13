@@ -13,7 +13,6 @@ include("imports.jl")
 include("exports.jl")
 
 include("lpdo.jl")
-include("choi.jl")
 
 include("circuits/gates.jl")
 include("circuits/circuits.jl")
