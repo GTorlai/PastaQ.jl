@@ -173,7 +173,7 @@ function numgradsnll(L::LPDO, data::Matrix{Pair{String,Pair{String, Int}}},
   return grad_r-grad_i
 end
 
-function numgradsTP(L::LPDO;accuracy=1e-8,normalized=false)
+function numgradsTP(L::LPDO;accuracy=1e-8)
   M = L.X
   N = length(M)
   grad_r = []
@@ -190,17 +190,17 @@ function numgradsTP(L::LPDO;accuracy=1e-8,normalized=false)
     epsilon[i] = accuracy
     eps = ITensor(epsilon,inds(M[1]))
     M[1] += eps
-    loss_p = PastaQ.TP(L;normalized = normalized) 
+    loss_p = PastaQ.TP(L) 
     M[1] -= eps
-    loss_m = PastaQ.TP(L;normalized = normalized) 
+    loss_m = PastaQ.TP(L) 
     grad_r[1][i] = (loss_p-loss_m)/(accuracy)
     
     epsilon[i] = im*accuracy
     eps = ITensor(epsilon,inds(M[1]))
     M[1] += eps
-    loss_p = PastaQ.TP(L;normalized = normalized)
+    loss_p = PastaQ.TP(L)
     M[1] -= eps
-    loss_m = PastaQ.TP(L;normalized = normalized)
+    loss_m = PastaQ.TP(L)
     grad_i[1][i] = (loss_p-loss_m)/(im*accuracy)
     
     epsilon[i] = 0.0
@@ -212,17 +212,17 @@ function numgradsTP(L::LPDO;accuracy=1e-8,normalized=false)
       epsilon[i] = accuracy
       eps = ITensor(epsilon,inds(M[j]))
       M[j] += eps
-      loss_p = PastaQ.TP(L;normalized = normalized) 
+      loss_p = PastaQ.TP(L) 
       M[j] -= eps
-      loss_m = PastaQ.TP(L;normalized = normalized)
+      loss_m = PastaQ.TP(L)
       grad_r[j][i] = (loss_p-loss_m)/(accuracy)
       
       epsilon[i] = im*accuracy
       eps = ITensor(epsilon,inds(M[j]))
       M[j] += eps
-      loss_p = PastaQ.TP(L;normalized = normalized) 
+      loss_p = PastaQ.TP(L) 
       M[j] -= eps
-      loss_m = PastaQ.TP(L;normalized = normalized) 
+      loss_m = PastaQ.TP(L) 
       grad_i[j][i] = (loss_p-loss_m)/(im*accuracy)
 
       epsilon[i] = 0.0
@@ -235,16 +235,16 @@ function numgradsTP(L::LPDO;accuracy=1e-8,normalized=false)
     epsilon[i] = accuracy
     eps = ITensor(epsilon,inds(M[N]))
     M[N] += eps
-    loss_p = PastaQ.TP(L;normalized = normalized) 
+    loss_p = PastaQ.TP(L) 
     M[N] -= eps
-    loss_m = PastaQ.TP(L;normalized = normalized)
+    loss_m = PastaQ.TP(L)
     grad_r[N][i] = (loss_p-loss_m)/(accuracy)
     epsilon[i] = im*accuracy
     eps = ITensor(epsilon,inds(M[N]))
     M[N] += eps
-    loss_p = PastaQ.TP(L;normalized = normalized) 
+    loss_p = PastaQ.TP(L) 
     M[N] -= eps
-    loss_m = PastaQ.TP(L;normalized = normalized)
+    loss_m = PastaQ.TP(L)
     grad_i[N][i] = (loss_p-loss_m)/(im*accuracy)
     
     epsilon[i] = 0.0
@@ -254,75 +254,78 @@ function numgradsTP(L::LPDO;accuracy=1e-8,normalized=false)
 end
 
 
-@testset "mpo-qpt: normalization" begin
-  N = 10
-  χ = 4
-  U = randomprocess(N;χ=χ)
-  Λ = PastaQ.makeChoi(U)
-  @test length(Λ) == N
-  logZ = lognorm(Λ.X)
-  sqrt_localZ = []
-  normalize!(Λ; sqrt_localnorms! = sqrt_localZ)
-  @test logZ ≈ sum(log.(sqrt_localZ))
-  @test norm(Λ.X) ≈ 1
-end
-
-@testset "mpo-qpt: grad logZ" begin
-  N = 5
-  χ = 4
-  
-  # 1. Unnormalized
-  U = randomprocess(N; χ = χ)
-  Λ = PastaQ.makeChoi(U)
-  alg_grad,_ = PastaQ.gradlogZ(Λ)
-  num_grad = numgradslogZ(Λ)
-  
-  alg_gradient = permutedims(array(alg_grad[1]),[1,3,2])
-  @test alg_gradient ≈ num_grad[1] rtol=1e-3
-  for j in 2:N-1
-    alg_gradient = permutedims(array(alg_grad[j]),[2,1,3,4])
-    @test alg_gradient ≈ num_grad[j] rtol=1e-3
-  end
-  alg_gradient = permutedims(array(alg_grad[N]),[2,1,3])
-  @test alg_gradient ≈ num_grad[N] rtol=1e-3
-  
-  # 2. Globally normalized
-  U = randomprocess(N; χ = χ)
-  Λ = PastaQ.makeChoi(U)
-  normalize!(Λ)
-  @test norm(Λ.X)^2 ≈ 1
-  alg_grad,_ = PastaQ.gradlogZ(Λ)
-  num_grad = numgradslogZ(Λ)
-  
-  alg_gradient = permutedims(array(alg_grad[1]),[1,3,2])
-  @test alg_gradient ≈ num_grad[1] rtol=1e-3
-  for j in 2:N-1
-    alg_gradient = permutedims(array(alg_grad[j]),[2,1,3,4])
-    @test alg_gradient ≈ num_grad[j] rtol=1e-3
-  end
-  alg_gradient = permutedims(array(alg_grad[N]),[2,1,3])
-  @test alg_gradient ≈ num_grad[N] rtol=1e-3
-
-  # 3. Locally normalized
-  U = randomprocess(N; χ = χ)
-  Λ = PastaQ.makeChoi(U)
-  num_grad = numgradslogZ(Λ)
-  
-  sqrt_localnorms = []
-  normalize!(Λ; sqrt_localnorms! = sqrt_localnorms)
-  @test norm(Λ.X)^2 ≈ 1
-  alg_grad,_ = PastaQ.gradlogZ(Λ; sqrt_localnorms = sqrt_localnorms)
-  
-  alg_gradient = permutedims(array(alg_grad[1]),[1,3,2])
-  @test alg_gradient ≈ num_grad[1] rtol=1e-3
-  for j in 2:N-1
-    alg_gradient = permutedims(array(alg_grad[j]),[2,1,3,4])
-    @test alg_gradient ≈ num_grad[j] rtol=1e-3
-  end
-  alg_gradient = permutedims(array(alg_grad[N]),[2,1,3])
-  @test alg_gradient ≈ num_grad[N] rtol=1e-3
-  
-end
+#@testset "mpo-qpt: normalization" begin
+#  N = 10
+#  χ = 4
+#  U = randomprocess(N;χ=χ)
+#  Λ = PastaQ.makeChoi(U)
+#  @test length(Λ) == N
+#  logZ = lognorm(Λ.X)
+#  sqrt_localZ = []
+#  normalize!(Λ; sqrt_localnorms! = sqrt_localZ)
+#  @test logZ ≈ sum(log.(sqrt_localZ))
+#  @test norm(Λ.X) ≈ 1
+#end
+#
+#@testset "mpo-qpt: grad logZ" begin
+#  N = 5
+#  χ = 4
+#  
+#  # 1. Unnormalized
+#  Random.seed!(1234)
+#  U = randomprocess(N; χ = χ)
+#  Λ = PastaQ.makeChoi(U)
+#  alg_grad,_ = PastaQ.gradlogZ(Λ)
+#  num_grad = numgradslogZ(Λ)
+#  
+#  alg_gradient = permutedims(array(alg_grad[1]),[1,3,2])
+#  @test alg_gradient ≈ num_grad[1] rtol=1e-3
+#  for j in 2:N-1
+#    alg_gradient = permutedims(array(alg_grad[j]),[2,1,3,4])
+#    @test alg_gradient ≈ num_grad[j] rtol=1e-3
+#  end
+#  alg_gradient = permutedims(array(alg_grad[N]),[2,1,3])
+#  @test alg_gradient ≈ num_grad[N] rtol=1e-3
+#  
+#  # 2. Globally normalized
+#  Random.seed!(1234)
+#  U = randomprocess(N; χ = χ)
+#  Λ = PastaQ.makeChoi(U)
+#  normalize!(Λ)
+#  @test norm(Λ.X)^2 ≈ 1
+#  alg_grad,_ = PastaQ.gradlogZ(Λ)
+#  num_grad = numgradslogZ(Λ)
+#  
+#  alg_gradient = permutedims(array(alg_grad[1]),[1,3,2])
+#  @test alg_gradient ≈ num_grad[1] rtol=1e-3
+#  for j in 2:N-1
+#    alg_gradient = permutedims(array(alg_grad[j]),[2,1,3,4])
+#    @test alg_gradient ≈ num_grad[j] rtol=1e-3
+#  end
+#  alg_gradient = permutedims(array(alg_grad[N]),[2,1,3])
+#  @test alg_gradient ≈ num_grad[N] rtol=1e-3
+#
+#  # 3. Locally normalized
+#  Random.seed!(1234)
+#  U = randomprocess(N; χ = χ)
+#  Λ = PastaQ.makeChoi(U)
+#  num_grad = numgradslogZ(Λ)
+#  
+#  sqrt_localnorms = []
+#  normalize!(Λ; sqrt_localnorms! = sqrt_localnorms)
+#  @test norm(Λ.X)^2 ≈ 1
+#  alg_grad,_ = PastaQ.gradlogZ(Λ; sqrt_localnorms = sqrt_localnorms)
+#  
+#  alg_gradient = permutedims(array(alg_grad[1]),[1,3,2])
+#  @test alg_gradient ≈ num_grad[1] rtol=1e-3
+#  for j in 2:N-1
+#    alg_gradient = permutedims(array(alg_grad[j]),[2,1,3,4])
+#    @test alg_gradient ≈ num_grad[j] rtol=1e-3
+#  end
+#  alg_gradient = permutedims(array(alg_grad[N]),[2,1,3])
+#  @test alg_gradient ≈ num_grad[N] rtol=1e-3
+#  
+#end
 
 #@testset "mpo-qpt: grad nll" begin
 #  N = 4
@@ -442,20 +445,24 @@ end
 #  @test alg_gradient ≈ num_grads[N] rtol=1e-3
 #end
 
-@testset "mpo-qpt: grad TP (unnormalized)" begin
-  N = 5
+@testset "mpo-qpt: grad TP (normalized)" begin
+  N = 3
   χ = 3
   Random.seed!(1234)
 
-  ## 1. Unnormalized
+  # 1. Unnormalized
+  Random.seed!(1234)
   U = randomprocess(N; χ = χ)
   Λ = PastaQ.makeChoi(U)
-  num_grad = numgradsTP(Λ;  accuracy = 1e-4)
-  alg_grad,Γ = PastaQ.gradTP(Λ)
-  Γtest = PastaQ.TP(Λ)
+  alg_grad_logZ, logZ = PastaQ.gradlogZ(Λ)
   
+  num_grad = numgradsTP(Λ;  accuracy = 1e-5)
+  alg_grad,Γ = PastaQ.gradTP(Λ, alg_grad_logZ, logZ)
+  
+  Γtest = PastaQ.TP(Λ)
+  @test Γ ≈ Γtest
   alg_gradient = permutedims(array(alg_grad[1]),[1,3,2])
-  @test alg_gradient ≈ num_grad[1] rtol=1e-3
+  @test alg_gradient ≈ num_grad[1] rtol=1e-2
   for j in 2:N-1
     alg_gradient = permutedims(array(alg_grad[j]),[1,3,2,4])
     @test alg_gradient ≈ num_grad[j] rtol=1e-3
@@ -465,15 +472,19 @@ end
   
 
   # 2. Globally normalized
+  Random.seed!(1234)
   U = randomprocess(N; χ = χ)
   Λ = PastaQ.makeChoi(U)
-  normalize!(Λ)
-  num_grad = numgradsTP(Λ;  accuracy = 1e-4)
-  alg_grad,Γ = PastaQ.gradTP(Λ)
-  test = PastaQ.TP(Λ)
+  normalize!(Λ) 
+  alg_grad_logZ, logZ = PastaQ.gradlogZ(Λ)
   
+  num_grad = numgradsTP(Λ;  accuracy = 1e-5)
+  alg_grad,Γ = PastaQ.gradTP(Λ,alg_grad_logZ,logZ)
+  
+  Γtest = PastaQ.TP(Λ)
+  @test Γ ≈ Γtest
   alg_gradient = permutedims(array(alg_grad[1]),[1,3,2])
-  @test alg_gradient ≈ num_grad[1] rtol=1e-3
+  @test alg_gradient ≈ num_grad[1] rtol=1e-2
   for j in 2:N-1
     alg_gradient = permutedims(array(alg_grad[j]),[1,3,2,4])
     @test alg_gradient ≈ num_grad[j] rtol=1e-3
@@ -482,20 +493,20 @@ end
   @test alg_gradient ≈ num_grad[N] rtol=1e-3
   
   # 3. Locally normalized
+  Random.seed!(1234)
   U = randomprocess(N; χ = χ)
   Λ = PastaQ.makeChoi(U)
   
   num_grad = numgradsTP(Λ;  accuracy = 1e-5)
-  
+  Γ_test = PastaQ.TP(Λ)
   sqrt_localnorms = []
   normalize!(Λ; sqrt_localnorms! = sqrt_localnorms)
-  @test norm(Λ.X)^2 ≈ 1
   
-  alg_grad,Γ = PastaQ.gradTP(Λ; sqrt_localnorms = sqrt_localnorms)
+  alg_grad_logZ, logZ = PastaQ.gradlogZ(Λ; sqrt_localnorms = sqrt_localnorms)
   
-  Γ_test = PastaQ.TP(Λ)
+  alg_grad,Γ = PastaQ.gradTP(Λ,alg_grad_logZ,logZ; sqrt_localnorms = sqrt_localnorms)
+   
   @test Γ ≈ Γ_test
-  
   alg_gradient = permutedims(array(alg_grad[1]),[1,3,2])
   @test alg_gradient ≈ num_grad[1] rtol=1e-1
   for j in 2:N-1
@@ -506,81 +517,7 @@ end
   @test alg_gradient ≈ num_grad[N] rtol=1e-1
 end
 
-@testset "mpo-qpt: grad TP (normalized)" begin
-  N = 3
-  χ = 3
-  Random.seed!(1234)
 
-  ## 1. Unnormalized
-  U = randomprocess(N; χ = χ)
-  Λ = PastaQ.makeChoi(U)
-  alg_grad_logZ, logZ = PastaQ.gradlogZ(Λ)
-  
-  num_grad = numgradsTP(Λ;  accuracy = 1e-5, normalized = true)
-  alg_grad,Γ = PastaQ.gradTP(Λ, alg_grad_logZ, logZ)
-  
-  Γtest = PastaQ.TP(Λ; normalized = true)
-  @test Γ ≈ Γtest
-  alg_gradient = permutedims(array(alg_grad[1]),[1,3,2])
-  @test alg_gradient ≈ num_grad[1] rtol=1e-2
-  for j in 2:N-1
-    alg_gradient = permutedims(array(alg_grad[j]),[1,3,2,4])
-    @test alg_gradient ≈ num_grad[j] rtol=1e-3
-  end
-  alg_gradient = permutedims(array(alg_grad[N]),[1,3,2])
-  @test alg_gradient ≈ num_grad[N] rtol=1e-3
-  
-
-  # 2. Globally normalized
-  U = randomprocess(N; χ = χ)
-  Λ = PastaQ.makeChoi(U)
-  normalize!(Λ) 
-  alg_grad_logZ, logZ = PastaQ.gradlogZ(Λ)
-  
-  num_grad = numgradsTP(Λ;  accuracy = 1e-5, normalized = true)
-  alg_grad,Γ = PastaQ.gradTP(Λ,alg_grad_logZ,logZ)
-  
-  Γtest = PastaQ.TP(Λ; normalized = true)
-  @test Γ ≈ Γtest
-  alg_gradient = permutedims(array(alg_grad[1]),[1,3,2])
-  @test alg_gradient ≈ num_grad[1] rtol=1e-2
-  for j in 2:N-1
-    alg_gradient = permutedims(array(alg_grad[j]),[1,3,2,4])
-    @test alg_gradient ≈ num_grad[j] rtol=1e-3
-  end
-  alg_gradient = permutedims(array(alg_grad[N]),[1,3,2])
-  @test alg_gradient ≈ num_grad[N] rtol=1e-3
-  
-  # 3. Locally normalized
-  U = randomprocess(N; χ = χ)
-  Λ = PastaQ.makeChoi(U)
-  
-  num_grad = numgradsTP(Λ;  accuracy = 1e-5, normalized = true)
-  Γ_test = PastaQ.TP(Λ; normalized = true)
-  @show Γ_test 
-  sqrt_localnorms = []
-  normalize!(Λ; sqrt_localnorms! = sqrt_localnorms)
-  
-  alg_grad_logZ, logZ = PastaQ.gradlogZ(Λ; sqrt_localnorms = sqrt_localnorms)
-  
-  alg_grad,Γ = PastaQ.gradTP(Λ,alg_grad_logZ,logZ; sqrt_localnorms = sqrt_localnorms)
-   
-  @test Γ ≈ Γ_test
-  @show Γ
-  alg_gradient = permutedims(array(alg_grad[1]),[1,3,2])
-  #@test alg_gradient ≈ num_grad[1] rtol=1e-1
-  @show alg_gradient[1,:,:]
-  @show num_grad[1][1,:,:]
-  @show logZ
-  ###for j in 2:N-1
-  ###  alg_gradient = permutedims(array(alg_grad[j]),[1,3,2,4])
-  ###  @test alg_gradient ≈ num_grad[j] rtol=1e-1
-  ###end
-  ###alg_gradient = permutedims(array(alg_grad[N]),[1,3,2])
-  ###@test alg_gradient ≈ num_grad[N] rtol=1e-1
-end
-
-#
 #""" CHOI TESTS """
 #
 #@testset "lpdo-qpt: normalization" begin
@@ -710,3 +647,70 @@ end
 #end
 
 
+#@testset "mpo-qpt: grad TP (unnormalized)" begin
+#  N = 5
+#  χ = 3
+#  Random.seed!(1234)
+#
+#  ## 1. Unnormalized
+#  Random.seed!(1234)
+#  U = randomprocess(N; χ = χ)
+#  Λ = PastaQ.makeChoi(U)
+#  num_grad = numgradsTP(Λ;  accuracy = 1e-4)
+#  alg_grad,Γ = PastaQ.gradTP(Λ)
+#  Γtest = PastaQ.TP(Λ)
+#  
+#  alg_gradient = permutedims(array(alg_grad[1]),[1,3,2])
+#  @test alg_gradient ≈ num_grad[1] rtol=1e-3
+#  for j in 2:N-1
+#    alg_gradient = permutedims(array(alg_grad[j]),[1,3,2,4])
+#    @test alg_gradient ≈ num_grad[j] rtol=1e-3
+#  end
+#  alg_gradient = permutedims(array(alg_grad[N]),[1,3,2])
+#  @test alg_gradient ≈ num_grad[N] rtol=1e-3
+#  
+#
+#  # 2. Globally normalized
+#  Random.seed!(1234)
+#  U = randomprocess(N; χ = χ)
+#  Λ = PastaQ.makeChoi(U)
+#  normalize!(Λ)
+#  num_grad = numgradsTP(Λ;  accuracy = 1e-4)
+#  alg_grad,Γ = PastaQ.gradTP(Λ)
+#  test = PastaQ.TP(Λ)
+#  
+#  alg_gradient = permutedims(array(alg_grad[1]),[1,3,2])
+#  @test alg_gradient ≈ num_grad[1] rtol=1e-3
+#  for j in 2:N-1
+#    alg_gradient = permutedims(array(alg_grad[j]),[1,3,2,4])
+#    @test alg_gradient ≈ num_grad[j] rtol=1e-3
+#  end
+#  alg_gradient = permutedims(array(alg_grad[N]),[1,3,2])
+#  @test alg_gradient ≈ num_grad[N] rtol=1e-3
+#  
+#  # 3. Locally normalized
+#  Random.seed!(1234)
+#  U = randomprocess(N; χ = χ)
+#  Λ = PastaQ.makeChoi(U)
+#  
+#  num_grad = numgradsTP(Λ;  accuracy = 1e-5)
+#  
+#  sqrt_localnorms = []
+#  normalize!(Λ; sqrt_localnorms! = sqrt_localnorms)
+#  @test norm(Λ.X)^2 ≈ 1
+#  
+#  alg_grad,Γ = PastaQ.gradTP(Λ; sqrt_localnorms = sqrt_localnorms)
+#  
+#  Γ_test = PastaQ.TP(Λ)
+#  @test Γ ≈ Γ_test
+#  
+#  alg_gradient = permutedims(array(alg_grad[1]),[1,3,2])
+#  @test alg_gradient ≈ num_grad[1] rtol=1e-1
+#  for j in 2:N-1
+#    alg_gradient = permutedims(array(alg_grad[j]),[1,3,2,4])
+#    @test alg_gradient ≈ num_grad[j] rtol=1e-1
+#  end
+#  alg_gradient = permutedims(array(alg_grad[N]),[1,3,2])
+#  @test alg_gradient ≈ num_grad[N] rtol=1e-1
+#end
+#

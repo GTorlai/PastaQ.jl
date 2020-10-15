@@ -394,7 +394,7 @@ function tomography(data::Matrix{Pair{String,Pair{String, Int}}}, L::LPDO;
     end
     end # end @elapsed
     test_loss = nll(model,test_data) 
-    TP_distance = TP(model; normalize = true)
+    TP_distance = TP(model)
     print("Ep = $ep  ")
     @printf("Train Loss = %.5E  ",train_loss)
     @printf("Test Loss = %.5E  ",test_loss)
@@ -507,8 +507,9 @@ function grad_TrΦ(L::LPDO{MPS}; sqrt_localnorms = nothing)
     sqrt_localnorms = ones(N)
   end
   
-  Z = prod(sqrt_localnorms)^2
- 
+  #Z = prod(sqrt_localnorms)^2
+  Z = 1 
+  
   L = Vector{ITensor}(undef, N-1)
   R = Vector{ITensor}(undef, N)
   
@@ -546,7 +547,8 @@ function grad_TrΦ²(L::LPDO{MPS}; sqrt_localnorms = nothing)
     sqrt_localnorms = ones(N)
   end
   
-  Z = prod(sqrt_localnorms)^2
+  #Z = prod(sqrt_localnorms)^2
+  Z = 1
 
   L = Vector{ITensor}(undef, N-1)
   R = Vector{ITensor}(undef, N)
@@ -579,24 +581,22 @@ function grad_TrΦ²(L::LPDO{MPS}; sqrt_localnorms = nothing)
   end
   
   gradients = Vector{ITensor}(undef, N)
-  
   tmp = prime(Ψ[1],3,"Link") * R[2]
   tmp = tmp * prime(prime(Ψdag[1],2,"Link"),"Input") 
-  gradients[1] = Z^2 * (prime(prime(Ψ[1],"Link"),"Input")*tmp)/(sqrt_localnorms[1]^2) 
-  
+  gradients[1] = Z^2 * (prime(prime(Ψ[1],"Link"),"Input")*tmp)/(sqrt_localnorms[1]) 
+
   for j in 2:N-1
     tmp = prime(Ψ[j],3,"Link") * L[j-1]
     tmp = tmp * prime(prime(Ψdag[j],2,"Link"),"Input")
     tmp = prime(prime(Ψ[j],"Link"),"Input") * tmp
-    gradients[j] = Z^2 * (tmp * R[j+1])/ (sqrt_localnorms[j]^2)
+    gradients[j] = Z^2 * (tmp * R[j+1])/ (sqrt_localnorms[j])
   end
   tmp =  prime(Ψ[N],3,"Link") * L[N-1]
   tmp = prime(prime(Ψdag[N],2,"Link"),"Input") * tmp
-  gradients[N] = Z^2 * (prime(prime(Ψ[N],"Link"),"Input") * tmp)/(sqrt_localnorms[N]^2)
+  gradients[N] = Z^2 * (prime(prime(Ψ[N],"Link"),"Input") * tmp)/(sqrt_localnorms[N])
   
   return 4 * gradients, trΦ²
 end
-
 
 function gradTP(L::LPDO{MPS}, gradlogZ::Vector{<:ITensor}, logZ::Float64; sqrt_localnorms = nothing)
   N = length(L)
@@ -615,7 +615,7 @@ function gradTP(L::LPDO{MPS}, gradlogZ::Vector{<:ITensor}, logZ::Float64; sqrt_l
   trΦ² = D^2 * trΦ²
   gradients_TrΦ  = gradients_TrΦ  .* D 
   gradients_TrΦ² = gradients_TrΦ² .* D^2
-
+  
   Γ = (1 /sqrt(D)) * sqrt(trΦ² * exp(-2*logZ) - 2.0 * trΦ *exp(-logZ) + D)
   
   gradients = Vector{ITensor}(undef, N)
@@ -636,48 +636,15 @@ end
 
 Γ = 1/√D * √(Tr[Φ²] - 2*Tr[Φ] + D)
 """
-function TP(L::LPDO{MPS}; normalized=false)
+function TP(L::LPDO{MPS})
   Ψ = L.X
   Φ = traceoutput(L)
   N = length(Φ)
   s = [firstind(Φ[j],tags="Input", plev = 0) for j in 1:N]
   D = 2^N
-  if normalized
-    Lc = copy(L)
-    sqrt_localnorms = []
-    normalize!(Lc; sqrt_localnorms! = sqrt_localnorms)
-    logZ = 2 * sum(log.(sqrt_localnorms))
-    Γ = (1 /sqrt(D)) * sqrt(exp(log(inner(Φ,Φ)) - 2 * logZ + 2 * log(D)) - 2 * exp(log(tr(Φ)) - logZ + log(D)) + D)
-  else
-    Γ = (1 /sqrt(D)) * sqrt(inner(Φ,Φ) - 2 * tr(Φ) + D)
-  end
+  logZ = 2 * lognorm(L.X)
+  Γ = (1 /sqrt(D)) * sqrt(exp(log(inner(Φ,Φ)) - 2 * logZ + 2 * log(D)) - 2 * exp(log(tr(Φ)) - logZ + log(D)) + D)
   return real(Γ)
-end
-
-
-
-
-
-function gradTP(L::LPDO{MPS}; sqrt_localnorms = nothing)
-  N = length(L)
-  Ψ = copy(L.X)
-  Ψdag = dag(Ψ)
-  D = 2^N
-
-  if isnothing(sqrt_localnorms)
-    sqrt_localnorms = ones(N)
-  end
- 
-  gradients_TrΦ,  trΦ  = grad_TrΦ(L; sqrt_localnorms = sqrt_localnorms)
-  gradients_TrΦ², trΦ² = grad_TrΦ²(L; sqrt_localnorms = sqrt_localnorms)
-
-  Γ = (1 /sqrt(D)) * sqrt(trΦ² - 2.0 * trΦ + D)
-  @show Γ 
-  gradients = Vector{ITensor}(undef, N)
-  for j in 1:N
-    gradients[j] = (1/D) * (gradients_TrΦ²[j] - 2.0 * gradients_TrΦ[j]) / (2.0 * Γ)
-  end
-  return gradients, Γ
 end
 
 
@@ -704,3 +671,28 @@ function traceoutput(L::LPDO{MPS})
   return MPO(Θ)
 end
 
+
+#
+#
+#
+#function gradTP(L::LPDO{MPS}; sqrt_localnorms = nothing)
+#  N = length(L)
+#  Ψ = copy(L.X)
+#  Ψdag = dag(Ψ)
+#  D = 2^N
+#
+#  if isnothing(sqrt_localnorms)
+#    sqrt_localnorms = ones(N)
+#  end
+# 
+#  gradients_TrΦ,  trΦ  = grad_TrΦ(L; sqrt_localnorms = sqrt_localnorms)
+#  gradients_TrΦ², trΦ² = grad_TrΦ²(L; sqrt_localnorms = sqrt_localnorms)
+#
+#  Γ = (1 /sqrt(D)) * sqrt(trΦ² - 2.0 * trΦ + D)
+#  gradients = Vector{ITensor}(undef, N)
+#  for j in 1:N
+#    gradients[j] = (1/D) * (gradients_TrΦ²[j] - 2.0 * gradients_TrΦ[j]) / (2.0 * Γ)
+#  end
+#  return gradients, Γ
+#end
+#
