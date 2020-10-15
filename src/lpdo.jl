@@ -90,18 +90,18 @@ function normalize!(L::LPDO; sqrt_localnorms! = [])
   #blob = noprime(ket(L, 1) * siteind(L, 1)) * bra(L, 1)
   blob = noprime(ket(L, 1), "Site") * bra(L, 1)
   localZ = norm(blob)
-  blob /= sqrt(localZ)
-  L.X[1] /= (localZ^0.25)
-  sqrt_localnorms![1] = localZ^0.25
+  blob /= localZ
+  L.X[1] /= sqrt(localZ)
+  sqrt_localnorms![1] = sqrt(localZ)
   for j in 2:length(L)-1
     # TODO: replace with:
     # noprime(ket(L, j), siteind(L, j))
     blob = blob * noprime(ket(L, j), "Site")
     blob = blob * bra(L, j)
     localZ = norm(blob)
-    blob /= sqrt(localZ)
-    L.X[j] /= (localZ^0.25)
-    sqrt_localnorms![j] = localZ^0.25
+    blob /= localZ
+    L.X[j] /= sqrt(localZ)
+    sqrt_localnorms![j] = sqrt(localZ)
   end
   # TODO: replace with:
   # noprime(ket(L, N), siteind(L, N))
