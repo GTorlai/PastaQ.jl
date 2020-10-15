@@ -163,9 +163,11 @@ Apply a quantum gate to an MPS/MPO.
 function applygate!(M::Union{MPS,MPO},
                     gatename::String,
                     sites::Union{Int,Tuple};
+                    cutoff=1E-15,
+                    maxdim=1_000,
                     kwargs...)
   g = gate(M,gatename,sites;kwargs...)
-  Mc = apply(g,M;kwargs...)
+  Mc = apply(g,M;cutoff=cutoff,maxdim=maxdim,kwargs...)
   M[:] = Mc
   return M
 end

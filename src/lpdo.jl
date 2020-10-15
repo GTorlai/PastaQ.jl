@@ -83,7 +83,7 @@ function normalize!(M::MPO;
   return M
 end
 
-function normalize!(L::LPDO; sqrt_localnorms! = [])
+function normalize!(L::LPDO; sqrt_localnorms! = [], choi::Bool=false)
   N = length(L)
   resize!(sqrt_localnorms!, N)
   # TODO: replace with:
@@ -110,6 +110,16 @@ function normalize!(L::LPDO; sqrt_localnorms! = [])
   localZ = norm(blob)
   L.X[N] /= sqrt(localZ)
   sqrt_localnorms![N] = sqrt(localZ)
+  
+  if choi
+    for j in 1:N
+      L.X[j] *= sqrt(2)
+    end
+    for j in 1:N
+      sqrt_localnorms![j] /= sqrt(2)
+    end
+    sqrt_localnorms![N] /= sqrt(2)
+  end
   return L
 end
 
