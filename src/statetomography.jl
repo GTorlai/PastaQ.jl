@@ -26,7 +26,6 @@ function gradlogZ(lpdo::LPDO; sqrt_localnorms = nothing)
   end
   Z = L[N-1] * dag(M[N])
   Z = real((Z * prime(M[N],"Link"))[])
-
   # Sweep left to get R
   R[N] = dag(M[N]) * prime(M[N],"Link")
   for j in reverse(2:N-1)
@@ -374,34 +373,27 @@ gradients(ψ::MPS,data::Matrix{Pair{String,Int}};localnorms = nothing)=
   gradients(LPDO(ψ), data; sqrt_localnorms = localnorms)
 
 
-function tomography(data::Matrix{Pair{String, Int}}, L::LPDO;
+function tomography(train_data::Matrix{Pair{String, Int}}, L::LPDO;
                     optimizer::Optimizer,
                     observer! = nothing,
+                    batchsize::Int64 = 100,
+                    epochs::Int64 = 1000,
                     kwargs...)
   # Read arguments
-  use_localnorm::Bool = get(kwargs,:use_localnorm,true)
-  use_globalnorm::Bool = get(kwargs,:use_globalnorm,false)
-  batchsize::Int64 = get(kwargs,:batchsize,500)
-  epochs::Int64 = get(kwargs,:epochs,1000)
-  split_ratio::Float64 = get(kwargs,:split_ratio,0.9)
   target = get(kwargs,:target,nothing)
+  test_data = get(kwargs,:test_data,nothing)
   outputpath = get(kwargs,:fout,nothing)
 
   optimizer = copy(optimizer)
-
-  if use_localnorm && use_globalnorm
-    error("Both use_localnorm and use_globalnorm are set to true, cannot use both local norm and global norm.")
-  end
-
   model = copy(L)
-  
-  # Set up data
-  ndata = size(data)[1]
-  ntrain = Int(ndata * split_ratio)
-  ntest = ndata - ntrain
-  train_data = data[1:ntrain,:]
-  test_data  = data[(ntrain+1):end,:]
-  @assert length(model) == size(data)[2]
+
+  @assert size(train_data,2) == length(model)
+  if !isnothing(test_data)
+    @assert size(test_data)[2] == length(model)
+  end
+  if !isnothing(target)
+    @assert length(target) == length(model)
+  end 
 
   batchsize = min(size(train_data)[1],batchsize)
 
@@ -413,41 +405,38 @@ function tomography(data::Matrix{Pair{String, Int}}, L::LPDO;
   num_batches = Int(floor(size(train_data)[1]/batchsize))
 
   tot_time = 0.0
-  # Training iterations
+  
   for ep in 1:epochs
     ep_time = @elapsed begin
 
     train_data = train_data[shuffle(1:end),:]
-
     train_loss = 0.0
-
+    
     # Sweep over the data set
     for b in 1:num_batches
+      
       batch = train_data[(b-1)*batchsize+1:b*batchsize,:]
-      # Local normalization
-      if use_localnorm
-        modelcopy = copy(model)
-        sqrt_localnorms = []
-        normalize!(modelcopy; sqrt_localnorms! = sqrt_localnorms)
-        grads,loss = gradients(modelcopy, batch, sqrt_localnorms = sqrt_localnorms)
-      # Global normalization
-      elseif use_globalnorm
-        normalize!(model)
-        grads,loss = gradients(model,batch)
-      # Unnormalized
-      else
-        grads,loss = gradients(model,batch)
-      end
+      
+      normalized_model = copy(model)
+      sqrt_localnorms = []
+      normalize!(normalized_model; sqrt_localnorms! = sqrt_localnorms)
+      grads,loss = gradients(normalized_model, batch, sqrt_localnorms = sqrt_localnorms)
 
       nupdate = ep * num_batches + b
       train_loss += loss/Float64(num_batches)
       update!(model,grads,optimizer;step=nupdate)
     end
     end # end @elapsed
-    test_loss = nll(model,test_data) 
+    
+    # Metrics
     print("Ep = $ep  ")
-    @printf("Train Loss = %.5E  ",train_loss)
-    @printf("Test Loss = %.5E  ",test_loss)
+    # Cost function on held-out validation data
+    if !isnothing(test_data)
+      test_loss = nll(model,test_data) 
+      @printf("Test cost = %.5E  ",test_loss)
+    end
+    @printf("Train cost = %.5E  ",train_loss)
+    # Fidelities
     if !isnothing(target)
       if ((model.X isa MPO) & (target isa MPO))
         frob_dist = frobenius_distance(model,target)

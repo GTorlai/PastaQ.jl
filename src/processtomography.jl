@@ -298,14 +298,18 @@ If `choi=true`, add the Choi normalization `trace(Λ)=d^N` to the cost function.
 function gradients(L::LPDO, 
                    data::Matrix{Pair{String,Pair{String, Int}}};
                    sqrt_localnorms = nothing,
-                   κ::Float64)
+                   tp_regularizer = nothing)
   g_logZ,logZ = gradlogZ(L; sqrt_localnorms = sqrt_localnorms)
-  g_nll, nll  = gradnll(L, data; sqrt_localnorms = sqrt_localnorms)
+  g_nll, NLL  = gradnll(L, data; sqrt_localnorms = sqrt_localnorms)
   g_TP, TP_distance = gradTP(L, g_logZ, logZ; sqrt_localnorms = sqrt_localnorms) 
-
-  grads = g_logZ + g_nll + κ * g_TP
-  loss = logZ + nll
-  loss -= length(L) * log(2)
+  
+  grads = g_logZ + g_nll  
+  loss = logZ + NLL
+  
+  # Renormalization
+  if !isnothing(tp_regularizer)
+    grads += tp_regularizer * g_TP
+  end
   return grads,loss
 end
 
@@ -316,35 +320,29 @@ function tomography(data::Matrix{Pair{String,Pair{String, Int}}}, U::MPO; optimi
 end
 
 
-function tomography(data::Matrix{Pair{String,Pair{String, Int}}}, L::LPDO;
+function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}},
+                    L::LPDO;
                     optimizer::Optimizer,
                     observer! = nothing,
+                    batchsize::Int64 = 100,
+                    epochs::Int64 = 1000,
                     kwargs...)
   # Read arguments
-  use_localnorm::Bool = get(kwargs,:use_localnorm,true)
-  use_globalnorm::Bool = get(kwargs,:use_globalnorm,false)
-  batchsize::Int64 = get(kwargs,:batchsize,500)
-  epochs::Int64 = get(kwargs,:epochs,1000)
-  split_ratio::Float64 = get(kwargs,:split_ratio,0.9)
   target = get(kwargs,:target,nothing)
+  test_data = get(kwargs,:test_data,nothing)
   outputpath = get(kwargs,:fout,nothing)
-  κ = get(kwargs,:κ,0.0)
+  tp_regularizer = get(kwargs,:tp_regularizer,0.0)
 
   optimizer = copy(optimizer)
-
-  if use_localnorm && use_globalnorm
-    error("Both use_localnorm and use_globalnorm are set to true, cannot use both local norm and global norm.")
-  end
-
   model = copy(L)
-
-  # Set up data
-  ndata = size(data)[1]
-  ntrain = Int(ndata * split_ratio)
-  ntest = ndata - ntrain
-  train_data = data[1:ntrain,:]
-  test_data  = data[(ntrain+1):end,:]
-  @assert length(model) == size(data)[2]
+  
+  @assert size(train_data,2) == length(model)
+  if !isnothing(test_data)
+    @assert size(test_data)[2] == length(model)
+  end
+  if !isnothing(target)
+    @assert length(target) == length(model)
+  end 
 
   batchsize = min(size(train_data)[1],batchsize)
   
@@ -366,40 +364,32 @@ function tomography(data::Matrix{Pair{String,Pair{String, Int}}}, L::LPDO;
     ep_time = @elapsed begin
 
     train_data = train_data[shuffle(1:end),:]
-
     train_loss = 0.0
     
     # Sweep over the data set
     for b in 1:num_batches
       batch = train_data[(b-1)*batchsize+1:b*batchsize,:]
-
-      # Local normalization
-      if use_localnorm
-        modelcopy = copy(model)
-        sqrt_localnorms = []
-        normalize!(modelcopy; sqrt_localnorms! = sqrt_localnorms)
-        grads,loss = gradients(modelcopy, batch; sqrt_localnorms = sqrt_localnorms, κ = κ)
-      # Global normalization
-      elseif use_globalnorm
-        normalize!(model)
-        grads,loss = gradients(model,batch, κ = κ)
-      # Unnormaliz
-      else
-        grads,loss = gradients(model,batch, κ = κ)
-      end
+      
+      normalized_model = copy(model)
+      sqrt_localnorms = []
+      normalize!(normalized_model; sqrt_localnorms! = sqrt_localnorms)
+      grads,loss = gradients(normalized_model, batch, sqrt_localnorms = sqrt_localnorms, tp_regularizer = tp_regularizer)
 
       nupdate = ep * num_batches + b
       train_loss += loss/Float64(num_batches)
       update!(model,grads,optimizer;step=nupdate)
     end
     end # end @elapsed
-    test_loss = nll(model,test_data) 
-    TP_distance = TP(model)
-    print("Ep = $ep  ")
-    @printf("Train Loss = %.5E  ",train_loss)
-    @printf("Test Loss = %.5E  ",test_loss)
-    @printf("TP = %.5E  ", TP_distance)
 
+    # Metrics
+    print("Ep = $ep  ")
+    # Cost function on held-out validation data
+    if !isnothing(test_data)
+      test_loss = nll(model,test_data) + length(model) * log(2) 
+      @printf("Test cost = %.5E  ",test_loss)
+    end
+    @printf("Train cost = %.5E  ",train_loss)
+    # Fidelities
     if !isnothing(target)
       if ((model.X isa MPO) & (target isa MPO))
         frob_dist = frobenius_distance(model,target)
@@ -507,8 +497,7 @@ function grad_TrΦ(L::LPDO{MPS}; sqrt_localnorms = nothing)
     sqrt_localnorms = ones(N)
   end
   
-  #Z = prod(sqrt_localnorms)^2
-  Z = 1 
+  Z = prod(sqrt_localnorms)^2
   
   L = Vector{ITensor}(undef, N-1)
   R = Vector{ITensor}(undef, N)
@@ -520,7 +509,6 @@ function grad_TrΦ(L::LPDO{MPS}; sqrt_localnorms = nothing)
   end
   trΦ = L[N-1] * Ψdag[N]
   trΦ = real((trΦ * prime(Ψ[N],"Link"))[])
-  
   R[N] = Ψdag[N] * prime(Ψ[N],"Link")
   for j in reverse(2:N-1)
     R[j] = R[j+1] * Ψdag[j]
@@ -547,9 +535,6 @@ function grad_TrΦ²(L::LPDO{MPS}; sqrt_localnorms = nothing)
     sqrt_localnorms = ones(N)
   end
   
-  #Z = prod(sqrt_localnorms)^2
-  Z = 1
-
   L = Vector{ITensor}(undef, N-1)
   R = Vector{ITensor}(undef, N)
   
@@ -583,17 +568,17 @@ function grad_TrΦ²(L::LPDO{MPS}; sqrt_localnorms = nothing)
   gradients = Vector{ITensor}(undef, N)
   tmp = prime(Ψ[1],3,"Link") * R[2]
   tmp = tmp * prime(prime(Ψdag[1],2,"Link"),"Input") 
-  gradients[1] = Z^2 * (prime(prime(Ψ[1],"Link"),"Input")*tmp)/(sqrt_localnorms[1]) 
+  gradients[1] = (prime(prime(Ψ[1],"Link"),"Input")*tmp)/(sqrt_localnorms[1]) 
 
   for j in 2:N-1
     tmp = prime(Ψ[j],3,"Link") * L[j-1]
     tmp = tmp * prime(prime(Ψdag[j],2,"Link"),"Input")
     tmp = prime(prime(Ψ[j],"Link"),"Input") * tmp
-    gradients[j] = Z^2 * (tmp * R[j+1])/ (sqrt_localnorms[j])
+    gradients[j] = (tmp * R[j+1])/ (sqrt_localnorms[j])
   end
   tmp =  prime(Ψ[N],3,"Link") * L[N-1]
   tmp = prime(prime(Ψdag[N],2,"Link"),"Input") * tmp
-  gradients[N] = Z^2 * (prime(prime(Ψ[N],"Link"),"Input") * tmp)/(sqrt_localnorms[N])
+  gradients[N] = (prime(prime(Ψ[N],"Link"),"Input") * tmp)/(sqrt_localnorms[N])
   
   return 4 * gradients, trΦ²
 end
@@ -608,24 +593,21 @@ function gradTP(L::LPDO{MPS}, gradlogZ::Vector{<:ITensor}, logZ::Float64; sqrt_l
     sqrt_localnorms = ones(N)
   end
    
-  gradients_TrΦ,  trΦ  = grad_TrΦ(L; sqrt_localnorms = sqrt_localnorms)
   gradients_TrΦ², trΦ² = grad_TrΦ²(L; sqrt_localnorms = sqrt_localnorms)
-  
-  trΦ  = D * trΦ
-  trΦ² = D^2 * trΦ²
-  gradients_TrΦ  = gradients_TrΦ  .* D 
-  gradients_TrΦ² = gradients_TrΦ² .* D^2
-  
+ 
+  trΦ  = exp(logZ)
+  #trΦ  = D * exp(logZ)
+  #trΦ² = D^2 * trΦ²
+  #gradients_TrΦ² = D^2 .* gradients_TrΦ²
+
   Γ = (1 /sqrt(D)) * sqrt(trΦ² * exp(-2*logZ) - 2.0 * trΦ *exp(-logZ) + D)
   
   gradients = Vector{ITensor}(undef, N)
   
   for j in 1:N
-    ∂a =      exp(-2*logZ) * gradients_TrΦ²[j] 
-    ∂b = -2 * exp(-logZ)   * gradients_TrΦ[j]
-    ∂c = -2 * exp(-2*logZ) * trΦ² * gradlogZ[j]
-    ∂d =  2 * exp(-logZ)   * trΦ  * gradlogZ[j]
-    gradients[j] = ((1/D) / (2.0*Γ)) * (∂a + ∂b + ∂c + ∂d)
+    grad  = exp(-2*logZ) * gradients_TrΦ²[j] 
+    grad -= 2 * exp(-2*logZ) * trΦ² * gradlogZ[j]
+    gradients[j] = (1/D) * grad / (2.0*Γ)
   end
   return gradients, Γ
 end
@@ -643,7 +625,8 @@ function TP(L::LPDO{MPS})
   s = [firstind(Φ[j],tags="Input", plev = 0) for j in 1:N]
   D = 2^N
   logZ = 2 * lognorm(L.X)
-  Γ = (1 /sqrt(D)) * sqrt(exp(log(inner(Φ,Φ)) - 2 * logZ + 2 * log(D)) - 2 * exp(log(tr(Φ)) - logZ + log(D)) + D)
+  #Γ = (1 /sqrt(D)) * sqrt(exp(log(inner(Φ,Φ)) - 2 * logZ + 2 * log(D)) - 2 * exp(log(tr(Φ)) - logZ + log(D)) + D)
+  Γ = (1 /sqrt(D)) * sqrt(exp(log(inner(Φ,Φ)) - 2 * logZ) - 2 * exp(log(tr(Φ)) - logZ) + D)
   return real(Γ)
 end
 
@@ -671,28 +654,3 @@ function traceoutput(L::LPDO{MPS})
   return MPO(Θ)
 end
 
-
-#
-#
-#
-#function gradTP(L::LPDO{MPS}; sqrt_localnorms = nothing)
-#  N = length(L)
-#  Ψ = copy(L.X)
-#  Ψdag = dag(Ψ)
-#  D = 2^N
-#
-#  if isnothing(sqrt_localnorms)
-#    sqrt_localnorms = ones(N)
-#  end
-# 
-#  gradients_TrΦ,  trΦ  = grad_TrΦ(L; sqrt_localnorms = sqrt_localnorms)
-#  gradients_TrΦ², trΦ² = grad_TrΦ²(L; sqrt_localnorms = sqrt_localnorms)
-#
-#  Γ = (1 /sqrt(D)) * sqrt(trΦ² - 2.0 * trΦ + D)
-#  gradients = Vector{ITensor}(undef, N)
-#  for j in 1:N
-#    gradients[j] = (1/D) * (gradients_TrΦ²[j] - 2.0 * gradients_TrΦ[j]) / (2.0 * Γ)
-#  end
-#  return gradients, Γ
-#end
-#
