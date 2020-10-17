@@ -99,7 +99,7 @@ function normalize!(L::LPDO; sqrt_localnorms! = [], choi::Bool=false)
     blob = blob * noprime(ket(L, j), "Site")
     blob = blob * bra(L, j)
     localZ = norm(blob)
-    blob /= (localZ)
+    blob /= localZ
     L.X[j] /= sqrt(localZ)
     sqrt_localnorms![j] = sqrt(localZ)
   end
