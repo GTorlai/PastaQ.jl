@@ -448,6 +448,11 @@ function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}},
       end
     end
     @printf("Train cost = %.5E  ",train_loss)
+   
+    # TP measure
+    TP_distance = TP(model)
+    @printf("|TrᵢΛ-I| = %.5E  ", TP_distance)
+    
     # Fidelities
     if !isnothing(target)
       if ((model.X isa MPO) & (target isa MPO))
