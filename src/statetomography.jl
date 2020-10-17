@@ -1,4 +1,71 @@
 """
+    PastaQ.nll(ψ::MPS,data::Array;choi::Bool=false)
+
+Compute the negative log-likelihood using an MPS ansatz
+over a dataset `data`:
+
+`nll ∝ -∑ᵢlog P(σᵢ)`
+
+If `choi=true`, the probability is then obtaining by transposing the
+input state, which is equivalent to take the conjugate of the eigenstate projector.
+"""
+function nll(L::LPDO{MPS}, data::Matrix{Pair{String,Int}})
+  data = convertdatapoints(copy(data); state = true)
+  ψ = L.X
+  N = length(ψ)
+  @assert N==size(data)[2]
+  loss = 0.0
+  s = siteinds(ψ)
+
+  for n in 1:size(data)[1]
+    x = data[n,:]
+    ψx = dag(ψ[1]) * state(x[1],s[1])
+    for j in 2:N
+      ψ_r = dag(ψ[j]) * state(x[j],s[j])
+      ψx = ψx * ψ_r
+    end
+    prob = abs2(ψx[])
+    loss -= log(prob)/size(data)[1]
+  end
+  return loss
+end
+
+nll(ψ::MPS, data::Matrix{Pair{String,Int}}) = nll(LPDO(ψ), data)
+
+"""
+    PastaQ.nll(lpdo::LPDO, data::Array; choi::Bool = false)
+
+Compute the negative log-likelihood using an LPDO ansatz
+over a dataset `data`:
+
+`nll ∝ -∑ᵢlog P(σᵢ)`
+
+If `choi=true`, the probability is then obtaining by transposing the
+input state, which is equivalent to take the conjugate of the eigenstate projector.
+"""
+function nll(L::LPDO{MPO}, data::Matrix{Pair{String,Int}})
+  data = convertdatapoints(copy(data); state = true)
+  lpdo = L.X
+  N = length(lpdo)
+  loss = 0.0
+  s = firstsiteinds(lpdo)
+  for n in 1:size(data)[1]
+    x = data[n,:]
+
+    # Project LPDO into the measurement eigenstates
+    Φdag = dag(copy(lpdo))
+    for j in 1:N
+      Φdag[j] = Φdag[j] = Φdag[j] * state(x[j],s[j])
+    end
+
+    # Compute overlap
+    prob = inner(Φdag,Φdag)
+    loss -= log(real(prob))/size(data)[1]
+  end
+  return loss
+end
+
+"""
     PastaQ.gradlogZ(L::LPDO; sqrt_localnorms = nothing)
     PastaQ.gradlogZ(ψ::MPS; localnorms = nothing)
 
@@ -405,7 +472,9 @@ function tomography(train_data::Matrix{Pair{String, Int}}, L::LPDO;
   num_batches = Int(floor(size(train_data)[1]/batchsize))
 
   tot_time = 0.0
-  
+  best_test_loss = 1_000
+ 
+
   for ep in 1:epochs
     ep_time = @elapsed begin
 
@@ -434,6 +503,10 @@ function tomography(train_data::Matrix{Pair{String, Int}}, L::LPDO;
     if !isnothing(test_data)
       test_loss = nll(model,test_data) 
       @printf("Test cost = %.5E  ",test_loss)
+      if test_loss < best_test_loss
+        best_test_loss = test_loss
+        best_model = copy(model)
+      end
     end
     @printf("Train cost = %.5E  ",train_loss)
     # Fidelities
@@ -474,78 +547,11 @@ function tomography(train_data::Matrix{Pair{String, Int}}, L::LPDO;
     tot_time += ep_time
   end
   @printf("Total Time = %.3f sec\n",tot_time)
-  normalize!(model)
-
-  return model
+  #normalize!(model)
+  return (isnothing(test_data) ? model : best_model)
 end
 
 tomography(data::Matrix{Pair{String, Int}}, ψ::MPS; optimizer::Optimizer, kwargs...) =
   tomography(data, LPDO(ψ); optimizer = optimizer, kwargs...).X
 
-"""
-    PastaQ.nll(ψ::MPS,data::Array;choi::Bool=false)
-
-Compute the negative log-likelihood using an MPS ansatz
-over a dataset `data`:
-
-`nll ∝ -∑ᵢlog P(σᵢ)`
-
-If `choi=true`, the probability is then obtaining by transposing the
-input state, which is equivalent to take the conjugate of the eigenstate projector.
-"""
-function nll(L::LPDO{MPS}, data::Matrix{Pair{String,Int}})
-  data = convertdatapoints(copy(data); state = true)
-  ψ = L.X
-  N = length(ψ)
-  @assert N==size(data)[2]
-  loss = 0.0
-  s = siteinds(ψ)
-
-  for n in 1:size(data)[1]
-    x = data[n,:]
-    ψx = dag(ψ[1]) * state(x[1],s[1])
-    for j in 2:N
-      ψ_r = dag(ψ[j]) * state(x[j],s[j])
-      ψx = ψx * ψ_r
-    end
-    prob = abs2(ψx[])
-    loss -= log(prob)/size(data)[1]
-  end
-  return loss
-end
-
-nll(ψ::MPS, data::Matrix{Pair{String,Int}}) = nll(LPDO(ψ), data)
-
-"""
-    PastaQ.nll(lpdo::LPDO, data::Array; choi::Bool = false)
-
-Compute the negative log-likelihood using an LPDO ansatz
-over a dataset `data`:
-
-`nll ∝ -∑ᵢlog P(σᵢ)`
-
-If `choi=true`, the probability is then obtaining by transposing the
-input state, which is equivalent to take the conjugate of the eigenstate projector.
-"""
-function nll(L::LPDO{MPO}, data::Matrix{Pair{String,Int}})
-  data = convertdatapoints(copy(data); state = true)
-  lpdo = L.X
-  N = length(lpdo)
-  loss = 0.0
-  s = firstsiteinds(lpdo)
-  for n in 1:size(data)[1]
-    x = data[n,:]
-
-    # Project LPDO into the measurement eigenstates
-    Φdag = dag(copy(lpdo))
-    for j in 1:N
-      Φdag[j] = Φdag[j] = Φdag[j] * state(x[j],s[j])
-    end
-
-    # Compute overlap
-    prob = inner(Φdag,Φdag)
-    loss -= log(real(prob))/size(data)[1]
-  end
-  return loss
-end
 

@@ -38,6 +38,7 @@ U = tomography(data, U0;
                optimizer = SGD(η = 0.1),
                batchsize = 500,
                epochs = 5,
+               tp_regularizer = 0.0,
                target = Û)
 @show maxlinkdim(U)
 println()
@@ -68,6 +69,7 @@ println("Run process tomography to learn noisy process Λ")
                optimizer = opt,
                batchsize = 500,
                epochs = 5,
+               tp_regularizer = 0.0,
                target = Φ)
 @show maxlinkdim(Λ.X)
 println()
