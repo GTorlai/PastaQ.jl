@@ -369,8 +369,8 @@ function gradients(L::LPDO,
 end
 
 
-function tomography(data::Matrix{Pair{String,Pair{String, Int}}}, U::MPO; optimizer::Optimizer, observer! = nothing, kwargs...)
-  V = tomography(data, makeChoi(U); optimizer = optimizer, observer! = nothing, kwargs...)
+function tomography(data::Matrix{Pair{String,Pair{String, Int}}}, U::MPO; optimizer::Optimizer, kwargs...)
+  V = tomography(data, makeChoi(U); optimizer = optimizer, kwargs...)
   return makeUnitary(V)
 end
 
@@ -408,12 +408,16 @@ function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}},
   
   F = nothing
   Fbound = nothing
-  frob_dist = nothing
-
+  frob_dist  = nothing
+  TP_distance = nothing
+  best_model = nothing
+  test_loss = nothing
+    
   # Number of training batches
   num_batches = Int(floor(size(train_data)[1]/batchsize))
 
   tot_time = 0.0
+  best_test_loss = 1_000
   # Training iterations
   for ep in 1:epochs
     ep_time = @elapsed begin
@@ -442,6 +446,7 @@ function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}},
 
     # Metrics
     print("Ep = $ep  ")
+    @printf("Train cost = %.5E  ",train_loss)
     # Cost function on held-out validation data
     if !isnothing(test_data)
       test_loss = nll(model,test_data) 
@@ -450,13 +455,13 @@ function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}},
         best_test_loss = test_loss
         best_model = copy(model)
       end
+    else
+      best_model = copy(model)
     end
-    @printf("Train cost = %.5E  ",train_loss)
    
     # TP measure
     TP_distance = TP(model)
     @printf("|TrᵢΛ-I| = %.5E  ", TP_distance)
-    
     # Fidelities
     if !isnothing(target)
       if ((model.X isa MPO) & (target isa MPO))
@@ -481,23 +486,22 @@ function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}},
     # Measure
     if !isnothing(observer!)
       measure!(observer!;
-               NLL = avg_loss,
+               train_loss = train_loss,
+               test_loss = test_loss,
+               TP_dist = TP_distance,
                F = F,
                Fbound = Fbound,
                frob_dist = frob_dist)
       # Save on file
       if !isnothing(outputpath)
-        saveobserver(observer, outputpath; M = model)
+        saveobserver(observer, outputpath; model = best_model)
       end
     end
-
+  
     tot_time += ep_time
   end
   @printf("Total Time = %.3f sec\n",tot_time)
-
-  normalize!(model)
-
-  return (isnothing(test_data) ? model : best_model)
+  return best_model
 end
 
 """

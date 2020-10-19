@@ -467,7 +467,8 @@ function tomography(train_data::Matrix{Pair{String, Int}}, L::LPDO;
   F = nothing
   Fbound = nothing
   frob_dist = nothing
-
+  test_loss = nothing
+  best_model = nothing
   # Number of training batches
   num_batches = Int(floor(size(train_data)[1]/batchsize))
 
@@ -499,6 +500,7 @@ function tomography(train_data::Matrix{Pair{String, Int}}, L::LPDO;
     
     # Metrics
     print("Ep = $ep  ")
+    @printf("Train cost = %.5E  ",train_loss)
     # Cost function on held-out validation data
     if !isnothing(test_data)
       test_loss = nll(model,test_data) 
@@ -507,8 +509,9 @@ function tomography(train_data::Matrix{Pair{String, Int}}, L::LPDO;
         best_test_loss = test_loss
         best_model = copy(model)
       end
+    else
+      best_model = copy(model)
     end
-    @printf("Train cost = %.5E  ",train_loss)
     # Fidelities
     if !isnothing(target)
       if ((model.X isa MPO) & (target isa MPO))
@@ -529,26 +532,24 @@ function tomography(train_data::Matrix{Pair{String, Int}}, L::LPDO;
     end
     @printf("Time = %.3f sec",ep_time)
     print("\n")
-
     # Measure
     if !isnothing(observer!)
       measure!(observer!;
-               NLL = avg_loss,
+               train_loss = train_loss,
+               test_loss = test_loss,
                F = F,
                Fbound = Fbound,
                frob_dist = frob_dist)
       # Save on file
       if !isnothing(outputpath)
-        saveobserver(observer, outputpath; M = model)
+        saveobserver(observer, outputpath; model = best_model)
       end
     end
-
 
     tot_time += ep_time
   end
   @printf("Total Time = %.3f sec\n",tot_time)
-  #normalize!(model)
-  return (isnothing(test_data) ? model : best_model)
+  return best_model
 end
 
 tomography(data::Matrix{Pair{String, Int}}, ψ::MPS; optimizer::Optimizer, kwargs...) =
