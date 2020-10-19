@@ -83,7 +83,7 @@ function normalize!(M::MPO;
   return M
 end
 
-function normalize!(L::LPDO; sqrt_localnorms! = [], choi::Bool=false)
+function normalize!(L::LPDO; sqrt_localnorms! = [], localnorm=1.0)
   N = length(L)
   resize!(sqrt_localnorms!, N)
   # TODO: replace with:
@@ -91,8 +91,8 @@ function normalize!(L::LPDO; sqrt_localnorms! = [], choi::Bool=false)
   blob = noprime(ket(L, 1), "Site") * bra(L, 1)
   localZ = norm(blob)
   blob /= localZ
-  L.X[1] /= sqrt(localZ)
-  sqrt_localnorms![1] = sqrt(localZ)
+  L.X[1] /= sqrt(localZ / localnorm)
+  sqrt_localnorms![1] = sqrt(localZ / localnorm)
   for j in 2:length(L)-1
     # TODO: replace with:
     # noprime(ket(L, j), siteind(L, j))
@@ -100,25 +100,17 @@ function normalize!(L::LPDO; sqrt_localnorms! = [], choi::Bool=false)
     blob = blob * bra(L, j)
     localZ = norm(blob)
     blob /= localZ
-    L.X[j] /= sqrt(localZ)
-    sqrt_localnorms![j] = sqrt(localZ)
+    L.X[j] /= sqrt(localZ / localnorm)
+    sqrt_localnorms![j] = sqrt(localZ / localnorm)
   end
   # TODO: replace with:
   # noprime(ket(L, N), siteind(L, N))
   blob = blob * noprime(ket(L, N), "Site")
   blob = blob * bra(L, N)
   localZ = norm(blob)
-  L.X[N] /= sqrt(localZ)
-  sqrt_localnorms![N] = sqrt(localZ)
+  L.X[N] /= sqrt(localZ / localnorm)
+  sqrt_localnorms![N] = sqrt(localZ / localnorm)
   
-  if choi
-    for j in 1:N
-      L.X[j] *= sqrt(2)
-    end
-    for j in 1:N
-      sqrt_localnorms![j] /= sqrt(2)
-    end
-  end
   return L
 end
 

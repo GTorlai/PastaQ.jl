@@ -65,7 +65,7 @@ opt = SGD(η = 0.1)
 V = tomography(data, V0;
                optimizer = opt,
                epochs = 2,
-               tp_regularizer = 0.1,
+               trace_preserving_regularizer = 0.1,
                target = U)
 
 # Noisy circuit
@@ -79,5 +79,5 @@ opt = SGD(η = 0.1)
 Λ = tomography(data, Λ0;
                optimizer = opt,
                epochs = 2,
-               tp_regularizer = 0.1,
+               trace_preserving_regularizer = 0.1,
                target = ϱ)

@@ -353,7 +353,7 @@ If `choi=true`, add the Choi normalization `trace(Λ)=d^N` to the cost function.
 function gradients(L::LPDO, 
                    data::Matrix{Pair{String,Pair{String, Int}}};
                    sqrt_localnorms = nothing,
-                   tp_regularizer = nothing)
+                   trace_preserving_regularizer = nothing)
   g_logZ,logZ = gradlogZ(L; sqrt_localnorms = sqrt_localnorms)
   g_nll, NLL  = gradnll(L, data; sqrt_localnorms = sqrt_localnorms)
   g_TP, TP_distance = gradTP(L, g_logZ, logZ; sqrt_localnorms = sqrt_localnorms) 
@@ -362,8 +362,8 @@ function gradients(L::LPDO,
   loss = logZ + NLL
   
   # Renormalization
-  if !isnothing(tp_regularizer)
-    grads += tp_regularizer * g_TP
+  if !isnothing(trace_preserving_regularizer)
+    grads += trace_preserving_regularizer * g_TP
   end
   return grads,loss
 end
@@ -386,7 +386,7 @@ function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}},
   target = get(kwargs,:target,nothing)
   test_data = get(kwargs,:test_data,nothing)
   outputpath = get(kwargs,:fout,nothing)
-  tp_regularizer = get(kwargs,:tp_regularizer,0.0)
+  trace_preserving_regularizer = get(kwargs,:trace_preserving_regularizer,0.0)
 
   optimizer = copy(optimizer)
   model = copy(L)
@@ -427,12 +427,16 @@ function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}},
       
       normalized_model = copy(model)
       sqrt_localnorms = []
-      normalize!(normalized_model; sqrt_localnorms! = sqrt_localnorms)
-      grads,loss = gradients(normalized_model, batch, sqrt_localnorms = sqrt_localnorms, tp_regularizer = tp_regularizer)
+      normalize!(normalized_model; 
+                 sqrt_localnorms! = sqrt_localnorms)
+      
+      grads,loss = gradients(normalized_model, batch; 
+                             sqrt_localnorms = sqrt_localnorms, 
+                             trace_preserving_regularizer = trace_preserving_regularizer)
 
       nupdate = ep * num_batches + b
       train_loss += loss/Float64(num_batches)
-      update!(model,grads,optimizer;step=nupdate)
+      update!(model, grads, optimizer; step = nupdate)
     end
     end # end @elapsed
 

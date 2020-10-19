@@ -155,38 +155,6 @@ gate(M::Union{MPS,MPO},
      params::NamedTuple) =
   gate(M, gatename, sites; params...)
 
-"""
-  applygate!(M::Union{MPS,MPO},gatename::String,sites::Union{Int,Tuple};kwargs...)
-
-Apply a quantum gate to an MPS/MPO.
-"""
-function applygate!(M::Union{MPS,MPO},
-                    gatename::String,
-                    sites::Union{Int,Tuple};
-                    cutoff=1E-15,
-                    maxdim=1_000,
-                    kwargs...)
-  g = gate(M,gatename,sites;kwargs...)
-  Mc = apply(g,M;cutoff=cutoff,maxdim=maxdim,kwargs...)
-  M[:] = Mc
-  return M
-end
-
-"""
-  applygate!(M::Union{MPS,MPO},gate_tensor::ITensor; kwargs...)
-
-Contract a gate_tensor with an MPS/MPO.
-"""
-function applygate!(M::Union{MPS,MPO},
-                    gate_tensor::ITensor;
-                    kwargs...)
-  Mc = apply(gate_tensor,M;kwargs...)
-  M[:] = Mc
-  return M
-end
-
-applygate(M::Union{MPS, MPO}, args...; kwargs...) =
-  applygate!(copy(M), args...; kwargs...)
 
 """
     buildcircuit(M::Union{MPS,MPO}, gates::Vector{<:Tuple};
@@ -196,9 +164,13 @@ Generates a vector of ITensors from a tuple of gates.
 If noise is nontrivial, the corresponding Kraus operators are 
 added to each gate as a tensor with an extra (Kraus) index.
 """
-function buildcircuit(M::Union{MPS,MPO}, gates::Vector{<:Tuple}; 
+function buildcircuit(M::Union{MPS,MPO}, gates::Union{Tuple,Vector{<:Tuple}}; 
                       noise::Union{Nothing, String, Tuple{String, NamedTuple}} = nothing)
   gate_tensors = ITensor[]
+  if gates isa Tuple
+    gates = [gates]
+  end
+
   for g in gates
     push!(gate_tensors, gate(M, g))
     ns = g[2]
@@ -292,7 +264,7 @@ If an MPO `ρ` is input, there are three possible modes:
 2. If `noise` is set to something nontrivial, the evolution `ε(ρ)` is performed.
 3. If `noise = nothing` and `apply_dag = false`, the evolution `Uρ` is performed.
 """
-function runcircuit(M::Union{MPS, MPO}, gates::Vector{<:Tuple};
+function runcircuit(M::Union{MPS, MPO}, gates::Union{Tuple,Vector{<:Tuple}};
                     noise = nothing,
                     apply_dag = nothing, 
                     cutoff = 1e-15,
@@ -303,8 +275,6 @@ function runcircuit(M::Union{MPS, MPO}, gates::Vector{<:Tuple};
                     maxdim = maxdim,
                     apply_dag = apply_dag)
 end
-
-
 
 """
     runcircuit(N::Int, gates::Vector{<:Tuple}; process=false, noise=nothing,

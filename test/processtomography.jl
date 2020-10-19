@@ -262,7 +262,7 @@ end
   @test length(Λ) == N
   logZ = 2*lognorm(Λ.X)
   sqrt_localZ = []
-  normalize!(Λ; sqrt_localnorms! = sqrt_localZ, choi = true)
+  normalize!(Λ; sqrt_localnorms! = sqrt_localZ, localnorm = 2)
   @test logZ ≈ N*log(2) + 2.0 * sum(log.(sqrt_localZ))
   @test abs2(norm(Λ.X)) ≈ 2^N
 end
@@ -277,7 +277,7 @@ end
   num_grad = numgradslogZ(Λ)
   
   sqrt_localnorms = []
-  normalize!(Λ; sqrt_localnorms! = sqrt_localnorms, choi = true)
+  normalize!(Λ; sqrt_localnorms! = sqrt_localnorms, localnorm = 2)
   @test norm(Λ.X)^2 ≈ 2^N
   alg_grad,_ = PastaQ.gradlogZ(Λ; sqrt_localnorms = sqrt_localnorms)
   
@@ -304,7 +304,7 @@ end
   Λ = PastaQ.makeChoi(U)
   num_grad = numgradsnll(Λ,data)
   sqrt_localnorms = []
-  normalize!(Λ; sqrt_localnorms! = sqrt_localnorms, choi = true)
+  normalize!(Λ; sqrt_localnorms! = sqrt_localnorms,localnorm = 2)
   
   alg_grad,_ = PastaQ.gradnll(Λ,data; sqrt_localnorms = sqrt_localnorms) 
   for j in 1:N
@@ -324,7 +324,7 @@ end
   num_grad = numgradsTP(Λ;  accuracy = 1e-8)
   Γ_test = PastaQ.TP(Λ)
   sqrt_localnorms = []
-  normalize!(Λ; sqrt_localnorms! = sqrt_localnorms, choi = true)
+  normalize!(Λ; sqrt_localnorms! = sqrt_localnorms, localnorm = 2)
   
   alg_grad_logZ, logZ = PastaQ.gradlogZ(Λ; sqrt_localnorms = sqrt_localnorms)
   
@@ -346,7 +346,7 @@ end
   N = 3
   χ = 4
   nsamples = 10
-  tp_regularizer = 0.1
+  trace_preserving_regularizer = 0.1
   Random.seed!(1234)
   data_in  = randompreparations(N,nsamples)
   data_out = PastaQ.convertdatapoints(randompreparations(N,nsamples))
@@ -357,13 +357,13 @@ end
   num_gradZ = numgradslogZ(Λ)
   num_gradNLL = numgradsnll(Λ,data)
   num_gradTP = numgradsTP(Λ;  accuracy = 1e-5)
-  num_grads = num_gradZ + num_gradNLL + tp_regularizer * num_gradTP
+  num_grads = num_gradZ + num_gradNLL + trace_preserving_regularizer * num_gradTP
    
   sqrt_localnorms = []
-  normalize!(Λ; sqrt_localnorms! = sqrt_localnorms, choi = true)
+  normalize!(Λ; sqrt_localnorms! = sqrt_localnorms, localnorm = 2)
  
   ex_loss = PastaQ.nll(Λ,data) + 2*lognorm(Λ.X)
-  alg_grads,loss = PastaQ.gradients(Λ,data; sqrt_localnorms = sqrt_localnorms, tp_regularizer = tp_regularizer)
+  alg_grads,loss = PastaQ.gradients(Λ,data; sqrt_localnorms = sqrt_localnorms, trace_preserving_regularizer = trace_preserving_regularizer)
   @test ex_loss ≈ loss
   alg_gradient = permutedims(array(alg_grads[1]),[1,3,2])
   @test alg_gradient ≈ num_grads[1] rtol=1e-3
@@ -386,7 +386,7 @@ end
   @test length(Λ) == N
   logZ = logtr(Λ)
   localZ = []
-  normalize!(Λ; sqrt_localnorms! = localZ, choi = true)
+  normalize!(Λ; sqrt_localnorms! = localZ, localnorm = 2)
   @test logZ ≈ N*log(2) + 2.0*sum(log.(localZ))
   @test tr(Λ) ≈ 2^N
 end
@@ -399,7 +399,7 @@ end
   Λ = randomprocess(N;mixed=true, χ=χ,ξ=ξ)
   num_grad = numgradslogZ(Λ)
   sqrt_localnorms = []
-  normalize!(Λ; sqrt_localnorms! = sqrt_localnorms, choi = true)
+  normalize!(Λ; sqrt_localnorms! = sqrt_localnorms, localnorm = 2)
   @test tr(Λ) ≈ 2^N
   alg_grad,_ = PastaQ.gradlogZ(Λ; sqrt_localnorms = sqrt_localnorms)
   
@@ -428,7 +428,7 @@ end
   Λ = randomprocess(N;mixed=true, χ=χ,ξ=ξ)
   num_grad = numgradsnll(Λ,data)
   sqrt_localnorms = []
-  normalize!(Λ; sqrt_localnorms! = sqrt_localnorms, choi = true)
+  normalize!(Λ; sqrt_localnorms! = sqrt_localnorms,localnorm = 2)
   alg_grad,loss = PastaQ.gradnll(Λ,data; sqrt_localnorms = sqrt_localnorms)
   @test loss ≈ PastaQ.nll(Λ,data)
   
@@ -452,7 +452,7 @@ end
   num_grad = numgradsTP(Λ;  accuracy = 1e-8)
   Γ_test = PastaQ.TP(Λ)
   sqrt_localnorms = []
-  normalize!(Λ; sqrt_localnorms! = sqrt_localnorms, choi = true)
+  normalize!(Λ; sqrt_localnorms! = sqrt_localnorms, localnorm = 2)
   Γ_test = PastaQ.TP(Λ)
   
   alg_grad_logZ, logZ = PastaQ.gradlogZ(Λ; sqrt_localnorms = sqrt_localnorms)
