@@ -230,6 +230,16 @@ function convertdatapoint(datapoint::Array{String})
   return basis .=> outcome
 end
 
+function convertdatapoints(datapoints::Array{String})
+  nshots = size(datapoints)[1]
+  newdata = Matrix{Pair{String,Int64}}(undef,nshots,size(datapoints)[2])
+
+  for n in 1:nshots
+    newdata[n,:] = convertdatapoint(datapoints[n,:])
+  end
+  return newdata
+end
+
 """
 
 (Z, 0), (X, 1)  / (Z+, X-)

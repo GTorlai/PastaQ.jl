@@ -1,4 +1,71 @@
 """
+    PastaQ.nll(ψ::MPS,data::Array;choi::Bool=false)
+
+Compute the negative log-likelihood using an MPS ansatz
+over a dataset `data`:
+
+`nll ∝ -∑ᵢlog P(σᵢ)`
+
+If `choi=true`, the probability is then obtaining by transposing the
+input state, which is equivalent to take the conjugate of the eigenstate projector.
+"""
+function nll(L::LPDO{MPS}, data::Matrix{Pair{String,Int}})
+  data = convertdatapoints(copy(data); state = true)
+  ψ = L.X
+  N = length(ψ)
+  @assert N==size(data)[2]
+  loss = 0.0
+  s = siteinds(ψ)
+
+  for n in 1:size(data)[1]
+    x = data[n,:]
+    ψx = dag(ψ[1]) * state(x[1],s[1])
+    for j in 2:N
+      ψ_r = dag(ψ[j]) * state(x[j],s[j])
+      ψx = ψx * ψ_r
+    end
+    prob = abs2(ψx[])
+    loss -= log(prob)/size(data)[1]
+  end
+  return loss
+end
+
+nll(ψ::MPS, data::Matrix{Pair{String,Int}}) = nll(LPDO(ψ), data)
+
+"""
+    PastaQ.nll(lpdo::LPDO, data::Array; choi::Bool = false)
+
+Compute the negative log-likelihood using an LPDO ansatz
+over a dataset `data`:
+
+`nll ∝ -∑ᵢlog P(σᵢ)`
+
+If `choi=true`, the probability is then obtaining by transposing the
+input state, which is equivalent to take the conjugate of the eigenstate projector.
+"""
+function nll(L::LPDO{MPO}, data::Matrix{Pair{String,Int}})
+  data = convertdatapoints(copy(data); state = true)
+  lpdo = L.X
+  N = length(lpdo)
+  loss = 0.0
+  s = firstsiteinds(lpdo)
+  for n in 1:size(data)[1]
+    x = data[n,:]
+
+    # Project LPDO into the measurement eigenstates
+    Φdag = dag(copy(lpdo))
+    for j in 1:N
+      Φdag[j] = Φdag[j] = Φdag[j] * state(x[j],s[j])
+    end
+
+    # Compute overlap
+    prob = inner(Φdag,Φdag)
+    loss -= log(real(prob))/size(data)[1]
+  end
+  return loss
+end
+
+"""
     PastaQ.gradlogZ(L::LPDO; sqrt_localnorms = nothing)
     PastaQ.gradlogZ(ψ::MPS; localnorms = nothing)
 
@@ -26,7 +93,6 @@ function gradlogZ(lpdo::LPDO; sqrt_localnorms = nothing)
   end
   Z = L[N-1] * dag(M[N])
   Z = real((Z * prime(M[N],"Link"))[])
-
   # Sweep left to get R
   R[N] = dag(M[N]) * prime(M[N],"Link")
   for j in reverse(2:N-1)
@@ -71,8 +137,10 @@ The probability is then obtaining by transposing the input state, which
 is equivalent to take the conjugate of the eigenstate projector.
 """
 function gradnll(L::LPDO{MPS},
-                 data::Array;
+                 data::Matrix{Pair{String,Int}};
                  sqrt_localnorms = nothing)
+  data = convertdatapoints(copy(data); state = true)
+  
   ψ = L.X
   N = length(ψ)
 
@@ -170,7 +238,7 @@ function gradnll(L::LPDO{MPS},
   return gradients_tot, loss_tot
 end
 
-gradnll(ψ::MPS, data::Array; localnorms = nothing) =
+gradnll(ψ::MPS, data::Matrix{Pair{String,Int}};localnorms = nothing) =
   gradnll(LPDO(ψ), data; sqrt_localnorms = localnorms)
 
 """
@@ -195,8 +263,10 @@ where `∑ᵢ` runs over the measurement data. Returns the gradients:
 If `choi=true`, the probability is then obtaining by transposing the
 input state, which is equivalent to take the conjugate of the eigenstate projector.
 """
-function gradnll(L::LPDO{MPO}, data::Array;
+function gradnll(L::LPDO{MPO},
+                 data::Matrix{Pair{String,Int}};
                  sqrt_localnorms = nothing)
+  data = convertdatapoints(copy(data); state = true)
   lpdo = L.X
   N = length(lpdo)
 
@@ -355,7 +425,8 @@ Compute the gradients of the cost function:
 
 If `choi=true`, add the Choi normalization `trace(Λ)=d^N` to the cost function.
 """
-function gradients(L::LPDO, data::Array;
+function gradients(L::LPDO, 
+                   data::Matrix{Pair{String,Int}};
                    sqrt_localnorms = nothing)
   g_logZ,logZ = gradlogZ(L; sqrt_localnorms = sqrt_localnorms)
   g_nll, nll  = gradnll(L, data; sqrt_localnorms = sqrt_localnorms)
@@ -365,83 +436,89 @@ function gradients(L::LPDO, data::Array;
   return grads,loss
 end
 
-gradients(ψ::MPS, data::Array; localnorms = nothing) =
+gradients(ψ::MPS,data::Matrix{Pair{String,Int}};localnorms = nothing)=
   gradients(LPDO(ψ), data; sqrt_localnorms = localnorms)
 
 
-function tomography(data::Matrix{Pair{String, Int}}, L::LPDO;
+function tomography(train_data::Matrix{Pair{String, Int}}, L::LPDO;
                     optimizer::Optimizer,
                     observer! = nothing,
+                    batchsize::Int64 = 100,
+                    epochs::Int64 = 1000,
                     kwargs...)
   # Read arguments
-  use_localnorm::Bool = get(kwargs,:use_localnorm,true)
-  use_globalnorm::Bool = get(kwargs,:use_globalnorm,false)
-  batchsize::Int64 = get(kwargs,:batchsize,500)
-  epochs::Int64 = get(kwargs,:epochs,1000)
   target = get(kwargs,:target,nothing)
+  test_data = get(kwargs,:test_data,nothing)
   outputpath = get(kwargs,:fout,nothing)
 
   optimizer = copy(optimizer)
-
-  if use_localnorm && use_globalnorm
-    error("Both use_localnorm and use_globalnorm are set to true, cannot use both local norm and global norm.")
-  end
-
-  # Convert data to projectors
-  #data = "state" .* data
-  data = convertdatapoints(data; state = true)
-  
-  batchsize = min(size(data)[1],batchsize)
-
   model = copy(L)
+
+  @assert size(train_data,2) == length(model)
+  if !isnothing(test_data)
+    @assert size(test_data)[2] == length(model)
+  end
+  if !isnothing(target)
+    @assert length(target) == length(model)
+  end 
+
+  batchsize = min(size(train_data)[1],batchsize)
+
   F = nothing
   Fbound = nothing
   frob_dist = nothing
-
+  test_loss = nothing
+  best_model = nothing
   # Number of training batches
-  num_batches = Int(floor(size(data)[1]/batchsize))
+  num_batches = Int(floor(size(train_data)[1]/batchsize))
 
   tot_time = 0.0
-  # Training iterations
+  best_test_loss = 1_000
+ 
+
   for ep in 1:epochs
     ep_time = @elapsed begin
 
-    data = data[shuffle(1:end),:]
-
-    avg_loss = 0.0
-
+    train_data = train_data[shuffle(1:end),:]
+    train_loss = 0.0
+    
     # Sweep over the data set
     for b in 1:num_batches
-      batch = data[(b-1)*batchsize+1:b*batchsize,:]
-      # Local normalization
-      if use_localnorm
-        modelcopy = copy(model)
-        sqrt_localnorms = []
-        normalize!(modelcopy; sqrt_localnorms! = sqrt_localnorms)
-        grads,loss = gradients(modelcopy, batch, sqrt_localnorms = sqrt_localnorms)
-      # Global normalization
-      elseif use_globalnorm
-        normalize!(model)
-        grads,loss = gradients(model,batch)
-      # Unnormalized
-      else
-        grads,loss = gradients(model,batch)
-      end
+      
+      batch = train_data[(b-1)*batchsize+1:b*batchsize,:]
+      
+      normalized_model = copy(model)
+      sqrt_localnorms = []
+      normalize!(normalized_model; sqrt_localnorms! = sqrt_localnorms)
+      grads,loss = gradients(normalized_model, batch, sqrt_localnorms = sqrt_localnorms)
 
       nupdate = ep * num_batches + b
-      avg_loss += loss/Float64(num_batches)
+      train_loss += loss/Float64(num_batches)
       update!(model,grads,optimizer;step=nupdate)
     end
     end # end @elapsed
-
+    
+    # Metrics
     print("Ep = $ep  ")
-    @printf("Loss = %.5E  ",avg_loss)
+    @printf("Train cost = %.5E  ",train_loss)
+    # Cost function on held-out validation data
+    if !isnothing(test_data)
+      test_loss = nll(model,test_data) 
+      @printf("Test cost = %.5E  ",test_loss)
+      if test_loss < best_test_loss
+        best_test_loss = test_loss
+        best_model = copy(model)
+      end
+    else
+      best_model = copy(model)
+    end
+    # Fidelities
     if !isnothing(target)
       if ((model.X isa MPO) & (target isa MPO))
         frob_dist = frobenius_distance(model,target)
         Fbound = fidelity_bound(model,target)
-        @printf("Trace distance = %.3E  ",frob_dist)
-        @printf("Fidelity bound = %.3E  ",Fbound)
+        @printf("Tr dist = %.3E  ",frob_dist)
+        @printf("F bound = %.3E  ",Fbound)
         if (length(model) <= 8)
           disable_warn_order!()
           F = fullfidelity(model,target)
@@ -455,93 +532,27 @@ function tomography(data::Matrix{Pair{String, Int}}, L::LPDO;
     end
     @printf("Time = %.3f sec",ep_time)
     print("\n")
-
     # Measure
     if !isnothing(observer!)
       measure!(observer!;
-               NLL = avg_loss,
+               train_loss = train_loss,
+               test_loss = test_loss,
                F = F,
                Fbound = Fbound,
                frob_dist = frob_dist)
       # Save on file
       if !isnothing(outputpath)
-        saveobserver(observer, outputpath; M = model)
+        saveobserver(observer, outputpath; model = best_model)
       end
     end
-
 
     tot_time += ep_time
   end
   @printf("Total Time = %.3f sec\n",tot_time)
-  normalize!(model)
-
-  return model
+  return best_model
 end
 
 tomography(data::Matrix{Pair{String, Int}}, ψ::MPS; optimizer::Optimizer, kwargs...) =
   tomography(data, LPDO(ψ); optimizer = optimizer, kwargs...).X
 
-"""
-    PastaQ.nll(ψ::MPS,data::Array;choi::Bool=false)
 
-Compute the negative log-likelihood using an MPS ansatz
-over a dataset `data`:
-
-`nll ∝ -∑ᵢlog P(σᵢ)`
-
-If `choi=true`, the probability is then obtaining by transposing the
-input state, which is equivalent to take the conjugate of the eigenstate projector.
-"""
-function nll(L::LPDO{MPS}, data::Array)
-  ψ = L.X
-  N = length(ψ)
-  @assert N==size(data)[2]
-  loss = 0.0
-  s = siteinds(ψ)
-
-  for n in 1:size(data)[1]
-    x = data[n,:]
-    ψx = dag(ψ[1]) * state(x[1],s[1])
-    for j in 2:N
-      ψ_r = dag(ψ[j]) * state(x[j],s[j])
-      ψx = ψx * ψ_r
-    end
-    prob = abs2(ψx[])
-    loss -= log(prob)/size(data)[1]
-  end
-  return loss
-end
-
-nll(ψ::MPS, args...; kwargs...) = nll(LPDO(ψ), args...; kwargs...)
-
-"""
-    PastaQ.nll(lpdo::LPDO, data::Array; choi::Bool = false)
-
-Compute the negative log-likelihood using an LPDO ansatz
-over a dataset `data`:
-
-`nll ∝ -∑ᵢlog P(σᵢ)`
-
-If `choi=true`, the probability is then obtaining by transposing the
-input state, which is equivalent to take the conjugate of the eigenstate projector.
-"""
-function nll(L::LPDO{MPO}, data::Array)
-  lpdo = L.X
-  N = length(lpdo)
-  loss = 0.0
-  s = firstsiteinds(lpdo)
-  for n in 1:size(data)[1]
-    x = data[n,:]
-
-    # Project LPDO into the measurement eigenstates
-    Φdag = dag(copy(lpdo))
-    for j in 1:N
-      Φdag[j] = Φdag[j] = Φdag[j] * state(x[j],s[j])
-    end
-
-    # Compute overlap
-    prob = inner(Φdag,Φdag)
-    loss -= log(real(prob))/size(data)[1]
-  end
-  return loss
-end

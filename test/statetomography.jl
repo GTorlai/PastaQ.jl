@@ -4,12 +4,6 @@ using Test
 using LinearAlgebra
 using Random
 
-
-#function convertdatapoint(datapoint::Array{Int64}, basis::Array{String})
-#  data0 = PastaQ.convertdatapoint(datapoint,basis)
-#  return PastaQ.convertdatapoint(data0; state = true)
-#end
-
 """ HELPER FUNCTIONS """
 function numgradslogZ(L::LPDO;accuracy=1e-8)
   M = L.X
@@ -231,7 +225,7 @@ end
   χ = 4
   nsamples = 10
   Random.seed!(1234)
-  data = randompreparations(N,nsamples)
+  data = PastaQ.convertdatapoints(randompreparations(N,nsamples)) 
   
   # 1. Unnormalized
   ψ = randomstate(N;χ=χ)
@@ -266,7 +260,7 @@ end
   N = 5
   χ = 4
   nsamples = 10
-  data = randompreparations(N,nsamples)
+  data = PastaQ.convertdatapoints(randompreparations(N,nsamples))
   
   # 1. Unnormalized
   ψ = randomstate(N;χ=χ)
@@ -398,7 +392,7 @@ end
 
   nsamples = 10
   Random.seed!(1234)
-  data = randompreparations(N,nsamples)
+  data = PastaQ.convertdatapoints(randompreparations(N,nsamples))
   
   # 1. Unnormalized
   ρ = randomstate(N;mixed=true, χ=χ,ξ=ξ)

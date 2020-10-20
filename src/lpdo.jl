@@ -83,7 +83,7 @@ function normalize!(M::MPO;
   return M
 end
 
-function normalize!(L::LPDO; sqrt_localnorms! = [])
+function normalize!(L::LPDO; sqrt_localnorms! = [], localnorm=1.0)
   N = length(L)
   resize!(sqrt_localnorms!, N)
   # TODO: replace with:
@@ -91,8 +91,8 @@ function normalize!(L::LPDO; sqrt_localnorms! = [])
   blob = noprime(ket(L, 1), "Site") * bra(L, 1)
   localZ = norm(blob)
   blob /= localZ
-  L.X[1] /= sqrt(localZ)
-  sqrt_localnorms![1] = sqrt(localZ)
+  L.X[1] /= sqrt(localZ / localnorm)
+  sqrt_localnorms![1] = sqrt(localZ / localnorm)
   for j in 2:length(L)-1
     # TODO: replace with:
     # noprime(ket(L, j), siteind(L, j))
@@ -100,16 +100,17 @@ function normalize!(L::LPDO; sqrt_localnorms! = [])
     blob = blob * bra(L, j)
     localZ = norm(blob)
     blob /= localZ
-    L.X[j] /= sqrt(localZ)
-    sqrt_localnorms![j] = sqrt(localZ)
+    L.X[j] /= sqrt(localZ / localnorm)
+    sqrt_localnorms![j] = sqrt(localZ / localnorm)
   end
   # TODO: replace with:
   # noprime(ket(L, N), siteind(L, N))
   blob = blob * noprime(ket(L, N), "Site")
   blob = blob * bra(L, N)
   localZ = norm(blob)
-  L.X[N] /= sqrt(localZ)
-  sqrt_localnorms![N] = sqrt(localZ)
+  L.X[N] /= sqrt(localZ / localnorm)
+  sqrt_localnorms![N] = sqrt(localZ / localnorm)
+  
   return L
 end
 
@@ -132,25 +133,20 @@ function ITensors.MPO(lpdo0::LPDO)
   M = ITensor[]
   prime!(lpdo[1]; tags = "Site")
   prime!(lpdo[1]; tags = "Link")
-  #tmp = dag(lpdo[1]) * noprime(lpdo[1])
   tmp = lpdo[1] * noprime(dag(lpdo[1])) 
-  #Cdn = combiner(inds(tmp, tags = "Link"), tags = "Link,l=1")
   Cdn = combiner(commonind(tmp,lpdo[2]),commonind(tmp,lpdo[2])')
   push!(M, tmp * Cdn)
 
   for j in 2:N-1
     prime!(lpdo[j]; tags = "Site")
     prime!(lpdo[j]; tags = "Link")
-    #tmp = dag(lpdo[j]) * noprime(lpdo[j])
     tmp = lpdo[j] * noprime(dag(lpdo[j]))
     Cup = Cdn
     Cdn = combiner(commonind(tmp,lpdo[j+1]),commonind(tmp,lpdo[j+1])')
-    #Cdn = combiner(inds(tmp,tags="Link,l=$j"),tags="Link,l=$j")
     push!(M, tmp * Cup * Cdn)
   end
   prime!(lpdo[N]; tags = "Site")
   prime!(lpdo[N]; tags = "Link")
-  #tmp = dag(lpdo[N]) * noprime(lpdo[N])
   tmp = lpdo[N] * noprime(dag(lpdo[N])) 
   Cup = Cdn
   push!(M, tmp * Cdn)
