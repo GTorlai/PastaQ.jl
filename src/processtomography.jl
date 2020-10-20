@@ -357,13 +357,13 @@ function gradients(L::LPDO,
   g_logZ,logZ = gradlogZ(L; sqrt_localnorms = sqrt_localnorms)
   g_nll, NLL  = gradnll(L, data; sqrt_localnorms = sqrt_localnorms)
   g_TP, TP_distance = gradTP(L, g_logZ, logZ; sqrt_localnorms = sqrt_localnorms) 
-  
+ 
   grads = g_logZ + g_nll  
   loss = logZ + NLL
   
   # Renormalization
   if !isnothing(trace_preserving_regularizer)
-    grads += trace_preserving_regularizer * g_TP
+    grads += trace_preserving_regularizer * g_TP 
   end
   return grads,loss
 end
@@ -432,7 +432,8 @@ function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}},
       normalized_model = copy(model)
       sqrt_localnorms = []
       normalize!(normalized_model; 
-                 sqrt_localnorms! = sqrt_localnorms)
+                 sqrt_localnorms! = sqrt_localnorms,
+                 localnorm = 2)
       
       grads,loss = gradients(normalized_model, batch; 
                              sqrt_localnorms = sqrt_localnorms, 
@@ -510,12 +511,13 @@ end
 Γ = 1/√D * √(Tr[Φ²] - 2*Tr[Φ] + D)
 """
 function TP(L::LPDO)
-  Φ = trace_outputsites(L)
-  N = length(Φ)
-  s = [firstind(Φ[j],tags="Input", plev = 0) for j in 1:N]
-  D = 2^N
-  logZ = log(tr(Φ))
-  Γ = (1 /sqrt(D)) * sqrt(exp(log(inner(Φ,Φ)) - 2 * logZ) - 2 * exp(log(tr(Φ)) - logZ) + D)
+  Λ = copy(L)
+  normalize!(Λ; localnorm = 2)
+  Φ = trace_outputsites(Λ)
+  
+  D = 2^length(Φ)
+  @assert D ≈ tr(Φ)
+  Γ = (1 /sqrt(D)) * sqrt(inner(Φ,Φ) - D)
   return real(Γ)
 end
 
@@ -526,13 +528,13 @@ function gradTP(L::LPDO, gradlogZ::Vector{<:ITensor}, logZ::Float64; sqrt_localn
   gradients_TrΦ², trΦ² = grad_TrΦ²(L; sqrt_localnorms = sqrt_localnorms)
  
   trΦ  = exp(logZ)
-  Γ = (1 /sqrt(D)) * sqrt(trΦ² * exp(-2*logZ) - 2.0 * trΦ *exp(-logZ) + D)
+  @assert D ≈ trΦ
+  Γ = (1 /sqrt(D)) * sqrt(trΦ² -  D)
   
   gradients = Vector{ITensor}(undef, N)
   
   for j in 1:N
-    grad  = exp(-2*logZ) * gradients_TrΦ²[j] 
-    grad -= 2 * exp(-2*logZ) * trΦ² * gradlogZ[j]
+    grad  = gradients_TrΦ²[j] - 2*trΦ² * gradlogZ[j] 
     gradients[j] = (1/D) * grad / (2.0*Γ)
   end
   return gradients, Γ

@@ -354,9 +354,13 @@ end
   
   U = randomprocess(N;χ=χ)
   Λ = PastaQ.makeChoi(U)
+  TP_distance = PastaQ.TP(Λ)
+  logZ = log(tr(Λ))
+  NLL = PastaQ.nll(Λ,data)
   num_gradZ = numgradslogZ(Λ)
   num_gradNLL = numgradsnll(Λ,data)
   num_gradTP = numgradsTP(Λ;  accuracy = 1e-5)
+
   num_grads = num_gradZ + num_gradNLL + trace_preserving_regularizer * num_gradTP
    
   sqrt_localnorms = []
