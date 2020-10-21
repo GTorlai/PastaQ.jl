@@ -98,7 +98,7 @@ end
 
 Compute the the following lower bound of the fidelity:
 
-`F̃(ρ,σ) = trace[ρ̃† σ̃)]`
+`F̃(ρ,σ) = trace[ρ̃† σ̃]`
 
 where `ρ̃` and `σ̃` are the normalized density matrices.
 

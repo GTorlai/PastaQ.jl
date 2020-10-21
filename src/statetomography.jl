@@ -439,7 +439,28 @@ end
 gradients(ψ::MPS,data::Matrix{Pair{String,Int}};localnorms = nothing)=
   gradients(LPDO(ψ), data; sqrt_localnorms = localnorms)
 
+"""
+    tomography(train_data::Matrix{Pair{String, Int}}, L::LPDO;
+               optimizer::Optimizer,
+               observer! = nothing,
+               batchsize::Int64 = 100,
+               epochs::Int64 = 1000,
+               kwargs...)
 
+Run quantum state tomography using a variational model `L` to fit `train_data`.
+The model can be either a pure state (MPS) or a density operator (LPDO).
+
+# Arguments:
+ - `train_data`: pairs of basis/outcome: `("X"=>0, "Y"=>1, "Z"=>0, …)`.
+ - `L`: variational model (MPS/LPDO).
+ - `optimizer`: algorithm used to update the model parameters.
+ - `observer!`: if provided, keep track of training metrics.
+ - `batch_size`: number of samples used for one gradient update.
+ - `epochs`: number of training iterations.
+ - `target`: target quantum state (if provided, compute fidelities).
+ - `test_data`: data for computing cross-validation.
+ - `outputpath`: if provided, save metrics on file.
+"""
 function tomography(train_data::Matrix{Pair{String, Int}}, L::LPDO;
                     optimizer::Optimizer,
                     observer! = nothing,

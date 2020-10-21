@@ -368,13 +368,28 @@ function gradients(L::LPDO,
   return grads,loss
 end
 
+"""
+    tomography(train_data::Matrix{Pair{String,Pair{String, Int}}}, L::LPDO;
+               optimizer::Optimizer,
+               observer! = nothing,
+               batchsize::Int64 = 100,
+               epochs::Int64 = 1000,
+               kwargs...)
 
-function tomography(data::Matrix{Pair{String,Pair{String, Int}}}, U::MPO; optimizer::Optimizer, kwargs...)
-  V = tomography(data, makeChoi(U); optimizer = optimizer, kwargs...)
-  return makeUnitary(V)
-end
+Run quantum process tomography using a variational model `L` to fit `train_data`.
+The model can be either a unitary circuit (MPO) or a Choi matrix (LPDO).
 
-
+# Arguments:
+- `train_data`: pairs of preparation/ (basis/outcome): `("X+"=>"X"=>0, "Z-"=>"Y"=>1, "Y+"=>"Z"=>0, …)`.
+ - `L`: variational model (MPO/LPDO).
+ - `optimizer`: algorithm used to update the model parameters.
+ - `observer!`: if provided, keep track of training metrics.
+ - `batch_size`: number of samples used for one gradient update.
+ - `epochs`: number of training iterations.
+ - `target`: target quantum process (if provided, compute fidelities).
+ - `test_data`: data for computing cross-validation.
+ - `outputpath`: if provided, save metrics on file.
+"""
 function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}},
                     L::LPDO;
                     optimizer::Optimizer,
@@ -504,6 +519,12 @@ function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}},
   @printf("Total Time = %.3f sec\n",tot_time)
   return best_model
 end
+
+function tomography(data::Matrix{Pair{String,Pair{String, Int}}}, U::MPO; optimizer::Optimizer, kwargs...)
+  V = tomography(data, makeChoi(U); optimizer = optimizer, kwargs...)
+  return makeUnitary(V)
+end
+
 
 """
     TP(L::LPDO)
