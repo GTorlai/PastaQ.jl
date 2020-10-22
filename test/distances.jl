@@ -38,7 +38,7 @@ using Random
   χ, ξ = 2, 2
   ρ = randomstate(N; mixed = true, χ = χ, ξ = ξ)
   σ = randomstate(ρ; mixed = true, χ = χ, ξ = ξ)
-  @show typeof(ρ)
+  #@show typeof(ρ)
   F = fidelity(prod(ρ), prod(σ))
   
   ρ_mat = PastaQ.fullmatrix(ρ)

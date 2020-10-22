@@ -24,7 +24,7 @@ using Test
   @test length(obs.fidelity) == 3
   @test length(obs.fidelity_bound) == 0
   @test length(obs.frobenius_distance) == 0
-  @test length(obs.TP_distance) == 0
+  @test length(obs.trace_preserving_distance) == 0
   @test length(obs.train_loss) == 3
   @test length(obs.test_loss) == 3
   
@@ -47,7 +47,7 @@ using Test
   @test length(obs.fidelity) == 3
   @test length(obs.fidelity_bound) == 3
   @test length(obs.frobenius_distance) == 3
-  @test length(obs.TP_distance) == 0
+  @test length(obs.trace_preserving_distance) == 0
   @test length(obs.train_loss) == 3
   @test length(obs.test_loss) == 3
     
@@ -71,7 +71,7 @@ using Test
   @test length(obs.frobenius_distance) == 0
   @test length(obs.train_loss) == 3
   @test length(obs.test_loss) == 3
-  @test length(obs.TP_distance) == 3
+  @test length(obs.trace_preserving_distance) == 3
   
   # Noisy circuit
   Random.seed!(1234)
@@ -97,5 +97,5 @@ using Test
   @test length(obs.frobenius_distance) == 3
   @test length(obs.train_loss) == 3
   @test length(obs.test_loss) == 3
-  @test length(obs.TP_distance) == 3
+  @test length(obs.trace_preserving_distance) == 3
 end

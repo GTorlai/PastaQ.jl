@@ -17,9 +17,22 @@ function qubits(sites::Vector{<:Index}; mixed::Bool = false)
   return ψ
 end
 
+"""
+    qubits(M::Union{MPS,MPO,LPDO}; mixed::Bool=false)
+
+Initialize qubits on the Hilbert space of a reference state,
+given as `MPS`, `MPO` or `LPDO`.
+"""
 qubits(M::Union{MPS,MPO,LPDO}; mixed::Bool=false) =
   qubits(hilbertspace(M); mixed = mixed)
 
+"""
+    qubits(N::Int, states::Vector{String}; mixed::Bool=false)
+
+    qubits(sites::Vector{<:Index}, states::Vector{String};mixed::Bool = false)
+
+Initialize the qubits to a given single-qubit product state.
+"""
 qubits(N::Int, states::Vector{String}; mixed::Bool=false) =
   qubits(siteinds("Qubit", N), states; mixed=mixed)
 
@@ -116,10 +129,10 @@ circuit(M::Union{MPS,MPO,LPDO}) =
 ------------------------------------------------- """
 
 """
-  gate(M::Union{MPS,MPO}, gatename::String, site::Int; kwargs...)
+    gate(M::Union{MPS,MPO}, gatename::String, site::Int; kwargs...)
 
-Generate a gate_tensor for a single-qubit gate identified by `gatename`
-acting on site `site`, with indices identical to an input MPS/MPO.
+Generate a gate tensor for a single-qubit gate identified by `gatename`
+acting on site `site`, with indices identical to a reference state `M`.
 """
 function gate(M::Union{MPS,MPO},
               gatename::String,
@@ -130,10 +143,11 @@ function gate(M::Union{MPS,MPO},
 end
 
 """
-  gate(M::Union{MPS,MPO},gatename::String, site::Tuple; kwargs...)
+    gate(M::Union{MPS,MPO},gatename::String, site::Tuple; kwargs...)
 
-Generate a gate_tensor for a two-qubit gate identified by `gatename`
-acting on sites `(site[1],site[2])`, with indices identical to an input MPS/MPO.
+Generate a gate tensor for a two-qubit gate identified by `gatename`
+acting on sites `(site[1],site[2])`, with indices identical to a 
+reference state `M` (`MPS` or `MPO`).
 """
 function gate(M::Union{MPS,MPO},
               gatename::String,
@@ -145,6 +159,7 @@ function gate(M::Union{MPS,MPO},
 
   return gate(gatename,site_ind1,site_ind2; kwargs...)
 end
+
 
 gate(M::Union{MPS,MPO}, gatedata::Tuple) =
   gate(M,gatedata...)
@@ -160,7 +175,8 @@ gate(M::Union{MPS,MPO},
     buildcircuit(M::Union{MPS,MPO}, gates::Vector{<:Tuple};
                  noise = nothing)
 
-Generates a vector of ITensors from a tuple of gates. 
+Generates a vector of (gate) `ITensor`, from a vector of `Tuple` 
+associated with a list of quantum gates. 
 If noise is nontrivial, the corresponding Kraus operators are 
 added to each gate as a tensor with an extra (Kraus) index.
 """
@@ -277,10 +293,13 @@ function runcircuit(M::Union{MPS, MPO}, gates::Union{Tuple,Vector{<:Tuple}};
 end
 
 """
-    runcircuit(N::Int, gates::Vector{<:Tuple}; process=false, noise=nothing,
-               cutoff=1e-15, maxdim=10000, kwargs...)
+    runcircuit(N::Int, gates::Vector{<:Tuple};
+               process = false,
+               noise = nothing,
+               cutoff = 1e-15,
+               maxdim = 10000)
 
-Apply the circuit to a state (wavefunction or density matrix) from a list of gates, where the state has `N` physical qubits. 
+Run the circuit corresponding to a list of quantum gates on a system of `N` qubits. 
 The starting state is generated automatically based on the flags `process`, `noise`, and `apply_dag`.
 
 1. By default (`noise = nothing`, `apply_dag = nothing`, and `process = false`), 
@@ -289,9 +308,12 @@ The starting state is generated automatically based on the flags `process`, `noi
 2. If `noise` is set to something nontrivial, the mixed evolution `ε(|ψ⟩⟨ψ|)` is performed, 
    where the starting state is set to `|ψ⟩ = |000...⟩`. 
    The MPO `ε(|000...⟩⟨000...|)` is returned.
-3. If `process = true`, the evolution `U 1̂` is performed, where the starting state `1̂ = (1⊗1⊗1⊗…⊗1)`. 
-   The MPO approximation for the unitary represented by the set of gates is returned. 
-   In this case, `noise` must be `nothing`.
+3. If `process = true` and `noise = nothing`, the evolution `U 1̂` is performed, 
+   where the starting state `1̂ = (1⊗1⊗1⊗…⊗1)`. The MPO approximation for the unitary 
+   represented by the set of gates is returned.
+4. If `process = true` and `noise` is set to something nontrivial, the function returns the Choi matrix 
+   `Λ = ε⊗1̂(|ξ⟩⟨ξ|)`, where `|ξ⟩= ⨂ⱼ |00⟩ⱼ+|11⟩ⱼ`, approximated by a MPO with 4 site indices,
+   two for the input and two for the output Hilbert space of the quantum channel.
 """
 function runcircuit(N::Int, gates::Vector{<:Tuple};
                     process = false,
@@ -330,6 +352,7 @@ end
 
 Apply the circuit to a ITensor from a list of tensors.
 """
+
 runcircuit(M::ITensor, gate_tensors::Vector{ <: ITensor}; kwargs...) =
   apply(gate_tensors, M; kwargs...)
 
@@ -338,6 +361,7 @@ runcircuit(M::ITensor, gate_tensors::Vector{ <: ITensor}; kwargs...) =
 
 Apply the circuit to an ITensor from a list of gates.
 """
+
 runcircuit(M::ITensor, gates::Vector{ <: Tuple}; noise = nothing, kwargs...) =
   runcircuit(M, buildcircuit(M, gates; noise = noise); kwargs...)
 
@@ -346,22 +370,13 @@ runcircuit(M::ITensor, gates::Vector{ <: Tuple}; noise = nothing, kwargs...) =
                noise = nothing, apply_dag = false,
                cutoff = 1e-15, maxdim = 10000, kwargs...)
 
-Compute the Choi matrix `Λ` from a set of gates that make up a quantum process.
-
-If `noise = nothing` (the default), for an N-qubit process, by default the square 
-root of the Choi matrix `|U⟩` is returned, such that the Choi matrix is the rank-1 matrix 
-`Λ = |U⟩⟨U|`. `|U⟩` is an MPS with `2N` sites for a process running on `N` physical qubits. 
-It is the "state" version of the unitary approximation for the full gate evolution `U`.
-
-If `noise != nothing`, an approximation for the Choi matrix is returned as an MPO 
-with `2N` sites, for a process with `N` physical qubits.
-
-If `noise = nothing` and `apply_dag = true`, the Choi matrix `Λ` is returned as an MPO with 
-`2N` sites. In this case, the MPO `Λ` is equal to `|U⟩⟨U|`.
+Compute the Choi matrix `Λ  = ε⊗1̂(|ξ⟩⟨ξ|)`, where `|ξ⟩= ⨂ⱼ |00⟩ⱼ+|11⟩ⱼ`, 
+where `ε` is a quantum channel built out of a set of quantum gates and 
+a local noise model. Returns a MPO with `N` tensor having 4 sites indices. 
 """
 function choimatrix(N::Int,
                     gates::Vector{<:Tuple};
-                    noise = nothing, apply_dag = false,
+                    noise = nothing,
                     cutoff = 1e-15, maxdim = 10000)
   if isnothing(noise)
     error("choi matrix requires noise")
@@ -395,5 +410,4 @@ function choimatrix(N::Int,
   Λ = runcircuit(ρ,gate_tensors;apply_dag=true,cutoff=cutoff, maxdim=maxdim)
   return Λ
 end
-
 

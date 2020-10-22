@@ -69,7 +69,7 @@ data, Λ = getsamples(N, gates, nshots;
 writesamples(data, Λ, "data/qpt_circuit_noisy.h5")
 data, Λ = readsamples("data/qpt_circuit_noisy.h5")
 if !isnothing(Λ)
-  @show maxlinkdim(Λ.M)
+  @show maxlinkdim(Λ)
 end
 display(data)
 println()

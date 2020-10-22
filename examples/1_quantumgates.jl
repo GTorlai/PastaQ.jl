@@ -10,7 +10,8 @@ Random.seed!(1234)
 ψ = qubits(3)
 
 # Apply the X gate on qubit 2
-ψ = applygate(ψ, "X", 2)
+g = ("X",2)
+ψ = runcircuit(ψ, g)
 
 # Show samples from P(x) = |⟨x|ψ⟩|²
 println("Sample from |ψ⟩ = X₂|0,0,0⟩:")
@@ -37,7 +38,8 @@ resetqubits!(ψ)
 
 # Show samples from P(x) = |⟨x|ψ⟩|²
 println("Sample from |ψ⟩ = iX₁|0,0,0⟩:")
-ψ = applygate(ψ, "iX", 1)
+g = ("iX", 1)
+ψ = runcircuit(ψ, g)
 display(getsamples(ψ, 3; local_basis = nothing))
 println()
 

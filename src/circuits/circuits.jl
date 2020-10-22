@@ -1,6 +1,16 @@
 """
 Circuit geometries
 """
+
+# Get site number from coordinate
+coord_to_site(Lx::Int,Ly::Int,x::Int,y::Int) = Lx*(y-1) + x
+
+"""
+    lineararray(N::Int)
+
+Return a vector of bonds for a open 1d lattice with 
+`N` sites.
+"""
 # Returns two-qubit bonds for a linear array
 function lineararray(N::Int)
   twoqubit_bonds = []
@@ -19,10 +29,15 @@ function lineararray(N::Int)
   return twoqubit_bonds
 end
 
-# Get site number from coordinate
-coord_to_site(Lx::Int,Ly::Int,x::Int,y::Int) = Lx*(y-1) + x
 
 # Returns two-qubit bonds fro a square array
+"""
+    squarearray(Lx::Int,Ly::Int)
+
+Return a vector containing 4 different "cycles" of bonds,
+corresponding to the different tiling of a square lattice
+with dimensions `Lx` and `Ly`.
+"""
 function squarearray(Lx::Int,Ly::Int)
   N = Lx * Ly
   twoqubit_bonds = []
@@ -62,12 +77,17 @@ function squarearray(Lx::Int,Ly::Int)
 end
 
 """
+    gatelayer(gatename::AbstractString, N::Int; kwargs...)
+
 Create a layer of gates.
 """
 gatelayer(gatename::AbstractString, N::Int; kwargs...) =
   Tuple[isempty(kwargs) ? (gatename, n) : (gatename, n, values(kwargs)) for n in 1:N]
 
 """
+    appendlayer!(gates::AbstractVector{ <: Tuple},
+                 gatename::AbstractString, N::Int)
+
 Append a layer of gates to a gate list.
 """
 appendlayer!(gates::AbstractVector{ <: Tuple},
@@ -79,6 +99,8 @@ appendlayer!(gates::AbstractVector{ <: Tuple},
 # Union{Int, AbstractRange, Vector{Int}}
 # to specify the starting location.
 """
+    twoqubitlayer(gatename::String,bonds::Array)
+
 Layer of two-qubit gates 
 """
 function twoqubitlayer(gatename::String,bonds::Array)
@@ -96,7 +118,16 @@ function twoqubitlayer!(gates::Array,gatename::String,bonds::Array)
 end
 
 """
-Random quantum circuit.
+    randomcircuit(N::Int,depth::Int,twoqubit_bonds::Array;
+                  twoqubitgate   = "CX",
+                  onequbitgates  = ["Rn"])
+
+Build a random quantum circuit with `N` qubits and depth `depth`.
+Each layer in the circuit is built with a layer of two-qubit gates
+constructed according to a list of bonds contained in `twoqubit_bonds`,
+followed by a layer of single qubit gates. By default, the two-qubit gate
+is controlled-NOT, and the single-qubit gate is a rotation around a random
+axis. 
 """
 function randomcircuit(N::Int,depth::Int,twoqubit_bonds::Array;
                        twoqubitgate   = "CX",
@@ -105,7 +136,6 @@ function randomcircuit(N::Int,depth::Int,twoqubit_bonds::Array;
   numgates_1q = length(onequbitgates)
   
   for d in 1:depth
-    #cycle = twoqubit_bonds[(d-1)%2+1]
     cycle = twoqubit_bonds[(d-1)%length(twoqubit_bonds)+1]
     twoqubitlayer!(gates,twoqubitgate,cycle) 
     for j in 1:N
@@ -123,6 +153,22 @@ function randomcircuit(N::Int,depth::Int,twoqubit_bonds::Array;
   return gates
 end
 
+"""
+    randomcircuit(N::Int,depth::Int;
+                  twoqubitgate   = "CX",
+                  onequbitgates  = ["Rn"])
+
+Build a 1-D random quantum circuit with `N` qubits and depth `depth`.
+
+# Circuit:
+
+O   O   O   O   O   O  …
+
+# Gates:
+O ▭ O   O ▭ O   O ▭ O  … (Cycle 1)
+O   O ▭ O   O ▭ O   O  … (Cycle 2)
+
+"""
 function randomcircuit(N::Int,depth::Int;
                        twoqubitgate   = "CX",
                        onequbitgates  = ["Rn"])
@@ -132,6 +178,40 @@ function randomcircuit(N::Int,depth::Int;
                        onequbitgates=onequbitgates)
 end
 
+"""
+    randomcircuit(Lx::Int,Ly::Int,depth::Int;
+                  twoqubitgate   = "CX",
+                  onequbitgates  = ["Rn"])
+
+Build a 2-D random quantum circuit with `N` qubits and depth `depth`.
+
+# 4x4 Circuit:
+O   O   O   O 
+  O   O   O   O
+O   O   O   O
+  O   O   O   O
+
+# Gates:
+    Cycle 1               Cycle 2
+O   O   O   O         O   O   O   O         
+ ╲   ╲   ╲   ╲           ╱   ╱   ╱           
+  O   O   O   O         O   O   O   O       
+                                            
+O   O   O   O         O   O   O   O         
+ ╲   ╲   ╲   ╲           ╱   ╱   ╱          
+  O   O   O   O         O   O   O   O       
+
+    Cycle 3               Cycle 4
+O   O   O   O         O   O   O   O          
+                      
+  O   O   O   O         O   O   O   O
+   ╲   ╲   ╲               ╱   ╱   ╱
+O   O   O   O         O   O   O   O   
+                      
+  O   O   O   O         O   O   O   O 
+
+
+"""
 function randomcircuit(Lx::Int,Ly::Int,depth::Int;
                        twoqubitgate   = "CX",
                        onequbitgates  = ["Rn"])

@@ -22,6 +22,9 @@ writesamples(data, U, "data/qpt_circuit.h5")
 # measurement output (`last.(data)`) after a local basis rotation.
 data, Û = readsamples("data/qpt_circuit.h5")
 
+# Split data into a train and test dataset
+train_data,test_data = split_dataset(data; train_ratio = 0.9)
+
 # Set parameters
 N = length(Û)     # Number of qubits
 χ = maxlinkdim(Û) # Bond dimension of variational MPS
@@ -34,7 +37,8 @@ U0 = randomprocess(Û; χ = χ)
 
 # Run process tomography
 println("Run process tomography to learn noiseless circuit U")
-U = tomography(data, U0;
+U = tomography(train_data, U0;
+               test_data = test_data,
                optimizer = SGD(η = 0.1),
                batchsize = 500,
                epochs = 5,
@@ -52,6 +56,11 @@ writesamples(data, Λ, "data/qpt_circuit_noisy.h5")
 
 # Load data and target Choi matrix
 data, Φ = readsamples("data/qpt_circuit_noisy.h5")
+
+# Split data into a train and test dataset
+train_data,test_data = split_dataset(data; train_ratio = 0.9)
+
+# Set up
 N = length(Φ)
 χ = 8
 ξ = 2
@@ -64,7 +73,8 @@ opt = SGD(η = 0.1)
 
 # Run process tomography
 println("Run process tomography to learn noisy process Λ")
-Λ = tomography(data, Λ0;
+Λ = tomography(train_data, Λ0;
+               test_data = test_data,
                optimizer = opt,
                batchsize = 500,
                epochs = 5,
