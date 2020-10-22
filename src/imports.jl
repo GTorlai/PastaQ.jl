@@ -1,3 +1,6 @@
+import Base:
+  sqrt
+
 import ITensors:
   # circuits/gates.jl
   space,

@@ -487,7 +487,7 @@ function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}},
         @printf("F bound = %.3E  ",Fbound)
         #if (length(model) <= 8)
         #  disable_warn_order!()
-        #  F = fullfidelity(model.M,target)
+        #  F = fidelity(prod(model.M), prod(target))
         #  reset_warn_order!()
         #  @printf("Fidelity = %.3E  ",F)
         #end

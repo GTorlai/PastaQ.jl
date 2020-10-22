@@ -12,6 +12,8 @@ using StatsBase: Weights
 include("imports.jl")
 include("exports.jl")
 
+include("itensor.jl")
+
 include("lpdo.jl")
 
 include("circuits/gates.jl")
