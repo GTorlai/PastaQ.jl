@@ -1,12 +1,13 @@
 
 # Locally purified density operator
 # L = prime(X, !purifier_tag(X)) * X†
-struct LPDO{MPOT <: Union{MPS, MPO}}
-  X::MPOT
+struct LPDO{XT <: Union{MPS, MPO}}
+  X::XT
   purifier_tag::TagSet
 end
 
-LPDO(X::Union{MPS, MPO}) = LPDO(X, ts"Purifier")
+LPDO(X::MPO) = LPDO(X, ts"Purifier")
+LPDO(X::MPS) = LPDO(X, ts"")
 
 Base.length(L::LPDO) = length(L.X)
 
@@ -41,7 +42,12 @@ function Base.iterate(L::LPDO, state = 1)
   return T, state+1
 end
 
-LinearAlgebra.tr(L::LPDO) = inner(L.X, L.X)
+ket(L::LPDO{MPS}) = prime(L.X)
+ket(L::LPDO{MPS}, j::Int) = prime(L.X[j])
+bra(L::LPDO{MPS}) = dag(L.X)
+bra(L::LPDO{MPS}, j::Int) = dag(L.X[j])
+
+tr(L::LPDO) = inner(L.X, L.X)
 
 logtr(L::LPDO) = loginner(L.X, L.X)
 
@@ -62,59 +68,64 @@ An LPDO `L = X X†` is normalized by `tr(L) = tr(X X†)`, so each `X` is norma
 
 Passing a vector `v` as the keyword arguments `localnorms!` (`sqrt_localnorms!`) will fill the vector with the (square root) of the normalization factor per site. For an MPS `ψ`, `prod(v) ≈ norm(ψ)`. For an MPO `M`, `prod(v) ≈ tr(M). For an LPDO `L`, `prod(v)^2 ≈ tr(L)`.
 """
-function LinearAlgebra.normalize!(M::MPO; localnorms! = [])
+function normalize!(M::MPO;
+                    plev = 0 => 1,
+                    tags = ts"" => ts"",
+                    localnorms! = [])
   N = length(M)
   resize!(localnorms!, N)
-  blob = M[1] * δ(dag(siteinds(M, 1)))
+  blob = tr(M[1]; plev = plev, tags = tags)
   localZ = norm(blob)
   blob /= localZ
   M[1] /= localZ
   localnorms![1] = localZ
   for j in 2:N-1
-    blob *= (M[j] * δ(dag(siteinds(M, j))))
+    blob *= M[j]
+    blob = tr(blob; plev = plev, tags = tags)
     localZ = norm(blob)
     blob /= localZ
     M[j] /= localZ
     localnorms![j] = localZ
   end
-  blob *= (M[N] * δ(dag(siteinds(M, N))))
-  localZ = blob[]
+  blob *= M[N]
+  localZ = tr(blob; plev = plev, tags = tags)
   M[N] /= localZ
   localnorms![N] = localZ
   return M
 end
 
-function LinearAlgebra.normalize!(L::LPDO; sqrt_localnorms! = [])
+function normalize!(L::LPDO; sqrt_localnorms! = [], localnorm=1.0)
   N = length(L)
   resize!(sqrt_localnorms!, N)
   # TODO: replace with:
-  #blob = ket(L, 1) * δ(siteinds(L, 1)) * bra(L, 1)
+  #blob = noprime(ket(L, 1) * siteind(L, 1)) * bra(L, 1)
   blob = noprime(ket(L, 1), "Site") * bra(L, 1)
   localZ = norm(blob)
-  blob /= sqrt(localZ)
-  L.X[1] /= (localZ^0.25)
-  sqrt_localnorms![1] = localZ^0.25
+  blob /= localZ
+  L.X[1] /= sqrt(localZ / localnorm)
+  sqrt_localnorms![1] = sqrt(localZ / localnorm)
   for j in 2:length(L)-1
     # TODO: replace with:
     # noprime(ket(L, j), siteind(L, j))
     blob = blob * noprime(ket(L, j), "Site")
     blob = blob * bra(L, j)
     localZ = norm(blob)
-    blob /= sqrt(localZ)
-    L.X[j] /= (localZ^0.25)
-    sqrt_localnorms![j] = localZ^0.25
+    blob /= localZ
+    L.X[j] /= sqrt(localZ / localnorm)
+    sqrt_localnorms![j] = sqrt(localZ / localnorm)
   end
   # TODO: replace with:
   # noprime(ket(L, N), siteind(L, N))
   blob = blob * noprime(ket(L, N), "Site")
   blob = blob * bra(L, N)
   localZ = norm(blob)
-  L.X[N] /= sqrt(localZ)
-  sqrt_localnorms![N] = sqrt(localZ)
+  L.X[N] /= sqrt(localZ / localnorm)
+  sqrt_localnorms![N] = sqrt(localZ / localnorm)
+  
   return L
 end
 
-function LinearAlgebra.normalize!(ψ::MPS; localnorms! = [])
+function normalize!(ψ::MPS; localnorms! = [])
   normalize!(LPDO(ψ); sqrt_localnorms! = localnorms!)
   return ψ
 end
@@ -133,25 +144,20 @@ function ITensors.MPO(lpdo0::LPDO)
   M = ITensor[]
   prime!(lpdo[1]; tags = "Site")
   prime!(lpdo[1]; tags = "Link")
-  #tmp = dag(lpdo[1]) * noprime(lpdo[1])
   tmp = lpdo[1] * noprime(dag(lpdo[1])) 
-  #Cdn = combiner(inds(tmp, tags = "Link"), tags = "Link,l=1")
   Cdn = combiner(commonind(tmp,lpdo[2]),commonind(tmp,lpdo[2])')
   push!(M, tmp * Cdn)
 
   for j in 2:N-1
     prime!(lpdo[j]; tags = "Site")
     prime!(lpdo[j]; tags = "Link")
-    #tmp = dag(lpdo[j]) * noprime(lpdo[j])
     tmp = lpdo[j] * noprime(dag(lpdo[j]))
     Cup = Cdn
     Cdn = combiner(commonind(tmp,lpdo[j+1]),commonind(tmp,lpdo[j+1])')
-    #Cdn = combiner(inds(tmp,tags="Link,l=$j"),tags="Link,l=$j")
     push!(M, tmp * Cup * Cdn)
   end
   prime!(lpdo[N]; tags = "Site")
   prime!(lpdo[N]; tags = "Link")
-  #tmp = dag(lpdo[N]) * noprime(lpdo[N])
   tmp = lpdo[N] * noprime(dag(lpdo[N])) 
   Cup = Cdn
   push!(M, tmp * Cdn)
@@ -164,29 +170,16 @@ end
 function HDF5.write(parent::Union{HDF5File,HDF5Group},
                     name::AbstractString,
                     L::LPDO)
-  g = g_create(parent,name)
-  attrs(g)["type"] = "LPDO"
-  M = L.X
-  attrs(g)["version"] = 1
-  N = length(M)
-  write(g, "rlim", M.rlim)
-  write(g, "llim", M.llim)
-  write(g, "length", N)
-  for n=1:N
-    write(g,"MPO[$(n)]", M[n])
-  end
+  g = g_create(parent, name)
+  attrs(g)["type"] = String(Symbol(typeof(L)))
+  write(parent, "X", L.X)
 end
 
-function HDF5.read(parent::Union{HDF5File,HDF5Group},
+function HDF5.read(parent::Union{HDF5File, HDF5Group},
                    name::AbstractString,
-                   ::Type{LPDO})
-  g = g_open(parent,name)
-  if read(attrs(g)["type"]) != "LPDO"
-    error("HDF5 group or file does not contain MPO data")
-  end
-  N = read(g, "length")
-  rlim = read(g, "rlim")
-  llim = read(g, "llim")
-  v = [read(g,"MPO[$(i)]",ITensor) for i in 1:N]
-  return LPDO(MPO( v, llim, rlim))
+                   ::Type{LPDO{XT}}) where {XT}
+  g = g_open(parent, name)
+  X = read(g, "X", XT)
+  return LPDO(X)
 end
+

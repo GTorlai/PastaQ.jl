@@ -1,7 +1,9 @@
 ![alt text](assets/logo.png)
 [![Tests](https://github.com/GTorlai/PastaQ.jl/workflows/Tests/badge.svg)](https://github.com/GTorlai/PastaQ.jl/actions?query=workflow%3ATests)
+<!---
 [![codecov](https://codecov.io/gh/GTorlai/PastaQ.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/GTorlai/PastaQ.jl)
 [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://gtorlai.github.io/PastaQ.jl/stable/)
+-->
 [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://gtorlai.github.io/PastaQ.jl/dev/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![arXiv](https://img.shields.io/badge/arXiv--b31b1b.svg)](https://arxiv.org/abs/)
@@ -24,7 +26,7 @@ PastaQ is developed at the Center for Computational Quantum Physics of the Flati
 and it is supported by the Simons Foundation.
 
 ## Installation
-The PastatQ package can be installed with the Julia package manager. From the Julia REPL,
+The PastaQ package can be installed with the Julia package manager. From the Julia REPL,
 type ] to enter the Pkg REPL mode and run:
 
 ```
@@ -34,14 +36,16 @@ type ] to enter the Pkg REPL mode and run:
 ```julia
 julia> ]
 
-pkg> add github.com/GTorlai/PastaQ.jl
+pkg> add https://github.com/GTorlai/PastaQ.jl
 ```
 
 Please note that right now, PastaQ.jl requires that you use Julia v1.4 or later.
 
 ## Documentation
 
+<!---
 - [**STABLE**](https://gtorlai.github.io/PastaQ.jl/stable/) --  **documentation of the most recently tagged version.**
+-->
 - [**DEVEL**](https://gtorlai.github.io/PastaQ.jl/dev/) -- *documentation of the in-development version.*
 
 ## Code Overview
@@ -132,12 +136,11 @@ gates = randomcircuit(N, depth) # random circuit
 # Run the circuit using an amplitude damping channel with decay rate `γ=0.01`.
 # Returns the MPO for the mixed density operator `ρ = ε(|0,0,…⟩⟨0,0,̇…|), where
 # `ε` is the quantum channel.
-ρ = runcircuit(N, gates; noise = ("amplitude_damping", (γ = 0.01,))
+ρ = runcircuit(N, gates; noise = ("amplitude_damping", (γ = 0.01,)))
 
 # Compute the Choi matrix of the channel
-Λ = runcircuit(N, gates; process = true, noise = ("amplitude_damping", (γ = 0.01,))
+Λ = runcircuit(N, gates; process = true, noise = ("amplitude_damping", (γ = 0.01,)))
 ```
-
 
 ### Generation of projective measurements
 For a given quantum circuit, with or without noise, different flavors of measurement
@@ -165,12 +168,12 @@ gates = randomcircuit(N, depth) # Build gates
 data, ψ = getsamples(N, gates, nshots)
 
 #  Note: the above is equivalent to:
-# > bases = randombases(N, nshots; localbasis = ["X","Y","Z"])
+# > bases = randombases(N, nshots; local_basis = ["X","Y","Z"])
 # > ψ = runcircuit(N, gates)
 # > data = getsamples(ψ, bases)
 
 # 2b) Output state of a noisy circuit. Also returns the output MPO
-data, ρ = generatedata(N, gates, nshots; noise = ("amplitude_damping", (γ = 0.01,)))
+data, ρ = getsamples(N, gates, nshots; noise = ("amplitude_damping", (γ = 0.01,)))
 ```
 
 For quantum process tomography of a unitary or noisy circuit, the measurement data
@@ -183,7 +186,7 @@ unitary circuit (noiseless) or the Choi matrix (noisy).
 ```julia
 # 2c) Generate data for quantum process tomography, consisting of input states
 # to a quantum channel, and the corresponding projective measurements
-# at the output. By default, the states prepared at the inputs are selected from
+# at the output. By defaul, the states prepared at the inputs are selected from
 # product states of eigenstates of Pauli operators, while measurements bases are
 # sampled from the Pauli group.
 
@@ -191,59 +194,106 @@ unitary circuit (noiseless) or the Choi matrix (noisy).
 data, U = getsamples(N, gates, nshots; process=true)
 
 # Noisy channel, returns the Choi matrix
-data, Λ = generatedata(N, gates, nshots; process = true, noise = ("amplitude_damping", (γ = 0.01,)))
+data, Λ = getsamples(N, gates, nshots; process = true, noise = ("amplitude_damping", (γ = 0.01,)))
 ```
 
 
 ### Quantum tomography
 
+PastaQ provides a set of algorithms to reconstruction quantum states
+and channels from measurement data. Both problems have a similar setup: given a
+data set of measurements underlying an unknown target quantum state (or channel),
+a variational tensor network is optimized to minimize the distance between the
+data and the probability distribution that the variational model associates to the
+measurement outcomes.
+
+
 #### State tomography
-![alt text](assets/quantumtomography.jpg)
+Quantum state tomography consists of reconstructing an unknown quantum state
+underlying a set of measurement data. The ingredients for state tomography are a
+variational quantum state, a data-driven reconstruction algorithm and an optimization
+routine. In PastaQ, the variational quantum states provided are an MPS and an LPDO,
+for the reconstruction of a pure quantum wavefunction and a mixed density operator
+respectively. The reconstruction algorithm is based on unsupervised machine learning of probability
+distributions. A widely used approach consists of optimizing a model distribution by
+minimizing the Kullbach-Leibler (KL) divergence between the model and the unknown target distribution,
+which is approximated by the training data. For quantum states, the measurement data
+is made of projective measurements in arbitrary local bases, and the model probability
+distribution is obtained by contracting the variational tensor network with a set of
+projectors corresponding to the eigenstates of the observed measurement outcome.
 
-## Full code examples
+Given a set of training data, the first step is the definition of the quantum state
+to be optimized. A random wavefunction or density operator is built using the function
+`randomstate(N)` and the appropriate flag `mixed`. Next, one defines a specific optimizer
+to be used in reconstruction, such as Stochastic Gradient Descent (SGD). Quantum state tomography
+is carried out by calling the function `tomography`, with inputs the initial starting state `ψ0`,
+the training data set `data`, and the optimizer `opt`. Additional inputs include the number of
+training iterations (`epochs`), the number of samples used for a single gradient update (`batch_size`), as well as
+the target quantum state (`target`) if available. During the training, the cost function
+is printed, as well as the fidelity against the target quantum state, if `target` is provided.
 
-#### Quantum state tomography
-Quantum tomography of the wavefunction at the output of a 10-qubit random quantum
-circuit of depth 10, using 20000 training measurements.
+![alt text](assets/statetomography.jpg)
 
 ```julia
 using PastaQ
-using Random
 
-Random.seed!(1234)
-N = 10
-depth = 10
-nshots = 20000
-gates = randomcircuit(N, depth)
+# Load the training data, as well as the target quantum state from file.
+data, target = loadsamples("PATH_TO_DATAFILE.h5")
+N = size(data)[2] # Number of qubits
 
-data,Ψ = getsamples(N, gates, nshots)
+# 1. Reconstruction with a variational wavefunction:
+#
+# Initialize a variational MPS with bond dimension χ = 10.
+ψ0 = randomstate(N; χ = 10)
 
-ψ0 = randomstate(Ψ; χ=maxlinkdim(Ψ))
+# Initialize stochastic gradient descent with learning rate η = 0.01
 opt = SGD(η = 0.01)
-ψ = tomography(ψ0,data,opt;target=Ψ,epochs=10)
 
-# Output
+# Run quantum state tomography
+ψ = tomography(data, ψ0; optimizer = opt, target = target)
 
-  Ep = 1   Loss = 7.56136E+00  Fidelity = 1.048E-01  Time = 3.640 sec
-  Ep = 2   Loss = 7.15703E+00  Fidelity = 4.390E-01  Time = 3.583 sec
-  Ep = 3   Loss = 6.87236E+00  Fidelity = 6.315E-01  Time = 3.734 sec
-  Ep = 4   Loss = 6.70552E+00  Fidelity = 7.743E-01  Time = 3.712 sec
-  Ep = 5   Loss = 6.54243E+00  Fidelity = 8.746E-01  Time = 3.645 sec
-  Ep = 6   Loss = 6.48293E+00  Fidelity = 9.112E-01  Time = 3.691 sec
-  Ep = 7   Loss = 6.44810E+00  Fidelity = 9.284E-01  Time = 3.647 sec
-  Ep = 8   Loss = 6.43632E+00  Fidelity = 9.373E-01  Time = 3.603 sec
-  Ep = 9   Loss = 6.42528E+00  Fidelity = 9.448E-01  Time = 3.559 sec
-  Ep = 10  Loss = 6.41982E+00  Fidelity = 9.450E-01  Time = 3.601 sec
-  Ep = 11  Loss = 6.41674E+00  Fidelity = 9.511E-01  Time = 3.557 sec
-  Ep = 12  Loss = 6.41443E+00  Fidelity = 9.554E-01  Time = 3.700 sec
-  Ep = 13  Loss = 6.41014E+00  Fidelity = 9.553E-01  Time = 3.717 sec
-  Ep = 14  Loss = 6.40734E+00  Fidelity = 9.538E-01  Time = 3.643 sec
-  Ep = 15  Loss = 6.40643E+00  Fidelity = 9.529E-01  Time = 3.782 sec
-  Ep = 16  Loss = 6.40799E+00  Fidelity = 9.565E-01  Time = 3.623 sec
-  Ep = 17  Loss = 6.40472E+00  Fidelity = 9.542E-01  Time = 3.623 sec
-  Ep = 18  Loss = 6.40551E+00  Fidelity = 9.565E-01  Time = 3.660 sec
-  Ep = 19  Loss = 6.40192E+00  Fidelity = 9.564E-01  Time = 3.578 sec
-  Ep = 20  Loss = 6.40119E+00  Fidelity = 9.603E-01  Time = 3.597 sec
+# 2. Reconstruction with a variational density matrix:
+#
+# Initialize a variational LPDO with bond dimension χ = 10 and Kraus dimension ξ = 2.
+ρ0 = randomstate(N; mixed = true, χ = 10, ξ = 2)
 
+# Run quantum state tomography
+ρ = tomography(data, ρ0; optimizer = opt, target = target)
 ```
-#### Quantum process tomography
+
+#### Process tomography
+In quantum process tomography, the object being reconstructed is a quantum channel `ε`,
+fully specified by its Choi matrix `Λ` (defined over `2N` qubits). In practice,
+process tomography reduces to quantum state tomography of the Choi matrix, where the training
+data consists of input states to the channel, and output projective measurements.
+For the special case of a unitary (noiseless) channel `U`, the Choi matrix has rank-1 and is
+equivalent to a pure state obtained by being the legs of the unitary operator `U`.
+
+![alt text](assets/processtomography.jpg)
+
+```julia
+using PastaQ
+
+# Load the training data, as well as the target quantum state from file.
+data, target = loadsamples("PATH_TO_DATAFILE.h5")
+N = size(data)[2] # Number of qubits
+
+# 1. Reconstruction with a variational MPO:
+#
+# Initialize a variational MPO with bond dimension χ = 10.
+U0 = randomprocess(N; χ = 10)
+
+# Initialize stochastic gradient descent with learning rate η = 0.01
+opt = SGD(η = 0.01)
+
+# Run quantum state tomography
+U = tomography(data, U0; optimizer = opt, target = target)
+
+# 2. Reconstruction with a variational density matrix:
+#
+# Initialize a variational LPDO with bond dimension χ = 10 and Kraus dimension ξ = 2.
+Λ0 = randomprocess(N; mixed = true, χ = 10, ξ = 2)
+
+# Run quantum state tomography
+Λ = tomography(data, Λ0; optimizer = opt, target = target)
+```

@@ -11,11 +11,77 @@ Initialize qubits to:
 qubits(N::Int; mixed::Bool=false) =
   qubits(siteinds("Qubit", N); mixed=mixed)
 
-qubits(sites::Vector{<:Index}; mixed::Bool=false) = 
-  mixed ? MPO(productMPS(sites, "0")) : productMPS(sites, "0") 
+function qubits(sites::Vector{<:Index}; mixed::Bool = false)
+  ψ = productMPS(sites, "0")
+  mixed && return MPO(ψ)
+  return ψ
+end
 
 qubits(M::Union{MPS,MPO,LPDO}; mixed::Bool=false) =
-  qubits(hilbertspace(M); mixed=mixed)
+  qubits(hilbertspace(M); mixed = mixed)
+
+qubits(N::Int, states::Vector{String}; mixed::Bool=false) =
+  qubits(siteinds("Qubit", N), states; mixed=mixed)
+
+function qubits(sites::Vector{<:Index}, states::Vector{String};
+                mixed::Bool = false)
+  N = length(sites)
+  @assert N == length(states)
+
+  ψ = productMPS(sites, "0")
+
+  if N == 1
+    s1 = sites[1]
+    state1 = state(states[1])
+    if eltype(state1) <: Complex
+      ψ[1] = complex(ψ[1])
+    end
+    for j in 1:dim(s1)
+      ψ[1][s1 => j] = state1[j]
+    end
+    mixed && return MPO(ψ)
+    return ψ
+  end
+
+  # Set first site
+  s1 = sites[1]
+  l1 = linkind(ψ, 1)
+  state1 = state(states[1])
+  if eltype(state1) <: Complex
+    ψ[1] = complex(ψ[1])
+  end
+  for j in 1:dim(s1)
+    ψ[1][s1 => j, l1 => 1] = state1[j]
+  end
+
+  # Set sites 2:N-1
+  for n in 2:N-1
+    sn = sites[n]
+    ln_1 = linkind(ψ, n-1)
+    ln = linkind(ψ, n)
+    state_n = state(states[n])
+    if eltype(state_n) <: Complex
+      ψ[n] = complex(ψ[n])
+    end
+    for j in 1:dim(sn)
+      ψ[n][sn => j, ln_1 => 1, ln => 1] = state_n[j]
+    end
+  end
+  
+  # Set last site N
+  sN = sites[N]
+  lN_1 = linkind(ψ, N-1)
+  state_N = state(states[N])
+  if eltype(state_N) <: Complex
+    ψ[N] = complex(ψ[N])
+  end
+  for j in 1:dim(sN)
+    ψ[N][sN => j, lN_1 => 1] = state_N[j]
+  end
+  
+  mixed && return MPO(ψ)
+  return ψ
+end
 
 """ 
     resetqubits!(M::Union{MPS,MPO})
@@ -42,6 +108,8 @@ circuit(sites::Vector{<:Index}) = MPO(sites, "Id")
 
 circuit(N::Int) = circuit(siteinds("Qubit", N))
 
+circuit(M::Union{MPS,MPO,LPDO}) =
+  circuit(hilbertspace(M))
 
 """----------------------------------------------
                   CIRCUIT FUNCTIONS 
@@ -87,33 +155,6 @@ gate(M::Union{MPS,MPO},
      params::NamedTuple) =
   gate(M, gatename, sites; params...)
 
-"""
-  applygate!(M::Union{MPS,MPO},gatename::String,sites::Union{Int,Tuple};kwargs...)
-
-Apply a quantum gate to an MPS/MPO.
-"""
-function applygate!(M::Union{MPS,MPO},
-                    gatename::String,
-                    sites::Union{Int,Tuple};
-                    kwargs...)
-  g = gate(M,gatename,sites;kwargs...)
-  Mc = apply(g,M;kwargs...)
-  M[:] = Mc
-  return M
-end
-
-"""
-  applygate!(M::Union{MPS,MPO},gate_tensor::ITensor; kwargs...)
-
-Contract a gate_tensor with an MPS/MPO.
-"""
-function applygate!(M::Union{MPS,MPO},
-                    gate_tensor::ITensor;
-                    kwargs...)
-  Mc = apply(gate_tensor,M;kwargs...)
-  M[:] = Mc
-  return M
-end
 
 """
     buildcircuit(M::Union{MPS,MPO}, gates::Vector{<:Tuple};
@@ -123,9 +164,13 @@ Generates a vector of ITensors from a tuple of gates.
 If noise is nontrivial, the corresponding Kraus operators are 
 added to each gate as a tensor with an extra (Kraus) index.
 """
-function buildcircuit(M::Union{MPS,MPO}, gates::Vector{<:Tuple}; 
+function buildcircuit(M::Union{MPS,MPO}, gates::Union{Tuple,Vector{<:Tuple}}; 
                       noise::Union{Nothing, String, Tuple{String, NamedTuple}} = nothing)
   gate_tensors = ITensor[]
+  if gates isa Tuple
+    gates = [gates]
+  end
+
   for g in gates
     push!(gate_tensors, gate(M, g))
     ns = g[2]
@@ -219,19 +264,17 @@ If an MPO `ρ` is input, there are three possible modes:
 2. If `noise` is set to something nontrivial, the evolution `ε(ρ)` is performed.
 3. If `noise = nothing` and `apply_dag = false`, the evolution `Uρ` is performed.
 """
-function runcircuit(M::Union{MPS, MPO}, gates::Vector{<:Tuple};
+function runcircuit(M::Union{MPS, MPO}, gates::Union{Tuple,Vector{<:Tuple}};
                     noise = nothing,
                     apply_dag = nothing, 
                     cutoff = 1e-15,
-                    maxdim = 10000)
+                    maxdim = 10_000)
   gate_tensors = buildcircuit(M, gates; noise = noise) 
   return runcircuit(M, gate_tensors;
                     cutoff = cutoff,
                     maxdim = maxdim,
                     apply_dag = apply_dag)
 end
-
-
 
 """
     runcircuit(N::Int, gates::Vector{<:Tuple}; process=false, noise=nothing,
@@ -350,7 +393,7 @@ function choimatrix(N::Int,
   M[N] = M[N] * Cdn
   ρ = MPO(M)
   Λ = runcircuit(ρ,gate_tensors;apply_dag=true,cutoff=cutoff, maxdim=maxdim)
-  return Choi(Λ)
+  return Λ
 end
 
 

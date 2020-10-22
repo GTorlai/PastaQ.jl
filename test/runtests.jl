@@ -2,7 +2,7 @@ using Test
 
 @testset "PastaQ.jl" begin
   @testset "$filename" for filename in (
-    "utils.jl",
+    #"utils.jl",
     "gates.jl",
     "circuits.jl",
     "circuitops.jl",
@@ -11,7 +11,8 @@ using Test
     "optimizers.jl",
     "distances.jl",
     "randomstates.jl",
-    "tomography.jl",
+    "statetomography.jl",
+    "processtomography.jl",
     "examples.jl",
     "observer.jl",
     #"benchmark_qiskit.jl"
