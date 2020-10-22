@@ -1,11 +1,10 @@
 # Quantum tomography 
 
-## Initialization
-
 ## Tomography
 
 ```@docs
 tomography
+split_dataset
 ```
 
 ## Certification

@@ -18,6 +18,9 @@ writesamples(data, ψ, "data/qst_circuit.h5")
 # Load target state and measurement data
 data, Ψ = readsamples("data/qst_circuit.h5")
 
+# Split data into a train and test dataset
+train_data,test_data = split_dataset(data; train_ratio = 0.9)
+
 # Set parameters 
 N = length(Ψ)     # Number of qubits
 χ = maxlinkdim(Ψ) # Bond dimension of variational MPS
@@ -32,7 +35,8 @@ opt = SGD(η = 0.01)
 # is optimized to mimimize the cross entropy between the data and 
 # the tensor-network distribution `P(x) = |⟨x|ψ(θ)⟩|²`.
 println("Running tomography to learn a pure state ψ:")
-ψ = tomography(data, ψ0;
+ψ = tomography(train_data, ψ0;
+               test_data = test_data,
                optimizer = opt,
                batchsize = 1000,
                epochs = 5,
@@ -52,6 +56,9 @@ writesamples(data, ρ, "data/qst_circuit_noisy.h5")
 # Load target state and measurement data
 data, ϱ = readsamples("data/qst_circuit_noisy.h5")
 
+# Split data into a train and test dataset
+train_data,test_data = split_dataset(data; train_ratio = 0.9)
+
 # Set parameters
 N = length(ϱ)     # Number of qubits
 χ = maxlinkdim(ϱ) # Bond dimension of variational LPDO
@@ -66,7 +73,8 @@ opt = SGD(η = 0.1)
 # is optimized to mimimize the cross entropy between the data and 
 # the tensor-network distribution `P(x) = ⟨x|ρ(θ)|x⟩`.
 println("Running tomography to learn a mixed state ρ:")
-ρ = tomography(data, ρ0;
+ρ = tomography(train_data, ρ0;
+               test_data = test_data,
                optimizer = opt,
                batchsize = 1000,
                epochs = 5,

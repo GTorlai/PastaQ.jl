@@ -69,4 +69,5 @@ export
   writesamples,
   readsamples,
   maxlinkdim,
-  ischoi
+  ischoi,
+  split_dataset

@@ -287,11 +287,33 @@ function convertdatapoints(outcome::Matrix{Int64}, basis::Matrix{String}; state:
   end
   return newdata
 end
+
 """
 
 (Z => 0), (X => 1)  / (Z+, X-)
 
 """
+
+"""
+    split_dataset(data::Matrix; train_ratio::Float64 = 0.9, randomize::Bool = true)
+
+Split a data set into a `train` and `test` sets, given a `train_ratio` (i.e. the 
+percentage of data in `train_data`. If `randomize=true` (default), the `data` is 
+randomly shuffled before splitting.
+"""
+function split_dataset(data::Matrix; train_ratio::Float64 = 0.9, randomize::Bool = true)
+  ndata = size(data,1)
+  ntrain = Int(ndata * train_ratio)
+  ntest = ndata - ntrain
+  if randomize
+    data = data[shuffle(1:end),:]
+  end
+  train_data = data[1:ntrain,:]
+  test_data  = data[ntrain+1:end,:]
+  return train_data,test_data
+end
+
+
 
 function ischoi(M::LPDO)
   return (length(inds(M.X[1],"Site")) == 2 ? true : false)
@@ -320,72 +342,3 @@ function makeChoi(U0::MPO)
 end
 
 
-#function convertdatapoint(datapoint::Array{Pair{String,Int64}})
-#  newdata = []
-#  basis = first.(datapoint)
-#  outcome = last.(datapoint)
-#
-#  for j in 1:length(datapoint)
-#    if outcome[j] == 0 
-#      push!(newdata, basis[j] * "+")
-#    elseif outcome[j] == 1
-#      push!(newdata, basis[j] * "-")
-#    else
-#      error("non-binary data")
-#    end
-#  end
-#  return newdata
-#end
-
-#function convertdatapoints(datapoints::Matrix{Pair{String,Int64}})
-#  nshots = size(datapoints)[1]
-#  newdata = Matrix{String}(undef,nshots,size(datapoints)[2])
-#
-#  for n in 1:nshots
-#    newdata[n,:] = convertdatapoint(datapoints[n,:])
-#  end
-#  return newdata
-#end
-
-
-
-#function convertdatapoint(datapoint::Array{Int64}, basis::Array{String})
-#  newdata = []
-#  for j in 1:length(datapoint)
-#    push!(newdata,basis[j] => datapoint[j])
-#  end
-#  return newdata
-#end
-#
-#"""
-#    convertdatapoint(datapoint::Array,basis::Array;state::Bool=false)
-#
-#("Z" => 0, "X" => 1) -> ("Z+","X-") 
-#"""
-
-#"""
-#    convertdatapoint(datapoint::Array,basis::Array;state::Bool=false)
-#
-#Many points: ("Z" => 0, "X" => 1) -> ("Z+","X-") 
-#"""
-#function convertdatapoints(datapoints::Matrix{Pair{String,Int64}}; state::Bool=false)
-#  nshots = size(datapoints)[1]
-#  newdata = Matrix{String}(undef,nshots,size(datapoints)[2])
-#
-#  for n in 1:nshots
-#    newdata[n,:] = convertdatapoint(datapoints[n,:]; state = state)
-#  end
-#  return newdata
-#end
-#
-##function convertdatapoints(datapoints::Array,
-##                           bases::Array;
-##                           state::Bool=false)
-##  newdata = Matrix{String}(undef, size(datapoints)[1],size(datapoints)[2]) 
-##  
-##  for n in 1:size(datapoints)[1]
-##    newdata[n,:] = convertdatapoint(datapoints[n,:],bases[n,:],state=state)
-##  end
-##  return newdata
-##end
-#

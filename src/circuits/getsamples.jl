@@ -7,7 +7,7 @@ Generate `nshots` measurement bases. By default, each
 local basis is randomly selected between `["X","Y","Z"]`, with
 `"Z"` being the default basis where the quantum state is written.
 If `ndistinctbases` is provided, the output consist of `ndistinctbases`
-different measurement basis, each being repeated `nshots÷ndistinctbases`
+different measurement bases, each being repeated `nshots÷ndistinctbases`
 times.
 """
 function randombases(N::Int, numshots::Int;
@@ -39,9 +39,9 @@ If not, a quantum gate corresponding to the given basis rotation
 is added to the list.
 
 Example:
-  basis = ["X","Z","Z","Y"]
-  -> gate_list = [("basisX", 1),
-                  ("basisY", 4)]
+  basis = `["X","Z","Z","Y"]`
+
+  -> `gate_list = [("basisX", 1),("basisY", 4)]`
 """
 function measurementgates(basis::Vector)
   gate_list = Tuple[]
@@ -84,45 +84,11 @@ function randompreparations(N::Int, nshots::Int;
   return preparations
 end
 
-function getsamples!(M::Union{MPS,MPO};
-                     readout_errors = (p1given0 = nothing,
-                                       p0given1 = nothing))
-  p1given0 = readout_errors[:p1given0]
-  p0given1 = readout_errors[:p0given1]
-  orthogonalize!(M,1)
-  measurement = sample(M)
-  measurement .-= 1
-  if !isnothing(p1given0) || !isnothing(p0given1)
-    p1given0 = (isnothing(p1given0) ? 0.0 : p1given0)
-    p0given1 = (isnothing(p0given1) ? 0.0 : p0given1)
-    readouterror!(measurement,p1given0,p0given1)
-  end
-  return measurement
-end
-
-"""
-    PastaQ.getsamples!(M::Union{MPS,MPO}, nshots::Int; kwargs...)
-
-Perform a projective measurement of a wavefunction 
-`|ψ⟩` or density operator `ρ`. The measurement consist of
-a binary vector `σ = (σ₁,σ₂,…)`, drawn from the probabilty
-distribution:
-- P(σ) = |⟨σ|ψ⟩|² : if `M = ψ is MPS`
-- P(σ) = ⟨σ|ρ|σ⟩  : if `M = ρ is MPO`
-"""
-function getsamples!(M::Union{MPS,MPO},nshots::Int; kwargs...)
-  measurements = Matrix{Int64}(undef, nshots, length(M))
-  for n in 1:nshots
-    measurements[n,:] = getsamples!(M; kwargs...)
-  end
-  return measurements
-end
-
 
 """
     readouterror!(measurement::Union{Vector, Matrix}, p1given0, p0given1)
 
-Add readout error to a single measurement
+Add readout error to a single projective measurement.
 
 # Arguments:
   - `measurement`: bit string of projective measurement outcome
@@ -143,6 +109,49 @@ function readouterror!(measurement::Union{Vector, Matrix},
   return measurement
 end
 
+"""
+    getsamples!(M::Union{MPS,MPO};
+                readout_errors = (p1given0 = nothing,
+                                  p0given1 = nothing))
+
+Generate a single projective measurement in the MPS/MPO reference basis.
+If `readout_errors` is non-trivial, readout errors with given probabilities
+are applied to the measurement outcome.
+"""
+function getsamples!(M::Union{MPS,MPO};
+                     readout_errors = (p1given0 = nothing,
+                                       p0given1 = nothing))
+  p1given0 = readout_errors[:p1given0]
+  p0given1 = readout_errors[:p0given1]
+  orthogonalize!(M,1)
+  measurement = sample(M)
+  measurement .-= 1
+  if !isnothing(p1given0) || !isnothing(p0given1)
+    p1given0 = (isnothing(p1given0) ? 0.0 : p1given0)
+    p0given1 = (isnothing(p0given1) ? 0.0 : p0given1)
+    readouterror!(measurement,p1given0,p0given1)
+  end
+  return measurement
+end
+
+"""
+    PastaQ.getsamples!(M::Union{MPS,MPO}, nshots::Int; kwargs...)
+
+Perform `nshots` projective measurements of a wavefunction 
+`|ψ⟩` or density operator `ρ` in the MPS/MPO reference basis. 
+Each measurement consists of a binary vector `σ = (σ₁,σ₂,…)`, 
+drawn from the probabilty distribution:
+- `P(σ) = |⟨σ|ψ⟩|²`  :  if `M = ψ is MPS`
+- `P(σ) = ⟨σ|ρ|σ⟩`   :  if `M = ρ is MPO`
+"""
+function getsamples!(M::Union{MPS,MPO},nshots::Int; kwargs...)
+  measurements = Matrix{Int64}(undef, nshots, length(M))
+  for n in 1:nshots
+    measurements[n,:] = getsamples!(M; kwargs...)
+  end
+  return measurements
+end
+
 #
 # MEASUREMENT IN MULTIPLE BASES
 #
@@ -150,12 +159,12 @@ end
 """
     getsamples(M::Union{MPS,MPO}, bases::Array)
 
-Generate a dataset of `nshots` measurements acccording to a set
+Generate a dataset of measurements acccording to a set
 of input `bases`. For a single measurement, `Û` is the depth-1 
-local circuit rotating each qubit, the  data-point `σ = (σ₁,σ₂,…)
+local circuit rotating each qubit, the  data-point `σ = (σ₁,σ₂,…)`
 is drawn from the probability distribution:
-- P(σ) = |⟨σ|Û|ψ⟩|²   : if M = ψ is MPS
-- P(σ) = <σ|Û ρ Û†|σ⟩ : if M = ρ is MPO   
+- `P(σ) = |⟨σ|Û|ψ⟩|²`    :  if `M = ψ is MPS` 
+- `P(σ) = <σ|Û ρ Û†|σ⟩`  :  if `M = ρ is MPO`   
 """
 function getsamples(M0::Union{MPS,MPO}, bases::Array; kwargs...)
   @assert length(M0) == size(bases)[2]
@@ -180,8 +189,8 @@ Perform `nshots` projective measurements of a wavefunction
 `|ψ⟩` or density operator `ρ`. The measurement consists of
 a binary vector `σ = (σ₁,σ₂,…)`, drawn from the probabilty
 distribution:
-- P(σ) = |⟨σ|Û|ψ⟩|² : if `M = ψ is MPS`
-- P(σ) = ⟨σ|Û ρ Û†|σ⟩  : if `M = ρ is MPO`
+- `P(σ) = |⟨σ|Û|ψ⟩|²`    :  if `M = ψ is MPS`
+- `P(σ) = ⟨σ|Û ρ Û†|σ⟩`  :  if `M = ρ is MPO`
 
 For a single measurement, `Û` is the depth-1
 local circuit rotating each qubit, where the rotations are determined by
@@ -229,6 +238,7 @@ basis rotation is performed at the output of a quantum channel.
  - `prep`: a prepared input state (e.g. `["X+","Z-","Y+","X-"]`)
  - `basis`: a measuremement basis (e.g. `["Z","Z","Y","X"])
 """
+
 function getsamples(hilbert0::Vector{<:Index},
                     gate_tensors::Vector{<:ITensor},
                     prep::Array, basis::Array;
@@ -324,7 +334,7 @@ quantum channel corresponding to a set of quantum `gates` and a `noise` model.
   - `process`: if false, generate data for state tomography, where the state is defined by the gates applied to the state `|0,0,...,⟩`. If true, generate data for process tomography.
   - `build_process`: if true, generate data by building the full unitary circuit or Choi matrix, and then sampling from that unitary circuit or Choi matrix (as opposed to running the circuit many times on different initial states). It is only used if `process = true`.
   - `local_input_state`: a set of input states (e.g. `["X+","X-","Y+","Y-","Z+","Z-"]`) which are sampled randomly to generate input states.
-  - `local_basis`: the local bases (e.g. `["X","Y","Z"]) which are sampled randomly to perform measurements in a random basis.
+  - `local_basis`: the local bases (e.g. `["X","Y","Z"]`) which are sampled randomly to perform measurements in a random basis.
 """
 function getsamples(N::Int64, gates::Vector{<:Tuple}, nshots::Int64;
                     noise = nothing,
