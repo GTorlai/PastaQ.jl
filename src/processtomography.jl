@@ -476,8 +476,8 @@ function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}},
     end
     @printf(" | ") 
     # TP measure
-    TP_distance = TP(model)
-    @printf("|TrᵢΛ-I| = %.2E  ", TP_distance)
+    trace_preserving_distance = TP(model)
+    @printf("|TrᵢΛ-I| = %.2E  ", trace_preserving_distance)
     # Fidelities
     if !isnothing(target)
       if ((model.X isa MPO) & (target isa MPO))
@@ -504,7 +504,7 @@ function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}},
       measure!(observer!;
                train_loss = train_loss,
                test_loss = test_loss,
-               TP_dist = TP_distance,
+               trace_preserving_dist = trace_preserving_distance,
                F = F,
                Fbound = Fbound,
                frob_dist = frob_dist)
