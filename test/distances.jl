@@ -37,14 +37,15 @@ using Random
   N = 3
   χ, ξ = 2, 2
   ρ = randomstate(N; mixed = true, χ = χ, ξ = ξ)
-  σ = randomstate(ψ; mixed = true, χ = χ, ξ = ξ)
-  F = fidelity(prod(ρ), prod(ψ))
+  σ = randomstate(ρ; mixed = true, χ = χ, ξ = ξ)
+  @show typeof(ρ)
+  F = fidelity(prod(ρ), prod(σ))
   
   ρ_mat = PastaQ.fullmatrix(ρ)
   ρ_mat ./= tr(ρ_mat)
   σ_mat = PastaQ.fullmatrix(σ)
   σ_mat ./= tr(σ_mat)
-  F_mat = product(sqrt(ρ_mat), σ_mat, sqrt(ρ_mat))
+  F_mat = sqrt(ρ_mat) * σ_mat * sqrt(ρ_mat)
   F_mat = real(tr(sqrt(F_mat)))^2
 
   @test F ≈ F_mat

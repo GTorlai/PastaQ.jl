@@ -113,53 +113,18 @@ function fidelity_bound(ρ::Union{MPO, LPDO},
 end
 
 """
-    fullfidelity(ρ::Union{MPO, LPDO}, σ::Union{MPO, LPDO})
-
-Compute the full quantum fidelity between two density operators
-by full enumeration. This scales exponentially in the number of sites in the MPO/LPDO.
-
-The MPOs should be Hermitian and non-negative.
-"""
-function fullfidelity(L::Union{MPO, LPDO}, σ::Union{LPDO, MPO})
-  @assert length(L) < 12
-  ρ_mat = fullmatrix(L)
-  σ_mat = fullmatrix(σ)
-  
-  ρ_mat ./= tr(ρ_mat)
-  σ_mat ./= tr(σ_mat)
-  F = sqrt(ρ_mat) * σ_mat * sqrt(ρ_mat)
-  F = real(tr(sqrt(F)))^2
-  return F
-end
-
-"""
     fidelity(ρ::ITensor, σ::ITensor)
 
 Compute the quantum fidelity between two ITensors, which are treated as density operators
-from the unprimed to the primed indices.
+from the unprimed to the primed indices (if they are matrix-like).
 
-The ITensors should be Hermitian and non-negative.
+Matrix-like ITensors should be Hermitian and non-negative.
 """
-function fidelity(ρ::ITensor, σ::ITensor)
+function fidelity(ρ::ITensor{N}, σ::ITensor{N}) where {N}
   ρ ./= tr(ρ)
   σ ./= tr(σ)
-  F = product(sqrt(ρ), σ, sqrt(ρ))
+  F = product(product(sqrt(ρ), σ), sqrt(ρ))
   F = real(tr(sqrt(F)))^2
   return F
 end
-
-fullfidelity(L::LPDO{MPS},ϕ::MPS) = 
-  fullfidelity(MPO(L.X),MPO(ϕ))
-
-fullfidelity(L::LPDO{MPS},ρ::MPO) = 
-  fullfidelity(MPO(L.X),ρ)
-
-fullfidelity(ρ::MPO,L::LPDO{MPS}) = 
-  fullfidelity(ρ,MPO(L.X))
-
-fullfidelity(ρ::Union{LPDO, MPO},Ψ::MPS) = 
-  fullfidelity(MPO(Ψ),ρ)
-
-fullfidelity(Ψ::MPS, ρ::Union{LPDO, MPO}) = 
-  fullfidelity(MPO(Ψ),ρ)
 
