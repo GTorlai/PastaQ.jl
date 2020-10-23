@@ -23,7 +23,7 @@ The main features of PastaQ are:
 + **Quantum process tomography**. Data-driven reconstruction of an unknown quantum channel, characterized in terms of its Choi matrix (using a similar approach to quantum state tomography). The channel can be unitary (i.e. rank-1 Choi matrix) or noisy.
 
 PastaQ is developed at the Center for Computational Quantum Physics of the Flatiron Institute,
-and it is supported by the Simons Foundation.
+and it is supported by the Simons Foundation. 
 
 ## Installation
 The PastaQ package can be installed with the Julia package manager. From the Julia REPL,
