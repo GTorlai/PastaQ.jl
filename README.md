@@ -14,8 +14,8 @@ EXPECT ROUGH EDGES AND BACKWARD INCOMPATIBLE UPDATES
 
 # A Package for Simulation, Tomography and Analysis of Quantum Computers
 
-PastaQ is a julia package for simulation and benchmarking of quantum computers using a combination
-of machine learning and tensor-network algorithms.
+PastaQ is a julia package for simulating and benchmarking quantum computers using a combination
+of machine learning and tensor network algorithms.
 
 The main features of PastaQ are:
 + **Simulation of quantum circuits**. The package provides a simulator based on Matrix Product States (MPS) to simulate quantum circuits compiled into a set of quantum gates. Noisy circuits are simulated by specifying a noise model of interest, which is applied to each quantum gate.
@@ -47,6 +47,30 @@ Please note that right now, PastaQ.jl requires that you use Julia v1.4 or later.
 - [**STABLE**](https://gtorlai.github.io/PastaQ.jl/stable/) --  **documentation of the most recently tagged version.**
 -->
 - [**DEVEL**](https://gtorlai.github.io/PastaQ.jl/dev/) -- *documentation of the in-development version.*
+
+
+## Citation
+
+If you use PastaQ.jl in your work, for now please cite the Github page and [ITensor](https://arxiv.org/abs/2007.14822):
+
+```
+@misc{fishman2020pastaq,
+    title={PastaQ: A Package for Simulation, Tomography and Analysis of Quantum Computers},
+    author={Matthew Fishman and Giacomo Torlai},
+    year={2020},
+    url={https://github.com/GTorlai/PastaQ.jl/}
+}
+```
+```
+@misc{fishman2020itensor,
+    title={The ITensor Software Library for Tensor Network Calculations},
+    author={Matthew Fishman and Steven R. White and E. Miles Stoudenmire},
+    year={2020},
+    eprint={2007.14822},
+    archivePrefix={arXiv},
+    primaryClass={cs.MS}
+}
+```
 
 ## Code Overview
 The algorithms implemented in PastaQ rely on a tensor-network representation of
