@@ -1,9 +1,7 @@
 ![alt text](https://github.com/GTorlai/PastaQ.jl/blob/master/docs/src/assets/logo.png?raw=true)
 [![Tests](https://github.com/GTorlai/PastaQ.jl/workflows/Tests/badge.svg)](https://github.com/GTorlai/PastaQ.jl/actions?query=workflow%3ATests)
-<!---
 [![codecov](https://codecov.io/gh/GTorlai/PastaQ.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/GTorlai/PastaQ.jl)
 [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://gtorlai.github.io/PastaQ.jl/stable/)
--->
 [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://gtorlai.github.io/PastaQ.jl/dev/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![arXiv](https://img.shields.io/badge/arXiv--b31b1b.svg)](https://arxiv.org/abs/)
@@ -36,16 +34,14 @@ type ] to enter the Pkg REPL mode and run:
 ```julia
 julia> ]
 
-pkg> add https://github.com/GTorlai/PastaQ.jl
+pkg> add PastaQ
 ```
 
 Please note that right now, PastaQ.jl requires that you use Julia v1.4 or later.
 
 ## Documentation
 
-<!---
 - [**STABLE**](https://gtorlai.github.io/PastaQ.jl/stable/) --  **documentation of the most recently tagged version.**
--->
 - [**DEVEL**](https://gtorlai.github.io/PastaQ.jl/dev/) -- *documentation of the in-development version.*
 
 
