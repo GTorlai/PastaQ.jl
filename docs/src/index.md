@@ -51,7 +51,7 @@ If you use PastaQ.jl in your work, for now please cite the Github page and [ITen
 
 ```
 @misc{pastaq,
-    title={PastaQ: A Package for Simulation, Tomography and Analysis of Quantum Computers},
+    title={\mbox{PastaQ}: A Package for Simulation, Tomography and Analysis of Quantum Computers},
     author={Matthew Fishman and Giacomo Torlai},
     year={2020},
     url={https://github.com/GTorlai/PastaQ.jl/}
