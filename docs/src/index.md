@@ -50,7 +50,7 @@ Please note that right now, PastaQ.jl requires that you use Julia v1.4 or later.
 If you use PastaQ.jl in your work, for now please cite the Github page and [ITensor](https://arxiv.org/abs/2007.14822):
 
 ```
-@misc{fishman2020pastaq,
+@misc{pastaq,
     title={PastaQ: A Package for Simulation, Tomography and Analysis of Quantum Computers},
     author={Matthew Fishman and Giacomo Torlai},
     year={2020},
@@ -58,7 +58,7 @@ If you use PastaQ.jl in your work, for now please cite the Github page and [ITen
 }
 ```
 ```
-@misc{fishman2020itensor,
+@misc{itensor,
     title={The \mbox{ITensor} Software Library for Tensor Network Calculations},
     author={Matthew Fishman and Steven R. White and E. Miles Stoudenmire},
     year={2020},
