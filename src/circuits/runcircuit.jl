@@ -396,12 +396,12 @@ function choimatrix(N::Int,
   M = ITensor[]
   push!(M,U[1] * noprime(U[1]))
   Cdn = combiner(inds(M[1],tags="Link")[1],inds(M[1],tags="Link")[2],
-                tags="Link,n=1")
+                tags="Link,l=1")
   M[1] = M[1] * Cdn
   for j in 2:N-1
     push!(M,U[j] * noprime(U[j]))
     Cup = Cdn
-    Cdn = combiner(inds(M[j],tags="Link,n=$j")[1],inds(M[j],tags="Link,n=$j")[2],tags="Link,n=$j")
+    Cdn = combiner(inds(M[j],tags="Link,l=$j")[1],inds(M[j],tags="Link,l=$j")[2],tags="Link,l=$j")
     M[j] = M[j] * Cup * Cdn
   end
   push!(M, U[N] * noprime(U[N]))
