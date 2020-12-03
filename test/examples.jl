@@ -1,7 +1,6 @@
 using PastaQ
 using ITensors
 using Random
-using HDF5
 
 Random.seed!(1234)
 N = 4   # Number of qubits

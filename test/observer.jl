@@ -1,7 +1,6 @@
 using PastaQ
 using ITensors
 using Random
-using HDF5
 using Test
 
 @testset "observer output" begin

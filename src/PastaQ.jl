@@ -3,7 +3,6 @@ module PastaQ
 using ITensors
 using Random
 using LinearAlgebra
-using JLD
 using HDF5
 using Printf
 import StatsBase
