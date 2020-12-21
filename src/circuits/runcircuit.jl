@@ -205,7 +205,8 @@ function buildcircuit(M::Union{MPS,MPO}, gates::Union{Tuple,Vector{<:Tuple}};
 end
 
 """
-    runcircuit(M::Union{MPS,MPO}, gate_tensors::Vector{<:ITensor}; kwargs...)
+    runcircuit(M::Union{MPS,MPO}, gate_tensors::Vector{<:ITensor};
+               kwargs...)
 
 Apply the circuit to a state (wavefunction/densitymatrix) from a list of tensors.
 """
@@ -213,7 +214,8 @@ function runcircuit(M::Union{MPS, MPO},
                     gate_tensors::Vector{<:ITensor};
                     apply_dag = nothing,
                     cutoff = 1e-15,
-                    maxdim = 10_000) 
+                    maxdim = 10_000,
+                    svd_alg = "divide_and_conquer")
   # Check if gate_tensors contains Kraus operators
   inds_sizes = [length(inds(g)) for g in gate_tensors]
   noiseflag = any(x -> x%2==1 , inds_sizes)
@@ -229,15 +231,20 @@ function runcircuit(M::Union{MPS, MPO},
       # If M is an MPS, |ψ⟩ -> ρ = |ψ⟩⟨ψ| (MPS -> MPO)
       ρ = (typeof(M) == MPS ? MPO(M) : M)
       # ρ -> ε(ρ) (MPO -> MPO, conjugate evolution)
-      return apply(gate_tensors, ρ; apply_dag = true, cutoff = cutoff, maxdim = maxdim)
+      return apply(gate_tensors, ρ; apply_dag = true,
+                   cutoff = cutoff, maxdim = maxdim,
+                   svd_alg = svd_alg)
     # Pure state evolution
     else
       # |ψ⟩ -> U |ψ⟩ (MPS -> MPS)
       #  ρ  -> U ρ U† (MPO -> MPO, conjugate evolution)
       if M isa MPS
-        return apply(gate_tensors, M; cutoff = cutoff, maxdim = maxdim)
+        return apply(gate_tensors, M; cutoff = cutoff,
+                     maxdim = maxdim, svd_alg = svd_alg)
       else
-        return apply(gate_tensors, M; apply_dag = true, cutoff = cutoff, maxdim = maxdim)
+        return apply(gate_tensors, M; apply_dag = true,
+                     cutoff = cutoff, maxdim = maxdim,
+                     svd_alg = svd_alg)
       end
     end
   # Custom mode (apply_dag = true / false)
@@ -245,11 +252,14 @@ function runcircuit(M::Union{MPS, MPO},
     if M isa MPO
       # apply_dag = true:  ρ -> U ρ U† (MPO -> MPO, conjugate evolution)
       # apply_dag = false: ρ -> U ρ (MPO -> MPO)
-      return apply(gate_tensors, M; apply_dag = apply_dag, cutoff = cutoff, maxdim = maxdim)
+      return apply(gate_tensors, M; apply_dag = apply_dag,
+                   cutoff = cutoff, maxdim = maxdim,
+                   svd_alg = svd_alg)
     elseif M isa MPS
       # apply_dag = true:  ψ -> U ψ -> ρ = (U ψ) (ψ† U†) (MPS -> MPO, conjugate)
       # apply_dag = false: ψ -> U ψ (MPS -> MPS)
-      Mc = apply(gate_tensors, M; cutoff = cutoff, maxdim = maxdim)
+      Mc = apply(gate_tensors, M; cutoff = cutoff, maxdim = maxdim,
+                 svd_alg = svd_alg)
       if apply_dag
         Mc = MPO(Mc)
       end
@@ -262,8 +272,10 @@ end
 
 
 """
-    runcircuit(M::Union{MPS,MPO}, gates::Vector{<:Tuple}; noise=nothing, apply_dag=nothing, 
-               cutoff=1e-15, maxdim=10000)
+    runcircuit(M::Union{MPS,MPO}, gates::Vector{<:Tuple};
+               noise=nothing, apply_dag=nothing, 
+               cutoff=1e-15, maxdim=10000,
+               svd_alg = "divide_and_conquer")
 
 Apply the circuit to a state (wavefunction or density matrix) from a list of gates.
 
@@ -284,12 +296,14 @@ function runcircuit(M::Union{MPS, MPO}, gates::Union{Tuple,Vector{<:Tuple}};
                     noise = nothing,
                     apply_dag = nothing, 
                     cutoff = 1e-15,
-                    maxdim = 10_000)
+                    maxdim = 10_000,
+                    svd_alg = "divide_and_conquer")
   gate_tensors = buildcircuit(M, gates; noise = noise) 
   return runcircuit(M, gate_tensors;
                     cutoff = cutoff,
                     maxdim = maxdim,
-                    apply_dag = apply_dag)
+                    apply_dag = apply_dag,
+                    svd_alg = svd_alg)
 end
 
 """
@@ -297,7 +311,8 @@ end
                process = false,
                noise = nothing,
                cutoff = 1e-15,
-               maxdim = 10000)
+               maxdim = 10000,
+               svd_alg = "divide_and_conquer")
 
 Run the circuit corresponding to a list of quantum gates on a system of `N` qubits. 
 The starting state is generated automatically based on the flags `process`, `noise`, and `apply_dag`.
@@ -319,7 +334,8 @@ function runcircuit(N::Int, gates::Vector{<:Tuple};
                     process = false,
                     noise = nothing,
                     cutoff = 1e-15,
-                    maxdim = 10000)
+                    maxdim = 10000,
+                    svd_alg = "divide_and_conquer")
   if process==false
     ψ = qubits(N) # = |0,0,0,…,0⟩
     # noiseless: ψ -> U ψ
@@ -327,7 +343,8 @@ function runcircuit(N::Int, gates::Vector{<:Tuple};
     return runcircuit(ψ, gates;
                       noise = noise,
                       cutoff = cutoff,
-                      maxdim = maxdim)
+                      maxdim = maxdim,
+                      svd_alg = "divide_and_conquer")
   
   elseif process==true
     if isnothing(noise)
@@ -336,12 +353,14 @@ function runcircuit(N::Int, gates::Vector{<:Tuple};
                         noise = nothing,
                         apply_dag = false,
                         cutoff = cutoff,
-                        maxdim = maxdim) 
+                        maxdim = maxdim,
+                        svd_alg = "divide_and_conquer") 
     else
       return choimatrix(N, gates;
                         noise = noise,
                         cutoff = cutoff,
-                        maxdim = maxdim)
+                        maxdim = maxdim,
+                        svd_alg = "divide_and_conquer")
     end
   end
     
@@ -374,10 +393,9 @@ Compute the Choi matrix `Λ  = ε⊗1̂(|ξ⟩⟨ξ|)`, where `|ξ⟩= ⨂ⱼ |0
 where `ε` is a quantum channel built out of a set of quantum gates and 
 a local noise model. Returns a MPO with `N` tensor having 4 sites indices. 
 """
-function choimatrix(N::Int,
-                    gates::Vector{<:Tuple};
-                    noise = nothing,
-                    cutoff = 1e-15, maxdim = 10000)
+function choimatrix(N::Int, gates::Vector{<:Tuple};
+                    noise = nothing, cutoff = 1e-15, maxdim = 10000,
+                    svd_alg = "divide_and_conquer")
   if isnothing(noise)
     error("choi matrix requires noise")
   end
@@ -407,7 +425,8 @@ function choimatrix(N::Int,
   push!(M, U[N] * noprime(U[N]))
   M[N] = M[N] * Cdn
   ρ = MPO(M)
-  Λ = runcircuit(ρ,gate_tensors;apply_dag=true,cutoff=cutoff, maxdim=maxdim)
+  Λ = runcircuit(ρ, gate_tensors; apply_dag = true, cutoff = cutoff,
+                 maxdim = maxdim, svd_alg = svd_alg)
   return Λ
 end
 
