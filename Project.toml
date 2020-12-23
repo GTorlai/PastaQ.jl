@@ -2,7 +2,7 @@ name = "PastaQ"
 uuid = "30b07047-aa8b-4c78-a4e8-24d720215c19"
 authors = ["Giacomo Torlai <torlaigiacomo@gmail.com>",
            "Matthew Fishman <mfishman@flatironinstitute.org>"]
-version = "0.0.2"
+version = "0.0.3"
 
 [deps]
 HDF5 = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
@@ -14,6 +14,6 @@ StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
 [compat]
 HDF5 = "0.13.1, 0.14"
-ITensors = "0.1.33"
+ITensors = "0.1.34"
 StatsBase = "0.33"
 julia = "1.4"

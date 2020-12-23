@@ -6,7 +6,7 @@
 const GateName = OpName
 
 macro GateName_str(s)
-  GateName{ITensors.SmallString(s)}
+  GateName{Symbol(s)}
 end
 
 #
@@ -311,7 +311,7 @@ function gate(::GateName"AD"; γ::Number)
 end
 
 # To accept the gate name "amplitude_damping"
-gate(::GateName"amplitud"; kwargs...) = gate("AD"; kwargs...)
+gate(::GateName"amplitude_damping"; kwargs...) = gate("AD"; kwargs...)
 
 function gate(::GateName"PD"; γ::Number)
   kraus = zeros(2,2,2)
@@ -323,10 +323,10 @@ function gate(::GateName"PD"; γ::Number)
 end
 
 # To accept the gate name "phase_damping"
-gate(::GateName"phase_da"; kwargs...) = gate("PD"; kwargs...)
+gate(::GateName"phase_damping"; kwargs...) = gate("PD"; kwargs...)
 
 # To accept the gate name "dephasing"
-gate(::GateName"dephasin"; kwargs...) = gate("PD"; kwargs...)
+gate(::GateName"dephasing"; kwargs...) = gate("PD"; kwargs...)
 
 function gate(::GateName"DEP"; p::Number)
   kraus = zeros(Complex{Float64},2,2,4)
@@ -342,7 +342,7 @@ function gate(::GateName"DEP"; p::Number)
 end
 
 # To accept the gate name "depolarizing"
-gate(::GateName"depolari"; kwargs...) = gate("DEP"; kwargs...)
+gate(::GateName"depolarizing"; kwargs...) = gate("DEP"; kwargs...)
 
 gate(::GateName"noiseDEP"; kwargs...) =
   gate("DEP";kwargs...)
@@ -397,15 +397,6 @@ end
 # Get an ITensor gate from a gate definition
 #
 
-function Base.startswith(ss::ITensors.SmallString, st::String)
-  for j in 1:length(st)
-    if ss[j] ≠ st[j]
-      return false
-    end
-  end
-  return true
-end
-
 function gate(::GateName{gn}; kwargs...) where {gn}
   gn_st = String(gn)
   if startswith(gn_st, "basis")
@@ -441,12 +432,8 @@ function gate(gn::GateName, s1::Index, ss::Index...; kwargs...)
   error("Gate definitions must be either Vector{T} (for a state), Matrix{T} (for a gate) or Array{T,3} (for a noise model). For gate name $gn, gate size is $(size(g)).") 
 end
 
-function gate(gn::String, s::Index...; kwargs...)
-  if length(gn) > 8
-    gn = gn[1:8]
-  end
-  return gate(GateName(gn), s...; kwargs...)
-end
+gate(gn::String, s::Index...; kwargs...) =
+  gate(GateName(gn), s...; kwargs...)
 
 gate(gn::String, s::Vector{<: Index}, ns::Int...; kwargs...) =
   gate(gn, s[[ns...]]...; kwargs...)
@@ -456,10 +443,6 @@ gate(gn::String, s::Vector{<: Index}, ns::Int...; kwargs...) =
 # definitions of the "Qubit" site type
 #
 
-function ITensors.op(gn::GateName,
-                     ::SiteType"Qubit",
-                     s::Index...;
-                     kwargs...)
-  return gate(gn, s...; kwargs...)
-end
+ITensors.op(gn::GateName, ::SiteType"Qubit", s::Index...; kwargs...) =
+  gate(gn, s...; kwargs...)
 

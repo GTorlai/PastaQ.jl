@@ -1,5 +1,5 @@
 using PastaQ
-using ITensors
+using PastaQ.ITensors
 using Test
 using LinearAlgebra
 
@@ -144,5 +144,15 @@ using LinearAlgebra
     end
   end
 
+  @testset "Custom gate with long name" begin
+    PastaQ.gate(::GateName"my_favorite_gate") = [0.11 0.12; 0.21 0.22]
+    s = Index(2, "Qubit, Site")
+    gate("my_favorite_gate", s)
+    g = gate("my_favorite_gate", s)
+    @test g[s'=>1, s=>1] == 0.11
+    @test g[s'=>1, s=>2] == 0.12
+    @test g[s'=>2, s=>1] == 0.21
+    @test g[s'=>2, s=>2] == 0.22
+  end
 end
 
