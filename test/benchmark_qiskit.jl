@@ -40,10 +40,10 @@ end
   g = testdata["gates"]
   gates = convert_gates(g)
   Λ0 = choimatrix(N, gates; noise = ("amplitude_damping", (γ = 0.1,)))
-  disable_warn_order!()
-  Λ = splitchoi(Λ0)
-  @test PastaQ.fullmatrix(Λ) ≈ exact_choi# rtol=1e-2
-  reset_warn_order!()
+  @disable_warn_order begin
+    Λ = splitchoi(Λ0)
+    @test PastaQ.fullmatrix(Λ) ≈ exact_choi# rtol=1e-2
+  end
   
   path = string("test_data_PD_0.1.pickle")
   f_in = open(path)
@@ -52,10 +52,10 @@ end
   g = testdata["gates"]
   gates = convert_gates(g)
   Λ0 = choimatrix(N, gates; noise = ("phase_damping", (γ = 0.1,)))
-  disable_warn_order!()
-  Λ = splitchoi(Λ0)
-  @test PastaQ.fullmatrix(Λ) ≈ exact_choi# rtol=1e-2
-  reset_warn_order!()
+  @disable_warn_order begin
+    Λ = splitchoi(Λ0)
+    @test PastaQ.fullmatrix(Λ) ≈ exact_choi# rtol=1e-2
+  end
   
   #path = string("test_data_DEP_0.1.pickle")
   #f_in = open(path)
@@ -64,9 +64,9 @@ end
   #g = testdata["gates"]
   #gates = convert_gates(g)
   #Λ0 = runcircuit(N, gates; process = true, noise = ("depolarizing", (p = 0.1,)))
-  #disable_warn_order!()
-  #Λ = PastaQ.fullmatrix(Λ0)
-  #reset_warn_order!()
+  #@disable_warn_order begin
+  #  Λ = PastaQ.fullmatrix(Λ0)
+  #end
   #@test Λ ≈ exact_choi
 
 end

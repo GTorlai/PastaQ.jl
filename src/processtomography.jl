@@ -486,9 +486,9 @@ function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}},
         @printf("|ρ-σ| = %.3E  ",frob_dist)
         @printf("Tr[ρσ] = %.3E  ",Fbound)
         if (length(model) <= 8)
-          disable_warn_order!()
-          F = fidelity(prod(model), prod(target))
-          reset_warn_order!()
+          @disable_warn_order begin
+            F = fidelity(prod(model), prod(target))
+          end
           @printf("F(ρ,σ) = %.3E  ",F)
         end
       else
