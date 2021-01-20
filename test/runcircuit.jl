@@ -1,5 +1,5 @@
 using PastaQ
-using ITensors
+using PastaQ.ITensors
 using Test
 using LinearAlgebra
 
@@ -119,16 +119,15 @@ end
   ρ = runcircuit(ψ0, gates; noise = ("depolarizing", (p = 0.1,)))
   ρ0 = MPO(ψ0)
   U = buildcircuit(ρ0, gates; noise = ("depolarizing", (p = 0.1,)))
-  disable_warn_order!()
-  @test prod(ρ) ≈ runcircuit(prod(ρ0), U; apply_dag=true)
-  reset_warn_order!()
-  
-  ## Mixed state, noisy circuit
-  ρ0 = qubits(N, mixed = true)
-  ρ = runcircuit(ρ0, gates; noise = ("depolarizing", (p = 0.1,)))
-  U = buildcircuit(ρ0, gates, noise = ("depolarizing", (p = 0.1,)))
-  @test prod(ρ) ≈ runcircuit(prod(ρ0), U; apply_dag=true)
-  reset_warn_order!()
+  @disable_warn_order begin
+    @test prod(ρ) ≈ runcircuit(prod(ρ0), U; apply_dag=true)
+    
+    ## Mixed state, noisy circuit
+    ρ0 = qubits(N, mixed = true)
+    ρ = runcircuit(ρ0, gates; noise = ("depolarizing", (p = 0.1,)))
+    U = buildcircuit(ρ0, gates, noise = ("depolarizing", (p = 0.1,)))
+    @test prod(ρ) ≈ runcircuit(prod(ρ0), U; apply_dag=true)
+  end
 
 end
 

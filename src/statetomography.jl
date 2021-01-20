@@ -554,9 +554,9 @@ function tomography(train_data::Matrix{Pair{String, Int}}, L::LPDO;
           @printf("Tr[ρσ] = %.3E  ",Fbound)
         end
         if (length(model) <= 8)
-          disable_warn_order!()
-          F = fidelity(prod(model), prod(target))
-          reset_warn_order!()
+          @disable_warn_order begin
+            F = fidelity(prod(model), prod(target))
+          end
           if outputlevel == 1
             @printf("F(ρ,σ) = %.3E  ",F)
           end
