@@ -366,6 +366,10 @@ function runcircuit(N::Int, gates::Vector{<:Tuple};
     
 end
 
+runcircuit(gates::Vector{<:Tuple}; kwargs...) = 
+  runcircuit(numberofqubits(gates), gates; kwargs...)
+
+
 """
     runcircuit(M::ITensor,gate_tensors::Vector{ <: ITensor}; kwargs...)
 
@@ -429,4 +433,7 @@ function choimatrix(N::Int, gates::Vector{<:Tuple};
                  maxdim = maxdim, svd_alg = svd_alg)
   return Λ
 end
+
+choimatrix(gates::Vector{<:Tuple}; kwargs...) = 
+  choimatrix(numberofqubits(gates), gates; kwargs...)
 

@@ -70,4 +70,5 @@ export
   readsamples,
   maxlinkdim,
   ischoi,
-  split_dataset
+  split_dataset,
+  numberofqubits

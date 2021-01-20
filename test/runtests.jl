@@ -2,12 +2,12 @@ using Test
 
 @testset "PastaQ.jl" begin
   @testset "$filename" for filename in (
-    #"utils.jl",
+    "utils.jl",
     "gates.jl",
     "circuits.jl",
     "circuitops.jl",
     "runcircuit.jl",
-    "datagen.jl",
+    "getsamples.jl",
     "optimizers.jl",
     "distances.jl",
     "randomstates.jl",
