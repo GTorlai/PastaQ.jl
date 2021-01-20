@@ -23,7 +23,7 @@ export
 # circuits/runcircuit.jl
   # Methods
   qubits,
-  circuit,
+  identity_mpo,
   resetqubits!,
   buildcircuit,
   applygate,

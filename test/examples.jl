@@ -41,7 +41,9 @@ opt = SGD(η = 0.01)
 ψ = tomography(data, ψ0;
                optimizer = opt,
                epochs = 2,
+               outputlevel=0,
                target = Ψ)
+
 
 data, ϱ = readsamples("../examples/data/qst_circuit_noisy_test.h5")
 N = length(ϱ)     # Number of qubits
@@ -53,6 +55,7 @@ opt = SGD(η = 0.01)
 ρ = tomography(data, ρ0;
                optimizer = opt,
                epochs = 2,
+               outputlevel=0,
                target = ϱ)
 
 Random.seed!(1234)
@@ -65,6 +68,7 @@ V = tomography(data, V0;
                optimizer = opt,
                epochs = 2,
                trace_preserving_regularizer = 0.1,
+               outputlevel=0,
                target = U)
 
 # Noisy circuit
@@ -79,4 +83,5 @@ opt = SGD(η = 0.1)
                optimizer = opt,
                epochs = 2,
                trace_preserving_regularizer = 0.1,
+               outputlevel=0,
                target = ϱ)

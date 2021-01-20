@@ -20,12 +20,14 @@ function lineararray(N::Int)
     push!(cycle,(j,j+1))
   end
   push!(twoqubit_bonds,cycle)
-  # Cycle 2
-  cycle = []
-  for j in 2:2:N-1
-    push!(cycle,(j,j+1))
+  if N>2
+    # Cycle 2
+    cycle = []
+    for j in 2:2:N-1
+      push!(cycle,(j,j+1))
+    end
+    push!(twoqubit_bonds,cycle)
   end
-  push!(twoqubit_bonds,cycle)
   return twoqubit_bonds
 end
 
@@ -249,3 +251,17 @@ function qft(N::Int; inverse::Bool = false)
   return gates
 end
 
+"""
+    ghz(N::Int)
+
+Generate a list of gates for the GHZ state
+
+ψ = (|0,0,…,0⟩ + |1,1,…,1⟩)/√2
+"""
+function ghz(N::Int)
+  gates = [("H",1)]
+  for j in 1:N-1
+    push!(gates,("CX",(j,j+1)))
+  end
+  return gates
+end

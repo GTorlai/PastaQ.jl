@@ -73,7 +73,10 @@ end
 
   F = frobenius_distance(ρ_mpo,σ_mpo)
   @test T ≈ F
-    
+  @test F ≈ frobenius_distance(ψ1,σ_mpo)
+  @test F ≈ frobenius_distance(ρ_mpo,ψ2)
+  @test F ≈ frobenius_distance(ψ1,ψ2)
+  
   Random.seed!(1111)
   ρ = randomstate(ψ1;mixed=true,χ=2,ξ=2)
   
@@ -91,7 +94,7 @@ end
 
   F = frobenius_distance(ρ, σ_mpo)
   @test T ≈ F
-
+  @test F ≈ frobenius_distance(ρ_mpo,ψ2)
 
   Random.seed!(1111)
   σ = randomstate(ψ1;mixed=true,χ=2,ξ=2)
@@ -110,6 +113,7 @@ end
 
   F = frobenius_distance(ρ_mpo,σ)
   @test T ≈ F
+  @test F ≈ frobenius_distance(ψ1,σ_mpo)
   
   Random.seed!(1111)
   ρ = randomstate(N;mixed=true,χ=2,ξ=2)
@@ -151,7 +155,10 @@ end
   f = tr(conj(transpose(ρ_mat/Kρ)) * (σ_mat/Kσ))
   F̃ = fidelity_bound(ρ_mpo,σ_mpo)
   @test f ≈ F̃
-    
+  @test F̃ ≈ fidelity(ψ1,σ_mpo)
+  @test F̃ ≈ fidelity(ρ_mpo,ψ2)
+  @test F̃ ≈ fidelity(ψ1,ψ2)
+   
   Random.seed!(1111)
   ρ = randomstate(ψ1;mixed=true,χ=2,ξ=2)
   
@@ -166,7 +173,7 @@ end
   f = tr(conj(transpose(ρ_mat/Kρ)) * (σ_mat/Kσ))
   F̃ = fidelity_bound(ρ,σ_mpo)
   @test f ≈ F̃
-
+  @test F̃ ≈ fidelity(ρ_mpo,ψ2)
 
   Random.seed!(1111)
   σ = randomstate(ψ1;mixed=true,χ=2,ξ=2)
@@ -181,7 +188,8 @@ end
   f = tr(conj(transpose(ρ_mat/Kρ)) * (σ_mat/Kσ))
   F̃ = fidelity_bound(ρ_mpo,σ)
   @test f ≈ F̃
-  
+  @test F̃ ≈ fidelity(ψ1,σ_mpo)
+
   Random.seed!(1111)
   ρ = randomstate(N;mixed=true,χ=2,ξ=2)
   Random.seed!(1111)
@@ -198,7 +206,6 @@ end
   f = tr(conj(transpose(ρ_mat/Kρ)) * (σ_mat/Kσ))
   F̃ = fidelity_bound(ρ,σ)
   @test f ≈ F̃
-  
 end
 
 
