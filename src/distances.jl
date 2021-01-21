@@ -92,6 +92,15 @@ function frobenius_distance(ρ::Union{MPO, LPDO},
   return sqrt(distance)
 end
 
+frobenius_distance(ψ::MPS, ρ::Union{MPO,LPDO}) =
+  frobenius_distance(MPO(ψ), ρ)
+
+frobenius_distance(ρ::Union{MPO,LPDO}, ψ::MPS) = 
+  frobenius_distance(ψ,ρ)
+
+frobenius_distance(ψ::MPS, ϕ::MPS) = 
+  frobenius_distance(MPO(ψ),MPO(ϕ))
+
 """
     fidelity_bound(ρ::Union{MPO, LPDO}, σ::Union{MPO, LPDO})
 
@@ -111,6 +120,15 @@ function fidelity_bound(ρ::Union{MPO, LPDO},
   normalize!(σ̃)
   return real(inner(ρ̃, σ̃))
 end
+
+fidelity_bound(ψ::MPS, ρ::Union{MPO,LPDO}) =
+  fidelity(ψ, ρ)
+
+fidelity_bound(ρ::Union{MPO,LPDO}, ψ::MPS) = 
+  fidelity(ρ,ψ)
+
+fidelity_bound(ψ::MPS, ϕ::MPS) = 
+  fidelity(ψ,ϕ)
 
 """
     fidelity(ρ::ITensor, σ::ITensor)

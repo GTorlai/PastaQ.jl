@@ -401,6 +401,7 @@ function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}},
   target = get(kwargs,:target,nothing)
   test_data = get(kwargs,:test_data,nothing)
   outputpath = get(kwargs,:fout,nothing)
+  outputlevel = get(kwargs,:outputlevel,1)
   trace_preserving_regularizer = get(kwargs,:trace_preserving_regularizer,0.0)
 
   optimizer = copy(optimizer)
@@ -461,12 +462,19 @@ function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}},
     end # end @elapsed
 
     # Metrics
-    print("$ep : ")
-    @printf("⟨-logP⟩ = %.4f (train) ",train_loss)
+    if outputlevel == 1
+      print("$ep : ")
+      @printf("⟨-logP⟩ = %.4f (train) ",train_loss)
+    end
     # Cost function on held-out validation data
     if !isnothing(test_data)
-      test_loss = nll(model,test_data) 
-      @printf(", %.4f (test) ",test_loss)
+      normalized_model = copy(model)
+      sqrt_localnorms = []
+      normalize!(normalized_model; sqrt_localnorms! = sqrt_localnorms)
+      test_loss = nll(normalized_model,test_data) 
+      if outputlevel == 1
+        @printf(", %.4f (test) ",test_loss)
+      end
       if test_loss < best_test_loss
         best_test_loss = test_loss
         best_model = copy(model)
@@ -474,30 +482,40 @@ function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}},
     else
       best_model = copy(model)
     end
-    @printf(" | ") 
     # TP measure
     trace_preserving_distance = TP(model)
-    @printf("|TrᵢΛ-I| = %.2E  ", trace_preserving_distance)
+    if outputlevel == 1
+      @printf(" | ") 
+      @printf("|TrᵢΛ-I| = %.2E  ", trace_preserving_distance)
+    end
     # Fidelities
     if !isnothing(target)
       if ((model.X isa MPO) & (target isa MPO))
         frob_dist = frobenius_distance(model,target)
         Fbound = fidelity_bound(model,target)
-        @printf("|ρ-σ| = %.3E  ",frob_dist)
-        @printf("Tr[ρσ] = %.3E  ",Fbound)
+        if outputlevel == 1
+          @printf("|ρ-σ| = %.3E  ",frob_dist)
+          @printf("Tr[ρσ] = %.3E  ",Fbound)
+        end
         if (length(model) <= 8)
           @disable_warn_order begin
             F = fidelity(prod(model), prod(target))
           end
-          @printf("F(ρ,σ) = %.3E  ",F)
+          if outputlevel == 1
+            @printf("F(ρ,σ) = %.3E  ",F)
+          end
         end
       else
         F = fidelity(model,target)
-        @printf("F(ρ,σ) = %.3E  ",F)
+        if outputlevel == 1
+          @printf("F(ρ,σ) = %.3E  ",F)
+        end
       end
     end
-    @printf("(%.3fs)",ep_time)
-    print("\n")
+    if outputlevel == 1
+      @printf("(%.3fs)",ep_time)
+      print("\n")
+    end
 
     # Measure
     if !isnothing(observer!)
@@ -516,7 +534,9 @@ function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}},
   
     tot_time += ep_time
   end
-  @printf("Total Time = %.3f sec\n",tot_time)
+  if outputlevel == 1
+    @printf("Total Time = %.3f sec\n",tot_time)
+  end
   return best_model
 end
 

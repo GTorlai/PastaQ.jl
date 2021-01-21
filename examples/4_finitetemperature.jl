@@ -110,7 +110,7 @@ depth = Δ ÷ τ # Depth of the circuit
 steps = β ÷ Δ # Total number of circuit application
 
 # Initialize the density operator
-ρ = circuit(H)
+ρ = identity_mpo(H)
 
 println("Running imaginary time evolution to approximate the density matrix ρ = exp(-βH):")
 for b in 1:steps

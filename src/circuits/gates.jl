@@ -210,6 +210,15 @@ gate(::GateName"√SWAP") =
    0 (1-im)/2 (1+im)/2 0
    0        0        0 1]
 
+gate(::GateName"iSwap") = 
+  [1 0 0 0
+   0 0 im 0
+   0 im 0 0
+   0 0 0 1];
+
+gate(::GateName"iSw") = 
+  gate("iSwap")
+
 # Ising (XX) coupling gate
 gate(::GateName"XX"; ϕ::Number) =
   [    cos(ϕ)          0          0 -im*sin(ϕ)

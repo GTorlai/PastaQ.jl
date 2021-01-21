@@ -117,12 +117,12 @@ end
 
 Initialize a circuit MPO
 """
-circuit(sites::Vector{<:Index}) = MPO(sites, "Id")
+identity_mpo(sites::Vector{<:Index}) = MPO(sites, "Id")
 
-circuit(N::Int) = circuit(siteinds("Qubit", N))
+identity_mpo(N::Int) = identity_mpo(siteinds("Qubit", N))
 
-circuit(M::Union{MPS,MPO,LPDO}) =
-  circuit(hilbertspace(M))
+identity_mpo(M::Union{MPS,MPO,LPDO}) =
+  identity_mpo(hilbertspace(M))
 
 """----------------------------------------------
                   CIRCUIT FUNCTIONS 
@@ -344,23 +344,23 @@ function runcircuit(N::Int, gates::Vector{<:Tuple};
                       noise = noise,
                       cutoff = cutoff,
                       maxdim = maxdim,
-                      svd_alg = "divide_and_conquer")
+                      svd_alg = svd_alg)
   
   elseif process==true
     if isnothing(noise)
-      U = circuit(N) # = 1⊗1⊗1⊗…⊗1
+      U = identity_mpo(N) # = 1⊗1⊗1⊗…⊗1
       return runcircuit(U, gates;
                         noise = nothing,
                         apply_dag = false,
                         cutoff = cutoff,
                         maxdim = maxdim,
-                        svd_alg = "divide_and_conquer") 
+                        svd_alg = svd_alg) 
     else
       return choimatrix(N, gates;
                         noise = noise,
                         cutoff = cutoff,
                         maxdim = maxdim,
-                        svd_alg = "divide_and_conquer")
+                        svd_alg = svd_alg)
     end
   end
     
@@ -400,14 +400,14 @@ function choimatrix(N::Int, gates::Vector{<:Tuple};
     error("choi matrix requires noise")
   end
   # Initialize circuit MPO
-  U = circuit(N)
+  U = identity_mpo(N)
   addtags!(U,"Input",plev=0,tags="Qubit")
   addtags!(U,"Output",plev=1,tags="Qubit")
   prime!(U,tags="Input")
   prime!(U,tags="Link")
   
   s = [siteinds(U,tags="Output")[j][1] for j in 1:length(U)]
-  compiler = circuit(s)
+  compiler = identity_mpo(s)
   prime!(compiler,-1,tags="Qubit") 
   gate_tensors = buildcircuit(compiler, gates; noise = noise)
 
