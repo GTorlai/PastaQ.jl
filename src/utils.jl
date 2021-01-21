@@ -342,3 +342,21 @@ function makeChoi(U0::MPO)
 end
 
 
+function numberofqubits(gate::Tuple)
+  s = gate[2]
+  n = (s isa Number ? s : maximum(s))
+  return n
+end
+
+function numberofqubits(gates::Vector{<:Tuple})
+  nMax = 0
+  for g in gates
+    s = g[2]
+    n = (s isa Number ? s : maximum(s))
+    nMax = (n > nMax ? n : nMax)
+  end
+  return nMax
+end
+
+
+

@@ -341,13 +341,22 @@ end
   # 3) Measure MPS at the output of a circuit
   data, _ = getsamples(N, gates, nshots; readout_errors = readout_errors)
   @test size(data) == (nshots,N)
+  data, _ = getsamples(gates, nshots; readout_errors = readout_errors)
+  @test size(data) == (nshots,N)
   data, _ = getsamples(N, gates, nshots;
                        noise = ("amplitude_damping", (γ = 0.1,)),
                        readout_errors = readout_errors)
   @test size(data) == (nshots,N)
   data, _ = getsamples(N, gates, nshots; local_basis = ["X","Y","Z"], readout_errors = readout_errors)
   @test size(data) == (nshots,N)
+  data, _ = getsamples(gates, nshots; local_basis = ["X","Y","Z"], readout_errors = readout_errors)
+  @test size(data) == (nshots,N)
   data, _ = getsamples(N, gates, nshots;
+                       noise = ("amplitude_damping", (γ = 0.1,)),
+                       local_basis = ["X","Y","Z"],
+                       readout_errors = readout_errors)
+  @test size(data) == (nshots,N)
+  data, _ = getsamples(gates, nshots;
                        noise = ("amplitude_damping", (γ = 0.1,)),
                        local_basis = ["X","Y","Z"],
                        readout_errors = readout_errors)
@@ -363,6 +372,11 @@ end
   
   # 4) Process tomography
   data, _ = getsamples(N, gates, nshots;
+                       process = true,
+                       build_process = false,
+                       readout_errors = readout_errors)
+  @test size(data) == (nshots,N)
+  data, _ = getsamples(gates, nshots;
                        process = true,
                        build_process = false,
                        readout_errors = readout_errors)

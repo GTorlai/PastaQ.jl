@@ -99,7 +99,9 @@ end
   ψ0 = qubits(N)
   ψ = runcircuit(ψ0,gates)
   @test prod(ψ) ≈ runcircuit(prod(ψ0),buildcircuit(ψ0,gates))
-
+  @test array(prod(ψ)) ≈ array(prod(runcircuit(N,gates)))
+  @test array(prod(ψ)) ≈ array(prod(runcircuit(gates)))
+  
   # Mixed state, noiseless circuit
   ρ0 = qubits(N,mixed=true) 
   ρ = runcircuit(ρ0,gates)
