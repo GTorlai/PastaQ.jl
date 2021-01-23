@@ -359,4 +359,17 @@ function numberofqubits(gates::Vector{<:Tuple})
 end
 
 
+function numberofqubits(gates::Vector{Vector{<:Tuple}})
+  nMax = 0
+  for layer in gates
+    for g in layer
+      s = g[2]
+      n = (s isa Number ? s : maximum(s))
+      nMax = (n > nMax ? n : nMax)
+    end
+  end
+  return nMax
+end
+
+
 

@@ -369,6 +369,21 @@ end
 runcircuit(gates::Vector{<:Tuple}; kwargs...) = 
   runcircuit(numberofqubits(gates), gates; kwargs...)
 
+"""
+Run the layered circuit with the possibility of having a circuit observer 
+"""
+function runcircuit(M::Union{MPS,MPO}, gates::Vector{Vector{<:Tuple}}; kwargs...)
+  for layer in gates
+    M = runcircuit(M, layer; kwargs...) 
+  end 
+  return M 
+end
+
+runcircuit(N::Int, gates::Vector{Vector{<:Tuple}}; kwargs...) = 
+  runcircuit(qubits(N), gates; kwargs...)
+
+runcircuit(gates::Vector{Vector{<:Tuple}}; kwargs...) = 
+  runcircuit(numberofqubits(gates), gates; kwargs...)
 
 """
     runcircuit(M::ITensor,gate_tensors::Vector{ <: ITensor}; kwargs...)

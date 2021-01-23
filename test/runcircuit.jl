@@ -92,8 +92,6 @@ end
   N = 3
   depth = 4
   gates = randomcircuit(N,depth)
-  ngates = N*depth + depth÷2 * (N-1)
-  @test length(gates) == ngates
   
   #Pure state, noiseless circuit
   ψ0 = qubits(N)
@@ -113,8 +111,6 @@ end
   N = 5
   depth = 4
   gates = randomcircuit(N,depth)
-  ngates = N*depth + depth÷2 * (N-1)
-  @test length(gates) == ngates
 
   # Pure state, noisy circuit
   ψ0 = qubits(N)
@@ -166,4 +162,20 @@ end
   
 end
 
+@testset "layered circuit" begin
+  N = 4
+  depth = 10
+  ψ0 = qubits(N)
 
+  circuit = randomcircuit(N, depth; seed = 1234)
+  ψ = runcircuit(ψ0,circuit)
+  circuit = randomcircuit(N, depth; layered = true, seed = 1234)
+  @test prod(ψ) ≈ prod(runcircuit(ψ0,circuit))
+  
+
+  circuit = randomcircuit(N, depth; seed = 1234)
+  ρ = runcircuit(ψ0, circuit; noise = ("depolarizing",(p=0.1,)))
+  circuit = randomcircuit(N, depth; layered = true, seed = 1234)
+  @test prod(ρ) ≈ prod(runcircuit(ψ0, circuit;noise = ("depolarizing",(p=0.1,))))
+
+end

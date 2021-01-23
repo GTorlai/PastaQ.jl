@@ -299,7 +299,7 @@ gate(::GateName"CCCNOT") =
 # n-qubit gates
 #
 
-function gate(::GateName"randU", N::Int = 2;
+function gate(::GateName"randU" ,N::Int = 2;
               eltype = ComplexF64,
               random_matrix = randn(eltype, N, N))
   Q, _ = NDTensors.qr_positive(random_matrix)
@@ -418,6 +418,7 @@ end
 # Maybe use Base.invokelatest since certain gate overloads
 # may be made on the fly with @eval
 gate(s::String; kwargs...) = gate(GateName(s); kwargs...)
+gate(s::String, args...; kwargs...) = gate(GateName(s), args...; kwargs...)
 
 # Version that accepts a dimension for the gate,
 # for n-qubit gates
