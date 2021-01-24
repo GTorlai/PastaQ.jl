@@ -70,3 +70,36 @@ function saveobserver(obs::TomographyObserver,
   end
 end
 
+
+function measure!(observer::Dict{Any,Any}, M::Union{MPS,MPO}, observable::NamedTuple)
+  if !haskey(observable,:name)
+    error("please enter a name for observable",observable[:f])
+  end
+  
+  # if the observable is evaluated on a set of qubits / bonds (or any integer set)
+  if haskey(observable,:sites) 
+    result = []
+    # execute function for each integer
+    for x in observable[:sites]
+      outcome = (!haskey(observable,:args) ? observable[:f](M,x) : 
+                                             observable[:f](M,x, observable[:args]...))
+      push!(result,outcome)
+    end
+  else
+    result = (!haskey(observable,:args) ? observable[:f](M) : 
+                                          observable[:f](M, observable[:args]...))
+  end
+  
+  # record result into observer
+  if !haskey(observer,observable[:name])
+    observer[observable[:name]] = []
+  end
+  push!(observer[observable[:name]],result)
+end
+
+function measure!(observer::Dict, M::Union{MPS,MPO}, observables::Array{<:NamedTuple})  
+  for observable in observables
+    measure!(observer, M, observable)
+  end
+end
+

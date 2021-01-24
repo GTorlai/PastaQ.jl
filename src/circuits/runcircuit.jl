@@ -372,11 +372,34 @@ runcircuit(gates::Vector{<:Tuple}; kwargs...) =
 """
 Run the layered circuit with the possibility of having a circuit observer 
 """
-function runcircuit(M::Union{MPS,MPO}, gates::Vector{Vector{<:Tuple}}; kwargs...)
-  for layer in gates
-    M = runcircuit(M, layer; kwargs...) 
-  end 
-  return M 
+function runcircuit(M::Union{MPS,MPO}, gates::Vector{Vector{<:Tuple}}; 
+                    observables::Union{<:NamedTuple,Array{<:NamedTuple}, Nothing} = nothing, 
+                    observer!::Union{Dict, Nothing} = nothing,
+                    kwargs...)
+
+  if isnothing(observer!)
+    for layer in gates
+      M = runcircuit(M, layer; kwargs...) 
+    end 
+    return M
+  else
+    χ = (f = linkdim, name = "χ", sites = 1:length(M)-1)
+    χmax = (f = maxlinkdim, name = "χmax")
+    
+    obs = [χ,χmax]
+    if !isnothing(observables)
+      if observables isa Array
+        append!(obs, observables)
+      else
+        push!(obs, observables)
+      end
+    end
+    for layer in gates
+      M = runcircuit(M, layer; kwargs...)
+      measure!(observer!, M, obs)
+    end
+  end
+  return M
 end
 
 runcircuit(N::Int, gates::Vector{Vector{<:Tuple}}; kwargs...) = 

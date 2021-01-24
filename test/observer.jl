@@ -3,7 +3,31 @@ using ITensors
 using Random
 using Test
 
-@testset "observer output" begin
+@testset "circuit observer" begin
+  N = 10
+  depth = 8
+  circuit = randomcircuit(N,8; layered = true, seed = 1234)
+
+  function f1(ψ::MPS, site::Int)
+    return norm(ψ[1])
+  end
+  
+  observables = (f = f1, name = "f1", sites = 1:N)
+  obs = Dict()
+  ψ = runcircuit(circuit; observer! = obs, observables = observables)
+  @show keys(obs)
+  @test haskey(obs,"f1") 
+  @test haskey(obs,"χ")
+  @test haskey(obs,"χmax")
+  @test length(obs["χ"]) == depth
+  @test length(obs["χ"][1]) == N-1
+  @test length(obs["χmax"]) == depth
+  @test length(obs["f1"]) == depth
+  @test length(obs["f1"][1]) == N
+end
+
+
+@testset "tomography observer output" begin
   Random.seed!(1234)
   data,Ψ = readsamples("../examples/data/qst_circuit_test.h5")
   test_data = copy(data[1:10,:])
