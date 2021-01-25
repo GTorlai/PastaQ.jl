@@ -15,18 +15,18 @@ U = runcircuit(N, gates; process = true)
 Random.seed!(1234)
 nshots = 50
 
-data, ψ = getsamples(N, gates, nshots)
+data, ψ = getsamples(N, gates, nshots; local_basis = ["X","Y","Z"])
 writesamples(data, ψ, "../examples/data/qst_circuit_test.h5")
 
-data, ρ = getsamples(N, gates, nshots,
+data, ρ = getsamples(N, gates, nshots; local_basis = ["X","Y","Z"]
                      noise = ("amplitude_damping", (γ = 0.01,)))
 writesamples(data, ρ, "../examples/data/qst_circuit_noisy_test.h5")
 
-data, U = getsamples(N, gates, nshots; 
+data, U = getsamples(N, gates, nshots; local_basis = ["X","Y","Z"] 
                      process = true)
 writesamples(data, U, "../examples/data/qpt_circuit_test.h5")
 
-data, Λ = getsamples(N,gates,nshots; 
+data, Λ = getsamples(N,gates,nshots; local_basis = ["X","Y","Z"] 
                      process = true,
                      noise = ("amplitude_damping", (γ = 0.01,)))
 writesamples(data, Λ, "../examples/data/qpt_circuit_noisy_test.h5")

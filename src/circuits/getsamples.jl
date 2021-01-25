@@ -199,7 +199,7 @@ keyword argument (i.e. if `"X"` is chosen out of `["X", "Y", "Z"]`,
 the rotation is the eigenbasis of `"X"`).
 """
 function getsamples(M::Union{MPS,MPO}, nshots::Int64;
-                    local_basis = ["X", "Y", "Z"],
+                    local_basis = nothing,
                     ndistinctbases = nothing,
                     readout_errors = (p1given0 = nothing,
                                       p0given1 = nothing))

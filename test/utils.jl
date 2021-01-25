@@ -11,7 +11,7 @@ using Random
 
   for i in 1:10
     depth = 4
-    N = rand(1:50)
+    N = rand(2:50)
     gates = randomcircuit(N, depth)
     n = numberofqubits(gates)
     @test N == n

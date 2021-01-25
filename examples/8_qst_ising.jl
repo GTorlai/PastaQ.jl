@@ -35,7 +35,7 @@ println()
 # Generate data
 nshots = 10_000
 bases = randombases(N, nshots)
-data = getsamples(Ψ, bases)
+data = getsamples(Ψ, bases; local_basis = ["X","Y","Z"])
 
 # Quantum state tomography
 # Initialize variational state
