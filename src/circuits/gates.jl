@@ -299,7 +299,7 @@ gate(::GateName"CCCNOT") =
 # n-qubit gates
 #
 
-function gate(::GateName"randU" ,N::Int = 2;
+function gate(::GateName"randU", N::Int = 2;
               eltype = ComplexF64,
               random_matrix = randn(eltype, N, N))
   Q, _ = NDTensors.qr_positive(random_matrix)
