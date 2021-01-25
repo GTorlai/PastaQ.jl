@@ -71,35 +71,29 @@ function saveobserver(obs::TomographyObserver,
 end
 
 
-function measure!(observer::Dict{Any,Any}, M::Union{MPS,MPO}, observable::NamedTuple)
-  if !haskey(observable,:name)
-    error("please enter a name for observable",observable[:f])
-  end
-  
-  # if the observable is evaluated on a set of qubits / bonds (or any integer set)
-  if haskey(observable,:sites) 
-    result = []
-    # execute function for each integer
-    for x in observable[:sites]
-      outcome = (!haskey(observable,:args) ? observable[:f](M,x) : 
-                                             observable[:f](M,x, observable[:args]...))
-      push!(result,outcome)
-    end
-  else
-    result = (!haskey(observable,:args) ? observable[:f](M) : 
-                                          observable[:f](M, observable[:args]...))
-  end
-  
-  # record result into observer
-  if !haskey(observer,observable[:name])
-    observer[observable[:name]] = []
-  end
-  push!(observer[observable[:name]],result)
+struct CircuitObserver <: AbstractObserver
+  functions::Dict{String, Function}
+  results::Dict{String, Any}
 end
 
-function measure!(observer::Dict, M::Union{MPS,MPO}, observables::Array{<:NamedTuple})  
-  for observable in observables
-    measure!(observer, M, observable)
+function CircuitObserver(functions::Dict{String, <:Function}) 
+  res = Dict{String, Any}()
+  for f in keys(functions)
+    res[f] = []
+  end
+  return CircuitObserver(functions, res)
+end
+
+CircuitObserver(f::Pair{String, <:Function}) = CircuitObserver(Dict([f]))
+
+CircuitObserver(functions::Vector{<:Pair{String, <:Function}}) = CircuitObserver(Dict(functions))
+
+ITensors.measurements(observer::CircuitObserver,observable::String) = observer.results[observable]
+
+function measure!(observer::CircuitObserver, M::Union{MPS,MPO})
+  for observable in keys(observer.functions)
+    result = observer.functions[observable](M)
+    push!(observer.results[observable], result) 
   end
 end
 

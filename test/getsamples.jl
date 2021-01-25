@@ -205,7 +205,7 @@ end
 @testset "project unitary" begin
   N = 4
   ntrial=100
-  gates = randomcircuit(N,4)
+  gates = randomcircuit(N,4; layered = false)
  
   U = runcircuit(N,gates;process=true)
   
@@ -231,7 +231,8 @@ end
 @testset "choi matrix + projectchoi" begin
   N = 4
   ntrial = 100
-  gates = randomcircuit(N, 4)
+  gates = randomcircuit(N, 4; layered = false)
+ 
   
   Λ = runcircuit(N, gates; process = true, noise = ("amplitude_damping", (γ = 0.1,)))
   

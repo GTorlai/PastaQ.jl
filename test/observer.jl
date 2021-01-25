@@ -8,22 +8,30 @@ using Test
   depth = 8
   circuit = randomcircuit(N,8; layered = true, seed = 1234)
 
-  function f1(ψ::MPS, site::Int)
-    return norm(ψ[1])
+  function measure_pauli(ψ::MPS, site::Int, pauli::String)
+    ψ = orthogonalize!(copy(ψ), site)
+    ϕ = ψ[site]
+    obs_op = gate(pauli, firstsiteind(ψ, site))
+    T = noprime(ϕ * obs_op)
+    return real((dag(T) * ϕ)[])
   end
-  
-  observables = (f = f1, name = "f1", sites = 1:N)
-  obs = Dict()
-  ψ = runcircuit(circuit; observer! = obs, observables = observables)
-  @show keys(obs)
-  @test haskey(obs,"f1") 
-  @test haskey(obs,"χ")
-  @test haskey(obs,"χmax")
-  @test length(obs["χ"]) == depth
-  @test length(obs["χ"][1]) == N-1
-  @test length(obs["χmax"]) == depth
-  @test length(obs["f1"]) == depth
-  @test length(obs["f1"][1]) == N
+  pauliX2(ψ::MPS) = measure_pauli(ψ, 2, "X")
+  pauliYs(ψ::MPS) = [measure_pauli(ψ, n, "Y") for n in 1:length(ψ)]
+  obs = CircuitObserver(["χs" => linkdims, "χmax" => maxlinkdim, "pauliX2" => pauliX2, "pauliYs" => pauliYs])
+
+  ψ = runcircuit(circuit; observer! = obs)
+  @test haskey(obs.results,"χs") 
+  @test haskey(obs.results,"χmax")
+  @test haskey(obs.results,"pauliX2")
+  @test haskey(obs.results,"pauliYs")
+  @test length(obs.results["χs"]) == depth
+  @test length(obs.results["χs"][1]) == N-1
+  @test length(obs.results["χmax"]) == depth
+  @test length(obs.results["pauliX2"]) == depth
+  @test length(obs.results["pauliYs"]) == depth
+  for d in 1:depth
+    @test length(obs.results["pauliYs"][d]) == N
+  end
 end
 
 

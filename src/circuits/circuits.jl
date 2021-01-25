@@ -105,11 +105,11 @@ appendlayer!(gates::AbstractVector{ <: Tuple},
 
 Layer of two-qubit gates 
 """
-function twoqubitlayer(gatename::String,bonds::Array)
+function twoqubitlayer(gatename::String,bonds::Array; rng = Random.GLOBAL_RNG)
   gates = Tuple[]
   for bond in bonds
     if gatename == "randU"
-      push!(gates,(gatename, bond, (random_matrix = randn(ComplexF64, 4, 4),)))
+      push!(gates,(gatename, bond, (random_matrix = randn(rng,ComplexF64, 4, 4),)))
     else
       push!(gates,(gatename, bond))
     end
@@ -117,8 +117,8 @@ function twoqubitlayer(gatename::String,bonds::Array)
   return gates
 end
 
-function twoqubitlayer!(gates::Array,gatename::String,bonds::Array)
-  newgates = twoqubitlayer(gatename,bonds)
+function twoqubitlayer!(gates::Array,gatename::String,bonds::Array; rng = Random.GLOBAL_RNG)
+  newgates = twoqubitlayer(gatename,bonds; rng = rng)
   append!(gates, newgates)
   return gates
 end
@@ -138,33 +138,26 @@ axis.
 function randomcircuit(N::Int, depth::Int, twoqubit_bonds::Array;
                        twoqubitgate::String   = "randU",
                        onequbitgates::Array  = [],
-                       layered::Bool = false,
+                       layered::Bool = true,
                        seed = nothing)
-
-  if !isnothing(seed)
-    Random.seed!(seed)
-  end
+  rng = (isnothing(seed) ? Random.GLOBAL_RNG : MersenneTwister(seed)) 
   
-  gates = (layered ? Vector{Vector{<:Tuple}}(undef, depth) : Tuple[])
-  
+  gates = Vector{Vector{<:Tuple}}(undef, depth)
   numgates_1q = length(onequbitgates)
   
   for d in 1:depth
     layer = Tuple[]
     cycle = twoqubit_bonds[(d-1)%length(twoqubit_bonds)+1]
     
-    if layered
-      twoqubitlayer!(layer,twoqubitgate,cycle)
-    else
-      twoqubitlayer!(gates,twoqubitgate,cycle) 
-    end
+    twoqubitlayer!(layer,twoqubitgate,cycle; rng = rng)
+    
     if !isempty(onequbitgates) 
       for j in 1:N
         onequbitgatename = onequbitgates[rand(1:numgates_1q)]
         if onequbitgatename == "Rn"
-          g = ("Rn", j, (θ = π*rand(), ϕ = 2*π*rand(), λ = 2*π*rand()))
+          g = ("Rn", j, (θ = π*rand(rng), ϕ = 2*π*rand(rng), λ = 2*π*rand(rng)))
         elseif onequbitgatename == "randU"
-          g = ("randU", j, (random_matrix = randn(ComplexF64, 2, 2),))
+          g = ("randU", j, (random_matrix = randn(rng,ComplexF64, 2, 2),))
         else
           g = (onequbitgatename, j)
         end
@@ -175,12 +168,10 @@ function randomcircuit(N::Int, depth::Int, twoqubit_bonds::Array;
         end
       end
     end
-    if layered
-      gates[d] = layer
-    #  push!(gates,layer)
-    end
+    gates[d] = layer
   end
-  return gates
+  layered && return gates
+  return vcat(gates...)
 end
 
 """

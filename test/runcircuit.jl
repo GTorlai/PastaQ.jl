@@ -91,7 +91,7 @@ end
 @testset "runcircuit: unitary quantum circuit" begin
   N = 3
   depth = 4
-  gates = randomcircuit(N,depth)
+  gates = randomcircuit(N,depth; layered = false)
   
   #Pure state, noiseless circuit
   ψ0 = qubits(N)
@@ -110,7 +110,7 @@ end
 @testset "runcircuit: noisy quantum circuit" begin
   N = 5
   depth = 4
-  gates = randomcircuit(N,depth)
+  gates = randomcircuit(N,depth; layered = false)
 
   # Pure state, noisy circuit
   ψ0 = qubits(N)
@@ -131,7 +131,7 @@ end
 
 @testset "runcircuit: inverted gate order" begin
   N = 8
-  gates = randomcircuit(N,2)
+  gates = randomcircuit(N,2; layered = false)
   
   for n in 1:10
     s1 = rand(2:N)
@@ -146,7 +146,7 @@ end
 
 @testset "runcircuit: long range gates" begin
   N = 8
-  gates = randomcircuit(N,2)
+  gates = randomcircuit(N,2; layered = false)
   
   for n in 1:10
     s1 = rand(1:N)

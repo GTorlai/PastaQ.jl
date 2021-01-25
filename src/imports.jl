@@ -4,8 +4,8 @@ import Base:
 import ITensors:
   # circuits/gates.jl
   space,
-  state
-
+  state,
+  measurements
 import LinearAlgebra:
   normalize!,
   tr

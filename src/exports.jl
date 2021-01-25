@@ -63,6 +63,8 @@ export
 
 # observer.jl
   TomographyObserver,
+  CircuitObserver,
+  measurement,
 
 # utils.jl
   # Methods

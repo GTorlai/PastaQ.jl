@@ -215,7 +215,9 @@ function runcircuit(M::Union{MPS, MPO},
                     apply_dag = nothing,
                     cutoff = 1e-15,
                     maxdim = 10_000,
-                    svd_alg = "divide_and_conquer")
+                    svd_alg = "divide_and_conquer",
+                    move_sites_back::Bool = true)
+
   # Check if gate_tensors contains Kraus operators
   inds_sizes = [length(inds(g)) for g in gate_tensors]
   noiseflag = any(x -> x%2==1 , inds_sizes)
@@ -233,18 +235,22 @@ function runcircuit(M::Union{MPS, MPO},
       # ρ -> ε(ρ) (MPO -> MPO, conjugate evolution)
       return apply(gate_tensors, ρ; apply_dag = true,
                    cutoff = cutoff, maxdim = maxdim,
-                   svd_alg = svd_alg)
+                   svd_alg = svd_alg,
+                   move_sites_back = move_sites_back)
+      
     # Pure state evolution
     else
       # |ψ⟩ -> U |ψ⟩ (MPS -> MPS)
       #  ρ  -> U ρ U† (MPO -> MPO, conjugate evolution)
       if M isa MPS
         return apply(gate_tensors, M; cutoff = cutoff,
-                     maxdim = maxdim, svd_alg = svd_alg)
+                     maxdim = maxdim, svd_alg = svd_alg,
+                     move_sites_back = move_sites_back)
       else
         return apply(gate_tensors, M; apply_dag = true,
                      cutoff = cutoff, maxdim = maxdim,
-                     svd_alg = svd_alg)
+                     svd_alg = svd_alg,
+                     move_sites_back = move_sites_back)
       end
     end
   # Custom mode (apply_dag = true / false)
@@ -254,12 +260,14 @@ function runcircuit(M::Union{MPS, MPO},
       # apply_dag = false: ρ -> U ρ (MPO -> MPO)
       return apply(gate_tensors, M; apply_dag = apply_dag,
                    cutoff = cutoff, maxdim = maxdim,
-                   svd_alg = svd_alg)
+                   svd_alg = svd_alg,
+                   move_sites_back = move_sites_back)
     elseif M isa MPS
       # apply_dag = true:  ψ -> U ψ -> ρ = (U ψ) (ψ† U†) (MPS -> MPO, conjugate)
       # apply_dag = false: ψ -> U ψ (MPS -> MPS)
       Mc = apply(gate_tensors, M; cutoff = cutoff, maxdim = maxdim,
-                 svd_alg = svd_alg)
+                 svd_alg = svd_alg,
+                 move_sites_back = move_sites_back)
       if apply_dag
         Mc = MPO(Mc)
       end
@@ -297,14 +305,17 @@ function runcircuit(M::Union{MPS, MPO}, gates::Union{Tuple,Vector{<:Tuple}};
                     apply_dag = nothing, 
                     cutoff = 1e-15,
                     maxdim = 10_000,
-                    svd_alg = "divide_and_conquer")
+                    svd_alg = "divide_and_conquer",
+                    move_sites_back::Bool = true)
   gate_tensors = buildcircuit(M, gates; noise = noise) 
   return runcircuit(M, gate_tensors;
                     cutoff = cutoff,
                     maxdim = maxdim,
                     apply_dag = apply_dag,
-                    svd_alg = svd_alg)
+                    svd_alg = svd_alg,
+                    move_sites_back = move_sites_back)
 end
+
 
 """
     runcircuit(N::Int, gates::Vector{<:Tuple};
@@ -369,44 +380,40 @@ end
 runcircuit(gates::Vector{<:Tuple}; kwargs...) = 
   runcircuit(numberofqubits(gates), gates; kwargs...)
 
+
 """
 Run the layered circuit with the possibility of having a circuit observer 
 """
 function runcircuit(M::Union{MPS,MPO}, gates::Vector{Vector{<:Tuple}}; 
-                    observables::Union{<:NamedTuple,Array{<:NamedTuple}, Nothing} = nothing, 
-                    observer!::Union{Dict, Nothing} = nothing,
+                    observer! = nothing,
                     kwargs...)
 
-  if isnothing(observer!)
-    for layer in gates
-      M = runcircuit(M, layer; kwargs...) 
-    end 
-    return M
-  else
-    χ = (f = linkdim, name = "χ", sites = 1:length(M)-1)
-    χmax = (f = maxlinkdim, name = "χmax")
-    
-    obs = [χ,χmax]
-    if !isnothing(observables)
-      if observables isa Array
-        append!(obs, observables)
-      else
-        push!(obs, observables)
-      end
-    end
-    for layer in gates
-      M = runcircuit(M, layer; kwargs...)
-      measure!(observer!, M, obs)
+  for l in 1:length(gates)-1
+    layer = gates[l]
+    M = runcircuit(M, layer; move_sites_back = false, kwargs...)
+    if !isnothing(observer!)
+      measure!(observer!, M)
     end
   end
+  M = runcircuit(M, gates[end]; move_sites_back = true, kwargs...)
+  if !isnothing(observer!)
+    measure!(observer!, M)
+  end
+
   return M
 end
 
-runcircuit(N::Int, gates::Vector{Vector{<:Tuple}}; kwargs...) = 
-  runcircuit(qubits(N), gates; kwargs...)
+function runcircuit(N::Int, gates::Vector{Vector{<:Tuple}}; process = false, kwargs...)
+  if process == false
+    runcircuit(qubits(N), gates; kwargs...)
+  else
+    runcircuit(N, vcat(gates...); process = true, kwargs...)
+  end
+end
 
 runcircuit(gates::Vector{Vector{<:Tuple}}; kwargs...) = 
   runcircuit(numberofqubits(gates), gates; kwargs...)
+
 
 """
     runcircuit(M::ITensor,gate_tensors::Vector{ <: ITensor}; kwargs...)

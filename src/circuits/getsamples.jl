@@ -388,9 +388,12 @@ function getsamples(N::Int64, gates::Vector{<:Tuple}, nshots::Int64;
     end
   end
 end
+getsamples(N::Int64, gates::Vector{Vector{<:Tuple}}, nshots::Int64; kwargs...) = 
+  getsamples(N, vcat(gates...), nshots; kwargs...)
 
-getsamples(gates::Vector{<:Tuple}, nshots::Int64; kwargs...) =
+getsamples(gates::Vector, nshots::Int64; kwargs...) =
   getsamples(numberofqubits(gates), gates, nshots; kwargs...)
+
 
 function getsamples(gates::Array,preps::Array, bases::Array ;
                     noise = nothing,cutoff::Float64 = 1e-15,maxdim::Int64 = 10000,
