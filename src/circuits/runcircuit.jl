@@ -307,7 +307,9 @@ function runcircuit(M::Union{MPS, MPO}, gates::Union{Tuple,Vector{<:Tuple}};
                     maxdim = 10_000,
                     svd_alg = "divide_and_conquer",
                     move_sites_back::Bool = true)
+  
   gate_tensors = buildcircuit(M, gates; noise = noise) 
+  
   return runcircuit(M, gate_tensors;
                     cutoff = cutoff,
                     maxdim = maxdim,
@@ -390,7 +392,7 @@ function runcircuit(M::Union{MPS,MPO}, gates::Vector{Vector{<:Tuple}};
 
   for l in 1:length(gates)-1
     layer = gates[l]
-    M = runcircuit(M, layer; move_sites_back = false, kwargs...)
+    M = runcircuit(M, layer; move_sites_back = true, kwargs...)
     if !isnothing(observer!)
       measure!(observer!, M)
     end
