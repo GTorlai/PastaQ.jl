@@ -36,15 +36,15 @@ println()
 # Make the QFT circuit
 #
 
-gates = qft(N)
+circuit = qft(N)
 
 println("QFT circuit gates:")
-display(gates)
+display(circuit)
 println()
 
 println("Running QFT...")
 println()
-ψ = runcircuit(ψ0, gates)
+ψ = runcircuit(ψ0, circuit)
 
 println("Sample from QFT|$(number_bin_st)⟩:")
 samples = getsamples(ψ, 5; local_basis = nothing)
@@ -57,8 +57,8 @@ println()
 
 println("Running inverse QFT...")
 println()
-gates⁻¹ = qft(N; inverse = true)
-ψ = runcircuit(ψ, gates⁻¹)
+circuit⁻¹ = qft(N; inverse = true)
+ψ = runcircuit(ψ, circuit⁻¹)
 
 println("Sample from QFT⁻¹QFT|$(number_bin_st)⟩:")
 samples = getsamples(ψ, 5; local_basis = nothing)

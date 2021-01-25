@@ -11,8 +11,8 @@ Random.seed!(1234)
 N = 4
 depth = 4
 nshots = 10_000
-gates = randomcircuit(N, depth)
-data, ψ = getsamples(N, gates, nshots; local_basis = ["X","Y","Z"])
+circuit = randomcircuit(N, depth)
+data, ψ = getsamples(circuit, nshots; local_basis = ["X","Y","Z"])
 writesamples(data, ψ, "data/qst_circuit.h5")
 
 # Load target state and measurement data
@@ -49,7 +49,7 @@ println()
 # as the output of a noisy quantum circuit
 
 # Generate sample data
-data, ρ = getsamples(N, gates, nshots; local_basis = ["X","Y","Z"]
+data, ρ = getsamples(circuit, nshots; local_basis = ["X","Y","Z"],
                      noise = ("amplitude_damping", (γ = 0.01,)))
 writesamples(data, ρ, "data/qst_circuit_noisy.h5")
 

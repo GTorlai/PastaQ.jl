@@ -10,10 +10,10 @@ Random.seed!(1234)
 N = 4
 depth = 4
 nshots = 10_000
-gates = randomcircuit(N, depth)
+circuit = randomcircuit(N, depth)
 
 # Generate samples
-data, U = getsamples(N, gates, nshots; local_basis = ["X","Y","Z"]
+data, U = getsamples(circuit, nshots; local_basis = ["X","Y","Z"],
                      process = true)
 writesamples(data, U, "data/qpt_circuit.h5")
 
@@ -49,7 +49,7 @@ println()
 
 # Noisy circuit
 # Generate samples
-data, Λ = getsamples(N, gates, nshots; local_basis = ["X","Y","Z"]
+data, Λ = getsamples(circuit, nshots; local_basis = ["X","Y","Z"],
                      process = true,
                      noise = ("amplitude_damping", (γ = 0.01,)))
 writesamples(data, Λ, "data/qpt_circuit_noisy.h5")
