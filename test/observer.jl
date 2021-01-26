@@ -34,36 +34,36 @@ end
   # standard: inputs are named operations corresponding to gates
   obs = CircuitObserver("X(n)" => "X")
   @test haskey(obs.results,"X(n)")
-  @test haskey(obs.observables,"X(n)")
+  @test haskey(obs.measurements,"X(n)")
   obs = CircuitObserver("X1" => ("X",1))
   @test haskey(obs.results,"X1")
-  @test haskey(obs.observables,"X1")
+  @test haskey(obs.measurements,"X1")
   obs = CircuitObserver("X1:3" => ("X",1:3))
   @test haskey(obs.results,"X1:3")
-  @test haskey(obs.observables,"X1:3")
+  @test haskey(obs.measurements,"X1:3")
   
   obs = CircuitObserver(["X(n)" => "X", "Y1" => ("Y",1)])
   @test haskey(obs.results,"X(n)")
-  @test haskey(obs.observables,"X(n)")
+  @test haskey(obs.measurements,"X(n)")
   @test haskey(obs.results,"Y1")
-  @test haskey(obs.observables,"Y1")
+  @test haskey(obs.measurements,"Y1")
 
   # unnamed inputs corresponding to gates
   obs = CircuitObserver("X")
   @test haskey(obs.results,"X(n)")
-  @test haskey(obs.observables,"X(n)")
+  @test haskey(obs.measurements,"X(n)")
   obs = CircuitObserver(("X",1))
   @test haskey(obs.results,"X1")
-  @test haskey(obs.observables,"X1")
+  @test haskey(obs.measurements,"X1")
   obs = CircuitObserver(("X",1:3))
   @test haskey(obs.results,"X1:3")
-  @test haskey(obs.observables,"X1:3")
+  @test haskey(obs.measurements,"X1:3")
   
   obs = CircuitObserver(["X",("Y",1)])
   @test haskey(obs.results,"X(n)")
-  @test haskey(obs.observables,"X(n)")
+  @test haskey(obs.measurements,"X(n)")
   @test haskey(obs.results,"Y1")
-  @test haskey(obs.observables,"Y1")
+  @test haskey(obs.measurements,"Y1")
 
   # predefined functions 
   function measure_pauli(ψ::MPS, site::Int, pauli::String)
@@ -77,65 +77,38 @@ end
   pauliYs(ψ::MPS) = [measure_pauli(ψ, n, "Y") for n in 1:length(ψ)]
   
   obs = CircuitObserver(["χs" => linkdims, "χmax" => maxlinkdim, "pauliX2" => pauliX2, "pauliYs" => pauliYs])
-  @test haskey(obs.functions,"χs") 
-  @test haskey(obs.functions,"χmax")
-  @test haskey(obs.functions,"pauliX2")
-  @test haskey(obs.functions,"pauliYs")
+  @test haskey(obs.measurements,"χs") 
+  @test haskey(obs.measurements,"χmax")
+  @test haskey(obs.measurements,"pauliX2")
+  @test haskey(obs.measurements,"pauliYs")
   @test haskey(obs.results,"χs") 
   @test haskey(obs.results,"χmax")
   @test haskey(obs.results,"pauliX2")
   @test haskey(obs.results,"pauliYs")
   
   obs = CircuitObserver([linkdims, maxlinkdim, pauliX2, pauliYs])
-  @test haskey(obs.functions,"linkdims") 
-  @test haskey(obs.functions,"maxlinkdim")
-  @test haskey(obs.functions,"pauliX2")
-  @test haskey(obs.functions,"pauliYs")
+  @test haskey(obs.measurements,"linkdims") 
+  @test haskey(obs.measurements,"maxlinkdim")
+  @test haskey(obs.measurements,"pauliX2")
+  @test haskey(obs.measurements,"pauliYs")
   @test haskey(obs.results,"linkdims") 
   @test haskey(obs.results,"maxlinkdim")
   @test haskey(obs.results,"pauliX2")
   @test haskey(obs.results,"pauliYs")
 
 
-  # combination of predefined functions and gates
-  obs = CircuitObserver("obs1" => "X", "obs2" => norm)
-  @test haskey(obs.functions,"obs2")
-  @test haskey(obs.observables,"obs1")
-  @test haskey(obs.results,"obs1")
-  @test haskey(obs.results,"obs2")
-
-  obs = CircuitObserver(["obs1" => "X","obs2" => "Y"], ["obs3" => norm,"obs4" => maxlinkdim])
-  @test haskey(obs.observables,"obs1")
-  @test haskey(obs.observables,"obs2")
-  @test haskey(obs.functions,"obs3")
-  @test haskey(obs.functions,"obs4")
+  obs = CircuitObserver(["obs3" => norm, "obs1" => "X","obs2" => "Y"])
+  @test haskey(obs.measurements,"obs1")
+  @test haskey(obs.measurements,"obs2")
+  @test haskey(obs.measurements,"obs3")
   @test haskey(obs.results,"obs1")
   @test haskey(obs.results,"obs2")
   @test haskey(obs.results,"obs3")
-  @test haskey(obs.results,"obs4")
-  obs = CircuitObserver(["obs3" => norm,"obs4" => maxlinkdim], ["obs1" => "X","obs2" => "Y"])
-  @test haskey(obs.observables,"obs1")
-  @test haskey(obs.observables,"obs2")
-  @test haskey(obs.functions,"obs3")
-  @test haskey(obs.functions,"obs4")
-  @test haskey(obs.results,"obs1")
-  @test haskey(obs.results,"obs2")
-  @test haskey(obs.results,"obs3")
-  @test haskey(obs.results,"obs4")
-  obs = CircuitObserver("obs3" => norm, ["obs1" => "X","obs2" => "Y"])
-  @test haskey(obs.observables,"obs1")
-  @test haskey(obs.observables,"obs2")
-  @test haskey(obs.functions,"obs3")
-  @test haskey(obs.results,"obs1")
-  @test haskey(obs.results,"obs2")
-  @test haskey(obs.results,"obs3")
-  obs = CircuitObserver(["obs3" => norm,"obs4" => maxlinkdim], "obs1" => "X")
-  @test haskey(obs.observables,"obs1")
-  @test haskey(obs.functions,"obs3")
-  @test haskey(obs.functions,"obs4")
-  @test haskey(obs.results,"obs1")
-  @test haskey(obs.results,"obs3")
-  @test haskey(obs.results,"obs4")
+  obs = CircuitObserver([norm, "X"])
+  @test haskey(obs.measurements,"norm")
+  @test haskey(obs.measurements,"X(n)")
+  @test haskey(obs.results,"norm")
+  @test haskey(obs.results,"X(n)")
 
 end
 
@@ -154,7 +127,7 @@ end
   @test length(obs.results["Z(n)"]) == 1
   @test length(obs.results["Z(n)"][1]) == N
 
-  obs = CircuitObserver(["X","Y","Z"],[norm,maxlinkdim])
+  obs = CircuitObserver(["X","Y","Z",norm,maxlinkdim])
   PastaQ.measure!(obs,ψ)
   @test length(obs.results["X(n)"]) == 1
   @test length(obs.results["X(n)"][1]) == N
@@ -185,7 +158,7 @@ end
   @test length(obs.results["X(n)"][1]) == N
   
 
-  obs = CircuitObserver([("X",1:3)],[norm,maxlinkdim])
+  obs = CircuitObserver([("X",1:3),norm,maxlinkdim])
   runcircuit(circuit; observer! = obs)
   @test length(obs.results["X1:3"]) == depth
   @test length(obs.results["X1:3"][1]) == 3
@@ -196,98 +169,98 @@ end
 end
 
 
-@testset "tomography observer output" begin
-  Random.seed!(1234)
-  data,Ψ = readsamples("../examples/data/qst_circuit_test.h5")
-  test_data = copy(data[1:10,:])
-  N = length(Ψ)     # Number of qubits
-  χ = maxlinkdim(Ψ) # Bond dimension of variational MPS
-  ψ0 = randomstate(Ψ; χ = χ, σ = 0.1)
-  opt = SGD(η = 0.01)
-  obs = TomographyObserver()
-  ψ = tomography(data, ψ0;
-                 test_data = test_data,
-                 optimizer = opt,
-                 batchsize = 10,
-                 epochs = 3,
-                 target = Ψ,
-                 observer! = obs)
-  
-  @test length(obs.fidelity) == 3
-  @test length(obs.fidelity_bound) == 0
-  @test length(obs.frobenius_distance) == 0
-  @test length(obs.trace_preserving_distance) == 0
-  @test length(obs.train_loss) == 3
-  @test length(obs.test_loss) == 3
-  
-  data, ϱ = readsamples("../examples/data/qst_circuit_noisy_test.h5")
-  test_data = copy(data[1:10,:])
-  N = length(ϱ)     # Number of qubits
-  χ = maxlinkdim(ϱ) # Bond dimension of variational LPDO
-  ξ = 2             # Kraus dimension of variational LPDO
-  ρ0 = randomstate(ϱ; mixed = true, χ = χ, ξ = ξ, σ = 0.1)
-  opt = SGD(η = 0.01)
-  obs = TomographyObserver()
-  ρ = tomography(data, ρ0;
-                 test_data = test_data,
-                 optimizer = opt,
-                 batchsize = 10,
-                 epochs = 3,
-                 target = ϱ,
-                 observer! = obs)
-
-  @test length(obs.fidelity) == 3
-  @test length(obs.fidelity_bound) == 3
-  @test length(obs.frobenius_distance) == 3
-  @test length(obs.trace_preserving_distance) == 0
-  @test length(obs.train_loss) == 3
-  @test length(obs.test_loss) == 3
-    
-  data, U = readsamples("../examples/data/qpt_circuit_test.h5")
-  test_data = copy(data[1:10,:])
-  N = length(U)     # Number of qubits
-  χ = maxlinkdim(U) # Bond dimension of variational MPS
-  opt = SGD(η = 0.1)
-  V0 = randomprocess(U; mixed = false, χ = χ)
-  obs = TomographyObserver()
-  V = tomography(data, V0;
-                 test_data = test_data,
-                 optimizer = opt,
-                 batchsize = 10,
-                 epochs = 3,
-                 target = U,
-                 observer! = obs)
-
-  @test length(obs.fidelity) == 3
-  @test length(obs.fidelity_bound) == 0
-  @test length(obs.frobenius_distance) == 0
-  @test length(obs.train_loss) == 3
-  @test length(obs.test_loss) == 3
-  @test length(obs.trace_preserving_distance) == 3
-  
-  # Noisy circuit
-  Random.seed!(1234)
-  data, ϱ = readsamples("../examples/data/qpt_circuit_noisy_test.h5")
-  test_data = copy(data[1:10,:])
-  N = length(ϱ)
-  χ = 8
-  ξ = 2
-  Λ0 = randomprocess(ϱ; mixed = true, χ = χ, ξ = ξ, σ = 0.1)
-  opt = SGD(η = 0.1)
-  obs = TomographyObserver()
-  Λ = tomography(data, Λ0;
-                 test_data = test_data,
-                 optimizer = opt,
-                 mixed = true,
-                 batchsize = 10,
-                 epochs = 3,
-                 target = ϱ,
-                 observer! = obs)
-
-  #@test length(obs.fidelity) == 3
-  @test length(obs.fidelity_bound) == 3
-  @test length(obs.frobenius_distance) == 3
-  @test length(obs.train_loss) == 3
-  @test length(obs.test_loss) == 3
-  @test length(obs.trace_preserving_distance) == 3
-end
+#@testset "tomography observer output" begin
+#  Random.seed!(1234)
+#  data,Ψ = readsamples("../examples/data/qst_circuit_test.h5")
+#  test_data = copy(data[1:10,:])
+#  N = length(Ψ)     # Number of qubits
+#  χ = maxlinkdim(Ψ) # Bond dimension of variational MPS
+#  ψ0 = randomstate(Ψ; χ = χ, σ = 0.1)
+#  opt = SGD(η = 0.01)
+#  obs = TomographyObserver()
+#  ψ = tomography(data, ψ0;
+#                 test_data = test_data,
+#                 optimizer = opt,
+#                 batchsize = 10,
+#                 epochs = 3,
+#                 target = Ψ,
+#                 observer! = obs)
+#  
+#  @test length(obs.fidelity) == 3
+#  @test length(obs.fidelity_bound) == 0
+#  @test length(obs.frobenius_distance) == 0
+#  @test length(obs.trace_preserving_distance) == 0
+#  @test length(obs.train_loss) == 3
+#  @test length(obs.test_loss) == 3
+#  
+#  data, ϱ = readsamples("../examples/data/qst_circuit_noisy_test.h5")
+#  test_data = copy(data[1:10,:])
+#  N = length(ϱ)     # Number of qubits
+#  χ = maxlinkdim(ϱ) # Bond dimension of variational LPDO
+#  ξ = 2             # Kraus dimension of variational LPDO
+#  ρ0 = randomstate(ϱ; mixed = true, χ = χ, ξ = ξ, σ = 0.1)
+#  opt = SGD(η = 0.01)
+#  obs = TomographyObserver()
+#  ρ = tomography(data, ρ0;
+#                 test_data = test_data,
+#                 optimizer = opt,
+#                 batchsize = 10,
+#                 epochs = 3,
+#                 target = ϱ,
+#                 observer! = obs)
+#
+#  @test length(obs.fidelity) == 3
+#  @test length(obs.fidelity_bound) == 3
+#  @test length(obs.frobenius_distance) == 3
+#  @test length(obs.trace_preserving_distance) == 0
+#  @test length(obs.train_loss) == 3
+#  @test length(obs.test_loss) == 3
+#    
+#  data, U = readsamples("../examples/data/qpt_circuit_test.h5")
+#  test_data = copy(data[1:10,:])
+#  N = length(U)     # Number of qubits
+#  χ = maxlinkdim(U) # Bond dimension of variational MPS
+#  opt = SGD(η = 0.1)
+#  V0 = randomprocess(U; mixed = false, χ = χ)
+#  obs = TomographyObserver()
+#  V = tomography(data, V0;
+#                 test_data = test_data,
+#                 optimizer = opt,
+#                 batchsize = 10,
+#                 epochs = 3,
+#                 target = U,
+#                 observer! = obs)
+#
+#  @test length(obs.fidelity) == 3
+#  @test length(obs.fidelity_bound) == 0
+#  @test length(obs.frobenius_distance) == 0
+#  @test length(obs.train_loss) == 3
+#  @test length(obs.test_loss) == 3
+#  @test length(obs.trace_preserving_distance) == 3
+#  
+#  # Noisy circuit
+#  Random.seed!(1234)
+#  data, ϱ = readsamples("../examples/data/qpt_circuit_noisy_test.h5")
+#  test_data = copy(data[1:10,:])
+#  N = length(ϱ)
+#  χ = 8
+#  ξ = 2
+#  Λ0 = randomprocess(ϱ; mixed = true, χ = χ, ξ = ξ, σ = 0.1)
+#  opt = SGD(η = 0.1)
+#  obs = TomographyObserver()
+#  Λ = tomography(data, Λ0;
+#                 test_data = test_data,
+#                 optimizer = opt,
+#                 mixed = true,
+#                 batchsize = 10,
+#                 epochs = 3,
+#                 target = ϱ,
+#                 observer! = obs)
+#
+#  #@test length(obs.fidelity) == 3
+#  @test length(obs.fidelity_bound) == 3
+#  @test length(obs.frobenius_distance) == 3
+#  @test length(obs.train_loss) == 3
+#  @test length(obs.test_loss) == 3
+#  @test length(obs.trace_preserving_distance) == 3
+#end

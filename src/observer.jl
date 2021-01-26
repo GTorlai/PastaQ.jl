@@ -5,8 +5,7 @@ implements custom measurements to perform
 at each layer of the circuit evolution.
 """
 struct CircuitObserver <: AbstractObserver
-  observables::Dict{String, Any}
-  functions::Dict{String, Function}
+  measurements::Dict{String, Union{Function, String, Tuple}}
   results::Dict{String, Any}
 end
 
@@ -18,154 +17,72 @@ Retrieve the results of a set of measurements
 ITensors.measurements(observer::CircuitObserver, metric::String) = observer.results[metric]
 
 
+CircuitObserver() = CircuitObserver(Dict{String, Union{Function, String, Tuple}}(),Dict{String, Function}())
 """
     CircuitObserver(observables::Dict{String, <:Any})
 
-Generate an observer given a list of observables passed as a dictionary. 
+Generate an observer given a list of measurements passed as a dictionary. 
 """
-function CircuitObserver(observables::Dict{String, <:Any}) 
+function CircuitObserver(measurements::Dict{String, <:Any}) 
   res = Dict{String, Any}()
-  for obs in keys(observables)
+  for obs in keys(measurements)
     res[obs] = []
   end
-  return CircuitObserver(observables,Dict{String, Function}(), res)
+  return CircuitObserver(measurements, res)
 end
 
-CircuitObserver(observable::Pair{String, <:Any}) = 
-  CircuitObserver([observable])
+CircuitObserver(measurement::Pair{String, <:Any}) = 
+  CircuitObserver([measurement])
 
-CircuitObserver(observables::Vector{<:Pair{String, <:Any}}) = 
-  CircuitObserver(Dict(observables))
+CircuitObserver(measurements::Vector{<:Pair{String, <:Any}}) = 
+  CircuitObserver(Dict(measurements))
 
 
-function CircuitObserver(functions::Dict{String, <:Function}) 
+function CircuitObserver(measurements::Vector{<:Any})
   res = Dict{String, Any}()
-  observables = Dict{String, Any}()
-  for f in keys(functions)
-    res[f] = []
-  end
-  return CircuitObserver(observables,functions, res)
-end
-
-CircuitObserver(f::Pair{String, <:Function}) = 
-  CircuitObserver([f])
-
-CircuitObserver(functions::Vector{<:Pair{String, <:Function}}) = 
-  CircuitObserver(Dict(functions))
-
-
-function CircuitObserver(functions::Dict{String, <:Function}, observables::Dict{String, <:Any})
-  res = Dict{String, Any}()
-  for obs in keys(observables)
-    res[obs] = []
-  end
-  for f in keys(functions)
-    res[f] = []
-  end
-  return CircuitObserver(observables, functions, res)
-end
-
-CircuitObserver(observables::Dict{String, <:Any}, functions::Dict{String, <:Function}) = 
-  CircuitObserver(functions,observables)
-
-
-CircuitObserver(functions::Vector{<:Pair{String, <:Function}}, observables::Vector{<:Pair{String, <:Any}}) = 
-  CircuitObserver(Dict(functions),Dict(observables))
-
-CircuitObserver(observables::Vector{<:Pair{String, <:Any}}, functions::Vector{<:Pair{String, <:Function}}) = 
-  CircuitObserver(functions, observables)
-
-CircuitObserver(f::Pair{String, <:Function}, observable::Pair{String, <:Any}) =
-  CircuitObserver([f],[observable])
-
-CircuitObserver(observable::Pair{String, <:Any}, f::Pair{String, <:Function}) = 
-  CircuitObserver([f],[observable])
-
-CircuitObserver(functions::Vector{<:Pair{String, <:Function}}, observable::Pair{String, <:Any}) =
-  CircuitObserver(functions, [observable])
-
-CircuitObserver(f::Pair{String, <:Function}, observables::Vector{<:Pair{String, <:Any}}) =
-  CircuitObserver([f],observables)
-
-
-
-
-# TODO: double check this one here!!!
-function CircuitObserver(unnamed_observables::Vector{<:Any})#Union{String,Tuple}})
-  res = Dict{String, Any}()
-  observables = Dict{String, Any}()
-  for observable in unnamed_observables
-    name = (observable isa String ? observable*"(n)" : "")
-    if observable isa Tuple
-      for c in observable
-        name *= string(c)
-      end
-    end
-    observables[name] = observable
+  named_measurements = Dict{String, Union{Function, String, Tuple}}()
+  for measurement in measurements
+    name = measurement_name(measurement)
+    named_measurements[name] = (measurement isa Pair ? last(measurement) : measurement)
     res[name] = []
   end
-  return CircuitObserver(observables, Dict{String, Function}(),res)
+  return CircuitObserver(named_measurements, res)
 end
 
-CircuitObserver(unnamed_observable::Union{String,Tuple}) = CircuitObserver([unnamed_observable])
+CircuitObserver(measurement::Union{String,Tuple,Function}) = 
+  CircuitObserver([measurement])
 
-function CircuitObserver(unnamed_functions::Vector{<:Function})
-  res = Dict{String, Any}()
-  functions = Dict{String, Function}()
-  functions[string(unnamed_functions[1])] = unnamed_functions[1]
-  res[string(unnamed_functions[1])] = []
-  if length(unnamed_functions) > 1
-    for j in 2:length(unnamed_functions)
-      functions[string(unnamed_functions[j])] = unnamed_functions[j]
-      res[string(unnamed_functions[j])] = []
+
+
+function measurement_name(measurement::Union{String,<:Tuple})
+  name = (measurement isa String ? measurement*"(n)" : "")
+  if measurement isa Tuple
+    for c in measurement
+      name *= string(c)
     end
   end
-  return CircuitObserver(Dict{String, Any}(),functions, res) 
+  return name
 end
 
-CircuitObserver(unnamed_f::Function) = 
-  CircuitObserver([unnamed_f])
+measurement_name(measurement::Pair{String, <:Any}) = 
+  first(measurement)
 
+measurement_name(measurement::Function) = 
+  string(measurement)
 
-function CircuitObserver(unnamed_observables::Vector{<:Any},unnamed_functions::Vector{<:Function})
-  dict_obs = CircuitObserver(unnamed_observables)
-  dict_f   = CircuitObserver(unnamed_functions)
-
-  res = merge(dict_obs.results,dict_f.results)
-  return CircuitObserver(dict_obs.observables, dict_f.functions, res)
-end
-
-CircuitObserver(unnamed_functions::Vector{<:Function}, unnamed_observables::Vector{<:Any}) = 
-  CircuitObserver(unnamed_observables, unnamed_functions)
-
-
-#CircuitObserver(unnamed_function::Function, unnamed_observables::Vector{<:Any}) =
-#  CircuitObserver([unnamed_function],unnamed_observables)
-#CircuitObserver(unnamed_observables::Vector{<:Any}, unnamed_function::Function) =
-#  CircuitObserver(unnamed_function,unnamed_function)
-#CircuitObserver(unnamed_functions::Vector{<:Function},unnamed_observable::Any) = 
-#  CircuitObserver(unnamed_functions, [unnamed_observable])
-#CircuitObserver(unnamed_observable::Any, unnamed_functions::Vector{<:Function}) = 
-#  CircuitObserver(unnamed_functions, unnamed_observable)
-#CircuitObserver(unnamed_function::Function, unnamed_observable::Any) =
-#  CircuitObserver([unnamed_function], [unnamed_observable])
-#CircuitObserver(unnamed_observable::Any, unnamed_function::Function) =
-#  CircuitObserver(unnamed_function,unnamed_observable)
+has_customfunctions(observer::CircuitObserver) = 
+  any(x -> isa(x,Function),values(observer.measurements))
 
 
 
 function measure!(observer::CircuitObserver, M::Union{MPS,MPO}, ref_indices::Vector{<:Index})
-  if !isempty(observer.observables)
-    for obs_name in keys(observer.observables)
-      res = measure(M, observer.observables[obs_name], ref_indices)
-      push!(observer.results[obs_name], res)
+  for measurement in keys(observer.measurements)
+    if observer.measurements[measurement] isa Function
+      res = observer.measurements[measurement](M)
+    else
+      res = measure(M, observer.measurements[measurement], ref_indices)
     end
-  end
-  if !isempty(observer.functions)
-    for obs_name in keys(observer.functions)
-      result = observer.functions[obs_name](M)
-      push!(observer.results[obs_name], result) 
-    end
+    push!(observer.results[measurement], res)
   end
 end
 
@@ -308,12 +225,10 @@ function measure(ψ::MPS, measurement::Tuple{String,String}, s::Vector{<:Index})
   end
   return C
 end
-## for every sites
+
+# for every sites
 measure(ψ::MPS, measurement::Tuple{String,String}) = 
   measure(ψ::MPS, measurement, siteinds(ψ))
-
-
-
 
 
 
