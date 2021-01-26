@@ -393,37 +393,20 @@ function runcircuit(M0::Union{MPS,MPO}, gates::Vector{Vector{<:Tuple}};
     println("WARNING")
   end
   M = copy(M0) 
-  s = siteinds(M0)
-  for l in 1:length(gates)-1
+  s = siteinds(M)
+  for l in 1:length(gates)
     layer = gates[l]
-    M = runcircuit(M, layer; move_sites_back = move_sites_back_before_measurements,kwargs...)
+    M = runcircuit(M, layer; move_sites_back = move_sites_back_before_measurements, kwargs...)
     if !isnothing(observer!)
-      measure!(observer!, M)
+      measure!(observer!, M, s)
     end
   end  
-  #runcircuit(M, ("CX",(1,length(M))); move_sites_back = false)
-  M = runcircuit(M, gates[end]; move_sites_back = true, kwargs...)
-  if !isnothing(observer!)
-    measure!(observer!, M)
+  if move_sites_back_before_measurements == false
+    new_s = siteinds(M)
+    ns = 1:length(M)
+    ñs = [findsite(M0, i) for i in new_s]
+    M = movesites(M, ns .=> ñs; kwargs...)
   end
-  ##if move_sites_back
-  ##  s = siteinds(Aψ)
-  ##  ns = 1:length(ψ)
-  ##  ñs = [findsite(ψ, i) for i in s]
-  ##  Aψ = movesites(Aψ, ns .=> ñs; kwargs...)
-
-  ##for l in 1:length(gates)-1
-  ##  layer = gates[l]
-  ##  M = runcircuit(M, layer; move_sites_back = true, kwargs...)
-  ##  if !isnothing(observer!)
-  ##    measure!(observer!, M)
-  ##  end
-  ##end
-  ##M = runcircuit(M, gates[end]; move_sites_back = true, kwargs...)
-  ##if !isnothing(observer!)
-  ##  measure!(observer!, M)
-  ##end
-
   return M
 end
 

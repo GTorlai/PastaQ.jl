@@ -216,10 +216,10 @@ CircuitObserver(unnamed_functions::Vector{<:Function}, unnamed_observables::Vect
 
 
 
-function measure!(observer::CircuitObserver, M::Union{MPS,MPO})
+function measure!(observer::CircuitObserver, M::Union{MPS,MPO}, ref_indices::Vector{<:Index})
   if !isempty(observer.observables)
     for obs_name in keys(observer.observables)
-      res = measure(M, observer.observables[obs_name])
+      res = measure(M, observer.observables[obs_name], ref_indices)
       push!(observer.results[obs_name], res)
     end
   end
@@ -241,8 +241,10 @@ Measure 1-body operator
 """
 
 # at a given site
-function measure(ψ::MPS, measurement::Tuple{String,Int})
-  site = measurement[2]
+function measure(ψ::MPS, measurement::Tuple{String,Int}, s::Vector{<:Index})
+  site0 = measurement[2]
+  site = findsite(ψ,s[site0])
+  @show site0,site
   ϕ = orthogonalize!(copy(ψ), site)
   ϕs = ϕ[site]
   obs_op = gate(measurement[1], firstsiteind(ϕ, site))
@@ -250,12 +252,16 @@ function measure(ψ::MPS, measurement::Tuple{String,Int})
   return real((dag(T) * ϕs)[])
 end
 
+measure(ψ::MPS, measurement::Tuple{String,Int}) = 
+  measure(ψ, measurement, siteinds(ψ))
+
 # for a set of sites (passed as a vector)
-function measure(ψ::MPS, measurement::Tuple{String,Array{Int}})
+function measure(ψ::MPS, measurement::Tuple{String,Array{Int}}, s::Vector{<:Index})
   result = []
-  sites = measurement[2]
+  sites0 = measurement[2]
   ϕ = copy(ψ)
-  for site in sites
+  for site0 in sites0
+    site = findsite(ϕ,s[site0])
     orthogonalize!(ϕ, site)
     ϕs = ϕ[site]
     obs_op = gate(measurement[1], firstsiteind(ϕ, site))
@@ -265,14 +271,23 @@ function measure(ψ::MPS, measurement::Tuple{String,Array{Int}})
   return result
 end
 
+measure(ψ::MPS, measurement::Tuple{String,Array{Int}}) = 
+   measure(ψ,measurement,siteinds(ψ))
+
+# for a range of sites
+measure(ψ::MPS, measurement::Tuple{String,AbstractRange}, s::Vector{<:Index}) = 
+  measure(ψ, (measurement[1], Array(measurement[2])), s)
+
 # for a range of sites
 measure(ψ::MPS, measurement::Tuple{String,AbstractRange}) = 
-  measure(ψ, (measurement[1], Array(measurement[2])))
+  measure(ψ, (measurement[1], Array(measurement[2])), siteinds(ψ))
 
 # for every sites
+measure(ψ::MPS, measurement::String, s::Vector{<:Index}) = 
+  measure(ψ::MPS, (measurement, 1:length(ψ)),s)
+
+## for every sites
 measure(ψ::MPS, measurement::String) = 
-  measure(ψ::MPS, (measurement, 1:length(ψ)))
+  measure(ψ::MPS, (measurement, 1:length(ψ)), siteinds(ψ))
 
 
-
-#function measure(ψ::MPS, measurement::Tuple{String, Int})
