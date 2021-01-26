@@ -389,8 +389,11 @@ function runcircuit(M0::Union{MPS,MPO}, gates::Vector{Vector{<:Tuple}};
                     observer! = nothing,
                     move_sites_back_before_measurements::Bool = false,
                     kwargs...)
-  if !isnothing(observer!) && !isempty(observer!.functions)
-    println("WARNING")
+  if !isnothing(observer!) && !isempty(observer!.functions) && move_sites_back_before_measurements == false
+    println("--------------")
+    println(" WARNING")
+    println("\nA custom function is being measured during the gate evolution,\nbut the MPS sites at depth D are now being restored to their \nlocation at depth D-1. If any custom measurement is dependent \non the specific site ordering of the MPS, it should take the \nre-ordering into account.")
+    println("--------------\n")
   end
   M = copy(M0) 
   s = siteinds(M)
