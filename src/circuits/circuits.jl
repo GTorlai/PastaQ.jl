@@ -174,6 +174,58 @@ function randomcircuit(N::Int, depth::Int, twoqubit_bonds::Array;
   return vcat(gates...)
 end
 
+#
+#
+#"""
+#Generate a random quantum circuits with long-range gates at maximum range R.
+#Each layer (up to the maximum `depth`) is built with:
+#- a layer of two-qubit gates according to a random pairing with max range R
+#  The specific gate to be used is input as a kwarg.
+#- a layer of single-qubit random rotations.
+#"""
+#function randomcircuit(N::Int, depth::Int, R::Int;
+#                       twoqubitgate::String   = "randU",
+#                       onequbitgates::Array  = [],
+#                       layered::Bool = true,
+#                       seed = nothing)
+#  rng = (isnothing(seed) ? Random.GLOBAL_RNG : MersenneTwister(seed)) 
+#  
+#  gates = Vector{Vector{<:Tuple}}(undef, depth)
+#  numgates_1q = length(onequbitgates)
+#  
+#  for d in 1:depth
+#    layer = Tuple[]
+#    bonds = randompairing(N,R)
+#    twoqubitlayer!(layer, twoqubitgate, bonds; rng = rng)
+#
+#    for j in 1:N
+#      g = ("Rn", j, (θ = π*rand(), ϕ = 2*π*rand(), λ = 2*π*rand()))
+#      push!(gates,g)
+#    end
+#  end
+#  return gates
+#end;
+
+function randompairing(N::Int, R::Int)
+  @assert iseven(N)
+  qubit_list = 1:N |> collect
+  bonds = Tuple[]
+  
+  for b in 1:N÷2
+    q = qubit_list[1]
+    dist = rand(1:R-1)
+    while (isnothing(findfirst(x -> x == q+dist,qubit_list)))
+      dist = rand(1:R-1)
+    end
+    push!(bonds,(q,q+dist));
+    deleteat!(qubit_list,findfirst(x -> x == q, qubit_list))
+    deleteat!(qubit_list,findfirst(x -> x == q+dist, qubit_list))  
+  end
+  return bonds
+end
+
+
+
 """
     randomcircuit(N::Int,depth::Int;
                   twoqubitgate   = "CX",
@@ -191,7 +243,6 @@ O   O ▭ O   O ▭ O   O  … (Cycle 2)
 
 """
 function randomcircuit(N::Int,depth::Int; kwargs...)
-
   twoqubit_bonds = lineararray(N)
   return randomcircuit(N, depth, twoqubit_bonds; kwargs...)
 end
@@ -234,6 +285,8 @@ function randomcircuit(Lx::Int, Ly::Int, depth::Int; kwargs...)
   twoqubit_bonds = squarearray(Lx, Ly)
   return randomcircuit(Lx * Ly, depth, twoqubit_bonds; kwargs...)
 end
+
+
 
 """
     qft(N::Int)

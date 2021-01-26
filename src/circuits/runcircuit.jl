@@ -216,7 +216,7 @@ function runcircuit(M::Union{MPS, MPO},
                     cutoff = 1e-15,
                     maxdim = 10_000,
                     svd_alg = "divide_and_conquer",
-                    move_sites_back::Bool = true)
+                    move_sites_back::Bool = false)
 
   # Check if gate_tensors contains Kraus operators
   inds_sizes = [length(inds(g)) for g in gate_tensors]
@@ -306,10 +306,9 @@ function runcircuit(M::Union{MPS, MPO}, gates::Union{Tuple,Vector{<:Tuple}};
                     cutoff = 1e-15,
                     maxdim = 10_000,
                     svd_alg = "divide_and_conquer",
-                    move_sites_back::Bool = true)
+                    move_sites_back::Bool = false)
   
   gate_tensors = buildcircuit(M, gates; noise = noise) 
-  
   return runcircuit(M, gate_tensors;
                     cutoff = cutoff,
                     maxdim = maxdim,
@@ -386,21 +385,44 @@ runcircuit(gates::Vector{<:Tuple}; kwargs...) =
 """
 Run the layered circuit with the possibility of having a circuit observer 
 """
-function runcircuit(M::Union{MPS,MPO}, gates::Vector{Vector{<:Tuple}}; 
+function runcircuit(M0::Union{MPS,MPO}, gates::Vector{Vector{<:Tuple}}; 
                     observer! = nothing,
+                    move_sites_back_before_measurements::Bool = false,
                     kwargs...)
-
+  if !isnothing(observer!) && !isempty(observer!.functions)
+    println("WARNING")
+  end
+  M = copy(M0) 
+  s = siteinds(M0)
   for l in 1:length(gates)-1
     layer = gates[l]
-    M = runcircuit(M, layer; move_sites_back = true, kwargs...)
+    M = runcircuit(M, layer; move_sites_back = move_sites_back_before_measurements,kwargs...)
     if !isnothing(observer!)
       measure!(observer!, M)
     end
-  end
+  end  
+  #runcircuit(M, ("CX",(1,length(M))); move_sites_back = false)
   M = runcircuit(M, gates[end]; move_sites_back = true, kwargs...)
   if !isnothing(observer!)
     measure!(observer!, M)
   end
+  ##if move_sites_back
+  ##  s = siteinds(Aψ)
+  ##  ns = 1:length(ψ)
+  ##  ñs = [findsite(ψ, i) for i in s]
+  ##  Aψ = movesites(Aψ, ns .=> ñs; kwargs...)
+
+  ##for l in 1:length(gates)-1
+  ##  layer = gates[l]
+  ##  M = runcircuit(M, layer; move_sites_back = true, kwargs...)
+  ##  if !isnothing(observer!)
+  ##    measure!(observer!, M)
+  ##  end
+  ##end
+  ##M = runcircuit(M, gates[end]; move_sites_back = true, kwargs...)
+  ##if !isnothing(observer!)
+  ##  measure!(observer!, M)
+  ##end
 
   return M
 end

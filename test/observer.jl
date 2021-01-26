@@ -2,36 +2,197 @@ using PastaQ
 using ITensors
 using Random
 using Test
+#
+#@testset "measure one-body operators" begin
+#
+#  N = 10
+#  depth = 10
+#  ψ = runcircuit(randomcircuit(N,depth))
+#  
+#  @test measure(ψ,("X",2)) ≈ inner(ψ,runcircuit(ψ,("X",2)))  
+#  @test measure(ψ,("Y",1)) ≈ inner(ψ,runcircuit(ψ,("Y",1))) 
+#  @test measure(ψ,("Z",4)) ≈ inner(ψ,runcircuit(ψ,("Z",4))) 
+#  
+#  results = measure(ψ,"X")
+#  for j in 1:length(ψ)
+#    @test results[j] ≈ inner(ψ,runcircuit(ψ,("X",j)))
+#  end
+#
+#  results = measure(ψ,("X",1:2:length(ψ)))
+#  for j in 1:2:length(ψ)
+#    @test results[(j+1)÷2] ≈ inner(ψ,runcircuit(ψ,("X",j)))
+#  end
+#
+#  results = measure(ψ,("Y",[1,3,5]))
+#  for j in [1,3,5]
+#    @test results[(j+1)÷2] ≈ inner(ψ,runcircuit(ψ,("Y",j)))
+#  end
+#end
+#
+#@testset "circuitobserver constructor" begin
+#
+#  # standard: inputs are named operations corresponding to gates
+#  obs = CircuitObserver("X(n)" => "X")
+#  @test haskey(obs.results,"X(n)")
+#  @test haskey(obs.observables,"X(n)")
+#  obs = CircuitObserver("X1" => ("X",1))
+#  @test haskey(obs.results,"X1")
+#  @test haskey(obs.observables,"X1")
+#  obs = CircuitObserver("X1:3" => ("X",1:3))
+#  @test haskey(obs.results,"X1:3")
+#  @test haskey(obs.observables,"X1:3")
+#  
+#  obs = CircuitObserver(["X(n)" => "X", "Y1" => ("Y",1)])
+#  @test haskey(obs.results,"X(n)")
+#  @test haskey(obs.observables,"X(n)")
+#  @test haskey(obs.results,"Y1")
+#  @test haskey(obs.observables,"Y1")
+#
+#  # unnamed inputs corresponding to gates
+#  obs = CircuitObserver("X")
+#  @test haskey(obs.results,"X(n)")
+#  @test haskey(obs.observables,"X(n)")
+#  obs = CircuitObserver(("X",1))
+#  @test haskey(obs.results,"X1")
+#  @test haskey(obs.observables,"X1")
+#  obs = CircuitObserver(("X",1:3))
+#  @test haskey(obs.results,"X1:3")
+#  @test haskey(obs.observables,"X1:3")
+#  
+#  obs = CircuitObserver(["X",("Y",1)])
+#  @test haskey(obs.results,"X(n)")
+#  @test haskey(obs.observables,"X(n)")
+#  @test haskey(obs.results,"Y1")
+#  @test haskey(obs.observables,"Y1")
+#
+#  # predefined functions 
+#  function measure_pauli(ψ::MPS, site::Int, pauli::String)
+#    ψ = orthogonalize!(copy(ψ), site)
+#    ϕ = ψ[site]
+#    obs_op = gate(pauli, firstsiteind(ψ, site))
+#    T = noprime(ϕ * obs_op)
+#    return real((dag(T) * ϕ)[])
+#  end
+#  pauliX2(ψ::MPS) = measure_pauli(ψ, 2, "X")
+#  pauliYs(ψ::MPS) = [measure_pauli(ψ, n, "Y") for n in 1:length(ψ)]
+#  
+#  obs = CircuitObserver(["χs" => linkdims, "χmax" => maxlinkdim, "pauliX2" => pauliX2, "pauliYs" => pauliYs])
+#  @test haskey(obs.functions,"χs") 
+#  @test haskey(obs.functions,"χmax")
+#  @test haskey(obs.functions,"pauliX2")
+#  @test haskey(obs.functions,"pauliYs")
+#  @test haskey(obs.results,"χs") 
+#  @test haskey(obs.results,"χmax")
+#  @test haskey(obs.results,"pauliX2")
+#  @test haskey(obs.results,"pauliYs")
+#  
+#  obs = CircuitObserver([linkdims, maxlinkdim, pauliX2, pauliYs])
+#  @test haskey(obs.functions,"linkdims") 
+#  @test haskey(obs.functions,"maxlinkdim")
+#  @test haskey(obs.functions,"pauliX2")
+#  @test haskey(obs.functions,"pauliYs")
+#  @test haskey(obs.results,"linkdims") 
+#  @test haskey(obs.results,"maxlinkdim")
+#  @test haskey(obs.results,"pauliX2")
+#  @test haskey(obs.results,"pauliYs")
+#
+#
+#  # combination of predefined functions and gates
+#  obs = CircuitObserver("obs1" => "X", "obs2" => norm)
+#  @test haskey(obs.functions,"obs2")
+#  @test haskey(obs.observables,"obs1")
+#  @test haskey(obs.results,"obs1")
+#  @test haskey(obs.results,"obs2")
+#
+#  obs = CircuitObserver(["obs1" => "X","obs2" => "Y"], ["obs3" => norm,"obs4" => maxlinkdim])
+#  @test haskey(obs.observables,"obs1")
+#  @test haskey(obs.observables,"obs2")
+#  @test haskey(obs.functions,"obs3")
+#  @test haskey(obs.functions,"obs4")
+#  @test haskey(obs.results,"obs1")
+#  @test haskey(obs.results,"obs2")
+#  @test haskey(obs.results,"obs3")
+#  @test haskey(obs.results,"obs4")
+#  obs = CircuitObserver(["obs3" => norm,"obs4" => maxlinkdim], ["obs1" => "X","obs2" => "Y"])
+#  @test haskey(obs.observables,"obs1")
+#  @test haskey(obs.observables,"obs2")
+#  @test haskey(obs.functions,"obs3")
+#  @test haskey(obs.functions,"obs4")
+#  @test haskey(obs.results,"obs1")
+#  @test haskey(obs.results,"obs2")
+#  @test haskey(obs.results,"obs3")
+#  @test haskey(obs.results,"obs4")
+#  obs = CircuitObserver("obs3" => norm, ["obs1" => "X","obs2" => "Y"])
+#  @test haskey(obs.observables,"obs1")
+#  @test haskey(obs.observables,"obs2")
+#  @test haskey(obs.functions,"obs3")
+#  @test haskey(obs.results,"obs1")
+#  @test haskey(obs.results,"obs2")
+#  @test haskey(obs.results,"obs3")
+#  obs = CircuitObserver(["obs3" => norm,"obs4" => maxlinkdim], "obs1" => "X")
+#  @test haskey(obs.observables,"obs1")
+#  @test haskey(obs.functions,"obs3")
+#  @test haskey(obs.functions,"obs4")
+#  @test haskey(obs.results,"obs1")
+#  @test haskey(obs.results,"obs3")
+#  @test haskey(obs.results,"obs4")
+#
+#end
+#
+#@testset "circuitobserver measurements: one-body" begin
+#  N = 10
+#  depth = 8
+#  circuit = randomcircuit(N, depth; seed = 1234)
+#  ψ = runcircuit(circuit)
+#
+#  obs = CircuitObserver(["X","Y","Z"])
+#  PastaQ.measure!(obs,ψ)
+#  @test length(obs.results["X(n)"]) == 1
+#  @test length(obs.results["X(n)"][1]) == N
+#  @test length(obs.results["Y(n)"]) == 1
+#  @test length(obs.results["Y(n)"][1]) == N
+#  @test length(obs.results["Z(n)"]) == 1
+#  @test length(obs.results["Z(n)"][1]) == N
+#
+#  obs = CircuitObserver(["X","Y","Z"],[norm,maxlinkdim])
+#  PastaQ.measure!(obs,ψ)
+#  @test length(obs.results["X(n)"]) == 1
+#  @test length(obs.results["X(n)"][1]) == N
+#  @test length(obs.results["Y(n)"]) == 1
+#  @test length(obs.results["Y(n)"][1]) == N
+#  @test length(obs.results["Z(n)"]) == 1
+#  @test length(obs.results["Z(n)"][1]) == N
+#  @test obs.results["norm"][1] ≈ norm(ψ)
+#  @test obs.results["maxlinkdim"][1] == maxlinkdim(ψ)
+#end
 
 @testset "circuit observer" begin
-  N = 10
-  depth = 8
-  circuit = randomcircuit(N,8; layered = true, seed = 1234)
-
-  function measure_pauli(ψ::MPS, site::Int, pauli::String)
-    ψ = orthogonalize!(copy(ψ), site)
-    ϕ = ψ[site]
-    obs_op = gate(pauli, firstsiteind(ψ, site))
-    T = noprime(ϕ * obs_op)
-    return real((dag(T) * ϕ)[])
-  end
-  pauliX2(ψ::MPS) = measure_pauli(ψ, 2, "X")
-  pauliYs(ψ::MPS) = [measure_pauli(ψ, n, "Y") for n in 1:length(ψ)]
-  obs = CircuitObserver(["χs" => linkdims, "χmax" => maxlinkdim, "pauliX2" => pauliX2, "pauliYs" => pauliYs])
-
-  ψ = runcircuit(circuit; observer! = obs)
-  @test haskey(obs.results,"χs") 
-  @test haskey(obs.results,"χmax")
-  @test haskey(obs.results,"pauliX2")
-  @test haskey(obs.results,"pauliYs")
-  @test length(obs.results["χs"]) == depth
-  @test length(obs.results["χs"][1]) == N-1
-  @test length(obs.results["χmax"]) == depth
-  @test length(obs.results["pauliX2"]) == depth
-  @test length(obs.results["pauliYs"]) == depth
+  N = 6
+  depth = 2
+  R = 3
+  Random.seed!(1234)
+  circuit = Vector{Vector{<:Tuple}}(undef, depth)
   for d in 1:depth
-    @test length(obs.results["pauliYs"][d]) == N
+    layer = Tuple[]
+    bonds = PastaQ.randompairing(N,R)
+    PastaQ.twoqubitlayer!(layer,"randU", bonds)
+    circuit[d] = layer
   end
+   
+  obs = CircuitObserver("X")
+  ψ = runcircuit(circuit; observer! = obs)
+  @test length(obs.results["X(n)"]) == 2
+  @test length(obs.results["X(n)"][1]) == N
+  
+
+  obs = CircuitObserver([("X",1:3)],[norm,maxlinkdim])
+  runcircuit(circuit; observer! = obs)
+  @test length(obs.results["X1:3"]) == 2
+  @test length(obs.results["X1:3"][1]) == 3
+  @test length(obs.results["norm"]) == 2 
+  @test obs.results["norm"][end] ≈ norm(ψ) 
+  @test obs.results["maxlinkdim"][end] ≈ maxlinkdim(ψ) 
+
 end
 
 
