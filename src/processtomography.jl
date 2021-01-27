@@ -171,7 +171,7 @@ end
 
 function gradnll(L::LPDO{MPO}, 
                  data::Matrix{Pair{String,Pair{String, Int}}};
-                 sqrt_localnorms = nothing, choi::Bool = false)
+                 sqrt_localnorms = nothing)
   
   data_in = first.(data)
   data_out = convertdatapoints(last.(data))
@@ -342,13 +342,11 @@ end
 
 
 """
-    PastaQ.gradients(L::LPDO, data::Array; sqrt_localnorms = nothing, choi::Bool = false)
-    PastaQ.gradients(ψ::MPS, data::Array; localnorms = nothing, choi::Bool = false)
+    PastaQ.gradients(L::LPDO, data::Array; sqrt_localnorms = nothing)
+    PastaQ.gradients(ψ::MPS, data::Array; localnorms = nothing)
 
 Compute the gradients of the cost function:
 `C = log(Z) - ⟨log P(σ)⟩_data`
-
-If `choi=true`, add the Choi normalization `trace(Λ)=d^N` to the cost function.
 """
 function gradients(L::LPDO, 
                    data::Matrix{Pair{String,Pair{String, Int}}};

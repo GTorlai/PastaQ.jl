@@ -1,6 +1,6 @@
 """
-    writesamples(data::Matrix,
-                 [model::Union{MPS, MPO, LPDO, Choi},]
+    writesamples(data::Matrix{Int},
+                 [model::Union{MPS, MPO, LPDO, Nothing},]
                  output_path::String)
 
 Save data and model on file:
@@ -131,7 +131,7 @@ function readsamples(input_path::String)
       if model == "nothing"
         model = nothing
       else
-        error("model must be MPS, LPDO, Choi, or Nothing")
+        error("model must be MPS, LPDO, or Nothing")
       end
     end
     close(fin)

@@ -309,7 +309,7 @@ end
                        process = true,
                        build_process = true,
                        noise = ("amplitude_damping", (γ = 0.1,)))
-  @test ischoi(Λ) == true #isa Choi{MPO}
+  @test PastaQ.ischoi(Λ) == true #isa Choi{MPO}
 
 end
 

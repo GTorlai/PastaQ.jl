@@ -269,9 +269,9 @@ end
 
 
 """
-    projectchoi(Λ0::Choi{MPO}, prep::Array)
+    projectchoi(Λ0::MPO, prep::Array)
 
-Project the Choi matrix (MPO only for now) input indices into a state `prep` 
+Project the Choi matrix  input indices into a state `prep` 
 made out of single-qubit Pauli eigenstates (e.g. `|ϕ⟩ =|+⟩⊗|0⟩⊗|r⟩⊗…).
 The resulting MPO describes the quantum state obtained by applying
 the quantum channel underlying the Choi matrix to `|ϕ⟩`.

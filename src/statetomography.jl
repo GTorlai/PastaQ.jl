@@ -1,5 +1,5 @@
 """
-    PastaQ.nll(ψ::MPS,data::Array;choi::Bool=false)
+    nll(L::LPDO{MPS}, data::Matrix{Pair{String,Int}})
 
 Compute the negative log-likelihood using an MPS ansatz
 over a dataset `data`:
@@ -33,15 +33,12 @@ end
 nll(ψ::MPS, data::Matrix{Pair{String,Int}}) = nll(LPDO(ψ), data)
 
 """
-    PastaQ.nll(lpdo::LPDO, data::Array; choi::Bool = false)
+    nll(L::LPDO{MPO}, data::Matrix{Pair{String,Int}})
 
 Compute the negative log-likelihood using an LPDO ansatz
 over a dataset `data`:
 
 `nll ∝ -∑ᵢlog P(σᵢ)`
-
-If `choi=true`, the probability is then obtaining by transposing the
-input state, which is equivalent to take the conjugate of the eigenstate projector.
 """
 function nll(L::LPDO{MPO}, data::Matrix{Pair{String,Int}})
   data = convertdatapoints(copy(data); state = true)
@@ -113,8 +110,8 @@ end
 gradlogZ(ψ::MPS; localnorms = nothing) = gradlogZ(LPDO(ψ); sqrt_localnorms = localnorms)
 
 """
-    PastaQ.gradnll(L::LPDO{MPS}, data::Array; sqrt_localnorms = nothing, choi::Bool = false)
-    PastaQ.gradnll(ψ::MPS, data::Array; localnorms = nothing, choi::Bool = false)
+    PastaQ.gradnll(L::LPDO{MPS}, data::Array; sqrt_localnorms = nothing)
+    PastaQ.gradnll(ψ::MPS, data::Array; localnorms = nothing)
 
 Compute the gradients of the cross-entropy between the MPS probability
 distribution of the empirical data distribution for a set of projective
@@ -131,10 +128,6 @@ The cross entropy function is
 where `∑ᵢ` runs over the measurement data. Returns the gradients:
 
 `∇ᵢ = - ∂ᵢ⟨log P(σ))⟩_data`
-
-If `choi=true`, `ψ` correspodns to a Choi matrix `Λ=|ψ⟩⟨ψ|`.
-The probability is then obtaining by transposing the input state, which
-is equivalent to take the conjugate of the eigenstate projector.
 """
 function gradnll(L::LPDO{MPS},
                  data::Matrix{Pair{String,Int}};
@@ -242,7 +235,7 @@ gradnll(ψ::MPS, data::Matrix{Pair{String,Int}};localnorms = nothing) =
   gradnll(LPDO(ψ), data; sqrt_localnorms = localnorms)
 
 """
-    PastaQ.gradnll(lpdo::LPDO{MPO}, data::Array; sqrt_localnorms = nothing, choi::Bool=false)
+    PastaQ.gradnll(lpdo::LPDO{MPO}, data::Array; sqrt_localnorms = nothing)
 
 Compute the gradients of the cross-entropy between the LPDO probability
 distribution of the empirical data distribution for a set of projective
@@ -259,9 +252,6 @@ The cross entropy function is
 where `∑ᵢ` runs over the measurement data. Returns the gradients:
 
 `∇ᵢ = - ∂ᵢ⟨log P(σ))⟩_data`
-
-If `choi=true`, the probability is then obtaining by transposing the
-input state, which is equivalent to take the conjugate of the eigenstate projector.
 """
 function gradnll(L::LPDO{MPO},
                  data::Matrix{Pair{String,Int}};
@@ -417,13 +407,11 @@ end
 
 
 """
-    PastaQ.gradients(L::LPDO, data::Array; sqrt_localnorms = nothing, choi::Bool = false)
-    PastaQ.gradients(ψ::MPS, data::Array; localnorms = nothing, choi::Bool = false)
+    PastaQ.gradients(L::LPDO, data::Array; sqrt_localnorms = nothing)
+    PastaQ.gradients(ψ::MPS, data::Array; localnorms = nothing)
 
 Compute the gradients of the cost function:
 `C = log(Z) - ⟨log P(σ)⟩_data`
-
-If `choi=true`, add the Choi normalization `trace(Λ)=d^N` to the cost function.
 """
 function gradients(L::LPDO, 
                    data::Matrix{Pair{String,Int}};

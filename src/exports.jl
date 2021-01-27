@@ -34,9 +34,6 @@ export
   logtr,
   tr,
 
-# choi.jl,
-  Choi,
-
 # randomstates.jl
   # Methods
   randomstate,
@@ -71,6 +68,5 @@ export
   writesamples,
   readsamples,
   maxlinkdim,
-  ischoi,
   split_dataset,
   numberofqubits
