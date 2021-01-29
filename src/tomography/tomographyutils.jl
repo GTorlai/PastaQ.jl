@@ -67,6 +67,39 @@ function configure!(observer::Union{Observer,Nothing},
   return observer
 end
 
+function update!(observer::Observer,
+                 best_model::Union{Nothing,LPDO},
+                 model::LPDO,
+                 test_data::Union{Nothing,Array},
+                 train_loss::Float64,
+                 simulation_time)
+  
+  # normalize the model
+  normalized_model = copy(model)
+  sqrt_localnorms = []
+  normalize!(normalized_model; sqrt_localnorms! = sqrt_localnorms)
+  
+  # if a test data set is provided
+  if !isnothing(test_data)
+    test_loss = nll(normalized_model, test_data) 
+    # it cost function on the data is lowest, save the model
+    if test_loss < (isempty(result(observer,"test_loss")) ? 1000 : minimum(result(observer,"test_loss")))#best_test_loss
+      best_test_loss = test_loss
+      best_model = copy(model)
+    end
+  else
+    best_model = copy(model)
+  end
+  observer.measurements["simulation_time"] = nothing => simulation_time 
+  push!(observer.measurements["train_loss"][2], train_loss)
+  if !isnothing(test_data)
+    push!(observer.measurements["test_loss"][2], test_loss)
+  end
+  measure!(observer, normalized_model)
+  return observer, best_model
+end
+
+
 printmetric(name::String, metric::Int) = @printf("%s = %d  ",name,metric)
 printmetric(name::String, metric::Float64) = @printf("%s = %-4.4f  ",name,metric)
 printmetric(name::String, metric::AbstractArray) = 

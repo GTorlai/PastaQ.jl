@@ -213,7 +213,7 @@ end
   opt = SGD(η = 0.01)
   
   obs = Observer([maxlinkdim,norm,("X",1),fidelity=>Ψ])
-  epochs = 12
+  epochs = 18
   
   obs2 = copy(obs)
   batchsize = 10
@@ -224,6 +224,7 @@ end
                  batchsize = 10,
                  epochs = epochs,
                  observer! = obs,
+                 measurement_frequency,
                  print_metrics = false)
   
   @test haskey(obs.measurements,"X(1)")
@@ -231,15 +232,15 @@ end
   @test haskey(obs.measurements,"fidelity")
   @test haskey(obs.measurements,"test_loss")
   @test haskey(obs.measurements,"train_loss")
-  @test length(result(obs,"X(1)")) == epochs
-  @test length(result(obs,"maxlinkdim")) == epochs
-  @test length(result(obs,"fidelity")) == epochs
-  @test length(result(obs,"test_loss")) == epochs
-  @test length(result(obs,"train_loss")) == epochs
+  @test length(result(obs,"X(1)")) == epochs ÷measurement_frequency
+  @test length(result(obs,"maxlinkdim")) == epochs÷measurement_frequency
+  @test length(result(obs,"fidelity"))   == epochs÷measurement_frequency
+  @test length(result(obs,"test_loss"))  == epochs÷measurement_frequency
+  @test length(result(obs,"train_loss")) == epochs÷measurement_frequency
 
   params = parameters(obs) 
   @test params["batchsize"] == 10
-  @test params["measurement_frequency"] == 1
+  @test params["measurement_frequency"] == 3
   @test params["dataset_size"] == size(data,1)
   @test haskey(params,"SGD")
   @test haskey(params["SGD"],:η)

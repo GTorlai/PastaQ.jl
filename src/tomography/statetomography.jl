@@ -5,9 +5,6 @@ Compute the negative log-likelihood using an MPS ansatz
 over a dataset `data`:
 
 `nll ∝ -∑ᵢlog P(σᵢ)`
-
-If `choi=true`, the probability is then obtaining by transposing the
-input state, which is equivalent to take the conjugate of the eigenstate projector.
 """
 function nll(L::LPDO{MPS}, data::Matrix{Pair{String,Int}})
   data = convertdatapoints(copy(data); state = true)
@@ -471,7 +468,6 @@ function tomography(train_data::Matrix{Pair{String, Int}}, L::LPDO; observer! = 
   if !isnothing(test_data)
     @assert size(test_data)[2] == length(model)
     best_test_loss = 1_000
-    #observer!.measurements["test_loss"] = (nothing => [])
   end
   
   batchsize = min(size(train_data)[1],batchsize)
@@ -504,34 +500,9 @@ function tomography(train_data::Matrix{Pair{String, Int}}, L::LPDO; observer! = 
     
     # measurement stage
     if ep % measurement_frequency == 0
-      # normalize the model
-      normalized_model = copy(model)
-      sqrt_localnorms = []
-      normalize!(normalized_model; sqrt_localnorms! = sqrt_localnorms)
-      # if a test data set is provided
-      if !isnothing(test_data)
-        test_loss = nll(normalized_model, test_data) 
-        # it cost function on the data is lowest, save the model
-        if test_loss < best_test_loss
-          best_test_loss = test_loss
-          best_model = copy(model)
-        end
-      else
-        best_model = copy(model)
-      end
-      # if an observer is provided, perform measurements
-      if !isnothing(observer!)
-        observer!.measurements["simulation_time"] = nothing => tot_time
-        push!(observer!.measurements["train_loss"][2], train_loss)
-        if !isnothing(test_data)
-          push!(observer!.measurements["test_loss"][2], train_loss)
-        end
-        measure!(observer!, normalized_model)
-      end
-      
+      observer!, best_model = update!(observer!, best_model, model, test_data, train_loss, tot_time)
       # printing
       printobserver(ep, observer!, print_metrics)
-      
       # saving
       if !isnothing(outputpath)
         #saveobserver(observer, outputpath; model = best_model)

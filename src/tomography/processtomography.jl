@@ -550,6 +550,7 @@ function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}}, L::LPDO;
   # configure the observer. if no observer is provided, create an empty one
   observer! = configure!(observer!, optimizer, batchsize, measurement_frequency, train_data, test_data)
   observer! = splitobserverargs!(observer!)
+  
   optimizer = copy(optimizer)
   model = copy(L)
   
@@ -595,34 +596,9 @@ function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}}, L::LPDO;
     
     # measurement stage
     if ep % measurement_frequency == 0
-      # normalize the model
-      normalized_model = copy(model)
-      sqrt_localnorms = []
-      normalize!(normalized_model; sqrt_localnorms! = sqrt_localnorms)
-      # if a test data set is provided
-      if !isnothing(test_data)
-        test_loss = nll(normalized_model, test_data) 
-        # it cost function on the data is lowest, save the model
-        if test_loss < best_test_loss
-          best_test_loss = test_loss
-          best_model = copy(model)
-        end
-      else
-        best_model = copy(model)
-      end
-      # if an observer is provided, perform measurements
-      if !isnothing(observer!)
-        observer!.measurements["simulation_time"] = nothing => tot_time
-        push!(observer!.measurements["train_loss"][2], train_loss)
-        if !isnothing(test_data)
-          push!(observer!.measurements["test_loss"][2], train_loss)
-        end
-        measure!(observer!, normalized_model)
-      end
-      
+      observer!, best_model = update!(observer!, best_model,model, test_data, train_loss, tot_time)
       # printing
       printobserver(ep, observer!, print_metrics)
-      
       # saving
       if !isnothing(outputpath)
         #saveobserver(observer, outputpath; model = best_model)
