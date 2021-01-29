@@ -378,7 +378,7 @@ function runcircuit(N::Int, gates::Vector{<:Tuple};
     
 end
 
-runcircuit(gates::Vector{<:Tuple}; kwargs...) = 
+runcircuit(gates::Vector{Tuple}; kwargs...) = 
   runcircuit(numberofqubits(gates), gates; kwargs...)
 
 
@@ -413,17 +413,17 @@ function runcircuit(M0::Union{MPS,MPO}, gates::Vector{Vector{<:Tuple}};
   return M
 end
 
-function runcircuit(N::Int, gates::Vector{Vector{<:Tuple}}; process = false, kwargs...)
+function runcircuit(N::Int, gates::Vector{Vector{<:Tuple}}; process = false, move_sites_back_before_measurements::Bool = false, kwargs...)
   if process == false
-    runcircuit(qubits(N), gates; kwargs...)
+    runcircuit(qubits(N), gates; move_sites_back_before_measurements = move_sites_back_before_measurements, kwargs...)
   else
     runcircuit(N, vcat(gates...); process = true, kwargs...)
   end
 end
 
-runcircuit(gates::Vector{Vector{<:Tuple}}; kwargs...) = 
-  runcircuit(numberofqubits(gates), gates; kwargs...)
-
+function runcircuit(gates::Vector{Vector{<:Tuple}}; move_sites_back_before_measurements::Bool = false, kwargs...)
+  runcircuit(numberofqubits(gates), gates; move_sites_back_before_measurements = move_sites_back_before_measurements, kwargs...)
+end
 
 """
     runcircuit(M::ITensor,gate_tensors::Vector{ <: ITensor}; kwargs...)

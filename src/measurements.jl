@@ -153,7 +153,9 @@ Observer
 
 function measure!(observer::Observer, M::Union{MPS,MPO}, ref_indices::Vector{<:Index})
   for measurement in keys(observer.measurements)
-    if observer.measurements[measurement] isa Function
+    if observer.measurements[measurement] isa Pair{<:Function, <:Any}
+      res = first(observer.measurements[measurement])(M, last(observer.measurements[measurement])...)
+    elseif observer.measurements[measurement] isa Function
       res = observer.measurements[measurement](M)
     else
       res = measure(M, observer.measurements[measurement], ref_indices)
@@ -170,8 +172,5 @@ measure!(observer::Observer, L::LPDO{MPO}, ref_indices::Vector{<:Index}) =
 
 measure!(observer::Observer, M::Union{MPS,MPO,LPDO}) = 
   measure!(observer, M, hilbertspace(M))
-
-
-
 
 

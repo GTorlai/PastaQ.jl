@@ -306,6 +306,8 @@ function gate(::GateName"randU", N::Int = 2;
   return Q
 end
 
+gate(::GateName"Haar", N::Int = 2; eltype = ComplexF64, random_matrix = randn(eltype, N, N)) =
+  gate("randU", N; eltype = eltype, random_matrix = random_matrix)
 #
 # Noise model gate definitions
 #

@@ -114,8 +114,10 @@ function randomlayer(N::Int, gatenames::Vector{<:AbstractString}; rng = Random.G
 end
 
 randomlayer(bonds::Vector{Vector{Int}}, gatename::AbstractString; rng = Random.GLOBAL_RNG) = 
-  Tuple[(gatename, Tuple(bonds[n]), randomparams(gatename; rng = rng)) for n in 1:length(bonds)]
+  Tuple[(gatename, Tuple(bonds[n]), randomparams(gatename, 4; rng = rng)) for n in 1:length(bonds)]
 
+randomlayer(bonds::Matrix{Int}, gatename::AbstractString; rng = Random.GLOBAL_RNG) = 
+  Tuple[(gatename, Tuple(bonds[n,:]), randomparams(gatename, 4; rng = rng)) for n in 1:size(bonds,1)]
 
 
 function randomcircuit_haar(depth::Int, couplings_set::Vector; rng = Random.GLOBAL_RNG)

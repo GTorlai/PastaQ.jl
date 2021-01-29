@@ -100,7 +100,18 @@ using Test
   @test haskey(obs.results,"norm")
   @test haskey(obs.results,"X")
 
+  f1(ψ::MPS, a1::Int) = norm(ψ) * a1
+  f2(ψ::MPS, a1::Int,a2::Float64) = sqrt(a2)*norm(ψ)*a1
+  obs = Observer([f1 => 1])
+  push!(obs,f2 => (1,2)) 
+  @test haskey(obs.measurements,"f1")
+  @test haskey(obs.measurements,"f2")
+  @test first(obs.measurements["f1"]) == f1
+  @test first(obs.measurements["f2"]) == f2
+  @test last(obs.measurements["f1"]) == 1
+  @test last(obs.measurements["f2"]) == (1,2)
 end
+
 
 @testset "circuitobserver measurements: one-body" begin
   N = 10
@@ -137,24 +148,31 @@ end
   circuit = Vector{Vector{<:Tuple}}(undef, depth)
   for d in 1:depth
     layer = Tuple[]
-    bonds = PastaQ.randompairing(N,R)
-    PastaQ.twoqubitlayer!(layer,"randU", bonds)
+    layer = [("CX",(1,rand(2:N))),("CX",(1,rand(2:N))),("CX",(1,rand(2:N)))]#gatelayer(bonds,"CX") 
     circuit[d] = layer
   end
    
   obs = Observer("X")
-  ψ = runcircuit(circuit; observer! = obs)
+  #circuit = randomcircuit(N,depth)# 
+  ψ = runcircuit(circuit; observer! = obs)#move_sites_back_before_measurements = true)
   @test length(obs.results["X"]) == depth
   @test length(obs.results["X"][1]) == N
   
 
   obs = Observer([("X",1:3),norm,maxlinkdim])
-  runcircuit(circuit; observer! = obs)
+  ψ = runcircuit(circuit; observer! = obs,  move_sites_back_before_measurements = true)
   @test length(obs.results["X(1:3)"]) == depth
   @test length(obs.results["X(1:3)"][1]) == 3
   @test length(obs.results["norm"]) == depth 
   @test obs.results["norm"][end] ≈ norm(ψ) 
   @test obs.results["maxlinkdim"][end] ≈ maxlinkdim(ψ) 
+  @show obs.results
+  
+  f1(ψ::MPS, a1::Int) = norm(ψ) * a1
+  f2(ψ::MPS, a1::Int,a2::Float64) = sqrt(a2)*norm(ψ)*a1
+  obs = Observer([f1 => 1])
+  push!(obs,f2 => (1,2.0)) 
+  ψ = runcircuit(circuit; observer! = obs)
 
 end
 

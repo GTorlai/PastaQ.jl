@@ -5,11 +5,11 @@ implements custom measurements to perform
 at each layer of the circuit evolution.
 """
 struct Observer <: AbstractObserver
-  measurements::Dict{String, Union{Function, String, Tuple}}
+  measurements::Dict{String, Union{Function, String, Tuple, Pair{<:Function, <:Any}}}#Union{<:Any,Tuple{<:Any}}}}}
   results::Dict{String, Any}
 end
 
-Observer() = Observer(Dict{String, Union{Function, String, Tuple}}(),Dict{String, Function}())
+Observer() = Observer(Dict{String, Union{Function, String, Tuple, Pair{<:Function, <:Any}}}(),Dict{String, Any}())#Union{<:Any,Tuple{<:Any}}}}}(),Dict{String, Any}())
 
 """
     CircuitObserver(observables::Dict{String, <:Any})
@@ -33,22 +33,21 @@ Observer(measurements::Vector{<:Pair{String, <:Any}}) =
 
 function Observer(measurements::Vector{<:Any})
   res = Dict{String, Any}()
-  named_measurements = Dict{String, Union{Function, String, Tuple}}()
+  named_measurements = Dict{String, Any}()#Union{Function, String, Tuple, <:Pair{<:Function, <:Any}}}()
   for measurement in measurements
     name = measurement_name(measurement)
-    named_measurements[name] = (measurement isa Pair ? last(measurement) : measurement)
+    named_measurements[name] = (measurement isa Pair{<:String, Any} ? last(measurement) : measurement)
     res[name] = []
   end
   return Observer(named_measurements, res)
 end
 
-Observer(measurement::Union{String,Tuple,Function}) = 
+Observer(measurement::Union{String,Tuple,Function,<:Pair{<:Function,<:Any}}) = 
   Observer([measurement])
 
-
-function Base.push!(observer::Observer, measurement::Union{Pair,String,Tuple,Function})
+function Base.push!(observer::Observer, measurement::Union{<:Pair{<:String,<:Any},<:Pair{<:Function,<:Any},Function, String, Tuple})#, Pair{Function, Any}})
   name = measurement_name(measurement)
-  observer.measurements[name] = (measurement isa Pair ? last(measurement) : measurement)
+  observer.measurements[name] = (measurement isa Pair{String, <:Any} ? last(measurement) : measurement)
   observer.results[name] = []
   return observer
 end
@@ -71,15 +70,18 @@ measurement_name(measurement::Pair{String, <:Any}) =
 measurement_name(measurement::Function) = 
   string(measurement)
 
+measurement_name(measurement::Pair{<:Function,<:Union{Any,Tuple{<:Any}}}) = 
+  string(first(measurement))  
+
 has_customfunctions(observer::Observer) = 
   any(x -> isa(x,Function), values(observer.measurements))
 
 
-function save(observer::Observer, output_path::String)
-  h5rewrite(output_path) do file
-    write(file,"results", observer.results["parameters"])
-  end
-end
-
-
-
+#function save(observer::Observer, output_path::String)
+#  h5rewrite(output_path) do file
+#    write(file,"results", observer.results["parameters"])
+#  end
+#end
+#
+#
+#
