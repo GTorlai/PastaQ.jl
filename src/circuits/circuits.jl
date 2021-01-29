@@ -1,295 +1,14 @@
 """
-Circuit geometries
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+-                              STANDARD CIRCUITS                               -
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 """
-
-# Get site number from coordinate
-coord_to_site(Lx::Int,Ly::Int,x::Int,y::Int) = Lx*(y-1) + x
-
-"""
-    lineararray(N::Int)
-
-Return a vector of bonds for a open 1d lattice with 
-`N` sites.
-"""
-# Returns two-qubit bonds for a linear array
-function lineararray(N::Int)
-  twoqubit_bonds = []
-  # Cycle 1
-  cycle = []
-  for j in 1:2:N-1
-    push!(cycle,(j,j+1))
-  end
-  push!(twoqubit_bonds,cycle)
-  if N>2
-    # Cycle 2
-    cycle = []
-    for j in 2:2:N-1
-      push!(cycle,(j,j+1))
-    end
-    push!(twoqubit_bonds,cycle)
-  end
-  return twoqubit_bonds
-end
-
-
-# Returns two-qubit bonds fro a square array
-"""
-    squarearray(Lx::Int,Ly::Int)
-
-Return a vector containing 4 different "cycles" of bonds,
-corresponding to the different tiling of a square lattice
-with dimensions `Lx` and `Ly`.
-"""
-function squarearray(Lx::Int,Ly::Int)
-  N = Lx * Ly
-  twoqubit_bonds = []
-  # Cycle 1
-  cycle = []
-  for y in 1:2:Ly-1
-    for x in 1:Lx
-      push!(cycle,(coord_to_site(Lx,Ly,x,y),coord_to_site(Lx,Ly,x,y+1)))
-    end
-  end
-  push!(twoqubit_bonds,cycle)
-  # Cycle 2
-  cycle = []
-  for y in 1:2:Ly-1
-    for x in 2:Lx
-      push!(cycle,(coord_to_site(Lx,Ly,x,y),coord_to_site(Lx,Ly,x-1,y+1)))
-    end
-  end
-  push!(twoqubit_bonds,cycle)
-  # Cycle 3
-  cycle = []
-  for y in 2:2:Ly-1
-    for x in 1:Lx-1
-      push!(cycle,(coord_to_site(Lx,Ly,x,y),coord_to_site(Lx,Ly,x+1,y+1)))
-    end
-  end
-  push!(twoqubit_bonds,cycle)
-  # Cycle 4
-  cycle = []
-  for y in 2:2:Ly-1
-    for x in 1:Lx
-      push!(cycle,(coord_to_site(Lx,Ly,x,y),coord_to_site(Lx,Ly,x,y+1)))
-    end
-  end
-  push!(twoqubit_bonds,cycle)
-  return twoqubit_bonds
-end
-
-"""
-    gatelayer(gatename::AbstractString, N::Int; kwargs...)
-
-Create a layer of gates.
-"""
-gatelayer(gatename::AbstractString, N::Int; kwargs...) =
-  Tuple[isempty(kwargs) ? (gatename, n) : (gatename, n, values(kwargs)) for n in 1:N]
-
-"""
-    appendlayer!(gates::AbstractVector{ <: Tuple},
-                 gatename::AbstractString, N::Int)
-
-Append a layer of gates to a gate list.
-"""
-appendlayer!(gates::AbstractVector{ <: Tuple},
-             gatename::AbstractString, N::Int) =
-  append!(gates, gatelayer(gatename, N))
-
-# TODO: replace with gatelayer(gatename, bonds; nqubit = 2)
-# bonds could be:
-# Union{Int, AbstractRange, Vector{Int}}
-# to specify the starting location.
-"""
-    twoqubitlayer(gatename::String,bonds::Array)
-
-Layer of two-qubit gates 
-"""
-function twoqubitlayer(gatename::String,bonds::Array; rng = Random.GLOBAL_RNG)
-  gates = Tuple[]
-  for bond in bonds
-    if gatename == "randU"
-      push!(gates,(gatename, bond, (random_matrix = randn(rng,ComplexF64, 4, 4),)))
-    else
-      push!(gates,(gatename, bond))
-    end
-  end
-  return gates
-end
-
-function twoqubitlayer!(gates::Array,gatename::String,bonds::Array; rng = Random.GLOBAL_RNG)
-  newgates = twoqubitlayer(gatename,bonds; rng = rng)
-  append!(gates, newgates)
-  return gates
-end
-
-"""
-    randomcircuit(N::Int,depth::Int,twoqubit_bonds::Array;
-                  twoqubitgate   = "CX",
-                  onequbitgates  = ["Rn"])
-
-Build a random quantum circuit with `N` qubits and depth `depth`.
-Each layer in the circuit is built with a layer of two-qubit gates
-constructed according to a list of bonds contained in `twoqubit_bonds`,
-followed by a layer of single qubit gates. By default, the two-qubit gate
-is controlled-NOT, and the single-qubit gate is a rotation around a random
-axis. 
-"""
-function randomcircuit(N::Int, depth::Int, twoqubit_bonds::Array;
-                       twoqubitgate::String   = "randU",
-                       onequbitgates::Array  = [],
-                       layered::Bool = true,
-                       seed = nothing)
-  rng = (isnothing(seed) ? Random.GLOBAL_RNG : MersenneTwister(seed)) 
-  
-  gates = Vector{Vector{<:Tuple}}(undef, depth)
-  numgates_1q = length(onequbitgates)
-  
-  for d in 1:depth
-    layer = Tuple[]
-    cycle = twoqubit_bonds[(d-1)%length(twoqubit_bonds)+1]
-    
-    twoqubitlayer!(layer,twoqubitgate,cycle; rng = rng)
-    
-    if !isempty(onequbitgates) 
-      for j in 1:N
-        onequbitgatename = onequbitgates[rand(1:numgates_1q)]
-        if onequbitgatename == "Rn"
-          g = ("Rn", j, (θ = π*rand(rng), ϕ = 2*π*rand(rng), λ = 2*π*rand(rng)))
-        elseif onequbitgatename == "randU"
-          g = ("randU", j, (random_matrix = randn(rng,ComplexF64, 2, 2),))
-        else
-          g = (onequbitgatename, j)
-        end
-        if layered
-          push!(layer,g)
-        else
-          push!(gates,g)
-        end
-      end
-    end
-    gates[d] = layer
-  end
-  layered && return gates
-  return vcat(gates...)
-end
-
-#
-#
-#"""
-#Generate a random quantum circuits with long-range gates at maximum range R.
-#Each layer (up to the maximum `depth`) is built with:
-#- a layer of two-qubit gates according to a random pairing with max range R
-#  The specific gate to be used is input as a kwarg.
-#- a layer of single-qubit random rotations.
-#"""
-#function randomcircuit(N::Int, depth::Int, R::Int;
-#                       twoqubitgate::String   = "randU",
-#                       onequbitgates::Array  = [],
-#                       layered::Bool = true,
-#                       seed = nothing)
-#  rng = (isnothing(seed) ? Random.GLOBAL_RNG : MersenneTwister(seed)) 
-#  
-#  gates = Vector{Vector{<:Tuple}}(undef, depth)
-#  numgates_1q = length(onequbitgates)
-#  
-#  for d in 1:depth
-#    layer = Tuple[]
-#    bonds = randompairing(N,R)
-#    twoqubitlayer!(layer, twoqubitgate, bonds; rng = rng)
-#
-#    for j in 1:N
-#      g = ("Rn", j, (θ = π*rand(), ϕ = 2*π*rand(), λ = 2*π*rand()))
-#      push!(gates,g)
-#    end
-#  end
-#  return gates
-#end;
-
-function randompairing(N::Int, R::Int)
-  @assert iseven(N)
-  qubit_list = 1:N |> collect
-  bonds = Tuple[]
-  
-  for b in 1:N÷2
-    q = qubit_list[1]
-    dist = rand(1:R-1)
-    while (isnothing(findfirst(x -> x == q+dist,qubit_list)))
-      dist = rand(1:R-1)
-    end
-    push!(bonds,(q,q+dist));
-    deleteat!(qubit_list,findfirst(x -> x == q, qubit_list))
-    deleteat!(qubit_list,findfirst(x -> x == q+dist, qubit_list))  
-  end
-  return bonds
-end
-
 
 
 """
-    randomcircuit(N::Int,depth::Int;
-                  twoqubitgate   = "CX",
-                  onequbitgates  = ["Rn"])
-
-Build a 1-D random quantum circuit with `N` qubits and depth `depth`.
-
-# Circuit:
-
-O   O   O   O   O   O  …
-
-# Gates:
-O ▭ O   O ▭ O   O ▭ O  … (Cycle 1)
-O   O ▭ O   O ▭ O   O  … (Cycle 2)
-
-"""
-function randomcircuit(N::Int,depth::Int; kwargs...)
-  twoqubit_bonds = lineararray(N)
-  return randomcircuit(N, depth, twoqubit_bonds; kwargs...)
-end
-
-"""
-    randomcircuit(Lx::Int,Ly::Int,depth::Int;
-                  twoqubitgate   = "CX",
-                  onequbitgates  = ["Rn"])
-
-Build a 2-D random quantum circuit with `N` qubits and depth `depth`.
-
-# 4x4 Circuit:
-O   O   O   O 
-  O   O   O   O
-O   O   O   O
-  O   O   O   O
-
-# Gates:
-    Cycle 1               Cycle 2
-O   O   O   O         O   O   O   O         
- ╲   ╲   ╲   ╲           ╱   ╱   ╱           
-  O   O   O   O         O   O   O   O       
-                                            
-O   O   O   O         O   O   O   O         
- ╲   ╲   ╲   ╲           ╱   ╱   ╱          
-  O   O   O   O         O   O   O   O       
-
-    Cycle 3               Cycle 4
-O   O   O   O         O   O   O   O          
-                      
-  O   O   O   O         O   O   O   O
-   ╲   ╲   ╲               ╱   ╱   ╱
-O   O   O   O         O   O   O   O   
-                      
-  O   O   O   O         O   O   O   O 
-
-
-"""
-function randomcircuit(Lx::Int, Ly::Int, depth::Int; kwargs...)
-  twoqubit_bonds = squarearray(Lx, Ly)
-  return randomcircuit(Lx * Ly, depth, twoqubit_bonds; kwargs...)
-end
-
-
-
-"""
-    qft(N::Int)
+    qft(N::Int; inverse::Bool = false)
 
 Generate a list of gates for the quantum fourier transform circuit on `N` sites.
 """
@@ -329,3 +48,194 @@ function ghz(N::Int)
   end
   return gates
 end
+
+
+"""
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+-                               LAYER FUNCTIONS                                -
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+"""
+
+
+"""
+    gatelayer(gatename::AbstractString, N::Int; kwargs...)
+
+Create a uniform layer of single-qubit gates. If additional parameteres are 
+provided, they are identically added to all gates.
+"""
+gatelayer(N::Int,gatename::AbstractString; kwargs...) =
+  Tuple[isempty(kwargs) ? (gatename, n) : (gatename, n, values(kwargs)) for n in 1:N]
+
+"""
+    gatelayer(bonds::Vector{Vector{Int}}, gatename::AbstractString)
+
+Create a layer of two-qubit gates for a set of bonds
+"""
+gatelayer(bonds::Vector{Vector{Int}}, gatename::AbstractString) = 
+  Tuple[(gatename, Tuple(bonds[n])) for n in 1:length(bonds)]  
+
+
+
+
+"""
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+-                               RANDOM CIRCUITS                                -
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+"""
+
+randomparams(::GateName"Rx"; rng = Random.GLOBAL_RNG) = (θ = π*rand(rng),)
+randomparams(::GateName"Ry"; rng = Random.GLOBAL_RNG) = (θ = π*rand(rng),) 
+randomparams(::GateName"Rz"; rng = Random.GLOBAL_RNG) = (ϕ = 2*π*rand(rng),)
+
+randomparams(::GateName"Rn"; rng = Random.GLOBAL_RNG) = 
+  ( θ = π * rand(rng), ϕ = 2 * π * rand(rng), λ = π * rand(rng))
+
+randomparams(::GateName"Haar", N::Int = 2; rng = Random.GLOBAL_RNG) = 
+  (random_matrix = randn(rng,ComplexF64, N, N),)
+
+
+randomparams(s::AbstractString; kwargs...) = 
+  randomparams(GateName(s); kwargs...)
+
+randomparams(s::AbstractString, args...; kwargs...) = 
+  randomparams(GateName(s), args...; kwargs...)
+
+
+randomlayer(N::Int, gatename::AbstractString; rng = Random.GLOBAL_RNG) = 
+  Tuple[(gatename, n, randomparams(gatename; rng = rng)) for n in 1:N]
+
+function randomlayer(N::Int, gatenames::Vector{<:AbstractString}; rng = Random.GLOBAL_RNG) 
+  gate_id = rand(gatenames,N)
+  return Tuple[(gate_id[n], n, randomparams(gate_id[n]; rng = rng)) for n in 1:N]
+end
+
+randomlayer(bonds::Vector{Vector{Int}}, gatename::AbstractString; rng = Random.GLOBAL_RNG) = 
+  Tuple[(gatename, Tuple(bonds[n]), randomparams(gatename; rng = rng)) for n in 1:length(bonds)]
+
+
+
+function randomcircuit_haar(depth::Int, couplings_set::Vector; rng = Random.GLOBAL_RNG)
+  circuit = Vector{Vector{<:Tuple}}()
+  
+  for d in 1:depth
+    bonds = couplings_set[(d-1)%length(couplings_set)+1]
+    push!(circuit, randomlayer(bonds, "Haar"; rng = rng))
+  end
+  return circuit
+end
+
+function randomcircuit_Rn(N::Int, depth::Int, couplings_set::Vector; twoqubitgate = "CX", rng = Random.GLOBAL_RNG)
+  circuit = Vector{Vector{<:Tuple}}()
+  
+  for d in 1:depth
+    bonds = couplings_set[(d-1)%length(couplings_set)+1]
+    push!(circuit, gatelayer(bonds, "CX"))
+    push!(circuit, randomlayer(N, "Rn"; rng = rng))
+  end
+  return circuit
+end
+
+function randomcircuit(N::Int, depth::Int; randomgate::String = "Rn", rng = Random.GLOBAL_RNG)
+  geometry = lineararray(N)
+  randomgate == "Rn" && return randomcircuit_Rn(N,depth, geometry)
+  return randomcircuit_haar(depth, geometry; rng = rng)
+end
+
+
+function randomcircuit(Lx::Int, Ly::Int, depth::Int; randomgate::String = "Rn", rng = Random.GLOBAL_RNG)
+  geometry = squarearray(Lx,Ly) 
+  randomgate == "Rn" && return randomcircuit_Rn(Lx*Ly,depth, geometry)
+  return randomcircuit_haar(depth, geometry; rng = rng)
+end
+
+
+
+"""
+    randomcircuit(N::Int,depth::Int,twoqubit_bonds::Array;
+                  twoqubitgate   = "CX",
+                  onequbitgates  = ["Rn"])
+
+Build a random quantum circuit with `N` qubits and depth `depth`.
+Each layer in the circuit is built with a layer of two-qubit gates
+constructed according to a list of bonds contained in `twoqubit_bonds`,
+followed by a layer of single qubit gates. By default, the two-qubit gate
+is controlled-NOT, and the single-qubit gate is a rotation around a random
+axis. 
+"""
+#function randomcircuit(N::Int, depth::Int, twoqubit_bonds::Array;
+#                       twoqubitgate::String   = "randU",
+#                       onequbitgates::Array  = [],
+#                       layered::Bool = true,
+#                       rng = Random.GLOBAL_RNG)
+#  
+#  gates = Vector{Vector{<:Tuple}}(undef, depth)
+#  numgates_1q = length(onequbitgates)
+#  
+#  for d in 1:depth
+#    layer = Tuple[]
+#    bonds = twoqubit_bonds[(d-1)%length(twoqubit_bonds)+1]
+#    
+#    #twoqubitlayer!(layer, twoqubitgate, bonds; rng = rng)
+#
+#    if !isempty(onequbitgates) 
+#      for j in 1:N
+#        onequbitgatename = onequbitgates[rand(1:numgates_1q)]
+#        if onequbitgatename == "Rn"
+#          g = ("Rn", j, (θ = π*rand(rng), ϕ = 2*π*rand(rng), λ = 2*π*rand(rng)))
+#        elseif onequbitgatename == "randU"
+#          g = ("randU", j, (random_matrix = randn(rng,ComplexF64, 2, 2),))
+#        else
+#          g = (onequbitgatename, j)
+#        end
+#        if layered
+#          push!(layer,g)
+#        else
+#          push!(gates,g)
+#        end
+#      end
+#    end
+#    gates[d] = layer
+#  end
+#  layered && return gates
+#  return vcat(gates...)
+#end
+
+
+
+
+
+
+#"""
+#Generate a random quantum circuits with long-range gates at maximum range R.
+#Each layer (up to the maximum `depth`) is built with:
+#- a layer of two-qubit gates according to a random pairing with max range R
+#  The specific gate to be used is input as a kwarg.
+#- a layer of single-qubit random rotations.
+#"""
+#function randomcircuit(N::Int, depth::Int, R::Int;
+#                       twoqubitgate::String   = "randU",
+#                       onequbitgates::Array  = [],
+#                       layered::Bool = true,
+#                       seed = nothing)
+#  rng = (isnothing(seed) ? Random.GLOBAL_RNG : MersenneTwister(seed)) 
+#  
+#  gates = Vector{Vector{<:Tuple}}(undef, depth)
+#  numgates_1q = length(onequbitgates)
+#  
+#  for d in 1:depth
+#    layer = Tuple[]
+#    bonds = randompairing(N,R)
+#    twoqubitlayer!(layer, twoqubitgate, bonds; rng = rng)
+#
+#    for j in 1:N
+#      g = ("Rn", j, (θ = π*rand(), ϕ = 2*π*rand(), λ = 2*π*rand()))
+#      push!(gates,g)
+#    end
+#  end
+#  return gates
+#end;
+

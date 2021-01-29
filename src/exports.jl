@@ -3,8 +3,9 @@ export
   maxlinkdim,
 
 # circuits/circuits.jl
-  appendlayer!,
+  randomlayer,
   gatelayer,
+  gatelayer!,
   qft,
   randomcircuit,
 
@@ -47,6 +48,7 @@ export
 # distances.jl
   # Methods
   fidelity,
+  processfidelity,
   fidelity_bound,
   frobenius_distance,
 
@@ -59,9 +61,9 @@ export
   AdaMax,
 
 # observer.jl
-  TomographyObserver,
-  CircuitObserver,
+  Observer,
   measure,
+  save,
 
 # utils.jl
   # Methods

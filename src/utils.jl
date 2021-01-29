@@ -321,7 +321,6 @@ end
 
 function ischoi(M::MPO)
   return (length(inds(M[1],"Site")) == 4 ? true : false)
-  #return ( length(inds(M[1])) == 5 ? true : false)
 end
 
 function makeUnitary(L::LPDO{MPS})
@@ -334,6 +333,7 @@ function makeUnitary(L::LPDO{MPS})
 end
 
 function makeChoi(U0::MPO)
+  ischoi(U0) && return
   M = MPS(ITensor[copy(U0[j]) for j in 1:length(U0)])
   addtags!(M, "Input", plev = 0, tags = "Qubit")
   addtags!(M, "Output", plev = 1, tags = "Qubit")

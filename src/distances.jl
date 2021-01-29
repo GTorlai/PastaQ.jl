@@ -63,13 +63,28 @@ end
 # log_F̃ = lognorm(X, ψ) # = loginner(X, ψ, X, ψ)
 # log_K = 2.0 * (lognorm(ψ) + lognorm(L))
 # return exp(log_F̃ - log_K)
-fidelity(ψ::MPS, L::LPDO{MPO}) = fidelity(ψ, MPO(L))
+fidelity(M::Union{MPS,MPO}, L::LPDO{MPO}) = fidelity(M, MPO(L))
 
-fidelity(ψ::MPS, L::LPDO{MPS}) = fidelity(ψ, L.X)
+fidelity(M::Union{MPS,MPO}, L::LPDO{MPS}) = fidelity(M, L.X)
 
 fidelity(ρ::LPDO, ψ::MPS) = fidelity(ψ, ρ)
 
 fidelity(ρ::MPO, ψ::MPS) = fidelity(ψ, ρ)
+
+fidelity(ρ::MPO, σ::MPO) = fidelity(prod(ρ), prod(σ))
+
+fidelity(L::LPDO{MPS}, M::LPDO{MPS}) = fidelity(L.X, M.X)
+
+
+processfidelity(U::MPS, V::MPS) = fidelity(U,V)
+
+processfidelity(U::MPO, V::MPO) = fidelity(makeChoi(U),makeChoi(V))
+
+processfidelity(L::LPDO{MPS}, V::MPO) = processfidelity(L.X, makeChoi(V))
+
+processfidelity(V::MPO, L::LPDO{MPS}) = processfidelity(L, V)
+
+processfidelity(L::LPDO{MPS}, M::LPDO{MPS}) = processfidelity(L.X,M.X)
 
 """
     frobenius_distance(ρ::Union{MPO, LPDO}, σ::Union{MPO, LPDO})

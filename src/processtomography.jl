@@ -388,19 +388,21 @@ The model can be either a unitary circuit (MPO) or a Choi matrix (LPDO).
  - `test_data`: data for computing cross-validation.
  - `outputpath`: if provided, save metrics on file.
 """
-function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}},
-                    L::LPDO;
-                    optimizer::Optimizer,
-                    observer! = nothing,
-                    batchsize::Int64 = 100,
-                    epochs::Int64 = 1000,
-                    kwargs...)
+function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}}, L::LPDO; 
+                    observer! = nothing, kwargs...)
+  
   # Read arguments
-  target = get(kwargs,:target,nothing)
-  test_data = get(kwargs,:test_data,nothing)
-  outputpath = get(kwargs,:fout,nothing)
-  outputlevel = get(kwargs,:outputlevel,1)
+  optimizer::Optimizer         = get(kwargs,:optimizer,SGD(η = 0.01))
+  batchsize::Int64             = get(kwargs,:batchsize,100)
+  epochs::Int64                = get(kwargs,:epochs,1000)
   trace_preserving_regularizer = get(kwargs,:trace_preserving_regularizer,0.0)
+  measurement_frequency::Int64 = get(kwargs,:measurement_frequency, 1)
+  test_data                    = get(kwargs,:test_data,nothing)
+  outputpath                   = get(kwargs,:fout,nothing)
+  print_metrics                = get(kwargs,:print_metrics, [])
+  
+  # configure the observer. if no observer is provided, create an empty one
+  observer! = configure(observer!, optimizer, batchsize, measurement_frequency, test_data)
 
   optimizer = copy(optimizer)
   model = copy(L)
@@ -408,30 +410,21 @@ function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}},
   @assert size(train_data,2) == length(model)
   if !isnothing(test_data)
     @assert size(test_data)[2] == length(model)
+    best_test_loss = 1_000
   end
-  if !isnothing(target)
-    @assert length(target) == length(model)
-  end 
 
   batchsize = min(size(train_data)[1],batchsize)
-  
-  # Target LPDO are currently not supported
-  if !ischoi(target)
-    target = makeChoi(target).X
-  end
-  
-  F = nothing
-  Fbound = nothing
-  frob_dist  = nothing
-  TP_distance = nothing
-  best_model = nothing
-  test_loss = nothing
-    
-  # Number of training batches
   num_batches = Int(floor(size(train_data)[1]/batchsize))
 
+  # TODO
+  ## Target LPDO are currently not supported
+  #if !ischoi(target)
+  #  target = makeChoi(target).X
+  #end
+  
+  best_model = nothing
   tot_time = 0.0
-  best_test_loss = 1_000
+  
   # Training iterations
   for ep in 1:epochs
     ep_time = @elapsed begin
@@ -458,82 +451,44 @@ function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}},
       update!(model, grads, optimizer; step = nupdate)
     end
     end # end @elapsed
-
-    # Metrics
-    if outputlevel == 1
-      print("$ep : ")
-      @printf("⟨-logP⟩ = %.4f (train) ",train_loss)
-    end
-    # Cost function on held-out validation data
-    if !isnothing(test_data)
+    tot_time += ep_time
+    
+    # measurement stage
+    if ep % measurement_frequency == 0
+      # normalize the model
       normalized_model = copy(model)
       sqrt_localnorms = []
       normalize!(normalized_model; sqrt_localnorms! = sqrt_localnorms)
-      test_loss = nll(normalized_model,test_data) 
-      if outputlevel == 1
-        @printf(", %.4f (test) ",test_loss)
-      end
-      if test_loss < best_test_loss
-        best_test_loss = test_loss
-        best_model = copy(model)
-      end
-    else
-      best_model = copy(model)
-    end
-    # TP measure
-    trace_preserving_distance = TP(model)
-    if outputlevel == 1
-      @printf(" | ") 
-      @printf("|TrᵢΛ-I| = %.2E  ", trace_preserving_distance)
-    end
-    # Fidelities
-    if !isnothing(target)
-      if ((model.X isa MPO) & (target isa MPO))
-        frob_dist = frobenius_distance(model,target)
-        Fbound = fidelity_bound(model,target)
-        if outputlevel == 1
-          @printf("|ρ-σ| = %.3E  ",frob_dist)
-          @printf("Tr[ρσ] = %.3E  ",Fbound)
-        end
-        if (length(model) <= 8)
-          @disable_warn_order begin
-            F = fidelity(prod(model), prod(target))
-          end
-          if outputlevel == 1
-            @printf("F(ρ,σ) = %.3E  ",F)
-          end
+      # if a test data set is provided
+      if !isnothing(test_data)
+        test_loss = nll(normalized_model, test_data) 
+        # it cost function on the data is lowest, save the model
+        if test_loss < best_test_loss
+          best_test_loss = test_loss
+          best_model = copy(model)
         end
       else
-        F = fidelity(model,target)
-        if outputlevel == 1
-          @printf("F(ρ,σ) = %.3E  ",F)
+        best_model = copy(model)
+      end
+      # if an observer is provided, perform measurements
+      if !isnothing(observer!)
+        observer!.results["simulation_time"] = tot_time
+        push!(observer!.results["train_loss"], train_loss)
+        if !isnothing(test_data)
+          push!(observer!.results["test_loss"], test_loss)
         end
+        @show normalized_model
+        measure!(observer!, normalized_model)
       end
-    end
-    if outputlevel == 1
-      @printf("(%.3fs)",ep_time)
-      print("\n")
-    end
-
-    # Measure
-    if !isnothing(observer!)
-      measure!(observer!;
-               train_loss = train_loss,
-               test_loss = test_loss,
-               trace_preserving_dist = trace_preserving_distance,
-               F = F,
-               Fbound = Fbound,
-               frob_dist = frob_dist)
-      # Save on file
+      
+      # printing
+      printobserver(ep, observer!, print_metrics)
+      
+      # saving
       if !isnothing(outputpath)
-        saveobserver(observer, outputpath; model = best_model)
+        #saveobserver(observer, outputpath; model = best_model)
       end
     end
-  
-    tot_time += ep_time
-  end
-  if outputlevel == 1
-    @printf("Total Time = %.3f sec\n",tot_time)
   end
   return best_model
 end

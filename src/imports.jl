@@ -1,5 +1,6 @@
 import Base:
-  sqrt
+  sqrt,
+  push!
 
 import ITensors:
   # circuits/gates.jl

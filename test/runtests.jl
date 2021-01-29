@@ -2,19 +2,20 @@ using Test
 
 @testset "PastaQ.jl" begin
   @testset "$filename" for filename in (
-    "utils.jl",
     "gates.jl",
     "circuits.jl",
     "circuitops.jl",
     "runcircuit.jl",
     "getsamples.jl",
-    "optimizers.jl",
-    "distances.jl",
     "randomstates.jl",
+    "distances.jl",
+    "measurements.jl",
+    "optimizers.jl",
+    "observer.jl",
     "statetomography.jl",
     "processtomography.jl",
+    "utils.jl",
     "examples.jl",
-    "observer.jl",
     #"benchmark_qiskit.jl"
   )
     println("Running $filename")

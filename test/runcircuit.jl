@@ -2,6 +2,7 @@ using PastaQ
 using PastaQ.ITensors
 using Test
 using LinearAlgebra
+using Random
 
 function state_to_int(state::Array)
   index = 0
@@ -166,16 +167,19 @@ end
   N = 4
   depth = 10
   ψ0 = qubits(N)
-
-  circuit = randomcircuit(N, depth; seed = 1234)
+  
+  Random.seed!(1234)
+  circuit = randomcircuit(N, depth)
   ψ = runcircuit(ψ0,circuit)
-  circuit = randomcircuit(N, depth; layered = true, seed = 1234)
+  Random.seed!(1234)
+  circuit = randomcircuit(N, depth)
   @test prod(ψ) ≈ prod(runcircuit(ψ0,circuit))
   
-
-  circuit = randomcircuit(N, depth; seed = 1234)
+  Random.seed!(1234)
+  circuit = randomcircuit(N, depth)
   ρ = runcircuit(ψ0, circuit; noise = ("depolarizing",(p=0.1,)))
-  circuit = randomcircuit(N, depth; layered = true, seed = 1234)
+  Random.seed!(1234)
+  circuit = randomcircuit(N, depth)
   @test prod(ρ) ≈ prod(runcircuit(ψ0, circuit;noise = ("depolarizing",(p=0.1,))))
 
 end
