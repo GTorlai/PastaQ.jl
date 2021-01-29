@@ -2,34 +2,34 @@ using PastaQ
 using ITensors
 using Random
 
-#Random.seed!(1234)
-#N = 4   # Number of qubits
-#depth=4 # Depth of the quantum circuit
-#gates = randomcircuit(N,depth)
-#
-#ψ = runcircuit(N, gates)
-#U = runcircuit(N, gates; process = true)
-#ρ = runcircuit(N, gates; noise = ("amplitude_damping", (γ = 0.01,)))
-#Λ = runcircuit(N, gates; process = true, noise = ("amplitude_damping", (γ = 0.01,)))
-#
-#Random.seed!(1234)
-#nshots = 50
-#
-#data, ψ = getsamples(N, gates, nshots; local_basis = ["X","Y","Z"])
-#writesamples(data, ψ, "../examples/data/qst_circuit_test.h5")
-#
-#data, ρ = getsamples(N, gates, nshots; local_basis = ["X","Y","Z"],
-#                     noise = ("amplitude_damping", (γ = 0.01,)))
-#writesamples(data, ρ, "../examples/data/qst_circuit_noisy_test.h5")
-#
-#data, U = getsamples(N, gates, nshots; local_basis = ["X","Y","Z"],
-#                     process = true)
-#writesamples(data, U, "../examples/data/qpt_circuit_test.h5")
-#
-#data, Λ = getsamples(N,gates,nshots; local_basis = ["X","Y","Z"], 
-#                     process = true,
-#                     noise = ("amplitude_damping", (γ = 0.01,)))
-#writesamples(data, Λ, "../examples/data/qpt_circuit_noisy_test.h5")
+Random.seed!(1234)
+N = 4   # Number of qubits
+depth=4 # Depth of the quantum circuit
+gates = randomcircuit(N,depth)
+
+ψ = runcircuit(N, gates)
+U = runcircuit(N, gates; process = true)
+ρ = runcircuit(N, gates; noise = ("amplitude_damping", (γ = 0.01,)))
+Λ = runcircuit(N, gates; process = true, noise = ("amplitude_damping", (γ = 0.01,)))
+
+Random.seed!(1234)
+nshots = 50
+
+data, ψ = getsamples(N, gates, nshots; local_basis = ["X","Y","Z"])
+writesamples(data, ψ, "../examples/data/qst_circuit_test.h5")
+
+data, ρ = getsamples(N, gates, nshots; local_basis = ["X","Y","Z"],
+                     noise = ("amplitude_damping", (γ = 0.01,)))
+writesamples(data, ρ, "../examples/data/qst_circuit_noisy_test.h5")
+
+data, U = getsamples(N, gates, nshots; local_basis = ["X","Y","Z"],
+                     process = true)
+writesamples(data, U, "../examples/data/qpt_circuit_test.h5")
+
+data, Λ = getsamples(N,gates,nshots; local_basis = ["X","Y","Z"], 
+                     process = true,
+                     noise = ("amplitude_damping", (γ = 0.01,)))
+writesamples(data, Λ, "../examples/data/qpt_circuit_noisy_test.h5")
 
 
 Random.seed!(1234)
@@ -39,10 +39,9 @@ N = length(Ψ)     # Number of qubits
 ψ0 = randomstate(Ψ; χ = χ, σ = 0.1)
 opt = SGD(η = 0.01)
 
-F(ψ::MPS) = fidelity(ψ,ψ0)
-Frob(ψ::MPS) = frobenius_distance(ψ,ψ0)
-obs = Observer([F, Frob])
-print_metrics = ["F","Frob"]
+
+obs = Observer([fidelity => Ψ])
+print_metrics = ["fidelity"]
 ψ = tomography(data, ψ0;
                optimizer = opt,
                epochs = 2,
@@ -57,10 +56,8 @@ N = length(ϱ)     # Number of qubits
 ρ0 = randomstate(ϱ; mixed = true, χ = χ, ξ = ξ, σ = 0.1)
 opt = SGD(η = 0.01)
 
-F(ρ::MPO) = fidelity(ρ,ϱ)
-Frob(ρ::MPO) = frobenius_distance(ρ,ϱ)
-obs = Observer([F, Frob])
-print_metrics = ["F","Frob"]
+obs = Observer([fidelity => ϱ, frobenius_distance => ϱ])
+print_metrics = ["fidelity","frobenius_distance"]
 ρ = tomography(data, ρ0;
                optimizer = opt,
                epochs = 2,
@@ -74,30 +71,31 @@ N = length(U)     # Number of qubits
 V0 = randomprocess(U; χ = χ)
 opt = SGD(η = 0.1)
 
-#F(V::LPDO) = processfidelity(V,U)
-#obs = Observer(F)
-#print_metrics = ["F"]
-#V = tomography(data, V0;
-#               optimizer = opt,
-#               epochs = 2,
-#               trace_preserving_regularizer = 0.1,
-#               observer! = obs,
-#               print_metrics = print_metrics)
 
-observer = Observer((f,arg1,args)
+obs = Observer(fidelity => U)
+print_metrics = ["fidelity"]
+V = tomography(data, V0;
+               optimizer = opt,
+               epochs = 2,
+               trace_preserving_regularizer = 0.1,
+               observer! = obs,
+               print_metrics = print_metrics)
 
-
-
-## Noisy circuit
-#Random.seed!(1234)
-#data, ϱ = readsamples("../examples/data/qpt_circuit_noisy_test.h5")
-#N = length(ϱ)
-#χ = 8
-#ξ = 2
-#Λ0 = randomprocess(ϱ; mixed = true, χ = χ, ξ = ξ, σ = 0.1)
-#opt = SGD(η = 0.1)
-#Λ = tomography(data, Λ0;
-#               optimizer = opt,
-#               epochs = 2,
-#               trace_preserving_regularizer = 0.1,
-#               target = ϱ)
+# Noisy circuit
+Random.seed!(1234)
+data, ϱ = readsamples("../examples/data/qpt_circuit_noisy_test.h5")
+N = length(ϱ)
+χ = 8
+ξ = 2
+Λ0 = randomprocess(ϱ; mixed = true, χ = χ, ξ = ξ, σ = 0.1)
+opt = SGD(η = 0.1)
+@disable_warn_order begin
+  obs = Observer([fidelity => ϱ, fidelity_bound => ϱ])
+  print_metrics = ["fidelity","fidelity_bound"]
+  Λ = tomography(data, Λ0;
+                 optimizer = opt,
+                 epochs = 2,
+                 trace_preserving_regularizer = 0.1,
+                 observer! = obs,
+                 print_metrics = print_metrics)
+end

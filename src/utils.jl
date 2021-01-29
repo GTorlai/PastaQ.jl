@@ -333,7 +333,7 @@ function makeUnitary(L::LPDO{MPS})
 end
 
 function makeChoi(U0::MPO)
-  ischoi(U0) && return
+  ischoi(U0) && return U0
   M = MPS(ITensor[copy(U0[j]) for j in 1:length(U0)])
   addtags!(M, "Input", plev = 0, tags = "Qubit")
   addtags!(M, "Output", plev = 1, tags = "Qubit")

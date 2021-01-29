@@ -141,18 +141,22 @@ function randomcircuit_Rn(N::Int, depth::Int, couplings_set::Vector; twoqubitgat
   return circuit
 end
 
-function randomcircuit(N::Int, depth::Int; randomgate::String = "Rn", rng = Random.GLOBAL_RNG)
+function randomcircuit(N::Int, depth::Int; randomgate::String = "Rn", rng = Random.GLOBAL_RNG, layered::Bool = true)
   geometry = lineararray(N)
-  randomgate == "Rn" && return randomcircuit_Rn(N,depth, geometry)
-  return randomcircuit_haar(depth, geometry; rng = rng)
+  if randomgate == "Rn"
+    circuit = randomcircuit_Rn(N,depth, geometry)
+  elseif randomgate == "Haar"
+    circuit = randomcircuit_haar(depth, geometry; rng = rng)
+  end
+  layered && return circuit
+  return vcat(circuit...)
 end
 
-
-function randomcircuit(Lx::Int, Ly::Int, depth::Int; randomgate::String = "Rn", rng = Random.GLOBAL_RNG)
-  geometry = squarearray(Lx,Ly) 
-  randomgate == "Rn" && return randomcircuit_Rn(Lx*Ly,depth, geometry)
-  return randomcircuit_haar(depth, geometry; rng = rng)
-end
+#function randomcircuit(Lx::Int, Ly::Int, depth::Int; randomgate::String = "Rn", rng = Random.GLOBAL_RNG)
+#  geometry = squarearray(Lx,Ly) 
+#  randomgate == "Rn" && return randomcircuit_Rn(Lx*Ly,depth, geometry)
+#  return randomcircuit_haar(depth, geometry; rng = rng)
+#end
 
 
 

@@ -67,7 +67,7 @@ fidelity(M::Union{MPS,MPO}, L::LPDO{MPO}) = fidelity(M, MPO(L))
 
 fidelity(M::Union{MPS,MPO}, L::LPDO{MPS}) = fidelity(M, L.X)
 
-fidelity(ρ::LPDO, ψ::MPS) = fidelity(ψ, ρ)
+fidelity(L::LPDO, M::Union{MPS,MPO}) = fidelity(M,L)
 
 fidelity(ρ::MPO, ψ::MPS) = fidelity(ψ, ρ)
 
@@ -75,16 +75,6 @@ fidelity(ρ::MPO, σ::MPO) = fidelity(prod(ρ), prod(σ))
 
 fidelity(L::LPDO{MPS}, M::LPDO{MPS}) = fidelity(L.X, M.X)
 
-
-processfidelity(U::MPS, V::MPS) = fidelity(U,V)
-
-processfidelity(U::MPO, V::MPO) = fidelity(makeChoi(U),makeChoi(V))
-
-processfidelity(L::LPDO{MPS}, V::MPO) = processfidelity(L.X, makeChoi(V))
-
-processfidelity(V::MPO, L::LPDO{MPS}) = processfidelity(L, V)
-
-processfidelity(L::LPDO{MPS}, M::LPDO{MPS}) = processfidelity(L.X,M.X)
 
 """
     frobenius_distance(ρ::Union{MPO, LPDO}, σ::Union{MPO, LPDO})

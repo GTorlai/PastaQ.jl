@@ -154,7 +154,11 @@ Observer
 function measure!(observer::Observer, M::Union{MPS,MPO}, ref_indices::Vector{<:Index})
   for measurement in keys(observer.measurements)
     if observer.measurements[measurement] isa Pair{<:Function, <:Any}
-      res = first(observer.measurements[measurement])(M, last(observer.measurements[measurement])...)
+      if last(observer.measurements[measurement]) isa Tuple
+        res = first(observer.measurements[measurement])(M, last(observer.measurements[measurement])...)
+      else
+        res = first(observer.measurements[measurement])(M, last(observer.measurements[measurement]))
+      end
     elseif observer.measurements[measurement] isa Function
       res = observer.measurements[measurement](M)
     else
