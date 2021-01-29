@@ -5,39 +5,49 @@ using Test
 
 @testset "circuitobserver constructor" begin
 
-  # standard: inputs are named operations corresponding to gates
+  ## standard: inputs are named operations corresponding to gates
   obs = Observer("X(n)" => "X")
-  @test haskey(obs.results,"X(n)")
   @test haskey(obs.measurements,"X(n)")
+  @test observable(obs,"X(n)") == "X"
+  @test result(obs,"X(n)") == [] 
   obs = Observer("X1" => ("X",1))
-  @test haskey(obs.results,"X1")
   @test haskey(obs.measurements,"X1")
+  @test observable(obs,"X1") == ("X",1)
+  @test result(obs,"X1") == [] 
   obs = Observer("X1:3" => ("X",1:3))
-  @test haskey(obs.results,"X1:3")
   @test haskey(obs.measurements,"X1:3")
+  @test observable(obs,"X1:3") == ("X",1:3)
+  @test result(obs,"X1:3") == [] 
   
   obs = Observer(["X(n)" => "X", "Y1" => ("Y",1)])
-  @test haskey(obs.results,"X(n)")
   @test haskey(obs.measurements,"X(n)")
-  @test haskey(obs.results,"Y1")
+  @test observable(obs,"X(n)") == "X"
+  @test result(obs,"X(n)") == [] 
   @test haskey(obs.measurements,"Y1")
+  @test observable(obs,"Y1") == ("Y",1)
+  @test result(obs,"Y1") == [] 
 
   # unnamed inputs corresponding to gates
   obs = Observer("X")
-  @test haskey(obs.results,"X")
   @test haskey(obs.measurements,"X")
+  @test observable(obs,"X") == "X"
+  @test result(obs,"X") == []
   obs = Observer(("X",1))
-  @test haskey(obs.results,"X(1)")
   @test haskey(obs.measurements,"X(1)")
+  @test observable(obs,"X(1)") == ("X",1)
+  @test result(obs,"X(1)") == []
   obs = Observer(("X",1:3))
-  @test haskey(obs.results,"X(1:3)")
   @test haskey(obs.measurements,"X(1:3)")
+  @test observable(obs,"X(1:3)") == ("X",1:3)
+  @test result(obs,"X(1:3)") == [] 
   
   obs = Observer(["X",("Y",1)])
-  @test haskey(obs.results,"X")
   @test haskey(obs.measurements,"X")
-  @test haskey(obs.results,"Y(1)")
   @test haskey(obs.measurements,"Y(1)")
+  @test observable(obs,"X") == "X"
+  @test result(obs,"X") == []
+  @test observable(obs,"Y(1)") == ("Y",1)
+  @test result(obs,"Y(1)") == []
 
   # predefined functions 
   function measure_pauli(ψ::MPS, site::Int, pauli::String)
@@ -55,34 +65,43 @@ using Test
   @test haskey(obs.measurements,"χmax")
   @test haskey(obs.measurements,"pauliX2")
   @test haskey(obs.measurements,"pauliYs")
-  @test haskey(obs.results,"χs") 
-  @test haskey(obs.results,"χmax")
-  @test haskey(obs.results,"pauliX2")
-  @test haskey(obs.results,"pauliYs")
+  @test observable(obs,"χs") == linkdims
+  @test observable(obs,"χmax") == maxlinkdim
+  @test observable(obs,"pauliX2") == pauliX2
+  @test observable(obs,"pauliYs") == pauliYs
+  @test result(obs,"χs") == []  
+  @test result(obs,"χmax") == []
+  @test result(obs,"pauliX2") == []
+  @test result(obs,"pauliYs") == [] 
   
   obs = Observer([linkdims, maxlinkdim, pauliX2, pauliYs])
   @test haskey(obs.measurements,"linkdims") 
   @test haskey(obs.measurements,"maxlinkdim")
   @test haskey(obs.measurements,"pauliX2")
   @test haskey(obs.measurements,"pauliYs")
-  @test haskey(obs.results,"linkdims") 
-  @test haskey(obs.results,"maxlinkdim")
-  @test haskey(obs.results,"pauliX2")
-  @test haskey(obs.results,"pauliYs")
+  @test observable(obs,"linkdims") == linkdims
+  @test observable(obs,"maxlinkdim") == maxlinkdim
+  @test observable(obs,"pauliX2") == pauliX2
+  @test observable(obs,"pauliYs") == pauliYs
+  @test result(obs,"linkdims") == []  
+  @test result(obs,"maxlinkdim") == []
+  @test result(obs,"pauliX2") == []
+  @test result(obs,"pauliYs") == [] 
 
-
-  obs = Observer(["obs3" => norm, "obs1" => "X","obs2" => "Y"])
+  obs = Observer(["obs1" => norm, "obs2" => "X","obs3" => "Y"])
   @test haskey(obs.measurements,"obs1")
   @test haskey(obs.measurements,"obs2")
   @test haskey(obs.measurements,"obs3")
-  @test haskey(obs.results,"obs1")
-  @test haskey(obs.results,"obs2")
-  @test haskey(obs.results,"obs3")
+  @test observable(obs,"obs1") == norm
+  @test observable(obs,"obs2") == "X"
+  @test observable(obs,"obs3") == "Y"
+  @test result(obs,"obs1") == [] 
+  @test result(obs,"obs2") == [] 
+  @test result(obs,"obs3") == [] 
+
   obs = Observer([norm, "X"])
   @test haskey(obs.measurements,"norm")
   @test haskey(obs.measurements,"X")
-  @test haskey(obs.results,"norm")
-  @test haskey(obs.results,"X")
 
   obs = Observer()
   push!(obs,"obs3" => norm)
@@ -90,26 +109,31 @@ using Test
   @test haskey(obs.measurements,"obs1")
   @test haskey(obs.measurements,"obs2")
   @test haskey(obs.measurements,"obs3")
-  @test haskey(obs.results,"obs1")
-  @test haskey(obs.results,"obs2")
-  @test haskey(obs.results,"obs3")
-  obs = Observer()
-  push!(obs,norm, "X")
-  @test haskey(obs.measurements,"norm")
-  @test haskey(obs.measurements,"X")
-  @test haskey(obs.results,"norm")
-  @test haskey(obs.results,"X")
+  @test observable(obs, "obs1") == "X"
+  @test observable(obs, "obs2") == "Y"
+  @test result(obs,"obs1") == [] 
+  @test result(obs,"obs2") == [] 
 
+  obs = Observer()
+  push!(obs,norm)
+  push!(obs,norm, "X")
+  @test haskey(obs.measurements,"X")
+  @test observable(obs, "X") == "X"
+  @test observable(obs, "norm") == norm
+  @test result(obs,"X") == []
+  @test result(obs,"norm") == []
+  @test haskey(obs.measurements,"norm")
   f1(ψ::MPS, a1::Int) = norm(ψ) * a1
   f2(ψ::MPS, a1::Int,a2::Float64) = sqrt(a2)*norm(ψ)*a1
+  
   obs = Observer([f1 => 1])
   push!(obs,f2 => (1,2)) 
   @test haskey(obs.measurements,"f1")
   @test haskey(obs.measurements,"f2")
-  @test first(obs.measurements["f1"]) == f1
-  @test first(obs.measurements["f2"]) == f2
-  @test last(obs.measurements["f1"]) == 1
-  @test last(obs.measurements["f2"]) == (1,2)
+  @test observable(obs, "f1") == (f1 => 1)
+  @test observable(obs, "f2") == (f2 => (1,2))
+  @test result(obs,"f1") == []
+  @test result(obs,"f2") == []
 end
 
 
@@ -121,23 +145,23 @@ end
 
   obs = Observer(["X","Y","Z"])
   PastaQ.measure!(obs,ψ)
-  @test length(obs.results["X"]) == 1
-  @test length(obs.results["X"][1]) == N
-  @test length(obs.results["Y"]) == 1
-  @test length(obs.results["Y"][1]) == N
-  @test length(obs.results["Z"]) == 1
-  @test length(obs.results["Z"][1]) == N
+  @test length(last(obs.measurements["X"])) == 1
+  @test length(last(obs.measurements["X"])[1]) == N
+  @test length(last(obs.measurements["Y"])) == 1
+  @test length(last(obs.measurements["Y"])[1]) == N
+  @test length(last(obs.measurements["Z"])) == 1
+  @test length(last(obs.measurements["Z"])[1]) == N
 
   obs = Observer(["X","Y","Z",norm,maxlinkdim])
   PastaQ.measure!(obs,ψ)
-  @test length(obs.results["X"]) == 1
-  @test length(obs.results["X"][1]) == N
-  @test length(obs.results["Y"]) == 1
-  @test length(obs.results["Y"][1]) == N
-  @test length(obs.results["Z"]) == 1
-  @test length(obs.results["Z"][1]) == N
-  @test obs.results["norm"][1] ≈ norm(ψ)
-  @test obs.results["maxlinkdim"][1] == maxlinkdim(ψ)
+  @test length(last(obs.measurements["X"])) == 1
+  @test length(last(obs.measurements["X"])[1]) == N
+  @test length(last(obs.measurements["Y"])) == 1
+  @test length(last(obs.measurements["Y"])[1]) == N
+  @test length(last(obs.measurements["Z"])) == 1
+  @test length(last(obs.measurements["Z"])[1]) == N
+  @test result(obs,"norm")[end] ≈ norm(ψ)
+  @test result(obs,"maxlinkdim")[end] ≈ maxlinkdim(ψ)
 end
 
 @testset "circuit observer" begin
@@ -155,24 +179,27 @@ end
   obs = Observer("X")
   #circuit = randomcircuit(N,depth)# 
   ψ = runcircuit(circuit; observer! = obs)#move_sites_back_before_measurements = true)
-  @test length(obs.results["X"]) == depth
-  @test length(obs.results["X"][1]) == N
+  @test length(result(obs,"X")) == depth
+  @test length(result(obs,"X")[1]) == N
   
 
   obs = Observer([("X",1:3),norm,maxlinkdim])
   ψ = runcircuit(circuit; observer! = obs,  move_sites_back_before_measurements = true)
-  @test length(obs.results["X(1:3)"]) == depth
-  @test length(obs.results["X(1:3)"][1]) == 3
-  @test length(obs.results["norm"]) == depth 
-  @test obs.results["norm"][end] ≈ norm(ψ) 
-  @test obs.results["maxlinkdim"][end] ≈ maxlinkdim(ψ) 
+  @test length(result(obs,"X(1:3)")) == depth
+  @test length(result(obs,"X(1:3)")[end]) == 3
+  @test length(result(obs,"norm")) == depth 
+  @test result(obs,"norm")[end] ≈ norm(ψ)
+  @test result(obs,"maxlinkdim")[end] ≈ maxlinkdim(ψ)
   
   f1(ψ::MPS, a1::Int) = norm(ψ) * a1
   f2(ψ::MPS, a1::Int,a2::Float64) = sqrt(a2)*norm(ψ)*a1
   obs = Observer([f1 => 1])
   push!(obs,f2 => (1,2.0)) 
   ψ = runcircuit(circuit; observer! = obs)
-
+  @test length(result(obs,"f1")) == depth
+  @test length(result(obs,"f2")) == depth
+  @test result(obs,"f1")[end] == norm(ψ)
+  @test result(obs,"f2")[end] == sqrt(2)*norm(ψ)
 end
 
 
@@ -185,9 +212,13 @@ end
   ψ0 = randomstate(Ψ; χ = χ, σ = 0.1)
   opt = SGD(η = 0.01)
   
-  fid(ψ::MPS) = fidelity(ψ,ψ0)
-  obs = Observer([maxlinkdim,norm,("X",1),fid])
+  obs = Observer([maxlinkdim,norm,("X",1),fidelity=>Ψ])
   epochs = 12
+  
+  obs2 = copy(obs)
+  batchsize = 10
+  measurement_frequency = 3
+
   ψ = tomography(data, ψ0;
                  test_data = test_data,
                  batchsize = 10,
@@ -195,24 +226,24 @@ end
                  observer! = obs,
                  print_metrics = false)
   
-  @test haskey(obs.results,"X(1)")
-  @test length(obs.results["X(1)"]) == epochs
-  @test haskey(obs.results,"maxlinkdim")
-  @test length(obs.results["maxlinkdim"]) == epochs
-  @test haskey(obs.results,"fid")
-  @test length(obs.results["fid"]) == epochs
-  @test haskey(obs.results,"test_loss")
-  @test length(obs.results["test_loss"]) == epochs
-  @test haskey(obs.results,"train_loss")
-  @test length(obs.results["train_loss"]) == epochs
-  @test haskey(obs.results,"simulation_time")
-  @test haskey(obs.results,"parameters") 
+  @test haskey(obs.measurements,"X(1)")
+  @test haskey(obs.measurements,"maxlinkdim")
+  @test haskey(obs.measurements,"fidelity")
+  @test haskey(obs.measurements,"test_loss")
+  @test haskey(obs.measurements,"train_loss")
+  @test length(result(obs,"X(1)")) == epochs
+  @test length(result(obs,"maxlinkdim")) == epochs
+  @test length(result(obs,"fidelity")) == epochs
+  @test length(result(obs,"test_loss")) == epochs
+  @test length(result(obs,"train_loss")) == epochs
 
-  params = obs.results["parameters"]
+  params = parameters(obs) 
   @test params["batchsize"] == 10
   @test params["measurement_frequency"] == 1
+  @test params["dataset_size"] == size(data,1)
   @test haskey(params,"SGD")
   @test haskey(params["SGD"],:η)
   @test haskey(params["SGD"],:γ)
   @test params["SGD"][:η] == 0.01
+
 end

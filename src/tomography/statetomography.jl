@@ -462,8 +462,8 @@ function tomography(train_data::Matrix{Pair{String, Int}}, L::LPDO; observer! = 
  
   
   # configure the observer. if no observer is provided, create an empty one
-  observer! = configure(observer!, optimizer, batchsize, measurement_frequency, test_data)
-
+  observer! = configure!(observer!,optimizer,batchsize,measurement_frequency,train_data,test_data)
+  
   optimizer = copy(optimizer)
   model = copy(L)
 
@@ -471,6 +471,7 @@ function tomography(train_data::Matrix{Pair{String, Int}}, L::LPDO; observer! = 
   if !isnothing(test_data)
     @assert size(test_data)[2] == length(model)
     best_test_loss = 1_000
+    #observer!.measurements["test_loss"] = (nothing => [])
   end
   
   batchsize = min(size(train_data)[1],batchsize)
@@ -520,10 +521,10 @@ function tomography(train_data::Matrix{Pair{String, Int}}, L::LPDO; observer! = 
       end
       # if an observer is provided, perform measurements
       if !isnothing(observer!)
-        observer!.results["simulation_time"] = tot_time
-        push!(observer!.results["train_loss"], train_loss)
+        observer!.measurements["simulation_time"] = nothing => tot_time
+        push!(observer!.measurements["train_loss"][2], train_loss)
         if !isnothing(test_data)
-          push!(observer!.results["test_loss"], test_loss)
+          push!(observer!.measurements["test_loss"][2], train_loss)
         end
         measure!(observer!, normalized_model)
       end
@@ -543,72 +544,3 @@ end
 tomography(data::Matrix{Pair{String, Int}}, ψ::MPS; kwargs...) =
   tomography(data, LPDO(ψ); kwargs...).X
 
-printmetric(name::String, metric::Int) = @printf("%s = %d  ",name,metric)
-printmetric(name::String, metric::Float64) = @printf("%s = %-4.4f  ",name,metric)
-printmetric(name::String, metric::AbstractArray) = 
-  @printf("%s = [...]  ",name)
-
-function printmetric(name::String, metric::Complex)
-  if imag(metric) < 1e-8
-    @printf("%s = %-4.4f  ",name,real(metric))
-  else
-    @printf("%s = %.4f±i%-4.4f  ",name,real(metric),imag(metric))
-  end
-end
-
-
-function printobserver(epoch::Int, observer::Observer, print_metrics::Union{Bool,String,AbstractArray})
-  
-  (print_metrics isa Bool) && !print_metrics && return
-  
-  @printf("%-4d  ",epoch)
-  @printf("⟨logP⟩ = %-4.4f  ", observer.results["train_loss"][end]) 
-  if haskey(observer.results,"test_loss")
-    @printf("(%.4f)  ",observer.results["train_loss"][end])
-  end
-  if !isempty(print_metrics)
-    if print_metrics isa String
-      printmetric(print_metrics, observer.results[print_metrics][end])  
-    else
-      for metric in print_metrics
-        printmetric(metric, observer.results[metric][end])
-      end
-    end
-  end
-  println()
-end
-
-
-function configure(observer::Union{Nothing,Observer}, optimizer::Optimizer, batchsize::Int, 
-                   measurement_frequency::Int, test_data::Union{Array,Nothing})
-   
-  if isnothing(observer)
-    observer = Observer()
-  end
-  params = Dict{String,Any}()
-  
-  # grab the optimizer parameters
-  params[string(typeof(optimizer))] = Dict{Symbol,Any}() 
-  for par in fieldnames(typeof(optimizer))
-    if !(getfield(optimizer,par) isa Vector{<:ITensor})
-      params[string(typeof(optimizer))][par] = getfield(optimizer,par)
-    end
-  end
-
-  # batchsize 
-  params["batchsize"] = batchsize
-  
-  # storing this can help to back out simulation time and observables evolution
-  params["measurement_frequency"] = measurement_frequency
-  
-  # add parameters
-  observer.results["parameters"] = params
-   
-  observer.results["train_loss"] = []
-  if !isnothing(test_data)
-    observer.results["test_loss"] = []
-  end
-  return observer
-end
-
-#configure!(observer::Nothing, kwargs...) = nothing

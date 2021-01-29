@@ -148,22 +148,19 @@ measure(ψ::MPS, measurement::Tuple{String,String}) =
 
 
 
-
 """
     entanglemententropy(ψ::MPS; bond = nothing)
 
 Measure the entanglement entropy of an MPS `ψ` at `bond`.
 """
-function entanglemententropy(ψ::MPS; bond = nothing)
+function entanglemententropy(ψ0::MPS; bond::Int = length(ψ0)÷2)
     # number of qubits
     N = length(ψ)
+    @assert (bond < N)
     
     # make sure the state is normalized
-    normalize!(ψ)
+    ψ = normalize!(copy(ψ0)) 
     
-    # if bond = nothing, take the center bond
-    bond = (isnothing(bond) ? N÷2 : bond)
-    @assert (bond < N)
     
     # gauge the MPS
     orthogonalize!(ψ, bond)

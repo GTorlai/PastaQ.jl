@@ -1,62 +1,60 @@
 """
-CircuitObserver is an implementation of an
+Observer is an implementation of an
 observer object (<:AbstractObserver) which
 implements custom measurements to perform
 at each layer of the circuit evolution.
 """
 struct Observer <: AbstractObserver
-  measurements::Dict{String, Union{Function, String, Tuple, Pair{<:Function, <:Any}}}#Union{<:Any,Tuple{<:Any}}}}}
-  results::Dict{String, Any}
+  measurements::Dict{String, Pair{<:Union{Nothing,Function, String, Tuple, Pair{<:Function, <:Any}},<:Any}}
 end
 
-Observer() = Observer(Dict{String, Union{Function, String, Tuple, Pair{<:Function, <:Any}}}(),Dict{String, Any}())#Union{<:Any,Tuple{<:Any}}}}}(),Dict{String, Any}())
+Observer() = Observer(Dict{String, Pair{<:Union{Nothing,Function, String, Tuple, Pair{<:Function, <:Any}},<:Any}}())
 
+observable(observer::Observer, observable::String) = first(observer.measurements[observable])
+result(observer::Observer, observable::String) = last(observer.measurements[observable])
+parameters(observer::Observer) = last(observer.measurements["parameters"])
 """
     CircuitObserver(observables::Dict{String, <:Any})
 
 Generate an observer given a list of measurements passed as a dictionary. 
 """
-function Observer(measurements::Dict{String, <:Any}) 
-  res = Dict{String, Any}()
-  for obs in keys(measurements)
-    res[obs] = []
+function Observer(observables::Dict{String, <:Any})
+  measurements = Dict{String, Pair{<:Union{Nothing,Function, String, Tuple, Pair{<:Function, <:Any}},<:Any}}()
+  for observable in keys(observables)
+    measurements[observable] = observables[observable] => []
   end
-  return Observer(measurements, res)
+  return Observer(measurements)
 end
 
-Observer(measurement::Pair{String, <:Any}) = 
+Observer(measurement::Pair{String,<:Any}) = 
   Observer([measurement])
 
-Observer(measurements::Vector{<:Pair{String, <:Any}}) = 
+Observer(measurements::Vector{<:Pair{String,<:Any}}) =  
   Observer(Dict(measurements))
 
-
-function Observer(measurements::Vector{<:Any})
-  res = Dict{String, Any}()
-  named_measurements = Dict{String, Any}()#Union{Function, String, Tuple, <:Pair{<:Function, <:Any}}}()
-  for measurement in measurements
-    name = measurement_name(measurement)
-    named_measurements[name] = (measurement isa Pair{<:String, Any} ? last(measurement) : measurement)
-    res[name] = []
+function Observer(observables::Vector{<:Any})
+  measurements = Dict{String, Pair{<:Union{Nothing,Function, String, Tuple, Pair{<:Function, <:Any}},<:Any}}()
+  for observable in observables
+    name = measurement_name(observable)
+    measurements[name] = (observable isa Pair{<:String, Any} ? last(observable) : observable) => []
   end
-  return Observer(named_measurements, res)
+  return Observer(measurements)
 end
 
 Observer(measurement::Union{String,Tuple,Function,<:Pair{<:Function,<:Any}}) = 
   Observer([measurement])
 
-function Base.push!(observer::Observer, measurement::Union{<:Pair{<:String,<:Any},<:Pair{<:Function,<:Any},Function, String, Tuple})#, Pair{Function, Any}})
-  name = measurement_name(measurement)
-  observer.measurements[name] = (measurement isa Pair{String, <:Any} ? last(measurement) : measurement)
-  observer.results[name] = []
+function Base.push!(observer::Observer, observable::Pair{String, <:Any})
+  observer.measurements[first(observable)] = last(observable) => []
   return observer
 end
 
-function Base.push!(observer::Observer, measurements...)
-  for measurement in measurements
-    Base.push!(observer, measurement)
-  end
+function Base.push!(observer::Observer, observable::Union{String,Tuple,<:Function,<:Pair{<:Function,<:Any}})
+  name = measurement_name(observable)
+  observer.measurements[name] = (observable isa Pair{String, <:Any} ? last(observable) : observable) => []
+  return observer
 end
+
 
 measurement_name(measurement::String) = 
   measurement
@@ -79,18 +77,22 @@ has_customfunctions(observer::Observer) =
 
 function measure!(observer::Observer, M::Union{MPS,MPO}, ref_indices::Vector{<:Index})
   for measurement in keys(observer.measurements)
-    if observer.measurements[measurement] isa Pair{<:Function, <:Any}
-      if last(observer.measurements[measurement]) isa Tuple
-        res = first(observer.measurements[measurement])(M, last(observer.measurements[measurement])...)
+    observable = first(observer.measurements[measurement])
+    if observable isa Pair{<:Function, <:Any}
+      if last(observable) isa Tuple
+        res = first(observable)(M, last(observable)...)
       else
-        res = first(observer.measurements[measurement])(M, last(observer.measurements[measurement]))
+        #@show M,last(observable)
+        res = first(observable)(M, last(observable)) 
       end
-    elseif observer.measurements[measurement] isa Function
-      res = observer.measurements[measurement](M)
-    else
-      res = measure(M, observer.measurements[measurement], ref_indices)
+    elseif observable isa Function
+      res = first(observer.measurements[measurement])(M)
+    elseif !isnothing(observable)
+      res = measure(M, first(observer.measurements[measurement]), ref_indices)
     end
-    push!(observer.results[measurement], res)
+    if !isnothing(observable)
+      push!(observer.measurements[measurement][2], res)
+    end
   end
 end
 
@@ -104,11 +106,12 @@ measure!(observer::Observer, M::Union{MPS,MPO,LPDO}) =
   measure!(observer, M, hilbertspace(M))
 
 
-#function save(observer::Observer, output_path::String)
-#  h5rewrite(output_path) do file
-#    write(file,"results", observer.results["parameters"])
-#  end
-#end
-#
-#
-#
+Base.copy(observer::Observer) = Observer(copy(observer.measurements)) 
+##function save(observer::Observer, output_path::String)
+##  h5rewrite(output_path) do file
+##    write(file,"results", observer.results["parameters"])
+##  end
+##end
+##
+##
+##

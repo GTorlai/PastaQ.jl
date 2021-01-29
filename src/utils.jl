@@ -224,7 +224,7 @@ function numberofqubits(gates::Vector{<:Tuple})
   return nMax
 end
 
-function numberofqubits(gates::Vector{Vector{<:Tuple}})
+function numberofqubits(gates::Vector{<:Vector{<:Tuple}})
   nMax = 0
   for layer in gates
     for g in layer

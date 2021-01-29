@@ -6,10 +6,10 @@ import ITensors:
   # circuits/gates.jl
   space,
   state,
-  measurements,
-  norm
+  measurements
 
 import LinearAlgebra:
   normalize!,
-  tr
+  tr,
+  norm
 

@@ -30,6 +30,7 @@ include("measurements.jl")
 
 include("tomography/statetomography.jl")
 include("tomography/processtomography.jl")
+include("tomography/tomographyutils.jl")
 
 include("inputoutput.jl")
 include("utils.jl")

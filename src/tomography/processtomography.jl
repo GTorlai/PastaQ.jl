@@ -548,9 +548,8 @@ function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}}, L::LPDO;
   print_metrics                = get(kwargs,:print_metrics, [])
   
   # configure the observer. if no observer is provided, create an empty one
-  observer! = configure(observer!, optimizer, batchsize, measurement_frequency, test_data)
+  observer! = configure!(observer!, optimizer, batchsize, measurement_frequency, train_data, test_data)
   observer! = splitobserverargs!(observer!)
-
   optimizer = copy(optimizer)
   model = copy(L)
   
@@ -613,10 +612,10 @@ function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}}, L::LPDO;
       end
       # if an observer is provided, perform measurements
       if !isnothing(observer!)
-        observer!.results["simulation_time"] = tot_time
-        push!(observer!.results["train_loss"], train_loss)
+        observer!.measurements["simulation_time"] = nothing => tot_time
+        push!(observer!.measurements["train_loss"][2], train_loss)
         if !isnothing(test_data)
-          push!(observer!.results["test_loss"], test_loss)
+          push!(observer!.measurements["test_loss"][2], train_loss)
         end
         measure!(observer!, normalized_model)
       end
@@ -636,37 +635,5 @@ end
 function tomography(data::Matrix{Pair{String,Pair{String, Int}}}, U::MPO; optimizer::Optimizer, kwargs...)
   V = tomography(data, makeChoi(U); optimizer = optimizer, kwargs...)
   return makeUnitary(V)
-end
-
-function trace_outputsites(L::LPDO)
-  N = length(L)
-  
-  Φ = ITensor[]
-
-  tmp = noprime(ket(L,1),tags="Output") * bra(L,1)
-  Cdn = combiner(commonind(tmp,L.X[2]),commonind(tmp,L.X[2]'))
-  push!(Φ,tmp * Cdn)
-
-  for j in 2:N-1
-    tmp = noprime(ket(L,j),tags="Output") * bra(L,j)
-    Cup = Cdn
-    Cdn = combiner(commonind(tmp,L.X[j+1]),commonind(tmp,L.X[j+1]'))
-    push!(Φ,tmp * Cup * Cdn)
-  end
-  tmp = noprime(ket(L,N),tags="Output") * bra(L,N)
-  Cup = Cdn
-  push!(Φ,tmp * Cup)
-  return MPO(Φ)
-end
-
-function splitobserverargs!(observer::Observer) 
-  for measurement in keys(observer.measurements)
-    if observer.measurements[measurement] isa Pair{<:Function, <:Any}
-      if last(observer.measurements[measurement]) isa MPO
-        observer.measurements[measurement] = observer.measurements[measurement][1] => makeChoi(observer.measurements[measurement][2])
-      end
-    end
-  end
-  return observer
 end
 

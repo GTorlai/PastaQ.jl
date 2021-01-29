@@ -70,8 +70,9 @@ export
 # observer.jl
   Observer,
   save,
-
-
+  observable,
+  result,
+  parameters,
 
 # inputoutput.jl
   writesamples,
