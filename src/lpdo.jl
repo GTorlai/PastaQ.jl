@@ -51,6 +51,10 @@ tr(L::LPDO) = inner(L.X, L.X)
 
 logtr(L::LPDO) = loginner(L.X, L.X)
 
+norm(L::LPDO{MPS}) = norm(L.X)
+
+norm(L::LPDO{MPO}) = norm(MPO(L))
+
 # TODO: define siteinds, firstsiteind, allsiteind, etc.
 
 """
