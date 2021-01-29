@@ -3,27 +3,62 @@ using ITensors
 using Test
 using Random
 
-#@testset "circuits: appendlayer!" begin
-#  N = 5
-#  gates = Tuple[]
-#  appendlayer!(gates, "H", N)
-#  @test length(gates) == N
-#  for j in 1:N
-#    @test gates[j] isa Tuple{String,Int64}
-#    @test gates[j][1] == "H"
-#    @test gates[j][2] == j
-#  end
-#end
-#
-#@testset "circuits: randU layer" begin
-#  N = 5
-#  gates = Tuple[]
-#  appendlayer!(gates, "randU", N)
-#  @test length(gates) == N
-#  for j in 1:N
-#    @test typeof(gates[j]) == Tuple{String,Int64}
-#    @test gates[j][1] == "randU"
-#    @test gates[j][2] == j
-#  end
-#end
+@testset "gatelayer" begin
+  N = 10
+  layer = gatelayer("X",N)
+  @test length(layer) == N
+  @test all(x -> x == "X", first.(layer))
+
+  qarray = lineararray(N)
+  layer = gatelayer("CX", qarray[1])
+  @test length(layer) == length(qarray[1])
+  @test all(x -> x == "CX", first.(layer))
+  layer = gatelayer("CX", qarray[2])
+  @test length(layer) == length(qarray[2])
+  @test all(x -> x == "CX", first.(layer))
+end
+
+@testset "randommparamrs" begin
+  N = 10
+  pars = PastaQ.randomparams("Rx")
+  @test haskey(pars,:θ)
+  pars = PastaQ.randomparams("Ry")
+  @test haskey(pars,:θ)
+  pars = PastaQ.randomparams("Rz")
+  @test haskey(pars,:ϕ)
+  pars = PastaQ.randomparams("Rn")
+  @test haskey(pars,:θ)
+  @test haskey(pars,:ϕ)
+  @test haskey(pars,:λ)
+  
+  pars = PastaQ.randomparams("Haar",4)
+  @test haskey(pars,:random_matrix)
+  @test size(pars[:random_matrix]) == (4,4)
+  @test pars[:random_matrix] isa Matrix{ComplexF64}
+end
+
+
+@testset "randomlayer" begin
+
+  N = 10
+  layer = randomlayer("Rn",N)
+  @test length(layer) == N
+  @test all(x -> x == "Rn", first.(layer))
+
+  qarray = lineararray(N)
+  layer = randomlayer("Haar", qarray[1])
+  @test length(layer) == length(qarray[1])
+  @test all(x -> x == "Haar", first.(layer))
+  layer = randomlayer("Haar", qarray[2])
+  @test length(layer) == length(qarray[2])
+  @test all(x -> x == "Haar", first.(layer))
+
+end
+
+
+
+
+
+
+
 

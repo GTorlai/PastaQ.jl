@@ -88,7 +88,6 @@ end
   @test exact_mat ≈ ρ_mat
 end
 
-
 @testset "runcircuit: unitary quantum circuit" begin
   N = 3
   depth = 4
@@ -183,5 +182,4 @@ end
   @test prod(ρ) ≈ prod(runcircuit(ψ0, circuit;noise = ("depolarizing",(p=0.1,))))
 
 end
-
 

@@ -77,6 +77,33 @@ has_customfunctions(observer::Observer) =
   any(x -> isa(x,Function), values(observer.measurements))
 
 
+function measure!(observer::Observer, M::Union{MPS,MPO}, ref_indices::Vector{<:Index})
+  for measurement in keys(observer.measurements)
+    if observer.measurements[measurement] isa Pair{<:Function, <:Any}
+      if last(observer.measurements[measurement]) isa Tuple
+        res = first(observer.measurements[measurement])(M, last(observer.measurements[measurement])...)
+      else
+        res = first(observer.measurements[measurement])(M, last(observer.measurements[measurement]))
+      end
+    elseif observer.measurements[measurement] isa Function
+      res = observer.measurements[measurement](M)
+    else
+      res = measure(M, observer.measurements[measurement], ref_indices)
+    end
+    push!(observer.results[measurement], res)
+  end
+end
+
+measure!(observer::Observer, L::LPDO{MPS}, ref_indices::Vector{<:Index}) = 
+  measure!(observer, L.X, ref_indices)
+
+measure!(observer::Observer, L::LPDO{MPO}, ref_indices::Vector{<:Index}) =
+  measure!(observer, MPO(L), ref_indices)
+
+measure!(observer::Observer, M::Union{MPS,MPO,LPDO}) = 
+  measure!(observer, M, hilbertspace(M))
+
+
 #function save(observer::Observer, output_path::String)
 #  h5rewrite(output_path) do file
 #    write(file,"results", observer.results["parameters"])

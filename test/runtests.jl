@@ -7,6 +7,7 @@ using Test
     "circuitops.jl",
     "runcircuit.jl",
     "getsamples.jl",
+    "qubitarrays.jl",
     "randomstates.jl",
     "distances.jl",
     "measurements.jl",

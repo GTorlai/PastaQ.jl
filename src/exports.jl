@@ -5,9 +5,9 @@ export
 # circuits/circuits.jl
   randomlayer,
   gatelayer,
-  gatelayer!,
-  qft,
   randomcircuit,
+  qft,
+  ghz,
 
 # circuits/gates.jl
   # Methods
@@ -30,8 +30,14 @@ export
   applygate,
   runcircuit,
 
+# circuits/qubitarrays.jl
+  lineararray,
+  squarearray,
+  randomcouplings,
+
 # lpdo.jl
   LPDO,
+  normalize!,
   logtr,
   tr,
 
@@ -40,15 +46,16 @@ export
   randomstate,
   randomprocess,
 
-# statetomography.jl/processtomography.jl
-  # Methods
-  normalize!,
+# tomography/statetomography.jl
+#           /processtomography.jl
   tomography,
 
+# measurements.jl
+  measure,
+  entanglemententropy,
+
 # distances.jl
-  # Methods
   fidelity,
-  processfidelity,
   fidelity_bound,
   frobenius_distance,
 
@@ -62,13 +69,15 @@ export
 
 # observer.jl
   Observer,
-  measure,
   save,
 
-# utils.jl
-  # Methods
+
+
+# inputoutput.jl
   writesamples,
   readsamples,
+
+# utils.jl
   maxlinkdim,
   split_dataset,
   numberofqubits

@@ -147,34 +147,38 @@ measure(ψ::MPS, measurement::Tuple{String,String}) =
   measure(ψ::MPS, measurement, siteinds(ψ))
 
 
-"""
-Observer
-"""
 
-function measure!(observer::Observer, M::Union{MPS,MPO}, ref_indices::Vector{<:Index})
-  for measurement in keys(observer.measurements)
-    if observer.measurements[measurement] isa Pair{<:Function, <:Any}
-      if last(observer.measurements[measurement]) isa Tuple
-        res = first(observer.measurements[measurement])(M, last(observer.measurements[measurement])...)
-      else
-        res = first(observer.measurements[measurement])(M, last(observer.measurements[measurement]))
-      end
-    elseif observer.measurements[measurement] isa Function
-      res = observer.measurements[measurement](M)
-    else
-      res = measure(M, observer.measurements[measurement], ref_indices)
+
+"""
+    entanglemententropy(ψ::MPS; bond = nothing)
+
+Measure the entanglement entropy of an MPS `ψ` at `bond`.
+"""
+function entanglemententropy(ψ::MPS; bond = nothing)
+    # number of qubits
+    N = length(ψ)
+    
+    # make sure the state is normalized
+    normalize!(ψ)
+    
+    # if bond = nothing, take the center bond
+    bond = (isnothing(bond) ? N÷2 : bond)
+    @assert (bond < N)
+    
+    # gauge the MPS
+    orthogonalize!(ψ, bond)
+    
+    # get singular values
+    row_inds = (bond > 1 ? (linkind(ψ, bond-1), siteind(ψ,bond)) : siteind(ψ,bond))
+    u,s,v = svd(ψ[bond],row_inds)
+    
+    # Compute Von Neumann Entropy S = -Tr(ρ log(ρ))
+    S = 0.0
+    for n in 1:dim(s, 1)
+        λ = s[n,n]^2
+        S -= λ * log(λ + 1e-20)
     end
-    push!(observer.results[measurement], res)
-  end
+    return S
 end
-
-measure!(observer::Observer, L::LPDO{MPS}, ref_indices::Vector{<:Index}) = 
-  measure!(observer, L.X, ref_indices)
-
-measure!(observer::Observer, L::LPDO{MPO}, ref_indices::Vector{<:Index}) =
-  measure!(observer, MPO(L), ref_indices)
-
-measure!(observer::Observer, M::Union{MPS,MPO,LPDO}) = 
-  measure!(observer, M, hilbertspace(M))
 
 

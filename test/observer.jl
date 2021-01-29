@@ -166,7 +166,6 @@ end
   @test length(obs.results["norm"]) == depth 
   @test obs.results["norm"][end] ≈ norm(ψ) 
   @test obs.results["maxlinkdim"][end] ≈ maxlinkdim(ψ) 
-  @show obs.results
   
   f1(ψ::MPS, a1::Int) = norm(ψ) * a1
   f2(ψ::MPS, a1::Int,a2::Float64) = sqrt(a2)*norm(ψ)*a1
@@ -216,5 +215,4 @@ end
   @test haskey(params["SGD"],:η)
   @test haskey(params["SGD"],:γ)
   @test params["SGD"][:η] == 0.01
-  @show obs.results
 end
