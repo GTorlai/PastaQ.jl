@@ -1,7 +1,6 @@
 name = "PastaQ"
 uuid = "30b07047-aa8b-4c78-a4e8-24d720215c19"
-authors = ["Giacomo Torlai <torlaigiacomo@gmail.com>",
-           "Matthew Fishman <mfishman@flatironinstitute.org>"]
+authors = ["Giacomo Torlai <torlaigiacomo@gmail.com>", "Matthew Fishman <mfishman@flatironinstitute.org>"]
 version = "0.0.4"
 
 [deps]

@@ -41,9 +41,19 @@ end
 
 hilbertspace(M::Union{MPS,MPO}) = hilbertspace(LPDO(M))
 
-
-
-
+function replace_hilbertspace(M::Union{MPS,MPO}, REF::Union{MPS,MPO,LPDO})
+  make_inds_match = true
+  siteindsM = siteinds(all, M)
+  siteindsREF = siteinds(all, REF)
+  if any(n -> length(n) > 1, siteindsM) ||
+     any(n -> length(n) > 1, siteindsREF) ||
+    !ITensors.hassamenuminds(siteinds, M, REF)
+    make_inds_match = false
+  end
+  if make_inds_match
+    ITensors.replace_siteinds!(M, siteindsREF)
+  end
+end
 """
     convertdatapoint(datapoint::Array,basis::Array;state::Bool=false)
 
