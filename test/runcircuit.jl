@@ -42,7 +42,7 @@ end
 
 @testset "circuit MPO initialization" begin
   N = 5
-  U = identity_mpo(N)
+  U = PastaQ.identity_mpo(N)
   @test length(U) == N
   U_mat = array(U)
   exact_mat = Matrix{ComplexF64}(I, 1<<N, 1<<N)
