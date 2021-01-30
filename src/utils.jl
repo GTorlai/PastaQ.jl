@@ -3,7 +3,7 @@
 
 Generate the full dense vector from an MPS
 """
-function array(M::MPS; reverse::Bool = true)
+function ITensors.array(M::MPS; reverse::Bool = true)
   s = siteinds(M)
   if reverse
     s = Base.reverse(s)
@@ -19,7 +19,7 @@ end
 
 Generate the full dense matrix from an MPO or LPDO.
 """
-function array(M::MPO; reverse::Bool = true)
+function ITensors.array(M::MPO; reverse::Bool = true)
   s = firstsiteinds(M; plev = 0)
   if reverse
     s = Base.reverse(s)
@@ -30,7 +30,7 @@ function array(M::MPO; reverse::Bool = true)
   return array(permute(Mmat, c', c))
 end
 
-function array(L::LPDO{MPO}; kwargs...) 
+function ITensors.array(L::LPDO{MPO}; kwargs...) 
   !ischoi(L) && return array(MPO(L); kwargs...)
   error("array function for Choi matrix LPDO not yet implemented")
 end
