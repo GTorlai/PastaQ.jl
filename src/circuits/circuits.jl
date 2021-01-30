@@ -42,7 +42,7 @@ Generate a list of gates for the GHZ state
 ψ = (|0,0,…,0⟩ + |1,1,…,1⟩)/√2
 """
 function ghz(N::Int)
-  gates = [("H",1)]
+  gates = Tuple[("H",1)]
   for j in 1:N-1
     push!(gates,("CX",(j,j+1)))
   end
