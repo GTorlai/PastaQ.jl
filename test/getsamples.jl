@@ -70,7 +70,7 @@ end
   ψ0 = qubits(N)
   gates = randomcircuit(N,depth)
   ψ = runcircuit(ψ0,gates)
-  ψ_vec = PastaQ.fullvector(ψ)
+  ψ_vec = array(ψ)
   probs = abs2.(ψ_vec)
   
   nshots = 100000
@@ -81,7 +81,7 @@ end
   @test probs ≈ data_prob atol=1e-2
 
   ρ = runcircuit(N, gates, noise = ("amplitude_damping", (γ = 0.01,)))
-  ρ_mat = PastaQ.fullmatrix(ρ)
+  ρ_mat = array(ρ)
   probs = real(diag(ρ_mat))
 
   samples = PastaQ.getsamples!(ρ,nshots)
@@ -218,11 +218,11 @@ end
     ψ_out = runcircuit(ψ_in,gates)
     
     Ψ_out = PastaQ.projectunitary(U,preps[n,:])
-    @test PastaQ.fullvector(ψ_out) ≈ PastaQ.fullvector(Ψ_out) 
+    @test array(ψ_out) ≈ array(Ψ_out) 
     
     ψ_m   = runcircuit(ψ_out,mgates)
     Ψ_m   = runcircuit(Ψ_out,mgates)
-    @test PastaQ.fullvector(ψ_m) ≈ PastaQ.fullvector(Ψ_m) 
+    @test array(ψ_m) ≈ array(Ψ_m) 
   end
   
 end
@@ -244,11 +244,11 @@ end
     ρ_out = runcircuit(ψ_in, gates; noise = ("amplitude_damping", (γ = 0.1,)))
     
     Λ_out = PastaQ.projectchoi(Λ,preps[n,:])
-    @test PastaQ.fullmatrix(ρ_out) ≈ PastaQ.fullmatrix(Λ_out) atol = 1e-6
+    @test array(ρ_out) ≈ array(Λ_out) atol = 1e-6
     
     ρ_m   = runcircuit(ρ_out,mgates)
     Λ_m   = runcircuit(Λ_out,mgates)
-    @test PastaQ.fullmatrix(ρ_m) ≈ PastaQ.fullmatrix(Λ_m) atol = 1e-6 
+    @test array(ρ_m) ≈ array(Λ_m) atol = 1e-6 
   end
 end
 

@@ -596,7 +596,7 @@ function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}}, L::LPDO;
     
     # measurement stage
     if ep % measurement_frequency == 0
-      observer!, best_model = update!(observer!, best_model,model, test_data, train_loss, tot_time)
+      observer!, best_model = update!(observer!, best_model, model, test_data, train_loss, tot_time)
       # printing
       printobserver(ep, observer!, print_metrics)
       # saving

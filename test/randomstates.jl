@@ -55,7 +55,7 @@ end
   for j in 1:length(ρ)
     @test eltype(ρ.X[j]) == Float64
   end
-  ρ_mat = PastaQ.fullmatrix(ρ)
+  ρ_mat = array(ρ)
   @test sum(abs.(imag(diag(ρ_mat)))) ≈ 0.0 atol=1e-10
   @test all(real(eigvals(ρ_mat)) .≥ 0) 
   # Complex-valued with randpars
@@ -65,7 +65,7 @@ end
   for j in 1:length(ρ)
     @test eltype(ρ.X[j]) == Complex{Float64}
   end
-  ρ_mat = PastaQ.fullmatrix(ρ)
+  ρ_mat = array(ρ)
   @test sum(abs.(imag(diag(ρ_mat)))) ≈ 0.0 atol=1e-10
   @test all(real(eigvals(ρ_mat)) .≥ 0) 
   

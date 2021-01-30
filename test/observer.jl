@@ -224,7 +224,7 @@ end
                  batchsize = 10,
                  epochs = epochs,
                  observer! = obs,
-                 measurement_frequency,
+                 measurement_frequency = measurement_frequency,
                  print_metrics = false)
   
   @test haskey(obs.measurements,"X(1)")

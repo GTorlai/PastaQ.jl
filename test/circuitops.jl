@@ -7,7 +7,7 @@ using LinearAlgebra
   psi = qubits(2)
   gate_data = ("I", 1)
   psi = runcircuit(psi,gate_data)
-  @test PastaQ.fullvector(psi) ≈ [1.,0.,0.,0.]
+  @test array(psi) ≈ [1.,0.,0.,0.]
 end
   
 @testset "apply gate: X" begin
@@ -16,7 +16,7 @@ end
   site = 1
   gate_data = ("X", 1)
   psi=runcircuit(psi,gate_data)
-  @test PastaQ.fullvector(psi) ≈ [0.,0.,1.,0.]
+  @test array(psi) ≈ [0.,0.,1.,0.]
   
 end
 
@@ -25,7 +25,7 @@ end
   site = 1
   gate_data = ("Y", 1)
   psi=runcircuit(psi,gate_data)
-  @test PastaQ.fullvector(psi) ≈ [0.,0.,im,0.]
+  @test array(psi) ≈ [0.,0.,im,0.]
   
 end
 
@@ -35,7 +35,7 @@ end
   site = 1
   gate_data = ("Z", 1)
   psi=runcircuit(psi,gate_data)
-  @test PastaQ.fullvector(psi) ≈ [1.,0.,0.,0.]
+  @test array(psi) ≈ [1.,0.,0.,0.]
   
 end
 
@@ -45,7 +45,7 @@ end
   site = 1
   gate_data = ("H", 1)
   psi=runcircuit(psi,gate_data)
-  @test PastaQ.fullvector(psi) ≈ 1/sqrt(2.)*[1.,0.,1.,0.] 
+  @test array(psi) ≈ 1/sqrt(2.)*[1.,0.,1.,0.] 
 end
 
 @testset "apply gate: S" begin
@@ -134,59 +134,59 @@ end
 
 @testset "apply gate: prep X+/X-" begin
   psi = qubits(1, ["X+"])
-  @test PastaQ.fullvector(psi) ≈ 1/sqrt(2.)*[1.,1.]
+  @test array(psi) ≈ 1/sqrt(2.)*[1.,1.]
   
   psi = qubits(1, ["X-"])
-  @test PastaQ.fullvector(psi) ≈ 1/sqrt(2.)*[1.,-1.]
+  @test array(psi) ≈ 1/sqrt(2.)*[1.,-1.]
 end
 
 @testset "apply gate: prep Y+/Y-" begin
   psi = qubits(1, ["Y+"])
-  @test PastaQ.fullvector(psi) ≈ 1/sqrt(2.)*[1.,im]
+  @test array(psi) ≈ 1/sqrt(2.)*[1.,im]
   
   psi = qubits(1, ["Y-"])
-  @test PastaQ.fullvector(psi) ≈ 1/sqrt(2.)*[1.,-im]
+  @test array(psi) ≈ 1/sqrt(2.)*[1.,-im]
 end
 
 @testset "apply gate: prep Z+/Z-" begin
   psi = qubits(1, ["Z+"])
-  @test PastaQ.fullvector(psi) ≈ [1.,0.]
+  @test array(psi) ≈ [1.,0.]
   
   psi = qubits(1, ["Z-"])
-  @test PastaQ.fullvector(psi) ≈ [0.,1.]
+  @test array(psi) ≈ [0.,1.]
 end
 
 @testset "apply gate: meas X" begin
   psi = qubits(1, ["X+"])
   gate_data = ("basisX", 1, (dag = true,))
   psi=runcircuit(psi,gate_data)
-  @test PastaQ.fullvector(psi) ≈ [1.,0.]
+  @test array(psi) ≈ [1.,0.]
   psi = qubits(1, ["X-"])
   gate_data = ("basisX", 1, (dag = true,))
   psi=runcircuit(psi,gate_data)
-  @test PastaQ.fullvector(psi) ≈ [0.,1.]
+  @test array(psi) ≈ [0.,1.]
 end
 
 @testset "apply gate: meas Y" begin
   psi = qubits(1, ["Y+"])
   gate_data = ("basisY", 1, (dag = true,))
   psi=runcircuit(psi,gate_data)
-  @test PastaQ.fullvector(psi) ≈ [1.,0.]
+  @test array(psi) ≈ [1.,0.]
   psi = qubits(1, ["Y-"])
   gate_data = ("basisY", 1, (dag = true,))
   psi=runcircuit(psi,gate_data)
-  @test PastaQ.fullvector(psi) ≈ [0.,1.]
+  @test array(psi) ≈ [0.,1.]
 end
 
 @testset "apply gate: meas Z" begin
   psi = qubits(1)
   gate_data = ("basisZ", 1, (dag = true,))
   psi=runcircuit(psi,gate_data)
-  @test PastaQ.fullvector(psi) ≈ [1.,0.]
+  @test array(psi) ≈ [1.,0.]
   psi = qubits(1, ["Z-"])
   gate_data = ("basisZ", 1, (dag = true,))
   psi=runcircuit(psi,gate_data)
-  @test PastaQ.fullvector(psi) ≈ [0.,1.]
+  @test array(psi) ≈ [0.,1.]
 end
 
 
@@ -197,7 +197,7 @@ end
   # |00> -> |00> = (1 0 0 0) (natural order)
   gate_data = ("CX",(1,2))
   psi=runcircuit(psi,gate_data)
-  psi_vec = PastaQ.fullvector(psi)
+  psi_vec = array(psi)
   @test psi_vec ≈ [1.,0.,0.,0.]
   
   psi = qubits(2)
@@ -206,7 +206,7 @@ end
   psi=runcircuit(psi,gate_data)
   gate_data = ("CX",(1,2))
   psi=runcircuit(psi,gate_data)
-  psi_vec = PastaQ.fullvector(psi)
+  psi_vec = array(psi)
   @test psi_vec ≈ [0.,0.,0.,1.]
   
   psi = qubits(2)
@@ -215,7 +215,7 @@ end
   psi=runcircuit(psi,gate_data)
   gate_data = ("CX",(1,2))
   psi=runcircuit(psi,gate_data)
-  psi_vec = PastaQ.fullvector(psi)
+  psi_vec = array(psi)
   @test psi_vec ≈ [0.,1.,0.,0.]
   
   psi = qubits(2)
@@ -226,7 +226,7 @@ end
   psi=runcircuit(psi,gate_data)
   gate_data = ("CX",(1,2))
   psi=runcircuit(psi,gate_data)
-  psi_vec = PastaQ.fullvector(psi)
+  psi_vec = array(psi)
   @test psi_vec ≈ [0.,0.,1.,0.]
 
 end
@@ -237,7 +237,7 @@ end
   # |00> -> |00> = (1 0 0 0) (natural order)
   gate_data = ("CY",(1,2))
   psi=runcircuit(psi,gate_data)
-  psi_vec = PastaQ.fullvector(psi)
+  psi_vec = array(psi)
   @test psi_vec ≈ [1.,0.,0.,0.]
   
   psi = qubits(2)
@@ -246,7 +246,7 @@ end
   psi=runcircuit(psi,gate_data)
   gate_data = ("CY",(1,2))
   psi=runcircuit(psi,gate_data)
-  psi_vec = PastaQ.fullvector(psi)
+  psi_vec = array(psi)
   @test psi_vec ≈ [0.,0.,0.,im]
   
   psi = qubits(2)
@@ -255,7 +255,7 @@ end
   psi=runcircuit(psi,gate_data)
   gate_data = ("CY",(1,2))
   psi=runcircuit(psi,gate_data)
-  psi_vec = PastaQ.fullvector(psi)
+  psi_vec = array(psi)
   @test psi_vec ≈ [0.,1.,0.,0.]
   
   psi = qubits(2)
@@ -266,7 +266,7 @@ end
   psi=runcircuit(psi,gate_data)
   gate_data = ("CY",(1,2))
   psi=runcircuit(psi,gate_data)
-  psi_vec = PastaQ.fullvector(psi)
+  psi_vec = array(psi)
   @test psi_vec ≈ [0.,0.,-im,0.]
   
   # TARGET - CONTROL
@@ -274,7 +274,7 @@ end
   # |00> -> |00> = (1 0 0 0) (natural order)
   gate_data = ("CY",(2,1))
   psi=runcircuit(psi,gate_data)
-  psi_vec = PastaQ.fullvector(psi)
+  psi_vec = array(psi)
   @test psi_vec ≈ [1.,0.,0.,0.]
   
   psi = qubits(2)
@@ -283,7 +283,7 @@ end
   psi=runcircuit(psi,gate_data)
   gate_data = ("CY",(2,1))
   psi=runcircuit(psi,gate_data)
-  psi_vec = PastaQ.fullvector(psi)
+  psi_vec = array(psi)
   @test psi_vec ≈ [0.,0.,1.,0.]
   
   psi = qubits(2)
@@ -292,7 +292,7 @@ end
   psi=runcircuit(psi,gate_data)
   gate_data = ("CY",(2,1))
   psi=runcircuit(psi,gate_data)
-  psi_vec = PastaQ.fullvector(psi)
+  psi_vec = array(psi)
   @test psi_vec ≈ [0.,0.,0.,im]
   
   psi = qubits(2)
@@ -303,7 +303,7 @@ end
   psi=runcircuit(psi,gate_data)
   gate_data = ("CY",(2,1))
   psi=runcircuit(psi,gate_data)
-  psi_vec = PastaQ.fullvector(psi)
+  psi_vec = array(psi)
   @test psi_vec ≈ [0.,-im,0.,0.]
 
 end
@@ -314,7 +314,7 @@ end
   # |00> -> |00> = (1 0 0 0) (natural order)
   gate_data = ("CZ",(1,2))
   psi=runcircuit(psi,gate_data)
-  psi_vec = PastaQ.fullvector(psi)
+  psi_vec = array(psi)
   @test psi_vec ≈ [1.,0.,0.,0.]
   
   psi = qubits(2)
@@ -323,7 +323,7 @@ end
   psi=runcircuit(psi,gate_data)
   gate_data = ("CZ",(1,2))
   psi=runcircuit(psi,gate_data)
-  psi_vec = PastaQ.fullvector(psi)
+  psi_vec = array(psi)
   @test psi_vec ≈ [0.,0.,1.,0.]
   
   psi = qubits(2)
@@ -332,7 +332,7 @@ end
   psi=runcircuit(psi,gate_data)
   gate_data = ("CZ",(1,2))
   psi=runcircuit(psi,gate_data)
-  psi_vec = PastaQ.fullvector(psi)
+  psi_vec = array(psi)
   @test psi_vec ≈ [0.,1.,0.,0.]
   
   psi = qubits(2)
@@ -343,7 +343,7 @@ end
   psi=runcircuit(psi,gate_data)
   gate_data = ("CZ",(1,2))
   psi=runcircuit(psi,gate_data)
-  psi_vec = PastaQ.fullvector(psi)
+  psi_vec = array(psi)
   @test psi_vec ≈ [0.,0.,0.,-1.]
   
 
@@ -352,7 +352,7 @@ end
   # |00> -> |00> = (1 0 0 0) (natural order)
   gate_data = ("CZ",(2,1))
   psi=runcircuit(psi,gate_data)
-  psi_vec = PastaQ.fullvector(psi)
+  psi_vec = array(psi)
   @test psi_vec ≈ [1.,0.,0.,0.]
   
   psi = qubits(2)
@@ -361,7 +361,7 @@ end
   psi=runcircuit(psi,gate_data)
   gate_data = ("CZ",(2,1))
   psi=runcircuit(psi,gate_data)
-  psi_vec = PastaQ.fullvector(psi)
+  psi_vec = array(psi)
   @test psi_vec ≈ [0.,0.,1.,0.]
   
   psi = qubits(2)
@@ -370,7 +370,7 @@ end
   psi=runcircuit(psi,gate_data)
   gate_data = ("CZ",(2,1))
   psi=runcircuit(psi,gate_data)
-  psi_vec = PastaQ.fullvector(psi)
+  psi_vec = array(psi)
   @test psi_vec ≈ [0.,1.,0.,0.]
   
   psi = qubits(2)
@@ -381,7 +381,7 @@ end
   psi=runcircuit(psi,gate_data)
   gate_data = ("CZ",(2,1))
   psi=runcircuit(psi,gate_data)
-  psi_vec = PastaQ.fullvector(psi)
+  psi_vec = array(psi)
   @test psi_vec ≈ [0.,0.,0.,-1.]
 
 end
@@ -392,7 +392,7 @@ end
   # |00> -> |00> = (1 0 0 0) (natural order)
   gate_data = ("Sw",(1,2))
   psi=runcircuit(psi,gate_data)
-  psi_vec = PastaQ.fullvector(psi)
+  psi_vec = array(psi)
   @test psi_vec ≈ [1.,0.,0.,0.]
   
   psi = qubits(2)
@@ -401,7 +401,7 @@ end
   psi=runcircuit(psi,gate_data)
   gate_data = ("Sw",(1,2))
   psi=runcircuit(psi,gate_data)
-  psi_vec = PastaQ.fullvector(psi)
+  psi_vec = array(psi)
   @test psi_vec ≈ [0.,1.,0.,0.]
   
   psi = qubits(2)
@@ -410,7 +410,7 @@ end
   psi=runcircuit(psi,gate_data)
   gate_data = ("Sw",(1,2))
   psi=runcircuit(psi,gate_data)
-  psi_vec = PastaQ.fullvector(psi)
+  psi_vec = array(psi)
   @test psi_vec ≈ [0.,0.,1.,0.]
   
   psi = qubits(2)
@@ -421,7 +421,7 @@ end
   psi=runcircuit(psi,gate_data)
   gate_data = ("Sw",(1,2))
   psi=runcircuit(psi,gate_data)
-  psi_vec = PastaQ.fullvector(psi)
+  psi_vec = array(psi)
   @test psi_vec ≈ [0.,0.,0.,1.]
   
 end

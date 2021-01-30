@@ -1,10 +1,9 @@
-
 """
-    PastaQ.fullvector(M::MPS; reverse::Bool = true)
+    array(M::MPS; reverse::Bool = true)
 
-Extract the full vector from an MPS
+Generate the full dense vector from an MPS
 """
-function fullvector(M::MPS; reverse::Bool = true)
+function array(M::MPS; reverse::Bool = true)
   s = siteinds(M)
   if reverse
     s = Base.reverse(s)
@@ -15,12 +14,12 @@ function fullvector(M::MPS; reverse::Bool = true)
 end
 
 """
-    PastaQ.fullmatrix(M::MPO; reverse::Bool = true)
-    PastaQ.fullmatrix(L::LPDO; reverse::Bool = true)
+    array(M::MPO; reverse::Bool = true)
+    array(L::LPDO; reverse::Bool = true)
 
-Extract the full matrix from an MPO or LPDO, returning a Julia Matrix.
+Generate the full dense matrix from an MPO or LPDO.
 """
-function fullmatrix(M::MPO; reverse::Bool = true)
+function array(M::MPO; reverse::Bool = true)
   s = firstsiteinds(M; plev = 0)
   if reverse
     s = Base.reverse(s)
@@ -31,7 +30,10 @@ function fullmatrix(M::MPO; reverse::Bool = true)
   return array(permute(Mmat, c', c))
 end
 
-fullmatrix(L::LPDO; kwargs...) = fullmatrix(MPO(L); kwargs...)
+function array(L::LPDO{MPO}; kwargs...) 
+  !ischoi(L) && return array(MPO(L); kwargs...)
+  error("array function for Choi matrix LPDO not yet implemented")
+end
 
 # TEMPORARY FUNCTION
 # TODO: remove when `firstsiteinds(ψ::MPS)` is implemented
@@ -41,19 +43,25 @@ end
 
 hilbertspace(M::Union{MPS,MPO}) = hilbertspace(LPDO(M))
 
-function replace_hilbertspace(M::Union{MPS,MPO}, REF::Union{MPS,MPO,LPDO})
-  make_inds_match = true
-  siteindsM = siteinds(all, M)
-  siteindsREF = siteinds(all, REF)
-  if any(n -> length(n) > 1, siteindsM) ||
-     any(n -> length(n) > 1, siteindsREF) ||
-    !ITensors.hassamenuminds(siteinds, M, REF)
-    make_inds_match = false
-  end
-  if make_inds_match
-    ITensors.replace_siteinds!(M, siteindsREF)
-  end
-end
+#function replace_hilbertspace!(M::Union{MPS,MPO}, REF::Union{MPS,MPO,LPDO})
+#  make_inds_match = true
+#  siteindsM = siteinds(all, M)
+#  siteindsREF = siteinds(all, REF)
+#  if any(n -> length(n) > 1, siteindsM) ||
+#     any(n -> length(n) > 1, siteindsREF) ||
+#    !ITensors.hassamenuminds(siteinds, M, REF)
+#    make_inds_match = false
+#  end
+#  if make_inds_match
+#    ITensors.replace_siteinds!(M, siteindsREF)
+#  end
+#end
+
+
+
+
+
+
 """
     convertdatapoint(datapoint::Array,basis::Array;state::Bool=false)
 

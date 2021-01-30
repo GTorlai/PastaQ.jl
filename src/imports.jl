@@ -11,5 +11,6 @@ import ITensors:
 import LinearAlgebra:
   normalize!,
   tr,
-  norm
+  norm,
+  array
 

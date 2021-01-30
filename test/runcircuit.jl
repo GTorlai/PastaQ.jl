@@ -30,11 +30,11 @@ end
   @test length(ψ) == 1
   @test typeof(ψ) == MPS
   @test length(inds(ψ[1],"Link")) == 0
-  @test PastaQ.fullvector(ψ) ≈ [1, 0]
+  @test array(ψ) ≈ [1, 0]
   N = 5
   ψ = qubits(N)
   @test length(ψ) == 5
-  ψ_vec = PastaQ.fullvector(ψ)
+  ψ_vec = array(ψ)
   exact_vec = zeros(1<<N)
   exact_vec[1] = 1.0
   @test ψ_vec ≈ exact_vec
@@ -44,7 +44,7 @@ end
   N = 5
   U = identity_mpo(N)
   @test length(U) == N
-  U_mat = PastaQ.fullmatrix(U)
+  U_mat = array(U)
   exact_mat = Matrix{ComplexF64}(I, 1<<N, 1<<N)
   @test U_mat ≈ exact_mat
 end
@@ -56,10 +56,10 @@ end
   @test typeof(ρ1) == MPO
   ψ = qubits(N)
   ρ2 = qubits(N,mixed=true)
-  @test PastaQ.fullmatrix(ρ1) ≈ PastaQ.fullmatrix(ρ2)
+  @test array(ρ1) ≈ array(ρ2)
   exact_mat = zeros(1<<N,1<<N)
   exact_mat[1,1] = 1.0
-  @test PastaQ.fullmatrix(ρ2) ≈ exact_mat
+  @test array(ρ2) ≈ exact_mat
 end
 
 @testset "reset qubits" begin
@@ -70,7 +70,7 @@ end
   ψ = runcircuit(ψ0,gates)
   
   resetqubits!(ψ)
-  psi_vec = PastaQ.fullvector(ψ)
+  psi_vec = array(ψ)
 
   exact_vec = zeros(1<<N)
   exact_vec[1] = 1.0
@@ -81,7 +81,7 @@ end
   ρ = runcircuit(ρ0,gates)
   
   resetqubits!(ρ)
-  ρ_mat = PastaQ.fullmatrix(ρ)
+  ρ_mat = array(ρ)
 
   exact_mat = zeros(1<<N,1<<N)
   exact_mat[1,1] = 1.0

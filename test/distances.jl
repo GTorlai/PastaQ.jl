@@ -17,8 +17,8 @@ using Random
   ψ2 = copy(ψ1)
   ψ2[1] = ITensor(ones(2,4),inds(ψ2[1])[1],inds(ψ2[1])[2])
   
-  ψ1_vec = PastaQ.fullvector(ψ1)
-  ψ2_vec = PastaQ.fullvector(ψ2)
+  ψ1_vec = array(ψ1)
+  ψ2_vec = array(ψ2)
  
   K1 = sum(ψ1_vec .* conj(ψ1_vec)) 
   ψ1_vec ./= sqrt(K1)
@@ -41,9 +41,9 @@ using Random
   #@show typeof(ρ)
   F = fidelity(prod(ρ), prod(σ))
   
-  ρ_mat = PastaQ.fullmatrix(ρ)
+  ρ_mat = array(ρ)
   ρ_mat ./= tr(ρ_mat)
-  σ_mat = PastaQ.fullmatrix(σ)
+  σ_mat = array(σ)
   σ_mat ./= tr(σ_mat)
   F_mat = sqrt(ρ_mat) * σ_mat * sqrt(ρ_mat)
   F_mat = real(tr(sqrt(F_mat)))^2
@@ -62,8 +62,8 @@ end
   ρ_mpo = MPO(ψ1)
   σ_mpo = MPO(ψ2)
 
-  ρ_mat = PastaQ.fullmatrix(ρ_mpo)
-  σ_mat = PastaQ.fullmatrix(σ_mpo)
+  ρ_mat = array(ρ_mpo)
+  σ_mat = array(σ_mpo)
   Kρ = tr(ρ_mat) 
   Kσ = tr(σ_mat) 
   
@@ -83,8 +83,8 @@ end
   ρ_mpo = MPO(ρ)
   σ_mpo = MPO(ψ2)
 
-  ρ_mat = PastaQ.fullmatrix(ρ_mpo)
-  σ_mat = PastaQ.fullmatrix(σ_mpo)
+  ρ_mat = array(ρ_mpo)
+  σ_mat = array(σ_mpo)
   Kρ = tr(ρ_mat) 
   Kσ = tr(σ_mat) 
   
@@ -102,8 +102,8 @@ end
   ρ_mpo = MPO(ψ1)
   σ_mpo = MPO(σ)
 
-  ρ_mat = PastaQ.fullmatrix(ρ_mpo)
-  σ_mat = PastaQ.fullmatrix(σ_mpo)
+  ρ_mat = array(ρ_mpo)
+  σ_mat = array(σ_mpo)
   Kρ = tr(ρ_mat) 
   Kσ = tr(σ_mat) 
   
@@ -123,8 +123,8 @@ end
   ρ_mpo = MPO(ρ)
   σ_mpo = MPO(σ)
 
-  ρ_mat = PastaQ.fullmatrix(ρ_mpo)
-  σ_mat = PastaQ.fullmatrix(σ_mpo)
+  ρ_mat = array(ρ_mpo)
+  σ_mat = array(σ_mpo)
   Kρ = tr(ρ_mat) 
   Kσ = tr(σ_mat) 
   
@@ -147,8 +147,8 @@ end
   ρ_mpo = MPO(ψ1)
   σ_mpo = MPO(ψ2)
 
-  ρ_mat = PastaQ.fullmatrix(ρ_mpo)
-  σ_mat = PastaQ.fullmatrix(σ_mpo)
+  ρ_mat = array(ρ_mpo)
+  σ_mat = array(σ_mpo)
   Kρ = tr(ρ_mat) 
   Kσ = tr(σ_mat) 
   
@@ -165,8 +165,8 @@ end
   ρ_mpo = MPO(ρ)
   σ_mpo = MPO(ψ2)
 
-  ρ_mat = PastaQ.fullmatrix(ρ_mpo)
-  σ_mat = PastaQ.fullmatrix(σ_mpo)
+  ρ_mat = array(ρ_mpo)
+  σ_mat = array(σ_mpo)
   Kρ = tr(ρ_mat) 
   Kσ = tr(σ_mat) 
 
@@ -181,8 +181,8 @@ end
   ρ_mpo = MPO(ψ1)
   σ_mpo = MPO(σ)
 
-  ρ_mat = PastaQ.fullmatrix(ρ_mpo)
-  σ_mat = PastaQ.fullmatrix(σ_mpo)
+  ρ_mat = array(ρ_mpo)
+  σ_mat = array(σ_mpo)
   Kρ = tr(ρ_mat) 
   Kσ = tr(σ_mat) 
   f = tr(conj(transpose(ρ_mat/Kρ)) * (σ_mat/Kσ))
@@ -198,8 +198,8 @@ end
   ρ_mpo = MPO(ρ)
   σ_mpo = MPO(σ)
 
-  ρ_mat = PastaQ.fullmatrix(ρ_mpo)
-  σ_mat = PastaQ.fullmatrix(σ_mpo)
+  ρ_mat = array(ρ_mpo)
+  σ_mat = array(σ_mpo)
   Kρ = tr(ρ_mat) 
   Kσ = tr(σ_mat) 
   

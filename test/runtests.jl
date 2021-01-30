@@ -17,7 +17,6 @@ using Test
     "utils.jl",
     "examples.jl",
     "observer.jl",
-    #"benchmark_qiskit.jl"
   )
     println("Running $filename")
     include(filename)

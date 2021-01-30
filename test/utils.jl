@@ -4,6 +4,65 @@ using Test
 using LinearAlgebra
 using Random
 
+@testset "array" begin
+  N = 5
+  ψ = qubits(N)
+  ψvec = array(ψ)
+  @test size(ψvec) == (1<<N,)
+  
+  ρ = qubits(N; mixed = true)
+  ρmat = array(ρ)
+  @test size(ρmat) == (1<<N,1<<N)
+  
+  ρ = randomstate(N; mixed = true)
+  ρmat = array(ρ)
+  @test size(ρmat) == (1<<N,1<<N)
+
+  U = randomprocess(N)
+  Umat = array(U)
+  @test size(Umat) == (1<<N,1<<N)
+  
+  N = 3
+  Λ = randomprocess(N; mixed = true)
+  #Λmat = array(Λ)
+end
+
+@testset "hilbertspace" begin
+  N = 5
+  ψ = qubits(N)
+  ρ = qubits(ψ; mixed = true)
+  Λ = randomstate(ψ; mixed = true)
+
+  @test PastaQ.hilbertspace(ψ) == siteinds(ψ)
+  @test PastaQ.hilbertspace(ψ) == PastaQ.hilbertspace(ρ)
+  @test PastaQ.hilbertspace(ψ) == PastaQ.hilbertspace(Λ)
+
+end
+
+
+#@testset "replace hilbert space" begin
+#
+#  N = 5
+#  # REF is MPS
+#  REF = qubits(N)
+#  ψ = qubits(N)
+#  ρ = qubits(N; mixed = true)
+#  ϱ = randomstate(N; mixed = true)
+#  Λ = randomprocess(N; mixed = true)
+#
+#  PastaQ.replace_hilbertspace!(ψ,REF) 
+#  @test siteinds(ψ) == siteinds(REF)
+#
+#  PastaQ.replace_hilbertspace!(ρ,REF) 
+#  @test firstsiteinds(ρ) == siteinds(REF)
+#
+#
+#
+#
+#end
+
+
+
 @testset "numberofqubits" begin
   
   @test numberofqubits(("H",2)) == 2
@@ -17,110 +76,5 @@ using Random
     @test N == n
   end
 end
-
-
-#@testset "PastaQ.fullvector - native" begin
-#  psi = qubits(1)
-#  psi_vec = PastaQ.fullvector(psi, reverse = false)
-#  @test psi_vec ≈ [1., 0.]
-#  PastaQ.applygate!(psi,"X",1)
-#  psi_vec = PastaQ.fullvector(psi, reverse = false)
-#  @test psi_vec ≈ [0., 1.]
-#
-#  psi = qubits(2)
-#  psi_vec = PastaQ.fullvector(psi, reverse = false)
-#  @test psi_vec ≈ [1., 0., 0., 0.]
-#  PastaQ.applygate!(psi,"X",1)
-#  psi_vec = PastaQ.fullvector(psi, reverse = false)
-#  @test psi_vec ≈ [0., 1., 0., 0.]
-#  PastaQ.applygate!(psi,"X",2)
-#  psi_vec = PastaQ.fullvector(psi, reverse = false)
-#  @test psi_vec ≈ [0., 0., 0., 1.]
-#  PastaQ.applygate!(psi,"X",1)
-#  psi_vec = PastaQ.fullvector(psi, reverse = false)
-#  @test psi_vec ≈ [0., 0., 1., 0.]
-#end
-#
-#@testset "PastaQ.fullvector - reverse" begin
-#  psi = qubits(1)
-#  psi_vec = PastaQ.fullvector(psi, reverse = true)
-#  @test psi_vec ≈ [1., 0.]
-#  PastaQ.applygate!(psi,"X",1)
-#  psi_vec = PastaQ.fullvector(psi, reverse = true)
-#  @test psi_vec ≈ [0., 1.]
-#
-#  psi = qubits(2)
-#  psi_vec = PastaQ.fullvector(psi, reverse = true)
-#  @test psi_vec ≈ [1., 0., 0., 0.]
-#  PastaQ.applygate!(psi,"X",1)
-#  psi_vec = PastaQ.fullvector(psi, reverse = true)
-#  @test psi_vec ≈ [0., 0., 1., 0.]
-#  PastaQ.applygate!(psi,"X",2)
-#  psi_vec = PastaQ.fullvector(psi, reverse = true)
-#  @test psi_vec ≈ [0., 0., 0., 1.]
-#  PastaQ.applygate!(psi,"X",1)
-#  psi_vec = PastaQ.fullvector(psi, reverse = true)
-#  @test psi_vec ≈ [0., 1., 0., 0.]
-#end
-#
-#@testset "fullmatrix for Itensor - reverse" begin
-#  psi = qubits(2)
-#  # control = 0, target = 0 -> 00 = 1 0 0 0
-#  PastaQ.applygate!(psi,"CX",(1,2))
-#  psi_vec = PastaQ.fullvector(psi, reverse = true)
-#  @test psi_vec ≈ [1, 0, 0, 0]
-#
-#  psi = qubits(2)
-#  # control = 0, target = 1 -> 01 = 0 1 0 0
-#  PastaQ.applygate!(psi,"X",2)
-#  PastaQ.applygate!(psi,"CX",(1,2))
-#  psi_vec = PastaQ.fullvector(psi, reverse = true)
-#  @test psi_vec ≈ [0, 1, 0, 0]
-#
-#  psi = qubits(2)
-#  # control = 1, target = 0 -> 11 = 0 0 0 1
-#  PastaQ.applygate!(psi,"X",1)
-#  PastaQ.applygate!(psi,"CX",(1,2))
-#  psi_vec = PastaQ.fullvector(psi, reverse = true)
-#  @test psi_vec ≈ [0, 0, 0, 1]
-#
-#  psi = qubits(2)
-#  # control = 1, target = 1 -> 10 = 0 0 1 0
-#  PastaQ.applygate!(psi,"X",1)
-#  PastaQ.applygate!(psi,"X",2)
-#  PastaQ.applygate!(psi,"CX",(1,2))
-#  psi_vec = PastaQ.fullvector(psi, reverse = true)
-#  @test psi_vec ≈ [0, 0, 1, 0]
-#
-#  # INVERTED TARGET AND CONTROL
-#  psi = qubits(2)
-#  # target = 0, control = 0 -> 00 = 1 0 0 0
-#  PastaQ.applygate!(psi,"CX",(2,1))
-#  psi_vec = PastaQ.fullvector(psi, reverse = true)
-#  @test psi_vec ≈ [1, 0, 0, 0]
-#
-#  psi = qubits(2)
-#  # target = 0, control = 1 -> 11 = 0 0 0 1
-#  PastaQ.applygate!(psi,"X",2)
-#  PastaQ.applygate!(psi,"CX",(2,1))
-#  psi_vec = PastaQ.fullvector(psi, reverse = true)
-#  @test psi_vec ≈ [0, 0, 0, 1]
-#
-#  psi = qubits(2)
-#  # target = 1, control = 0 -> 10 = 0 0 1 0
-#  PastaQ.applygate!(psi,"X",1)
-#  PastaQ.applygate!(psi,"CX",(2,1))
-#  psi_vec = PastaQ.fullvector(psi, reverse = true)
-#  @test psi_vec ≈ [0, 0, 1, 0]
-#
-#  psi = qubits(2)
-#  # target = 1, control = 1 -> 01 = 0 1 0 0
-#  PastaQ.applygate!(psi,"X",1)
-#  PastaQ.applygate!(psi,"X",2)
-#  PastaQ.applygate!(psi,"CX",(2,1))
-#  psi_vec = PastaQ.fullvector(psi, reverse = true)
-#  @test psi_vec ≈ [0, 1, 0, 0]
-#end
-
 
 
