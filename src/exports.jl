@@ -81,4 +81,5 @@ export
 # utils.jl
   maxlinkdim,
   split_dataset,
-  numberofqubits
+  numberofqubits,
+  array
