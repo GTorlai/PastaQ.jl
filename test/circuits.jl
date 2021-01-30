@@ -3,6 +3,15 @@ using ITensors
 using Test
 using Random
 
+@testset "pre-defined ciruits" begin
+  N = 10
+  @test length(qft(N)) == reduce(+,1:N-1) + N
+  @test length(qft(N; inverse = true)) == reduce(+,1:N-1)+ N
+  circuit = ghz(N)
+  @test length(circuit) == N
+  
+end
+
 @testset "gatelayer" begin
   N = 10
   layer = gatelayer("X",N)
@@ -18,7 +27,7 @@ using Random
   @test all(x -> x == "CX", first.(layer))
 end
 
-@testset "randommparamrs" begin
+@testset "randommparams" begin
   N = 10
   pars = PastaQ.randomparams("Rx")
   @test haskey(pars,:θ)
@@ -56,9 +65,46 @@ end
 end
 
 
+@testset "random circuits" begin
+  N = 30
+  depth = 10
+  circuit = randomcircuit(N,depth; twoqubitgates = "Haar")
+  @test size(circuit,1) == depth
+  for d in 1:depth
+    @test all(x->x == "Haar",first.(circuit[depth]))
+  end
 
+  circuit = randomcircuit(N,depth; twoqubitgates = "CX")
+  @test size(circuit,1) == depth
+  for d in 1:depth
+    @test all(x->x == "CX",first.(circuit[depth]))
+  end
 
+  circuit = randomcircuit(N,depth; twoqubitgates = "CX", onequbitgates = "Rn")
+  @test size(circuit,1) == depth
+  
+  circuit = randomcircuit(N, depth; twoqubitgates = ["CX","Haar"], onequbitgates = ["Rn","X"])
+  @test size(circuit,1) == depth
 
+  #Lx = 6
+  #Ly = 6
+  #circuit = randomcircuit(Lx,Ly,depth; twoqubitgates = "Haar")
+  #@test size(circuit,1) == depth
+  #for d in 1:depth
+  #  @test all(x->x == "Haar",first.(circuit[depth]))
+  #end
 
+  #circuit = randomcircuit(Lx,Ly,depth; twoqubitgates = "CX")
+  #@test size(circuit,1) == depth
+  #for d in 1:depth
+  #  @test all(x->x == "CX",first.(circuit[depth]))
+  #end
 
+  #circuit = randomcircuit(Lx,Ly,depth; twoqubitgates = "CX", onequbitgates = "Rn")
+  #@test size(circuit,1) == depth
+  #
+  #circuit = randomcircuit(Lx,Ly, depth; twoqubitgates = ["CX","Haar"], onequbitgates = ["Rn","X"])
+  #@test size(circuit,1) == depth
+
+end
 

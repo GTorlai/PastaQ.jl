@@ -204,6 +204,9 @@ gate(::GateName"SWAP") =
 gate(::GateName"Sw") =
   gate("SWAP")
 
+gate(::GateName"Swap") = 
+  gate("SWAP")
+
 gate(::GateName"√SWAP") =
   [1        0        0 0
    0 (1+im)/2 (1-im)/2 0
@@ -458,3 +461,80 @@ gate(gn::String, s::Vector{<: Index}, ns::Int...; kwargs...) =
 ITensors.op(gn::GateName, ::SiteType"Qubit", s::Index...; kwargs...) =
   gate(gn, s...; kwargs...)
 
+
+
+"""
+    gate(M::Union{MPS,MPO}, gatename::String, site::Int; kwargs...)
+
+Generate a gate tensor for a single-qubit gate identified by `gatename`
+acting on site `site`, with indices identical to a reference state `M`.
+"""
+function gate(M::Union{MPS,MPO},
+              gatename::String,
+              site::Int; kwargs...)
+  site_ind = (typeof(M)==MPS ? siteind(M,site) :
+                               firstind(M[site], tags="Site", plev = 0))
+  return gate(gatename, site_ind; kwargs...)
+end
+
+"""
+    gate(M::Union{MPS,MPO},gatename::String, site::Tuple; kwargs...)
+
+Generate a gate tensor for a two-qubit gate identified by `gatename`
+acting on sites `(site[1],site[2])`, with indices identical to a 
+reference state `M` (`MPS` or `MPO`).
+"""
+function gate(M::Union{MPS,MPO},
+              gatename::String,
+              site::Tuple; kwargs...)
+  site_ind1 = (typeof(M)==MPS ? siteind(M,site[1]) :
+                                firstind(M[site[1]], tags="Site", plev = 0))
+  site_ind2 = (typeof(M)==MPS ? siteind(M,site[2]) :
+                                firstind(M[site[2]], tags="Site", plev = 0))
+
+  return gate(gatename,site_ind1,site_ind2; kwargs...)
+end
+
+
+gate(M::Union{MPS,MPO}, gatedata::Tuple) =
+  gate(M,gatedata...)
+
+gate(M::Union{MPS,MPO},
+     gatename::String,
+     sites::Union{Int, Tuple},
+     params::NamedTuple) =
+  gate(M, gatename, sites; params...)
+
+
+"""
+RANDOM GATE PARAMETERS
+"""
+
+randomparams(::GateName"Rx",args...; rng = Random.GLOBAL_RNG) = (θ = π*rand(rng),)
+randomparams(::GateName"Ry",args...; rng = Random.GLOBAL_RNG) = (θ = π*rand(rng),) 
+randomparams(::GateName"Rz",args...; rng = Random.GLOBAL_RNG) = (ϕ = 2*π*rand(rng),)
+randomparams(::GateName"CRz",args...;rng = Random.GLOBAL_RNG) = (ϕ = 2*π*rand(rng),)
+randomparams(::GateName"Rn",args...; rng = Random.GLOBAL_RNG) = 
+  ( θ = π * rand(rng), ϕ = 2 * π * rand(rng), λ = π * rand(rng))
+randomparams(::GateName"CRn", args...;rng = Random.GLOBAL_RNG) = 
+  ( θ = π * rand(rng), ϕ = 2 * π * rand(rng), λ = π * rand(rng))
+
+randomparams(::GateName"X",args...; kwargs...) = nothing
+randomparams(::GateName"Y",args...; kwargs...) = nothing
+randomparams(::GateName"Z",args...; kwargs...) = nothing
+randomparams(::GateName"P",args...; kwargs...) = nothing
+randomparams(::GateName"T",args...; kwargs...) = nothing
+randomparams(::GateName"CX",args...; kwargs...) = nothing
+randomparams(::GateName"CY",args...; kwargs...) = nothing
+randomparams(::GateName"CZ",args...; kwargs...) = nothing
+randomparams(::GateName"Swap",args...; kwargs...) = nothing
+randomparams(::GateName"iSwap",args...; kwargs...) = nothing
+
+randomparams(::GateName"Haar", N::Int = 2; rng = Random.GLOBAL_RNG) = 
+  (random_matrix = randn(rng,ComplexF64, N, N),)
+
+randomparams(s::AbstractString; kwargs...) = 
+  randomparams(GateName(s); kwargs...)
+
+randomparams(s::AbstractString, args...; kwargs...) = 
+  randomparams(GateName(s), args...; kwargs...)

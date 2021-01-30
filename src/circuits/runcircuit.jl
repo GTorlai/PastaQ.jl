@@ -128,48 +128,6 @@ identity_mpo(M::Union{MPS,MPO,LPDO}) =
                   CIRCUIT FUNCTIONS 
 ------------------------------------------------- """
 
-"""
-    gate(M::Union{MPS,MPO}, gatename::String, site::Int; kwargs...)
-
-Generate a gate tensor for a single-qubit gate identified by `gatename`
-acting on site `site`, with indices identical to a reference state `M`.
-"""
-function gate(M::Union{MPS,MPO},
-              gatename::String,
-              site::Int; kwargs...)
-  site_ind = (typeof(M)==MPS ? siteind(M,site) :
-                               firstind(M[site], tags="Site", plev = 0))
-  return gate(gatename, site_ind; kwargs...)
-end
-
-"""
-    gate(M::Union{MPS,MPO},gatename::String, site::Tuple; kwargs...)
-
-Generate a gate tensor for a two-qubit gate identified by `gatename`
-acting on sites `(site[1],site[2])`, with indices identical to a 
-reference state `M` (`MPS` or `MPO`).
-"""
-function gate(M::Union{MPS,MPO},
-              gatename::String,
-              site::Tuple; kwargs...)
-  site_ind1 = (typeof(M)==MPS ? siteind(M,site[1]) :
-                                firstind(M[site[1]], tags="Site", plev = 0))
-  site_ind2 = (typeof(M)==MPS ? siteind(M,site[2]) :
-                                firstind(M[site[2]], tags="Site", plev = 0))
-
-  return gate(gatename,site_ind1,site_ind2; kwargs...)
-end
-
-
-gate(M::Union{MPS,MPO}, gatedata::Tuple) =
-  gate(M,gatedata...)
-
-gate(M::Union{MPS,MPO},
-     gatename::String,
-     sites::Union{Int, Tuple},
-     params::NamedTuple) =
-  gate(M, gatename, sites; params...)
-
 
 """
     buildcircuit(M::Union{MPS,MPO}, gates::Vector{<:Tuple};

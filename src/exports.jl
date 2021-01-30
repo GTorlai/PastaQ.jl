@@ -14,6 +14,7 @@ export
   gate,
   # Macros
   @GateName_str,
+  randomparams,
 
 # circuits/getsamples.jl
   # Methods
@@ -24,10 +25,8 @@ export
 # circuits/runcircuit.jl
   # Methods
   qubits,
-  identity_mpo,
   resetqubits!,
   buildcircuit,
-  applygate,
   runcircuit,
 
 # circuits/qubitarrays.jl
