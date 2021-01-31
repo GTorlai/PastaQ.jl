@@ -79,7 +79,6 @@ gatelayer(gatename::AbstractString,bonds::Vector{Vector{Int}}) =
 
 
 
-
 """
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
@@ -181,4 +180,31 @@ Generate a 2D random quantum circuit
 """
 randomcircuit(Lx::Int, Ly::Int, depth::Int; rotated::Bool = false, kwargs...) = 
   randomcircuit(Lx*Ly, depth, squarearray(Lx,Ly; rotated = rotated), kwargs...) 
+
+
+
+
+ITensors.dag(single_gate::Tuple{String,Union{Int,Tuple}}) = (single_gate[1],single_gate[2],(dag_gate=true,))
+ITensors.dag(single_gate::Tuple{String,Union{Int,Tuple},NamedTuple}) = (single_gate[1],single_gate[2],(single_gate[3]...,dag_gate=true,))
+
+function ITensors.dag(layer::Vector{<:Tuple})
+  newlayer = Tuple[]
+  for g in reverse(1:length(layer))
+    if length(layer[g]) == 2
+      push!(newlayer, (layer[g][1],layer[g][2],(dag_gate=true,)))
+    else
+      push!(newlayer, (layer[g][1],layer[g][2],(layer[g][3]...,dag_gate=true,)))
+    end
+  end
+  return newlayer
+end
+
+function ITensors.dag(circuit::Vector{<:Vector{<:Tuple}})
+  newcircuit = Vector{Vector{<:Tuple}}(undef, 0) 
+  for d in reverse(1:length(circuit))
+    push!(newcircuit, ITensors.dag(circuit[d]))
+  end
+  return newcircuit
+end
+
 

@@ -29,6 +29,9 @@ export
   buildcircuit,
   runcircuit,
 
+# circuits/vqe.jl
+  VQE,
+
 # circuits/qubitarrays.jl
   lineararray,
   squarearray,

@@ -7,6 +7,7 @@ import ITensors:
   space,
   state,
   array
+  dag,
 
 import LinearAlgebra:
   normalize!,

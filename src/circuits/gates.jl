@@ -391,7 +391,7 @@ function phase(v::AbstractVector{ElT}) where {ElT <: Number}
   return one(ElT)
 end
 
-function eigenbasis(GN::GateName; dag::Bool = false, kwargs...)
+function eigenbasis(GN::GateName; dag_gate::Bool = false, kwargs...)
   _, U = eigen(Hermitian(gate(GN; kwargs...)))
   # Sort eigenvalues largest to smallest (defaults to smallest to largest)
   U = reverse(U; dims = 2)
@@ -401,7 +401,7 @@ function eigenbasis(GN::GateName; dag::Bool = false, kwargs...)
     p = phase(v)
     v ./= p
   end
-  if dag
+  if dag_gate
     return copy(U')
   end
   return U
@@ -411,14 +411,14 @@ end
 # Get an ITensor gate from a gate definition
 #
 
-function gate(::GateName{gn}; kwargs...) where {gn}
-  gn_st = String(gn)
-  if startswith(gn_st, "basis")
-    GN = GateName(replace(gn_st, "basis" => ""))
-    return eigenbasis(GN; kwargs...)
-  end
-  error("A gate with the name \"$gn\" has not been implemented yet. You can define it by overloading `gate(::GateName\"$gn\") = [...]`.")
-end
+#function gate(::GateName{gn}; kwargs...) where {gn}
+#  gn_st = String(gn)
+#  if startswith(gn_st, "basis")
+#    GN = GateName(replace(gn_st, "basis" => ""))
+#    return eigenbasis(GN; kwargs...)
+#  end
+#  error("A gate with the name \"$gn\" has not been implemented yet. You can define it by overloading `gate(::GateName\"$gn\") = [...]`.")
+#end
 
 # Maybe use Base.invokelatest since certain gate overloads
 # may be made on the fly with @eval
@@ -430,10 +430,11 @@ gate(s::String, args...; kwargs...) = gate(GateName(s), args...; kwargs...)
 gate(gn::GateName, N::Int; kwargs...) =
   gate(gn; kwargs...)
 
-function gate(gn::GateName, s1::Index, ss::Index...; kwargs...)
+function gate(gn::GateName, s1::Index, ss::Index...; dag_gate::Bool = false, kwargs...)
+  #@show gn,dag_gate
   s = tuple(s1, ss...)
   rs = reverse(s)
-  g = gate(gn, dim(s); kwargs...) 
+  g = (dag_gate ? Array(gate(gn, dim(s); kwargs...)') : gate(gn, dim(s); kwargs...))
   if ndims(g) == 1
     # TODO:
     #error("gate must have more than one dimension, use state(...) for state vectors.")
@@ -460,7 +461,6 @@ gate(gn::String, s::Vector{<: Index}, ns::Int...; kwargs...) =
 
 ITensors.op(gn::GateName, ::SiteType"Qubit", s::Index...; kwargs...) =
   gate(gn, s...; kwargs...)
-
 
 
 """
@@ -538,3 +538,30 @@ randomparams(s::AbstractString; kwargs...) =
 
 randomparams(s::AbstractString, args...; kwargs...) = 
   randomparams(GateName(s), args...; kwargs...)
+
+
+""" 
+SIMPLE GRADIENTS
+to be susbstitute by Zygote
+"""
+
+# Rotation around X-axis
+gradient(::GateName"Rx"; θ::Number) =
+  (θ = 0.5*[-sin(θ/2) -im*cos(θ/2); -im*cos(θ/2) -sin(θ/2)],)
+
+# Rotation around Y-axis
+gradient(::GateName"Ry"; θ::Number) =
+  (θ = 0.5*[-sin(θ/2) -cos(θ/2); cos(θ/2) -sin(θ/2)],)
+
+# Rotation around Z-axis
+gradient(::GateName"Rz"; ϕ::Number) =
+  (ϕ = [0 0; 0 im*exp(im*ϕ)],)
+
+# Rotation around generic axis n̂
+gradient(::GateName"Rn"; θ::Real, ϕ::Real, λ::Real) =
+  ( θ = 0.5*[-sin(θ/2)  -exp(im*λ)*cos(θ/2); exp(im*ϕ)*cos(θ/2) -exp(im*(ϕ+λ))*sin(θ/2)],
+    ϕ = [0 0; im*exp(im*ϕ)*sin(θ/2)  im*exp(im*(ϕ+λ))*cos(θ/2)],
+    λ = [0 -im*exp(im*λ)*sin(θ/2); 0 im*exp(im*(ϕ+λ))*cos(θ/2)]
+  )
+gradient(s::String; kwargs...) = gradient(GateName(s); kwargs...)
+

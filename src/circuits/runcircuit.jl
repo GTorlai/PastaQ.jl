@@ -144,7 +144,6 @@ function buildcircuit(M::Union{MPS,MPO}, gates::Union{Tuple,Vector{<:Tuple}};
   if gates isa Tuple
     gates = [gates]
   end
-
   for g in gates
     push!(gate_tensors, gate(M, g))
     ns = g[2]
@@ -175,7 +174,6 @@ function runcircuit(M::Union{MPS, MPO},
                     maxdim = 10_000,
                     svd_alg = "divide_and_conquer",
                     move_sites_back::Bool = false)
-
   # Check if gate_tensors contains Kraus operators
   inds_sizes = [length(inds(g)) for g in gate_tensors]
   noiseflag = any(x -> x%2==1 , inds_sizes)
@@ -264,8 +262,7 @@ function runcircuit(M::Union{MPS, MPO}, gates::Union{Tuple,Vector{<:Tuple}};
                     cutoff = 1e-15,
                     maxdim = 10_000,
                     svd_alg = "divide_and_conquer",
-                    move_sites_back::Bool = false)
-  
+                    move_sites_back::Bool = false,)
   gate_tensors = buildcircuit(M, gates; noise = noise) 
   return runcircuit(M, gate_tensors;
                     cutoff = cutoff,
@@ -339,6 +336,8 @@ end
 runcircuit(gates::Vector{Tuple}; kwargs...) = 
   runcircuit(numberofqubits(gates), gates; kwargs...)
 
+runcircuit(singlegate::Tuple; kwargs...) =
+  runcircuit(maximum(singlegate[2]), Tuple[singlegate])
 
 """
 Run the layered circuit with the possibility of having a circuit observer 

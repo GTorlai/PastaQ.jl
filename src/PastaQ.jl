@@ -19,6 +19,7 @@ include("circuits/qubitarrays.jl")
 include("circuits/circuits.jl")
 include("circuits/runcircuit.jl")
 include("circuits/getsamples.jl")
+include("circuits/vqe.jl")
 
 include("optimizers.jl")
 

@@ -108,3 +108,22 @@ end
 
 end
 
+
+
+@testset "dag circuit" begin
+
+  N = 2
+  depth = 10
+  
+  circuit = randomcircuit(N, depth; twoqubitgates = "CX", onequbitgates = ["Rn"])
+  U = array(runcircuit(circuit; process = true))
+  dagcircuit = dag(circuit)
+  V = array(runcircuit(dagcircuit; process = true))
+  @test U ≈ V'
+
+  circuit = randomcircuit(N, depth; twoqubitgates = "Haar", onequbitgates = ["Rn"])
+  U = array(runcircuit(circuit; process = true))
+  dagcircuit = dag(circuit)
+  V = array(runcircuit(dagcircuit; process = true))
+  @test U ≈ V'
+end
