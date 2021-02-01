@@ -59,33 +59,24 @@ end
 H = MPO(ampo,sites)
 
 # find ground state with DMRG
-mps = randomMPS(sites)
+ψ0 = randomMPS(sites)
 sweeps = Sweeps(10)
 maxdim!(sweeps, 10,20,30,50,100)
 cutoff!(sweeps, 1E-10)
-E0, Φ = dmrg(H, mps, sweeps, outputlevel = 0);
+E₀, _ = dmrg(H, ψ0, sweeps, outputlevel = 0);
 @printf("\nGround state energy: %.10f\n\n",E0)
   
 
 Random.seed!(1234)
-depth = 10
+depth = 4
 circuit = randomcircuit(N, depth; twoqubitgates = "CX", onequbitgates = "Ry")
 niter = 1000
 η = 0.1
 
-vqe = VQE(H,circuit)
+optimizer = Flux.Optimise.Descent(η)
 
-for ep in 1:niter
-  ∇ = PastaQ.gradients_parameters(vqe) 
-  PastaQ.updateangles!(vqe, ∇; η = η)
-  E = PastaQ.energy(vqe)
-  @printf("Iter: %d ⟨Ĥ⟩ = %.5f\n",ep,E)
-end
-
-
-
-
-
-
-
+minimize!(H, circuit; 
+          optimizer = optimizer, 
+          epochs = 5000,
+          optimum = E₀)
 

@@ -411,14 +411,14 @@ end
 # Get an ITensor gate from a gate definition
 #
 
-#function gate(::GateName{gn}; kwargs...) where {gn}
-#  gn_st = String(gn)
-#  if startswith(gn_st, "basis")
-#    GN = GateName(replace(gn_st, "basis" => ""))
-#    return eigenbasis(GN; kwargs...)
-#  end
-#  error("A gate with the name \"$gn\" has not been implemented yet. You can define it by overloading `gate(::GateName\"$gn\") = [...]`.")
-#end
+function gate(::GateName{gn}; kwargs...) where {gn}
+  gn_st = String(gn)
+  if startswith(gn_st, "basis")
+    GN = GateName(replace(gn_st, "basis" => ""))
+    return eigenbasis(GN; kwargs...)
+  end
+  error("A gate with the name \"$gn\" has not been implemented yet. You can define it by overloading `gate(::GateName\"$gn\") = [...]`.")
+end
 
 # Maybe use Base.invokelatest since certain gate overloads
 # may be made on the fly with @eval
@@ -434,7 +434,9 @@ function gate(gn::GateName, s1::Index, ss::Index...; dag_gate::Bool = false, kwa
   #@show gn,dag_gate
   s = tuple(s1, ss...)
   rs = reverse(s)
-  g = (dag_gate ? Array(gate(gn, dim(s); kwargs...)') : gate(gn, dim(s); kwargs...))
+  g = gate(gn, dim(s); kwargs...)
+  g = (dag_gate ? Array(g') : g)
+  #g = (dag_gate ? Array(gate(gn, dim(s); kwargs...)') : gate(gn, dim(s); kwargs...))
   if ndims(g) == 1
     # TODO:
     #error("gate must have more than one dimension, use state(...) for state vectors.")

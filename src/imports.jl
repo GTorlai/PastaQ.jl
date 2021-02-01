@@ -14,3 +14,4 @@ import LinearAlgebra:
   tr,
   norm
 
+import Flux

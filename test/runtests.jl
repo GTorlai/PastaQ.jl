@@ -6,6 +6,7 @@ using Test
     "circuits.jl",
     "circuitops.jl",
     "runcircuit.jl",
+    "variationalcircuit.jl",
     "getsamples.jl",
     "qubitarrays.jl",
     "randomstates.jl",

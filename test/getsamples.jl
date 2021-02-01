@@ -114,7 +114,7 @@ end
     if (basis[1] == "Z")
       ψ1 = ψ_out[1] * setelt(s[1]=>x1[1])
     else
-      rotation = gate(ψ_out,"basis$(basis[1])",1; dag = true)
+      rotation = gate(ψ_out,"basis$(basis[1])",1; dag_gate = true)
       ψ_r = ψ_out[1] * rotation
       ψ1 = noprime!(ψ_r) * setelt(s[1]=>x1[1])
     end
@@ -122,7 +122,7 @@ end
       if (basis[j] == "Z")
         ψ1 = ψ1 * ψ_out[j] * setelt(s[j]=>x1[j])
       else
-        rotation = gate(ψ_out,"basis$(basis[j])",j; dag = true)
+        rotation = gate(ψ_out,"basis$(basis[j])",j; dag_gate = true)
         ψ_r = ψ_out[j] * rotation
         ψ1 = ψ1 * noprime!(ψ_r) * setelt(s[j]=>x1[j])
       end
@@ -130,7 +130,7 @@ end
     if (basis[N] == "Z")
       ψ1 = (ψ1 * ψ_out[N] * setelt(s[N]=>x1[N]))[]
     else
-      rotation = gate(ψ_out,"basis$(basis[N])",N, dag = true)
+      rotation = gate(ψ_out,"basis$(basis[N])",N, dag_gate = true)
       ψ_r = ψ_out[N] * rotation
       ψ1 = (ψ1 * noprime!(ψ_r) * setelt(s[N]=>x1[N]))[]
     end
@@ -170,7 +170,7 @@ end
     if (basis[1] == "Z")
       ψ1 = dag(ψ_out[1]) * setelt(s[1]=>x1[1])
     else
-      rotation = gate(ψ_out,"basis$(basis[1])",1; dag = true)
+      rotation = gate(ψ_out,"basis$(basis[1])",1; dag_gate = true)
       ψ_r = dag(ψ_out[1]) * dag(rotation)
       ψ1 = noprime!(ψ_r) * setelt(s[1]=>x1[1])
     end
@@ -178,7 +178,7 @@ end
       if (basis[j] == "Z")
         ψ1 = ψ1 * dag(ψ_out[j]) * setelt(s[j]=>x1[j])
       else
-        rotation = gate(ψ_out,"basis$(basis[j])",j; dag = true)
+        rotation = gate(ψ_out,"basis$(basis[j])",j; dag_gate = true)
         ψ_r = dag(ψ_out[j]) * dag(rotation)
         ψ1 = ψ1 * noprime!(ψ_r) * setelt(s[j]=>x1[j])
       end
@@ -186,7 +186,7 @@ end
     if (basis[N] == "Z")
       ψ1 = (ψ1 * dag(ψ_out[N]) * setelt(s[N]=>x1[N]))[]
     else
-      rotation = gate(ψ_out,"basis$(basis[N])",N; dag = true)
+      rotation = gate(ψ_out,"basis$(basis[N])",N; dag_gate = true)
       ψ_r = dag(ψ_out[N]) * dag(rotation)
       ψ1 = (ψ1 * noprime!(ψ_r) * setelt(s[N]=>x1[N]))[]
     end

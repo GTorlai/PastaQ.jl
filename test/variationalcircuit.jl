@@ -78,14 +78,13 @@ end
   H, _ = isingmodel(N)
   Hmat = array(H)
   circuit = randomcircuit(N, depth; twoqubitgates = "CX", onequbitgates = ["Rn"])
-  vqe = VQE(H, circuit)
 
-  ΨL, ΨR = PastaQ.environments(vqe)
+  ΨL, ΨR = PastaQ.environments(circuit, H)
   # test L
   ψ = array(qubits(N))
   @test array(ΨL[1]) ≈ ψ
   for d in 1:depth-1
-    ψ = array(runcircuit(vqe.circuit[d]; process = true)) * ψ
+    ψ = array(runcircuit(circuit[d]; process = true)) * ψ
     @test array(ΨL[d+1]) ≈ ψ
   end
   
@@ -93,7 +92,7 @@ end
   ψ = Hmat * ψ
   @test ψ ≈ array(ΨR[end])
   for d in reverse(2:depth)
-    U = array(runcircuit(dag(vqe.circuit[d]); process = true))
+    U = array(runcircuit(dag(circuit[d]); process = true))
     ψ = U * ψ
     @test ψ ≈ array(ΨR[d-1])
   end
@@ -108,24 +107,24 @@ function VQEenergy(H::MPO, gates::Union{Vector{<:Vector{<:Tuple}},Vector{<:ITens
   return real(E)
 end
 
-function numgradpars(vqe::PastaQ.VariationalQuantumEigensolver; ϵ = 1e-7)
-  N = length(vqe.Hamiltonian)
-  depth = length(vqe.circuit)
+function numgradpars(circuit::Vector{<:Vector{<:Tuple}}, costfunction::MPO; ϵ = 1e-7)
+  N = length(costfunction)
+  depth = length(circuit)
   numgradients = []
   for d in 1:depth
-    for i in 1:length(vqe.circuit[d])
-      if istrainable(vqe.circuit[d][i])
-        par_ids =  keys(vqe.circuit[d][i][3])
+    for i in 1:length(circuit[d])
+      if istrainable(circuit[d][i])
+        par_ids =  keys(circuit[d][i][3])
         for par_id in par_ids
-          angle = vqe.circuit[d][i][3][par_id]
+          angle = circuit[d][i][3][par_id]
           
           angle = angle + ϵ
-          vqe.circuit[d][i] = Base.setindex(vqe.circuit[d][i],Base.setindex(vqe.circuit[d][i][3],angle,par_id),3) 
-          Ep = VQEenergy(vqe.Hamiltonian,vqe.circuit)   
+          circuit[d][i] = Base.setindex(circuit[d][i],Base.setindex(circuit[d][i][3],angle,par_id),3) 
+          Ep = VQEenergy(costfunction,circuit)   
           
           angle = angle - ϵ
-          vqe.circuit[d][i] = Base.setindex(vqe.circuit[d][i],Base.setindex(vqe.circuit[d][i][3],angle,par_id),3)
-          Em = VQEenergy(vqe.Hamiltonian,vqe.circuit)
+          circuit[d][i] = Base.setindex(circuit[d][i],Base.setindex(circuit[d][i][3],angle,par_id),3)
+          Em = VQEenergy(costfunction,circuit)
           numgrad = (Ep-Em)/ϵ
           push!(numgradients, numgrad)
         end
@@ -140,20 +139,12 @@ end
   depth = 4
   H,_ = isingmodel(N)
   circuit = randomcircuit(N, depth; twoqubitgates = "CX", onequbitgates = ["Rn"])
-  vqe = VQE(H,circuit) 
-  ∇num = numgradpars(vqe)
-  ∇ = PastaQ.gradients(vqe) 
+  ∇num = numgradpars(circuit, H)
+  _, ∇ = PastaQ.gradients(circuit, H) 
   counter = 1 
-  
   for i in 1:length(∇num)
     @test ∇num[i] ≈ ∇[i] atol = 1e-6
   end
-  #for d in 1:length(∇)
-  #  for i in 1:length(∇[d])
-  #    @test ∇num[counter] ≈ ∇[d][i] atol = 1e-6
-  #    counter += 1
-  #  end
-  #end
 end
 
 @testset "VQE: update angles" begin
@@ -161,45 +152,21 @@ end
   N = 4
   depth = 3
   H,_ = isingmodel(N)
-  circuit = randomcircuit(N, depth; twoqubitgates = "CX", onequbitgates = ["Rn"])
-  vqe0 = VQE(H,circuit) 
-  vqe = copy(vqe0)
-  
-  θ0 = PastaQ.getparameters(vqe)
+  circuit0 = randomcircuit(N, depth; twoqubitgates = "CX", onequbitgates = ["Rn"])
+  circuit = copy(circuit0)
+
+  θ0 = PastaQ._getparameters(circuit)
   npars  = 3 * 4 * 3
   θ1 = rand(npars)
-  PastaQ.updateangles!(vqe,θ1)
-  @test θ1 ≈ PastaQ.getparameters(vqe) 
+  PastaQ._setparameters!(circuit, θ1)
+  @test θ1 ≈ PastaQ._getparameters(circuit) 
 
   layer = layer = Tuple[("Rx", 1, (θ = 0.1,)),("Rx", 2, (θ = 0.1,)),("Rx", 3, (θ = 0.1, nograd = true)),("Rx", 4, (θ = 0.1, nograd = true))]
   newcircuit = push!(circuit,layer)
-  vqe = VQE(H, circuit)
-  θ0 = PastaQ.getparameters(vqe)
+  θ0 = PastaQ._getparameters(circuit)
   npars += 2
   θ1 = rand(npars)
-  PastaQ.updateangles!(vqe,θ1)
-  @test θ1 ≈ PastaQ.getparameters(vqe) 
+  PastaQ._setparameters!(circuit,θ1)
+  @test θ1 ≈ PastaQ._getparameters(circuit) 
 
 end
-
-
-
-#  ∇num = numgradpars(vqe0)
-#  ∇ = PastaQ.gradients(vqe) 
-#  η = 0.01
-#  PastaQ.updateangles!(vqe, ∇; η = η)
-#  counter = 1 
-#  for d in 1:depth
-#    trainable_index = findall(x -> x==1, PastaQ.istrainable.(vqe.circuit[d]))
-#    for i in 1:length(trainable_index)
-#      par_id =  keys(vqe.circuit[d][trainable_index[i]][3])
-#      for par in par_id
-#        @test ∇[d][i] ≈ ∇num[counter] atol = 1e-6
-#        old_angle = vqe0.circuit[d][trainable_index[i]][3][par]
-#        X = old_angle - η * ∇num[counter]
-#        @test X ≈ vqe.circuit[d][trainable_index[i]][3][par]
-#        counter += 1
-#      end
-#    end
-#  end
-#end

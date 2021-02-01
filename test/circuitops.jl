@@ -158,33 +158,33 @@ end
 
 @testset "apply gate: meas X" begin
   psi = qubits(1, ["X+"])
-  gate_data = ("basisX", 1, (dag = true,))
+  gate_data = ("basisX", 1, (dag_gate = true,))
   psi=runcircuit(psi,gate_data)
   @test array(psi) ≈ [1.,0.]
   psi = qubits(1, ["X-"])
-  gate_data = ("basisX", 1, (dag = true,))
+  gate_data = ("basisX", 1, (dag_gate = true,))
   psi=runcircuit(psi,gate_data)
   @test array(psi) ≈ [0.,1.]
 end
 
 @testset "apply gate: meas Y" begin
   psi = qubits(1, ["Y+"])
-  gate_data = ("basisY", 1, (dag = true,))
+  gate_data = ("basisY", 1, (dag_gate = true,))
   psi=runcircuit(psi,gate_data)
   @test array(psi) ≈ [1.,0.]
   psi = qubits(1, ["Y-"])
-  gate_data = ("basisY", 1, (dag = true,))
+  gate_data = ("basisY", 1, (dag_gate = true,))
   psi=runcircuit(psi,gate_data)
   @test array(psi) ≈ [0.,1.]
 end
 
 @testset "apply gate: meas Z" begin
   psi = qubits(1)
-  gate_data = ("basisZ", 1, (dag = true,))
+  gate_data = ("basisZ", 1, (dag_gate = true,))
   psi=runcircuit(psi,gate_data)
   @test array(psi) ≈ [1.,0.]
   psi = qubits(1, ["Z-"])
-  gate_data = ("basisZ", 1, (dag = true,))
+  gate_data = ("basisZ", 1, (dag_gate = true,))
   psi=runcircuit(psi,gate_data)
   @test array(psi) ≈ [0.,1.]
 end

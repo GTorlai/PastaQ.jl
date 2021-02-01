@@ -29,8 +29,9 @@ export
   buildcircuit,
   runcircuit,
 
-# circuits/vqe.jl
-  VQE,
+# circuits/variationalcircuit.jl
+  minimize!,
+  maximize!,
 
 # circuits/qubitarrays.jl
   lineararray,
