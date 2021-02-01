@@ -13,7 +13,6 @@ paulis = [
   "XZIX","XZZX","XIIX","XIZX","XXIX","XXZX","YYIX","YYZX","ZIIZ","XZIZ","XIIZ","XXIZ","YYIZ","ZZZI","ZXZI","IXZI","ZZXI",
   "ZZXZ","ZXXI","ZXXZ","IXXI","IXXZ","ZZYY","ZZXX","ZXYY","ZXXX","IXYY","IXXX","ZZZZ","ZXZZ","IXZZ","ZZIX","ZZZX","ZXZX",
   "ZXIX","IXZX","IXIX","ZZIZ","ZXIZ","IXIZ","IZZI","IZXI","IZXZ","IZYY","IZXX","IZZZ","IZIX","IZZX","IZIZ"];
-
 # coupling coefficients
 interactions = [
  -8.0218563570867370, -0.0927599493349759, -0.0029411410873565,  0.0029411410873565, -0.2118898429700866,  0.0007427996394736,
@@ -34,18 +33,12 @@ interactions = [
   0.0109527735738155,  0.1139525188304599, -0.0106818562829599, -0.0106818562829599, -0.0343897481404694,  0.0343897481404694,
  -0.0604401285731657, -0.0109527735738155,  0.0109527735738155, -0.1138433517646401]
 
-#let
-  # Simulation of the ground state
-  
 Random.seed!(1234)
-
 # number of qubits
 N = 4
-
 # generate the hamiltonian MPO
 sites = siteinds("Qubit",N)
 ampo = AutoMPO()
-
 # loop over the pauli operators
 for k in 1:length(paulis)
     paulistring = paulis[k]
@@ -68,8 +61,7 @@ E₀, _ = dmrg(H, ψ0, sweeps, outputlevel = 0);
 @printf("\nGround state energy: %.10f\n\n",E₀)
   
 
-Random.seed!(1234)
-depth = 4
+
 circuit = randomcircuit(N, depth; twoqubitgates = "CX", onequbitgates = "Ry")
 niter = 1000
 η = 0.1

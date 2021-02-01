@@ -15,12 +15,14 @@ function minimize!(costfunction::MPO,
                    circuit::Vector{<:Vector{<:Tuple}};
                    optimizer=Flux.Optimise.Descent(0.1),
                    epochs::Int=1000,
-                   optimum = nothing)
+                   optimum = nothing,
+                   maxdim::Int64 = 10_000,
+                   cutoff::Float64 = 1e-12)
   
   circuitmap = _circuitmap(circuit)
   for ep in 1:epochs
     θ = _getparameters(circuit)
-    loss, ∇ = gradients(circuit, costfunction, circuitmap)
+    loss, ∇ = gradients(circuit, costfunction, circuitmap; maxdim = maxdim, cutoff = cutoff)
     Flux.Optimise.update!(optimizer, θ, ∇)
     _setparameters!(circuit, θ)
     @printf("iter = %d  loss = %.5f",ep,real(loss))
@@ -38,7 +40,7 @@ maximize!(costfunction::MPO, args...; kwargs...)  =
 """
 Compute the left and right environments with respect to the bra
 """
-function environments(circuit::Vector{<:Vector{<:Tuple}}, costfunction::MPO)
+function environments(circuit::Vector{<:Vector{<:Tuple}}, costfunction::MPO; kwargs...)
   # number of qubits
   N = length(costfunction)
   # depth of the vqe circuit
@@ -50,10 +52,10 @@ function environments(circuit::Vector{<:Vector{<:Tuple}}, costfunction::MPO)
   push!(ΨL, ψ)
   for d in 1:depth-1
     layer = circuit[d]
-    ψ = runcircuit(ψ, layer; move_sites_back = true)  
+    ψ = runcircuit(ψ, layer; move_sites_back = true, kwargs...)  
     push!(ΨL, ψ)
   end
-  ψ = runcircuit(ψ, circuit[end]; move_sites_back = true)
+  ψ = runcircuit(ψ, circuit[end]; move_sites_back = true, kwargs...)
   
   # right environment
   ΨR = MPS[]
@@ -61,19 +63,19 @@ function environments(circuit::Vector{<:Vector{<:Tuple}}, costfunction::MPO)
   push!(ΨR,ψ) 
   for d in reverse(2:depth)
     layer = circuit[d]
-    ψ = runcircuit(ψ,dag(layer); move_sites_back = true)
+    ψ = runcircuit(ψ,dag(layer); move_sites_back = true, kwargs...)
     push!(ΨR,ψ)
   end
   ΨR = reverse(ΨR)
   return ΨL,ΨR 
 end
 
-gradients(circuit::Vector{<:Vector{<:Tuple}}, costfunction::MPO) = 
-  gradients(circuit, costfunction, _circuitmap(circuit)) 
+gradients(circuit::Vector{<:Vector{<:Tuple}}, costfunction::MPO; kwargs...) = 
+  gradients(circuit, costfunction, _circuitmap(circuit); kwargs...) 
 
-function gradients(circuit::Vector{<:Vector{<:Tuple}}, costfunction::MPO, circuitmap::Vector{<:Any})
+function gradients(circuit::Vector{<:Vector{<:Tuple}}, costfunction::MPO, circuitmap::Vector{<:Any}; kwargs...)
   # environments
-  ΨL, ΨR = PastaQ.environments(circuit, costfunction)
+  ΨL, ΨR = PastaQ.environments(circuit, costfunction; kwargs...)
   
   # gradients
   gradients = []
@@ -88,7 +90,7 @@ function gradients(circuit::Vector{<:Vector{<:Tuple}}, costfunction::MPO, circui
       #insert!(partiallayer,gateposition,
       #           (gatename,support,(trainable_params...,grad=true)))
       # apply the partial layer to the left environment
-      ξL = runcircuit(ΨL[d], partiallayer; move_sites_back = true)
+      ξL = runcircuit(ΨL[d], partiallayer; move_sites_back = true, kwargs...)
        grad = array(_circuitgradient(ξL, ΨR[d], support))
       
       for par in keys(trainable_params)
