@@ -3,6 +3,7 @@ using ITensors
 using Test
 using Random
 using Printf
+import Flux
 
 # pauli operators
 paulis = [
@@ -64,7 +65,7 @@ sweeps = Sweeps(10)
 maxdim!(sweeps, 10,20,30,50,100)
 cutoff!(sweeps, 1E-10)
 E₀, _ = dmrg(H, ψ0, sweeps, outputlevel = 0);
-@printf("\nGround state energy: %.10f\n\n",E0)
+@printf("\nGround state energy: %.10f\n\n",E₀)
   
 
 Random.seed!(1234)

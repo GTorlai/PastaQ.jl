@@ -13,7 +13,7 @@ Minimize a MPO cost function
 """
 function minimize!(costfunction::MPO, 
                    circuit::Vector{<:Vector{<:Tuple}};
-                   optimizer=Flux.Optimise.Descent(0.01),
+                   optimizer=Flux.Optimise.Descent(0.1),
                    epochs::Int=1000,
                    optimum = nothing)
   
