@@ -66,8 +66,12 @@ end
 Create a uniform layer containing `N` identical quantum gates, idenfitied by
 `gatename`. If additional parameteres are provided, they are identically added to all gates.
 """
+gatelayer(gatename::AbstractString, support::Union{Vector{<:Int},AbstractRange}; kwargs...) =
+  Tuple[isempty(kwargs) ? (gatename, n) : (gatename, n, values(kwargs)) for n in support]
+
 gatelayer(gatename::AbstractString, N::Int; kwargs...) =
-  Tuple[isempty(kwargs) ? (gatename, n) : (gatename, n, values(kwargs)) for n in 1:N]
+  gatelayer(gatename, 1:N; kwargs...)
+
 
 """
     gatelayer(bonds::Vector{Vector{Int}}, gatename::AbstractString)
@@ -76,7 +80,6 @@ Create a uniform layer of two-qubit gates over a set of `bonds`.
 """
 gatelayer(gatename::AbstractString,bonds::Vector{Vector{Int}}) = 
   Tuple[(gatename, Tuple(bonds[n])) for n in 1:length(bonds)]  
-
 
 
 
@@ -96,12 +99,13 @@ Generate a random layer built out of a set one or two qubit gates If `support::I
 `N` single-qubit gates `gatename`. If `support::Vector=bonds`, generates a set of two-qubit
 gates on the couplings contained in `support`.
 """
-function randomlayer(gatename::AbstractString, support::Union{Int,Vector{<:Vector{Int}}}; rng = Random.GLOBAL_RNG) 
+function randomlayer(gatename::AbstractString, support::Union{Int,Vector{<:Vector{Int}}}; 
+                     rng = Random.GLOBAL_RNG, kwargs...) 
   layer = Tuple[]
   support = (support isa Int ? (1:support|>collect) : Tuple.(support))
   for n in support
-    pars = randomparams(gatename, 2*length(n); rng = rng) # the 2*n is for the Haar dimension
-    g = (isnothing(pars) ? (gatename, n) : (gatename, n, pars))
+    pars = randomparams(gatename, 2^length(n); rng = rng) # the 2^n is for the Haar dimension
+    g = (isnothing(pars) ? (gatename, n) : (gatename, n, merge(pars,values(kwargs))))
     push!(layer,g)
   end
   return layer
@@ -130,7 +134,6 @@ function randomlayer(gatenames::Vector{<:AbstractString}, support::Union{Int,Vec
   end
   return layer
 end
-
 
 
 """
