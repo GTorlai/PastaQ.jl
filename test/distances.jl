@@ -49,6 +49,8 @@ using Random
   F_mat = real(tr(sqrt(F_mat)))^2
 
   @test F ≈ F_mat
+
+
 end
 
 @testset "frobenius distance" begin 
@@ -207,5 +209,35 @@ end
   F̃ = fidelity_bound(ρ,σ)
   @test f ≈ F̃
 end
+
+
+
+@testset "process fidelity" begin
+  N = 3
+  circuit = randomcircuit(N,3)
+
+  U = runcircuit(circuit; process = true)
+  V = randomprocess(U)
+  Ψ = PastaQ._UnitaryMPOtoMPS(U)
+  Φ = PastaQ._UnitaryMPOtoMPS(V)
+  @test processfidelity(U,V) ≈ fidelity(Ψ,Φ)
+
+  Λ = runcircuit(circuit; process = true,noise=("DEP",(p=0.1,)))
+  V = randomprocess(Λ; mixed = true)
+  @test processfidelity(Λ,V) ≈ fidelity(V,Λ)
+
+end
+
+
+
+
+
+
+
+
+
+
+
+
 
 

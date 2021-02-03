@@ -138,15 +138,15 @@ associated with a list of quantum gates.
 If noise is nontrivial, the corresponding Kraus operators are 
 added to each gate as a tensor with an extra (Kraus) index.
 """
-function buildcircuit(M::Union{MPS,MPO}, gates::Union{Tuple,Vector{<:Tuple}}; 
+function buildcircuit(M::Union{MPS,MPO}, gates::Union{Tuple,Vector{<:Any}}; 
                       noise::Union{Nothing, String, Tuple{String, NamedTuple}} = nothing)
   gate_tensors = ITensor[]
   if gates isa Tuple
     gates = [gates]
   end
-
   for g in gates
     push!(gate_tensors, gate(M, g))
+    #@show gate_tensors[end]
     ns = g[2]
     if !isnothing(noise)
       for n in ns
@@ -174,7 +174,7 @@ function runcircuit(M::Union{MPS, MPO},
                     cutoff = 1e-15,
                     maxdim = 10_000,
                     svd_alg = "divide_and_conquer",
-                    move_sites_back::Bool = false)
+                    move_sites_back::Bool = true)
 
   # Check if gate_tensors contains Kraus operators
   inds_sizes = [length(inds(g)) for g in gate_tensors]
@@ -258,13 +258,13 @@ If an MPO `ρ` is input, there are three possible modes:
 2. If `noise` is set to something nontrivial, the evolution `ε(ρ)` is performed.
 3. If `noise = nothing` and `apply_dag = false`, the evolution `Uρ` is performed.
 """
-function runcircuit(M::Union{MPS, MPO}, gates::Union{Tuple,Vector{<:Tuple}};
+function runcircuit(M::Union{MPS, MPO}, gates::Union{Tuple,Vector{<:Any}};
                     noise = nothing,
                     apply_dag = nothing, 
                     cutoff = 1e-15,
                     maxdim = 10_000,
                     svd_alg = "divide_and_conquer",
-                    move_sites_back::Bool = false)
+                    move_sites_back::Bool = true)
   
   gate_tensors = buildcircuit(M, gates; noise = noise) 
   return runcircuit(M, gate_tensors;
@@ -300,7 +300,7 @@ The starting state is generated automatically based on the flags `process`, `noi
    `Λ = ε⊗1̂(|ξ⟩⟨ξ|)`, where `|ξ⟩= ⨂ⱼ |00⟩ⱼ+|11⟩ⱼ`, approximated by a MPO with 4 site indices,
    two for the input and two for the output Hilbert space of the quantum channel.
 """
-function runcircuit(N::Int, gates::Vector{<:Tuple};
+function runcircuit(N::Int, gates::Union{Tuple,Vector{<:Any}};
                     process = false,
                     noise = nothing,
                     cutoff = 1e-15,
@@ -336,14 +336,14 @@ function runcircuit(N::Int, gates::Vector{<:Tuple};
     
 end
 
-runcircuit(gates::Vector{Tuple}; kwargs...) = 
+runcircuit(gates::Union{Tuple,Vector{<:Any}}; kwargs...) = 
   runcircuit(numberofqubits(gates), gates; kwargs...)
 
 
 """
 Run the layered circuit with the possibility of having a circuit observer 
 """
-function runcircuit(M0::Union{MPS,MPO}, gates::Vector{Vector{<:Tuple}}; 
+function runcircuit(M0::Union{MPS,MPO}, gates::Vector{<:Vector{<:Any}}; 
                     observer! = nothing,
                     move_sites_back_before_measurements::Bool = false,
                     kwargs...)
@@ -371,7 +371,8 @@ function runcircuit(M0::Union{MPS,MPO}, gates::Vector{Vector{<:Tuple}};
   return M
 end
 
-function runcircuit(N::Int, gates::Vector{Vector{<:Tuple}}; process = false, move_sites_back_before_measurements::Bool = false, kwargs...)
+
+function runcircuit(N::Int, gates::Vector{<:Vector{<:Any}}; process = false, move_sites_back_before_measurements::Bool = false, kwargs...)
   if process == false
     runcircuit(qubits(N), gates; move_sites_back_before_measurements = move_sites_back_before_measurements, kwargs...)
   else
@@ -379,9 +380,8 @@ function runcircuit(N::Int, gates::Vector{Vector{<:Tuple}}; process = false, mov
   end
 end
 
-function runcircuit(gates::Vector{Vector{<:Tuple}}; move_sites_back_before_measurements::Bool = false, kwargs...)
-  runcircuit(numberofqubits(gates), gates; move_sites_back_before_measurements = move_sites_back_before_measurements, kwargs...)
-end
+runcircuit(gates::Vector{<:Vector{<:Any}}; kwargs...) = 
+  runcircuit(numberofqubits(gates), gates; kwargs...)
 
 """
     runcircuit(M::ITensor,gate_tensors::Vector{ <: ITensor}; kwargs...)
@@ -398,7 +398,7 @@ runcircuit(M::ITensor, gate_tensors::Vector{ <: ITensor}; kwargs...) =
 Apply the circuit to an ITensor from a list of gates.
 """
 
-runcircuit(M::ITensor, gates::Vector{ <: Tuple}; noise = nothing, kwargs...) =
+runcircuit(M::ITensor, gates::Vector{<:Any }; noise = nothing, kwargs...) =
   runcircuit(M, buildcircuit(M, gates; noise = noise); kwargs...)
 
 """
@@ -410,11 +410,14 @@ Compute the Choi matrix `Λ  = ε⊗1̂(|ξ⟩⟨ξ|)`, where `|ξ⟩= ⨂ⱼ |0
 where `ε` is a quantum channel built out of a set of quantum gates and 
 a local noise model. Returns a MPO with `N` tensor having 4 sites indices. 
 """
-function choimatrix(N::Int, gates::Vector{<:Tuple};
+function choimatrix(N::Int, gates::Vector{<:Any};
                     noise = nothing, cutoff = 1e-15, maxdim = 10000,
                     svd_alg = "divide_and_conquer")
   if isnothing(noise)
     error("choi matrix requires noise")
+  end
+  if gates isa Vector{<:Vector}
+    error("choi matrix not implemented for layered circuits")
   end
   # Initialize circuit MPO
   U = identity_mpo(N)
@@ -447,6 +450,6 @@ function choimatrix(N::Int, gates::Vector{<:Tuple};
   return Λ
 end
 
-choimatrix(gates::Vector{<:Tuple}; kwargs...) = 
+choimatrix(gates::Vector{<:Any}; kwargs...) = 
   choimatrix(numberofqubits(gates), gates; kwargs...)
 

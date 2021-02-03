@@ -299,9 +299,9 @@ gate(::GateName"CCCNOT") =
    0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0]
 
 #
-# n-qubit gates
-#
-
+# Random Haard unitary:
+# 
+# Reference: http://math.mit.edu/~edelman/publications/random_matrix_theory.pdf
 function gate(::GateName"randU", N::Int = 2;
               eltype = ComplexF64,
               random_matrix = randn(eltype, N, N))
@@ -309,8 +309,8 @@ function gate(::GateName"randU", N::Int = 2;
   return Q
 end
 
-gate(::GateName"Haar", N::Int = 2; eltype = ComplexF64, random_matrix = randn(eltype, N, N)) =
-  gate("randU", N; eltype = eltype, random_matrix = random_matrix)
+gate(::GateName"HaarRandomUnitary", N::Int = 2; kwargs...) = 
+  gate("randU", N; kwargs...)
 #
 # Noise model gate definitions
 #
@@ -519,19 +519,10 @@ randomparams(::GateName"Rn",args...; rng = Random.GLOBAL_RNG) =
 randomparams(::GateName"CRn", args...;rng = Random.GLOBAL_RNG) = 
   ( θ = π * rand(rng), ϕ = 2 * π * rand(rng), λ = π * rand(rng))
 
-randomparams(::GateName"X",args...; kwargs...) = nothing
-randomparams(::GateName"Y",args...; kwargs...) = nothing
-randomparams(::GateName"Z",args...; kwargs...) = nothing
-randomparams(::GateName"P",args...; kwargs...) = nothing
-randomparams(::GateName"T",args...; kwargs...) = nothing
-randomparams(::GateName"CX",args...; kwargs...) = nothing
-randomparams(::GateName"CY",args...; kwargs...) = nothing
-randomparams(::GateName"CZ",args...; kwargs...) = nothing
-randomparams(::GateName"Swap",args...; kwargs...) = nothing
-randomparams(::GateName"iSwap",args...; kwargs...) = nothing
+randomparams(::GateName,args...; kwargs...) = NamedTuple()
 
-randomparams(::GateName"Haar", N::Int = 2; rng = Random.GLOBAL_RNG) = 
-  (random_matrix = randn(rng,ComplexF64, N, N),)
+randomparams(::GateName"HaarRandomUnitary", N::Int = 2; eltype = ComplexF64, rng = Random.GLOBAL_RNG) = 
+  (random_matrix = randn(rng, eltype, N, N),)
 
 randomparams(s::AbstractString; kwargs...) = 
   randomparams(GateName(s); kwargs...)

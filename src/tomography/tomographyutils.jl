@@ -68,35 +68,19 @@ function configure!(observer::Union{Observer,Nothing},
 end
 
 function update!(observer::Observer,
-                 best_model::Union{Nothing,LPDO},
-                 model::LPDO,
-                 test_data::Union{Nothing,Array},
+                 normalized_model::LPDO,
+                 best_model::LPDO,
+                 simulation_time::Float64,
                  train_loss::Float64,
-                 simulation_time)
+                 test_loss::Union{Nothing,Float64})
   
-  # normalize the model
-  normalized_model = copy(model)
-  sqrt_localnorms = []
-  normalize!(normalized_model; sqrt_localnorms! = sqrt_localnorms)
-  
-  # if a test data set is provided
-  if !isnothing(test_data)
-    test_loss = nll(normalized_model, test_data) 
-    # it cost function on the data is lowest, save the model
-    if test_loss < (isempty(result(observer,"test_loss")) ? 1000 : minimum(result(observer,"test_loss")))#best_test_loss
-      best_test_loss = test_loss
-      best_model = copy(model)
-    end
-  else
-    best_model = copy(model)
-  end
   observer.measurements["simulation_time"] = nothing => simulation_time 
   push!(observer.measurements["train_loss"][2], train_loss)
-  if !isnothing(test_data)
+  if !isnothing(test_loss)
     push!(observer.measurements["test_loss"][2], test_loss)
   end
+  
   measure!(observer, normalized_model)
-  return observer, best_model
 end
 
 
@@ -119,16 +103,16 @@ function printobserver(epoch::Int, observer::Observer, print_metrics::Union{Bool
   (print_metrics isa Bool) && !print_metrics && return
   
   @printf("%-4d  ",epoch)
-  @printf("⟨logP⟩ = %-4.4f  ", result(observer,"train_loss")[end]) 
+  @printf("⟨logP⟩ = %-4.4f  ", results(observer,"train_loss")[end]) 
   if haskey(observer.measurements,"test_loss")
-    @printf("(%.4f)  ",result(observer,"test_loss")[end])
+    @printf("(%.4f)  ",results(observer,"test_loss")[end])
   end
   if !isempty(print_metrics)
     if print_metrics isa String
-      printmetric(print_metrics, result(observer,print_metrics)[end])  
+      printmetric(print_metrics, results(observer,print_metrics)[end])  
     else
       for metric in print_metrics
-        printmetric(metric, result(observer,metric)[end])
+        printmetric(metric, results(observer,metric)[end])
       end
     end
   end

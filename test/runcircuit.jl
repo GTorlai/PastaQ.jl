@@ -92,7 +92,6 @@ end
   N = 3
   depth = 4
   gates = randomcircuit(N,depth; layered = false)
-  
   #Pure state, noiseless circuit
   ψ0 = qubits(N)
   ψ = runcircuit(ψ0,gates)

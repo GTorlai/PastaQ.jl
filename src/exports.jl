@@ -29,11 +29,6 @@ export
   buildcircuit,
   runcircuit,
 
-# circuits/qubitarrays.jl
-  lineararray,
-  squarearray,
-  randomcouplings,
-
 # lpdo.jl
   LPDO,
   normalize!,
@@ -55,6 +50,8 @@ export
 
 # distances.jl
   fidelity,
+  statefidelity,
+  processfidelity,
   fidelity_bound,
   frobenius_distance,
 
@@ -69,9 +66,7 @@ export
 # observer.jl
   Observer,
   save,
-  observable,
-  result,
-  parameters,
+  results,
 
 # inputoutput.jl
   writesamples,

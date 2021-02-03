@@ -39,9 +39,9 @@ N = length(Ψ)     # Number of qubits
 ψ0 = randomstate(Ψ; χ = χ, σ = 0.1)
 opt = SGD(η = 0.01)
 
-
-obs = Observer([fidelity => Ψ])
-print_metrics = ["fidelity"]
+F1(ψ::MPS) = fidelity(ψ,Ψ)
+obs = Observer(F1)
+print_metrics = ["F1"]
 ψ = tomography(data, ψ0;
                optimizer = opt,
                epochs = 2,
@@ -56,8 +56,11 @@ N = length(ϱ)     # Number of qubits
 ρ0 = randomstate(ϱ; mixed = true, χ = χ, ξ = ξ, σ = 0.1)
 opt = SGD(η = 0.01)
 
-obs = Observer([fidelity => ϱ, frobenius_distance => ϱ])
-print_metrics = ["fidelity","frobenius_distance"]
+F2(ρ::LPDO) = fidelity(ρ,ϱ)
+Frobenius2(ρ::LPDO) = frobenius_distance(ρ,ϱ)
+                                       
+obs = Observer([F2,Frobenius2])
+print_metrics = ["F2","Frobenius2"]
 ρ = tomography(data, ρ0;
                optimizer = opt,
                epochs = 2,
@@ -65,16 +68,18 @@ print_metrics = ["fidelity","frobenius_distance"]
                print_metrics = print_metrics)
 
 Random.seed!(1234)
-data, U = readsamples("../examples/data/qpt_circuit_test.h5")
+data, V = readsamples("../examples/data/qpt_circuit_test.h5")
 N = length(U)     # Number of qubits
 χ = maxlinkdim(U) # Bond dimension of variational MPS
-V0 = randomprocess(U; χ = χ)
+U0 = randomprocess(U; χ = χ)
 opt = SGD(η = 0.1)
 
 
-obs = Observer(fidelity => U)
-print_metrics = ["fidelity"]
-V = tomography(data, V0;
+F(U::MPO) = processfidelity(U,V)
+
+obs = Observer(F)
+print_metrics = ["F"]
+U = tomography(data, U0;
                optimizer = opt,
                epochs = 2,
                trace_preserving_regularizer = 0.1,
@@ -89,9 +94,11 @@ N = length(ϱ)
 ξ = 2
 Λ0 = randomprocess(ϱ; mixed = true, χ = χ, ξ = ξ, σ = 0.1)
 opt = SGD(η = 0.1)
+F(Λ::LPDO) = fidelity(Λ,ϱ)
+
 @disable_warn_order begin
-  obs = Observer([fidelity => ϱ, fidelity_bound => ϱ])
-  print_metrics = ["fidelity","fidelity_bound"]
+  obs = Observer(F)
+  print_metrics = ["F"]
   Λ = tomography(data, Λ0;
                  optimizer = opt,
                  epochs = 2,

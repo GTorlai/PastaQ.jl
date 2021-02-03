@@ -18,7 +18,7 @@ end
   @test length(layer) == N
   @test all(x -> x == "X", first.(layer))
 
-  qarray = lineararray(N)
+  qarray = PastaQ.lineararray(N)
   layer = gatelayer("CX", qarray[1])
   @test length(layer) == length(qarray[1])
   @test all(x -> x == "CX", first.(layer))
@@ -40,7 +40,7 @@ end
   @test haskey(pars,:ϕ)
   @test haskey(pars,:λ)
   
-  pars = PastaQ.randomparams("Haar",4)
+  pars = PastaQ.randomparams("HaarRandomUnitary",4)
   @test haskey(pars,:random_matrix)
   @test size(pars[:random_matrix]) == (4,4)
   @test pars[:random_matrix] isa Matrix{ComplexF64}
@@ -54,13 +54,13 @@ end
   @test length(layer) == N
   @test all(x -> x == "Rn", first.(layer))
 
-  qarray = lineararray(N)
-  layer = randomlayer("Haar", qarray[1])
+  qarray = PastaQ.lineararray(N)
+  layer = randomlayer("HaarRandomUnitary", qarray[1])
   @test length(layer) == length(qarray[1])
-  @test all(x -> x == "Haar", first.(layer))
-  layer = randomlayer("Haar", qarray[2])
+  @test all(x -> x == "HaarRandomUnitary", first.(layer))
+  layer = randomlayer("HaarRandomUnitary", qarray[2])
   @test length(layer) == length(qarray[2])
-  @test all(x -> x == "Haar", first.(layer))
+  @test all(x -> x == "HaarRandomUnitary", first.(layer))
 
 end
 
@@ -68,10 +68,10 @@ end
 @testset "random circuits" begin
   N = 30
   depth = 10
-  circuit = randomcircuit(N,depth; twoqubitgates = "Haar")
-  @test size(circuit,1) == depth
+  circuit = randomcircuit(N,depth; twoqubitgates = "HaarRandomUnitary")
+  @test length(circuit) == depth
   for d in 1:depth
-    @test all(x->x == "Haar",first.(circuit[depth]))
+    @test all(x->x == "HaarRandomUnitary",first.(circuit[depth]))
   end
 
   circuit = randomcircuit(N,depth; twoqubitgates = "CX")
@@ -83,28 +83,7 @@ end
   circuit = randomcircuit(N,depth; twoqubitgates = "CX", onequbitgates = "Rn")
   @test size(circuit,1) == depth
   
-  circuit = randomcircuit(N, depth; twoqubitgates = ["CX","Haar"], onequbitgates = ["Rn","X"])
+  circuit = randomcircuit(N, depth; twoqubitgates = "HaarRandomUnitary", onequbitgates = ["Rn","X"])
   @test size(circuit,1) == depth
-
-  #Lx = 6
-  #Ly = 6
-  #circuit = randomcircuit(Lx,Ly,depth; twoqubitgates = "Haar")
-  #@test size(circuit,1) == depth
-  #for d in 1:depth
-  #  @test all(x->x == "Haar",first.(circuit[depth]))
-  #end
-
-  #circuit = randomcircuit(Lx,Ly,depth; twoqubitgates = "CX")
-  #@test size(circuit,1) == depth
-  #for d in 1:depth
-  #  @test all(x->x == "CX",first.(circuit[depth]))
-  #end
-
-  #circuit = randomcircuit(Lx,Ly,depth; twoqubitgates = "CX", onequbitgates = "Rn")
-  #@test size(circuit,1) == depth
-  #
-  #circuit = randomcircuit(Lx,Ly, depth; twoqubitgates = ["CX","Haar"], onequbitgates = ["Rn","X"])
-  #@test size(circuit,1) == depth
-
 end
 

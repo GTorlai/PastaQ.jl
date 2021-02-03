@@ -197,52 +197,30 @@ function ischoi(M::MPO)
   return (length(inds(M[1],"Site")) == 4 ? true : false)
 end
 
-function makeUnitary(L::LPDO{MPS})
-  ψ = L.X
-  U = MPO(ITensor[copy(ψ[j]) for j in 1:length(ψ)])
+function _MPStoUnitaryMPO(L::LPDO{MPS})
+  ψ = copy(L.X)
+  U = MPO(ITensor[ψ[j] for j in 1:length(ψ)])
   prime!(U,tags="Output")
   removetags!(U, "Input")
   removetags!(U, "Output")
   return U
 end
 
-function makeChoi(U0::MPO)
+function _UnitaryMPOtoMPS(U0::MPO)
   ischoi(U0) && return U0
   M = MPS(ITensor[copy(U0[j]) for j in 1:length(U0)])
   addtags!(M, "Input", plev = 0, tags = "Qubit")
   addtags!(M, "Output", plev = 1, tags = "Qubit")
-  noprime!(M)
-  return LPDO(M)
+  return noprime!(M)
 end
 
 
-function numberofqubits(gate::Tuple)
-  s = gate[2]
+function numberofqubits(g::Tuple)
+  s = g[2]
   n = (s isa Number ? s : maximum(s))
   return n
 end
 
-function numberofqubits(gates::Vector{<:Tuple})
-  nMax = 0
-  for g in gates
-    s = g[2]
-    n = (s isa Number ? s : maximum(s))
-    nMax = (n > nMax ? n : nMax)
-  end
-  return nMax
-end
-
-function numberofqubits(gates::Vector{<:Vector{<:Tuple}})
-  nMax = 0
-  for layer in gates
-    for g in layer
-      s = g[2]
-      n = (s isa Number ? s : maximum(s))
-      nMax = (n > nMax ? n : nMax)
-    end
-  end
-  return nMax
-end
-
-
+numberofqubits(gates::Vector{<:Any}) =  
+  maximum([numberofqubits(gates[n]) for n in 1:length(gates)])
 

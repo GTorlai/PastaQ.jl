@@ -366,7 +366,7 @@ quantum channel corresponding to a set of quantum `gates` and a `noise` model.
   - `local_input_state`: a set of input states (e.g. `["X+","X-","Y+","Y-","Z+","Z-"]`) which are sampled randomly to generate input states.
   - `local_basis`: the local bases (e.g. `["X","Y","Z"]`) which are sampled randomly to perform measurements in a random basis.
 """
-function getsamples(N::Int64, gates::Vector{<:Tuple}, nshots::Int64;
+function getsamples(N::Int64, gates::Vector{<:Any}, nshots::Int64;
                     noise = nothing,
                     build_process::Bool = true,
                     process::Bool = false,
@@ -418,7 +418,7 @@ function getsamples(N::Int64, gates::Vector{<:Tuple}, nshots::Int64;
     end
   end
 end
-getsamples(N::Int64, gates::Vector{Vector{<:Tuple}}, nshots::Int64; kwargs...) = 
+getsamples(N::Int64, gates::Vector{Vector{<:Any}}, nshots::Int64; kwargs...) = 
   getsamples(N, vcat(gates...), nshots; kwargs...)
 
 getsamples(gates::Vector, nshots::Int64; kwargs...) =

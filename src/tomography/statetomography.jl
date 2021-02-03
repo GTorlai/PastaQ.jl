@@ -475,6 +475,8 @@ function tomography(train_data::Matrix{Pair{String, Int}}, L::LPDO; observer! = 
 
   tot_time = 0.0
   best_model = nothing
+  best_testloss = 1000.0
+  test_loss = nothing
 
   for ep in 1:epochs
     ep_time = @elapsed begin
@@ -500,7 +502,19 @@ function tomography(train_data::Matrix{Pair{String, Int}}, L::LPDO; observer! = 
     
     # measurement stage
     if ep % measurement_frequency == 0
-      observer!, best_model = update!(observer!, best_model, model, test_data, train_loss, tot_time)
+      normalized_model = copy(model)
+      sqrt_localnorms = []
+      normalize!(normalized_model; sqrt_localnorms! = sqrt_localnorms)
+      if !isnothing(test_data)
+        test_loss = nll(normalized_model, test_data)
+        if test_loss ≤ best_testloss
+          best_testloss = test_loss
+          best_model = copy(normalized_model)
+        end
+      else
+        best_model = copy(model)
+      end
+      update!(observer!, normalized_model, best_model, tot_time, train_loss, test_loss)
       # printing
       printobserver(ep, observer!, print_metrics)
       # saving
