@@ -3,16 +3,18 @@ export
   maxlinkdim,
 
 # circuits/circuits.jl
-  appendlayer!,
+  randomlayer,
   gatelayer,
-  qft,
   randomcircuit,
+  qft,
+  ghz,
 
 # circuits/gates.jl
   # Methods
   gate,
   # Macros
   @GateName_str,
+  randomparams,
 
 # circuits/getsamples.jl
   # Methods
@@ -23,52 +25,50 @@ export
 # circuits/runcircuit.jl
   # Methods
   qubits,
-  identity_mpo,
   resetqubits!,
   buildcircuit,
-  applygate,
   runcircuit,
 
 # lpdo.jl
   LPDO,
+  normalize!,
   logtr,
   tr,
-
-# choi.jl,
-  Choi,
 
 # randomstates.jl
   # Methods
   randomstate,
   randomprocess,
 
-# statetomography.jl/processtomography.jl
-  # Methods
-  normalize!,
+# tomography/statetomography.jl
+#           /processtomography.jl
   tomography,
 
+# measurements.jl
+  measure,
+  entanglemententropy,
+
 # distances.jl
-  # Methods
   fidelity,
+  statefidelity,
+  processfidelity,
   fidelity_bound,
   frobenius_distance,
 
 # optimizers.jl
   Optimizer,
   SGD,
-  AdaGrad,
   AdaDelta,
-  Adam,
-  AdaMax,
 
 # observer.jl
-  TomographyObserver,
+  Observer,
+  save,
+  results,
 
-# utils.jl
-  # Methods
+# inputoutput.jl
   writesamples,
   readsamples,
-  maxlinkdim,
-  ischoi,
+
+# utils.jl
   split_dataset,
-  numberofqubits
+  nqubits

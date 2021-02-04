@@ -70,7 +70,7 @@ end
   ψ0 = qubits(N)
   gates = randomcircuit(N,depth)
   ψ = runcircuit(ψ0,gates)
-  ψ_vec = PastaQ.fullvector(ψ)
+  ψ_vec = PastaQ.array(ψ)
   probs = abs2.(ψ_vec)
   
   nshots = 100000
@@ -81,7 +81,7 @@ end
   @test probs ≈ data_prob atol=1e-2
 
   ρ = runcircuit(N, gates, noise = ("amplitude_damping", (γ = 0.01,)))
-  ρ_mat = PastaQ.fullmatrix(ρ)
+  ρ_mat = PastaQ.array(ρ)
   probs = real(diag(ρ_mat))
 
   samples = PastaQ.getsamples!(ρ,nshots)
@@ -205,7 +205,7 @@ end
 @testset "project unitary" begin
   N = 4
   ntrial=100
-  gates = randomcircuit(N,4)
+  gates = randomcircuit(N,4; layered = false)
  
   U = runcircuit(N,gates;process=true)
   
@@ -218,11 +218,11 @@ end
     ψ_out = runcircuit(ψ_in,gates)
     
     Ψ_out = PastaQ.projectunitary(U,preps[n,:])
-    @test PastaQ.fullvector(ψ_out) ≈ PastaQ.fullvector(Ψ_out) 
+    @test PastaQ.array(ψ_out) ≈ PastaQ.array(Ψ_out) 
     
     ψ_m   = runcircuit(ψ_out,mgates)
     Ψ_m   = runcircuit(Ψ_out,mgates)
-    @test PastaQ.fullvector(ψ_m) ≈ PastaQ.fullvector(Ψ_m) 
+    @test PastaQ.array(ψ_m) ≈ PastaQ.array(Ψ_m) 
   end
   
 end
@@ -231,7 +231,8 @@ end
 @testset "choi matrix + projectchoi" begin
   N = 4
   ntrial = 100
-  gates = randomcircuit(N, 4)
+  gates = randomcircuit(N, 4; layered = false)
+ 
   
   Λ = runcircuit(N, gates; process = true, noise = ("amplitude_damping", (γ = 0.1,)))
   
@@ -243,11 +244,11 @@ end
     ρ_out = runcircuit(ψ_in, gates; noise = ("amplitude_damping", (γ = 0.1,)))
     
     Λ_out = PastaQ.projectchoi(Λ,preps[n,:])
-    @test PastaQ.fullmatrix(ρ_out) ≈ PastaQ.fullmatrix(Λ_out)
+    @test PastaQ.array(ρ_out) ≈ PastaQ.array(Λ_out) atol = 1e-6
     
     ρ_m   = runcircuit(ρ_out,mgates)
     Λ_m   = runcircuit(Λ_out,mgates)
-    @test PastaQ.fullmatrix(ρ_m) ≈ PastaQ.fullmatrix(Λ_m) 
+    @test PastaQ.array(ρ_m) ≈ PastaQ.array(Λ_m) atol = 1e-6 
   end
 end
 
@@ -308,7 +309,7 @@ end
                        process = true,
                        build_process = true,
                        noise = ("amplitude_damping", (γ = 0.1,)))
-  @test ischoi(Λ) == true #isa Choi{MPO}
+  @test PastaQ.ischoi(Λ) == true #isa Choi{MPO}
 
 end
 

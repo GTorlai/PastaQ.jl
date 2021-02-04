@@ -11,8 +11,8 @@ Random.seed!(1234)
 N = 4
 depth = 4
 nshots = 10_000
-gates = randomcircuit(N, depth)
-data, ψ = getsamples(N, gates, nshots)
+circuit = randomcircuit(N, depth)
+data, ψ = getsamples(circuit, nshots; local_basis = ["X","Y","Z"])
 writesamples(data, ψ, "data/qst_circuit.h5")
 
 # Load target state and measurement data
@@ -31,6 +31,10 @@ N = length(Ψ)     # Number of qubits
 # Initialize stochastic gradient descent optimizer
 opt = SGD(η = 0.01)
 
+# Initialize the observer for the fidelity
+F(ψ::MPS) = fidelity(ψ,Ψ)
+obs = Observer(F)
+
 # Run quantum state tomography, where a variational MPS `|ψ(θ)⟩`
 # is optimized to mimimize the cross entropy between the data and 
 # the tensor-network distribution `P(x) = |⟨x|ψ(θ)⟩|²`.
@@ -40,7 +44,8 @@ println("Running tomography to learn a pure state ψ:")
                optimizer = opt,
                batchsize = 1000,
                epochs = 5,
-               target = Ψ)
+               observer! = obs,
+               print_metrics = "F")
 @show maxlinkdim(ψ)
 println()
 
@@ -49,7 +54,7 @@ println()
 # as the output of a noisy quantum circuit
 
 # Generate sample data
-data, ρ = getsamples(N, gates, nshots;
+data, ρ = getsamples(circuit, nshots; local_basis = ["X","Y","Z"],
                      noise = ("amplitude_damping", (γ = 0.01,)))
 writesamples(data, ρ, "data/qst_circuit_noisy.h5")
 
@@ -69,16 +74,25 @@ N = length(ϱ)     # Number of qubits
 
 # Initialize stochastic gradient descent optimizer
 opt = SGD(η = 0.1)
+
+# Initialize the observer
+F(ρ::LPDO) = fidelity(ρ,ϱ; warnings = false)
+
+obs = Observer(F)
+
 # Run quantum state tomography, where a variational LPDO `ρ(θ)`
 # is optimized to mimimize the cross entropy between the data and 
 # the tensor-network distribution `P(x) = ⟨x|ρ(θ)|x⟩`.
 println("Running tomography to learn a mixed state ρ:")
-ρ = tomography(train_data, ρ0;
-               test_data = test_data,
-               optimizer = opt,
-               batchsize = 1000,
-               epochs = 5,
-               target = ϱ)
+@disable_warn_order begin
+  ρ = tomography(train_data, ρ0;
+                 test_data = test_data,
+                 optimizer = opt,
+                 batchsize = 1000,
+                 epochs = 5,
+                 observer! = obs,
+                 print_metrics = "F")
+end
 @show maxlinkdim(ρ.X)
 println()
 

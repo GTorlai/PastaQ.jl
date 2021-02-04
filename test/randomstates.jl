@@ -55,7 +55,7 @@ end
   for j in 1:length(ρ)
     @test eltype(ρ.X[j]) == Float64
   end
-  ρ_mat = PastaQ.fullmatrix(ρ)
+  ρ_mat = PastaQ.array(ρ)
   @test sum(abs.(imag(diag(ρ_mat)))) ≈ 0.0 atol=1e-10
   @test all(real(eigvals(ρ_mat)) .≥ 0) 
   # Complex-valued with randpars
@@ -65,7 +65,7 @@ end
   for j in 1:length(ρ)
     @test eltype(ρ.X[j]) == Complex{Float64}
   end
-  ρ_mat = PastaQ.fullmatrix(ρ)
+  ρ_mat = PastaQ.array(ρ)
   @test sum(abs.(imag(diag(ρ_mat)))) ≈ 0.0 atol=1e-10
   @test all(real(eigvals(ρ_mat)) .≥ 0) 
   
@@ -157,8 +157,6 @@ end
 
 end
 
-
-
 @testset "initialization given a process" begin
   # Complex-valued with randpars
   N = 3
@@ -174,7 +172,7 @@ end
   end
   # to Choi
   Λ = randomprocess(U0;mixed=true)
-  Γ0 = PastaQ.makeChoi(U0)
+  Γ0 = LPDO(PastaQ.unitary_mpo_to_choi_mps(U0))
   for j in 1:length(N)
     @test firstind(Λ.X[j],tags="Input") == firstind(Γ0.X[j],tags="Input")
     @test firstind(Λ.X[j],tags="Output") == firstind(Γ0.X[j],tags="Output")

@@ -1,154 +1,19 @@
 """
-    writesamples(data::Matrix,
-                 [model::Union{MPS, MPO, LPDO, Choi},]
-                 output_path::String)
+    array(M::MPS; reverse::Bool = true)
 
-Save data and model on file:
-
-# Arguments:
-  - `data`: array of measurement data
-  - `model`: (optional) MPS, MPO, or Choi
-  - `output_path`: path to file
+Generate the full dense vector from an MPS
 """
-function writesamples(data::Matrix{Int},
-                      model::Union{MPS, MPO, LPDO, Nothing},
-                      output_path::String)
-  # Make the path the file will sit in, if it doesn't exist
-  mkpath(dirname(output_path))
-  h5rewrite(output_path) do fout
-    write(fout, "outcomes", data)
-    if isnothing(model)
-      write(fout, "model", "nothing")
-    else
-      write(fout, "model", model)
+function array(M::MPS; reverse::Bool = true)
+  # check if it is a vectorized MPO
+  if length(siteinds(M,1)) == 2
+    s = []
+    for j in 1:length(M)
+      push!(s, firstind(M[j], tags="Input"))
+      push!(s, firstind(M[j], tags="Output"))
     end
-  end
-end
-
-function writesamples(data::Matrix{Int},
-                      output_path::String)
-  # Make the path the file will sit in, if it doesn't exist
-  mkpath(dirname(output_path))
-  h5rewrite(output_path) do fout
-    write(fout, "outcomes", data)
-  end
-end
-
-function writesamples(data::Matrix{Pair{String, Int}},
-                      model::Union{MPS, MPO, LPDO, Nothing},
-                      output_path::String)
-  # Make the path the file will sit in, if it doesn't exist
-  mkpath(dirname(output_path))
-  h5rewrite(output_path) do fout
-    write(fout, "bases", first.(data))
-    write(fout, "outcomes", last.(data))
-    if isnothing(model)
-      write(fout, "model", "nothing")
-    else
-      write(fout, "model", model)
-    end
-  end
-end
-
-function writesamples(data::Matrix{Pair{String, Int}},
-                      output_path::String)
-  # Make the path the file will sit in, if it doesn't exist
-  mkpath(dirname(output_path))
-  h5rewrite(output_path) do fout
-    write(fout, "bases", first.(data))
-    write(fout, "outcomes", last.(data))
-  end
-end
-
-function writesamples(data::Matrix{Pair{String, Pair{String, Int}}},
-                      model::Union{MPS, MPO, LPDO, Nothing},
-                      output_path::String)
-  # Make the path the file will sit in, if it doesn't exist
-  mkpath(dirname(output_path))
-  h5rewrite(output_path) do fout
-    write(fout, "inputs", first.(data))
-    write(fout, "bases", first.(last.(data)))
-    write(fout, "outcomes", last.(last.(data)))
-    if isnothing(model)
-      write(fout, "model", "nothing")
-    else
-      write(fout, "model", model)
-    end
-  end
-end
-
-function writesamples(data::Matrix{Pair{String, Pair{String, Int}}},
-                      output_path::String)
-  # Make the path the file will sit in, if it doesn't exist
-  mkpath(dirname(output_path))
-  h5rewrite(output_path) do fout
-    write(fout, "inputs", first.(data))
-    write(fout, "bases", first.(last.(data)))
-    write(fout, "outcomes", last.(last.(data)))
-  end
-end
-
-"""
-    readsamples(input_path::String)
-
-Load data and model from file:
-
-# Arguments:
-  - `input_path`: path to file
-"""
-function readsamples(input_path::String)
-  fin = h5open(input_path, "r")
-  # Check if the data is for state tomography or process tomography
-  # Process tomography
-  if exists(fin, "inputs")
-    inputs = read(fin, "inputs")
-    bases = read(fin, "bases")
-    outcomes = read(fin,"outcomes")
-    data = inputs .=> (bases .=> outcomes)
-  # Measurements in bases
-  elseif exists(fin, "bases") 
-    bases = read(fin, "bases")
-    outcomes = read(fin,"outcomes")
-    data = bases .=> outcomes
-  # Measurements in Z basis
-  elseif exists(fin, "outcomes")
-    data = read(fin, "outcomes")
   else
-    close(fin)
-    error("File must contain either \"data\" for quantum state tomography data or \"data_first\" and \"data_second\" for quantum process tomography.")
-  end
-
-  # Check if a model is saved, if so read it and return it
-  if exists(fin, "model")
-    g = fin["model"]
-
-    if exists(attrs(g), "type")
-      typestring = read(attrs(g)["type"])
-      modeltype = eval(Meta.parse(typestring))
-      model = read(fin, "model", modeltype)
-    else
-      model = read(fin, "model")
-      if model == "nothing"
-        model = nothing
-      else
-        error("model must be MPS, LPDO, Choi, or Nothing")
-      end
-    end
-    close(fin)
-    return data, model
-  end
-
-  close(fin)
-  return data
-end
-
-"""
-    PastaQ.fullvector(M::MPS; reverse::Bool = true)
-
-Extract the full vector from an MPS
-"""
-function fullvector(M::MPS; reverse::Bool = true)
-  s = siteinds(M)
+    s = siteinds(M)
+  end 
   if reverse
     s = Base.reverse(s)
   end
@@ -158,13 +23,21 @@ function fullvector(M::MPS; reverse::Bool = true)
 end
 
 """
-    PastaQ.fullmatrix(M::MPO; reverse::Bool = true)
-    PastaQ.fullmatrix(L::LPDO; reverse::Bool = true)
+    array(M::MPO; reverse::Bool = true)
+    array(L::LPDO; reverse::Bool = true)
 
-Extract the full matrix from an MPO or LPDO, returning a Julia Matrix.
+Generate the full dense matrix from an MPO or LPDO.
 """
-function fullmatrix(M::MPO; reverse::Bool = true)
-  s = firstsiteinds(M; plev = 0)
+function array(M::MPO; reverse::Bool = true)
+  if length(siteinds(M,1)) == 4
+    s = []
+    for j in 1:length(M)
+      push!(s, firstind(M[j], tags="Input", plev =0))
+      push!(s, firstind(M[j], tags="Output", plev = 0))
+    end
+  else
+    s = firstsiteinds(M; plev = 0)
+  end 
   if reverse
     s = Base.reverse(s)
   end
@@ -174,7 +47,22 @@ function fullmatrix(M::MPO; reverse::Bool = true)
   return array(permute(Mmat, c', c))
 end
 
-fullmatrix(L::LPDO; kwargs...) = fullmatrix(MPO(L); kwargs...)
+function array(L::LPDO{MPO}; reverse::Bool = true) 
+  !ischoi(L) && return array(MPO(L); reverse = reverse)
+  M = MPO(L) 
+  s = []
+  for j in 1:length(M)
+    push!(s, firstind(M[j], tags="Input", plev=0))
+    push!(s, firstind(M[j], tags="Output", plev=0))
+  end
+  if reverse
+    s = Base.reverse(s)
+  end
+  C = combiner(s...)
+  Mmat = prod(M) * dag(C) * C'
+  c = combinedind(C)
+  return array(permute(Mmat, c', c))
+end
 
 # TEMPORARY FUNCTION
 # TODO: remove when `firstsiteinds(ψ::MPS)` is implemented
@@ -183,6 +71,7 @@ function hilbertspace(L::LPDO)
 end
 
 hilbertspace(M::Union{MPS,MPO}) = hilbertspace(LPDO(M))
+
 
 
 
@@ -313,50 +202,109 @@ function split_dataset(data::Matrix; train_ratio::Float64 = 0.9, randomize::Bool
   return train_data,test_data
 end
 
+"""
+    _ischoi(M::LPDO)
+
+Check whether a given LPDO{MPO}  
+"""
+ischoi(M::LPDO{MPO}) = (length(inds(M.X[1],"Site")) == 2 && haschoitags(M))#hastags(M.X[1],"Purifier"))
+
+ischoi(M::MPO) = (length(inds(M[1],"Site")) == 4 && haschoitags(M))
 
 
-function ischoi(M::LPDO)
-  return (length(inds(M.X[1],"Site")) == 2 ? true : false)
+
+"""
+    haschoitags(L::LPDO)
+
+    haschoitags(M::Union{MPS,MPO})
+
+Check whether the TN has input/output Choi tags
+"""
+haschoitags(L::LPDO) = (hastags(inds(L.X[1]),"Input") && hastags(inds(L.X[1]),"Output"))
+haschoitags(M::Union{MPS,MPO}) = haschoitags(LPDO(M)) 
+
+
+"""
+    choitags(U::Union{MPS, MPO})
+    choitags(L::LPDO{MPO})
+
+Assign the input/output tags defined for a Choi matrix to an MPO.
+
+  σ₁ -o- σ₁′       σ₁ⁱ -o- σ₁ᴼ   
+      |                 |
+  σ₂ -o- σ₂′  ⟶    σ₂ⁱ -o- σ₂ᴼ
+      |                 |
+  σ₃ -o- σ₃′       σ₃ⁱ -o- σ₃ᴼ
+                  
+"""
+function choitags(L::LPDO{MPO})
+  haschoitags(L) && return L
+  U = copy(L.X)
+  U = addtags(U, "Input", plev = 0, tags = "Site")
+  U = addtags(U, "Output", plev = 1, tags = "Site")
+  return LPDO(noprime(U))
 end
 
-function ischoi(M::MPO)
-  return (length(inds(M[1],"Site")) == 4 ? true : false)
-  #return ( length(inds(M[1])) == 5 ? true : false)
+choitags(U::MPO) = choitags(LPDO(U)).X
+
+"""
+    _mpotags(Ψ::MPS)
+
+Inverse of _choitags
+"""
+
+function mpotags(L::LPDO)
+  !haschoitags(L) && return L
+  U = copy(L.X) 
+  U = prime(U,tags="Output")
+  U = removetags(U, "Input")
+  U = removetags(U, "Output")
+  return LPDO(U)
 end
 
-function makeUnitary(L::LPDO{MPS})
-  ψ = L.X
-  U = MPO(ITensor[copy(ψ[j]) for j in 1:length(ψ)])
-  prime!(U,tags="Output")
-  removetags!(U, "Input")
-  removetags!(U, "Output")
-  return U
-end
-
-function makeChoi(U0::MPO)
-  M = MPS(ITensor[copy(U0[j]) for j in 1:length(U0)])
-  addtags!(M, "Input", plev = 0, tags = "Qubit")
-  addtags!(M, "Output", plev = 1, tags = "Qubit")
-  noprime!(M)
-  return LPDO(M)
-end
+mpotags(M::Union{MPS,MPO}) = mpotags(LPDO(M)).X
 
 
-function numberofqubits(gate::Tuple)
-  s = gate[2]
+"""
+    unitaryMPO_to_choiMPS(U::MPO)
+
+
+     MPO          MPS (vectorized MPO) 
+  σ₁ -o- σ₁′       o= (σ₁ⁱ,σ₁ᴼ)   
+      |            | 
+  σ₂ -o- σ₂′  ⟶    o= (σ₂ⁱ,σ₂′ᴼ)
+      |            | 
+  σ₃ -o- σ₃′       o= (σ₃ⁱ,σ₃′ᴼ)
+                  
+Transforms a unitary MPO into a Choi MPS with appropriate tags.
+"""
+#_unitaryMPO_to_choiMPS(L::LPDO{MPO}) = LPDO(convert(MPS, _choitags(L).X)) 
+unitary_mpo_to_choi_mps(U::MPO) = convert(MPS, choitags(U))
+unitary_mpo_to_choi_mps(L::LPDO{MPO}) = unitary_mpo_to_choi_mps(L.X)
+
+"""
+    _choiMPS_to_unitaryMPO(Ψ::MPS)
+
+Transforms a Choi MPS into an MPO with appropriate tags.
+Inverse of `_unitaryMPO_to_choiMPS`.
+"""
+#_choiMPS_to_unitaryMPO(L::LPDO{MPS}) = LPDO(convert(MPO, _mpotags(L).X))
+#_choiMPS_to_unitaryMPO(Ψ::MPS)       = _choiMPS_to_unitaryMPO(LPDO(Ψ)).X
+choi_mps_to_unitary_mpo(Ψ::MPS)       = convert(MPO, mpotags(Ψ))
+choi_mps_to_unitary_mpo(L::LPDO{MPS}) = choi_mps_to_unitary_mpo(L.X) 
+
+function nqubits(g::Tuple)
+  s = g[2]
   n = (s isa Number ? s : maximum(s))
   return n
 end
 
-function numberofqubits(gates::Vector{<:Tuple})
-  nMax = 0
-  for g in gates
-    s = g[2]
-    n = (s isa Number ? s : maximum(s))
-    nMax = (n > nMax ? n : nMax)
-  end
-  return nMax
-end
+nqubits(gates::Vector{<:Any}) = maximum((nqubits(gate) for gate in gates))
 
 
+nlayers(circuit::Vector{<:Any}) = 1
+nlayers(circuit::Vector{<:Vector{<:Any}}) = length(circuit)
+
+ngates(circuit::Vector{<:Any}) = length(circuit)
+ngates(circuit::Vector{<:Vector{<:Any}}) = length(vcat(circuit...))
 

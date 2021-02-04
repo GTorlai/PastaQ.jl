@@ -1,12 +1,15 @@
 import Base:
-  sqrt
+  sqrt,
+  push!
 
 import ITensors:
   # circuits/gates.jl
   space,
-  state
+  state,
+  array
 
 import LinearAlgebra:
   normalize!,
-  tr
+  tr,
+  norm
 

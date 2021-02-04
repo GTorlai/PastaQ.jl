@@ -1,13 +1,10 @@
 """
-    PastaQ.nll(ψ::MPS,data::Array;choi::Bool=false)
+    nll(L::LPDO{MPS}, data::Matrix{Pair{String,Int}})
 
 Compute the negative log-likelihood using an MPS ansatz
 over a dataset `data`:
 
 `nll ∝ -∑ᵢlog P(σᵢ)`
-
-If `choi=true`, the probability is then obtaining by transposing the
-input state, which is equivalent to take the conjugate of the eigenstate projector.
 """
 function nll(L::LPDO{MPS}, data::Matrix{Pair{String,Int}})
   data = convertdatapoints(copy(data); state = true)
@@ -33,15 +30,12 @@ end
 nll(ψ::MPS, data::Matrix{Pair{String,Int}}) = nll(LPDO(ψ), data)
 
 """
-    PastaQ.nll(lpdo::LPDO, data::Array; choi::Bool = false)
+    nll(L::LPDO{MPO}, data::Matrix{Pair{String,Int}})
 
 Compute the negative log-likelihood using an LPDO ansatz
 over a dataset `data`:
 
 `nll ∝ -∑ᵢlog P(σᵢ)`
-
-If `choi=true`, the probability is then obtaining by transposing the
-input state, which is equivalent to take the conjugate of the eigenstate projector.
 """
 function nll(L::LPDO{MPO}, data::Matrix{Pair{String,Int}})
   data = convertdatapoints(copy(data); state = true)
@@ -113,8 +107,8 @@ end
 gradlogZ(ψ::MPS; localnorms = nothing) = gradlogZ(LPDO(ψ); sqrt_localnorms = localnorms)
 
 """
-    PastaQ.gradnll(L::LPDO{MPS}, data::Array; sqrt_localnorms = nothing, choi::Bool = false)
-    PastaQ.gradnll(ψ::MPS, data::Array; localnorms = nothing, choi::Bool = false)
+    PastaQ.gradnll(L::LPDO{MPS}, data::Array; sqrt_localnorms = nothing)
+    PastaQ.gradnll(ψ::MPS, data::Array; localnorms = nothing)
 
 Compute the gradients of the cross-entropy between the MPS probability
 distribution of the empirical data distribution for a set of projective
@@ -131,10 +125,6 @@ The cross entropy function is
 where `∑ᵢ` runs over the measurement data. Returns the gradients:
 
 `∇ᵢ = - ∂ᵢ⟨log P(σ))⟩_data`
-
-If `choi=true`, `ψ` correspodns to a Choi matrix `Λ=|ψ⟩⟨ψ|`.
-The probability is then obtaining by transposing the input state, which
-is equivalent to take the conjugate of the eigenstate projector.
 """
 function gradnll(L::LPDO{MPS},
                  data::Matrix{Pair{String,Int}};
@@ -242,7 +232,7 @@ gradnll(ψ::MPS, data::Matrix{Pair{String,Int}};localnorms = nothing) =
   gradnll(LPDO(ψ), data; sqrt_localnorms = localnorms)
 
 """
-    PastaQ.gradnll(lpdo::LPDO{MPO}, data::Array; sqrt_localnorms = nothing, choi::Bool=false)
+    PastaQ.gradnll(lpdo::LPDO{MPO}, data::Array; sqrt_localnorms = nothing)
 
 Compute the gradients of the cross-entropy between the LPDO probability
 distribution of the empirical data distribution for a set of projective
@@ -259,9 +249,6 @@ The cross entropy function is
 where `∑ᵢ` runs over the measurement data. Returns the gradients:
 
 `∇ᵢ = - ∂ᵢ⟨log P(σ))⟩_data`
-
-If `choi=true`, the probability is then obtaining by transposing the
-input state, which is equivalent to take the conjugate of the eigenstate projector.
 """
 function gradnll(L::LPDO{MPO},
                  data::Matrix{Pair{String,Int}};
@@ -417,20 +404,18 @@ end
 
 
 """
-    PastaQ.gradients(L::LPDO, data::Array; sqrt_localnorms = nothing, choi::Bool = false)
-    PastaQ.gradients(ψ::MPS, data::Array; localnorms = nothing, choi::Bool = false)
+    PastaQ.gradients(L::LPDO, data::Array; sqrt_localnorms = nothing)
+    PastaQ.gradients(ψ::MPS, data::Array; localnorms = nothing)
 
 Compute the gradients of the cost function:
 `C = log(Z) - ⟨log P(σ)⟩_data`
-
-If `choi=true`, add the Choi normalization `trace(Λ)=d^N` to the cost function.
 """
 function gradients(L::LPDO, 
                    data::Matrix{Pair{String,Int}};
                    sqrt_localnorms = nothing)
   g_logZ,logZ = gradlogZ(L; sqrt_localnorms = sqrt_localnorms)
   g_nll, nll  = gradnll(L, data; sqrt_localnorms = sqrt_localnorms)
-
+  
   grads = g_logZ + g_nll
   loss = logZ + nll
   return grads,loss
@@ -461,17 +446,20 @@ The model can be either a pure state (MPS) or a density operator (LPDO).
  - `test_data`: data for computing cross-validation.
  - `outputpath`: if provided, save metrics on file.
 """
-function tomography(train_data::Matrix{Pair{String, Int}}, L::LPDO;
-                    optimizer::Optimizer,
-                    observer! = nothing,
-                    batchsize::Int64 = 100,
-                    epochs::Int64 = 1000,
-                    kwargs...)
+function tomography(train_data::Matrix{Pair{String, Int}}, L::LPDO; observer! = nothing, kwargs...)
+  
   # Read arguments
-  target = get(kwargs,:target,nothing)
-  test_data = get(kwargs,:test_data,nothing)
-  outputpath = get(kwargs,:fout,nothing)
-  outputlevel = get(kwargs,:outputlevel,1)
+  optimizer::Optimizer         = get(kwargs,:optimizer,SGD(η = 0.01))
+  batchsize::Int64             = get(kwargs,:batchsize,100)
+  epochs::Int64                = get(kwargs,:epochs,1000)
+  measurement_frequency::Int64 = get(kwargs,:measurement_frequency, 1)
+  test_data                    = get(kwargs,:test_data, nothing)
+  outputpath                   = get(kwargs,:fout, nothing)
+  print_metrics                = get(kwargs,:print_metrics, [])
+ 
+  
+  # configure the observer. if no observer is provided, create an empty one
+  observer! = configure!(observer!,optimizer,batchsize,measurement_frequency,train_data,test_data)
   
   optimizer = copy(optimizer)
   model = copy(L)
@@ -479,24 +467,16 @@ function tomography(train_data::Matrix{Pair{String, Int}}, L::LPDO;
   @assert size(train_data,2) == length(model)
   if !isnothing(test_data)
     @assert size(test_data)[2] == length(model)
+    best_test_loss = 1_000
   end
-  if !isnothing(target)
-    @assert length(target) == length(model)
-  end 
-
+  
   batchsize = min(size(train_data)[1],batchsize)
-
-  F = nothing
-  Fbound = nothing
-  frob_dist = nothing
-  test_loss = nothing
-  best_model = nothing
-  # Number of training batches
   num_batches = Int(floor(size(train_data)[1]/batchsize))
 
   tot_time = 0.0
-  best_test_loss = 1_000
- 
+  best_model = nothing
+  best_testloss = 1000.0
+  test_loss = nothing
 
   for ep in 1:epochs
     ep_time = @elapsed begin
@@ -506,95 +486,46 @@ function tomography(train_data::Matrix{Pair{String, Int}}, L::LPDO;
     
     # Sweep over the data set
     for b in 1:num_batches
-      
       batch = train_data[(b-1)*batchsize+1:b*batchsize,:]
       
       normalized_model = copy(model)
       sqrt_localnorms = []
       normalize!(normalized_model; sqrt_localnorms! = sqrt_localnorms)
-      grads,loss = gradients(normalized_model, batch, sqrt_localnorms = sqrt_localnorms)
+      grads, loss = gradients(normalized_model, batch, sqrt_localnorms = sqrt_localnorms)
 
       nupdate = ep * num_batches + b
       train_loss += loss/Float64(num_batches)
-      update!(model,grads,optimizer;step=nupdate)
+      update!(model, grads, optimizer; step = nupdate)
     end
     end # end @elapsed
+    tot_time += ep_time
     
-    # Metrics
-    if outputlevel == 1
-      print("$ep : ")
-      @printf("⟨-logP⟩ = %.4f (train) ",train_loss)
-    end
-    # Cost function on held-out validation data
-    if !isnothing(test_data)
+    # measurement stage
+    if ep % measurement_frequency == 0
       normalized_model = copy(model)
       sqrt_localnorms = []
       normalize!(normalized_model; sqrt_localnorms! = sqrt_localnorms)
-      test_loss = nll(normalized_model, test_data) 
-      if outputlevel  == 1
-        @printf(", %.4f (test) ",test_loss)
-      end
-      if test_loss < best_test_loss
-        best_test_loss = test_loss
-        best_model = copy(model)
-      end
-    else
-      best_model = copy(model)
-    end
-    if outputlevel == 1
-      @printf(" | ")
-    end
-    # Fidelities
-    if !isnothing(target)
-      if ((model.X isa MPO) & (target isa MPO))
-        frob_dist = frobenius_distance(model,target)
-        Fbound = fidelity_bound(model,target)
-        if outputlevel == 1
-          @printf("|ρ-σ| = %.3E  ",frob_dist)
-          @printf("Tr[ρσ] = %.3E  ",Fbound)
-        end
-        if (length(model) <= 8)
-          @disable_warn_order begin
-            F = fidelity(prod(model), prod(target))
-          end
-          if outputlevel == 1
-            @printf("F(ρ,σ) = %.3E  ",F)
-          end
+      if !isnothing(test_data)
+        test_loss = nll(normalized_model, test_data)
+        if test_loss ≤ best_testloss
+          best_testloss = test_loss
+          best_model = copy(normalized_model)
         end
       else
-        F = fidelity(model,target)
-        if outputlevel == 1
-          @printf("F(ρ,σ) = %.3E  ",F)
-        end
+        best_model = copy(model)
       end
-    end
-    if outputlevel == 1
-      @printf("(%.3fs)",ep_time)
-      print("\n")
-    end
-    # Measure
-    if !isnothing(observer!)
-      measure!(observer!;
-               train_loss = train_loss,
-               test_loss = test_loss,
-               F = F,
-               Fbound = Fbound,
-               frob_dist = frob_dist)
-      # Save on file
+      update!(observer!, normalized_model, best_model, tot_time, train_loss, test_loss)
+      # printing
+      printobserver(ep, observer!, print_metrics)
+      # saving
       if !isnothing(outputpath)
-        saveobserver(observer, outputpath; model = best_model)
+        #saveobserver(observer, outputpath; model = best_model)
       end
     end
-
-    tot_time += ep_time
-  end
-  if outputlevel == 1
-    @printf("Total Time = %.3f sec\n",tot_time)
   end
   return best_model
 end
 
-tomography(data::Matrix{Pair{String, Int}}, ψ::MPS; optimizer::Optimizer, kwargs...) =
-  tomography(data, LPDO(ψ); optimizer = optimizer, kwargs...).X
-
+tomography(data::Matrix{Pair{String, Int}}, ψ::MPS; kwargs...) =
+  tomography(data, LPDO(ψ); kwargs...).X
 

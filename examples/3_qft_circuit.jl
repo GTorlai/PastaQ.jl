@@ -27,7 +27,7 @@ starting_state = [number_bin[n] == 1 ? ("X", n) : ("I", n) for n in 1:N]
 
 ψ0 = runcircuit(ψ0, starting_state)
 
-samples = getsamples(ψ0, 5; local_basis = nothing)
+samples = getsamples(ψ0, 5)
 println("Sample from the initial state |$(number_bin_st)⟩:")
 display(samples)
 println()
@@ -36,18 +36,18 @@ println()
 # Make the QFT circuit
 #
 
-gates = qft(N)
+circuit = qft(N)
 
 println("QFT circuit gates:")
-display(gates)
+display(circuit)
 println()
 
 println("Running QFT...")
 println()
-ψ = runcircuit(ψ0, gates)
+ψ = runcircuit(ψ0, circuit)
 
 println("Sample from QFT|$(number_bin_st)⟩:")
-samples = getsamples(ψ, 5; local_basis = nothing)
+samples = getsamples(ψ, 5)
 display(samples)
 println()
 
@@ -57,10 +57,10 @@ println()
 
 println("Running inverse QFT...")
 println()
-gates⁻¹ = qft(N; inverse = true)
-ψ = runcircuit(ψ, gates⁻¹)
+circuit⁻¹ = qft(N; inverse = true)
+ψ = runcircuit(ψ, circuit⁻¹)
 
 println("Sample from QFT⁻¹QFT|$(number_bin_st)⟩:")
-samples = getsamples(ψ, 5; local_basis = nothing)
+samples = getsamples(ψ, 5)
 display(samples)
 

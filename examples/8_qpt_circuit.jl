@@ -10,10 +10,10 @@ Random.seed!(1234)
 N = 4
 depth = 4
 nshots = 10_000
-gates = randomcircuit(N, depth)
+circuit = randomcircuit(N, depth)
 
 # Generate samples
-data, U = getsamples(N, gates, nshots;
+data, U = getsamples(circuit, nshots; local_basis = ["X","Y","Z"],
                      process = true)
 writesamples(data, U, "data/qpt_circuit.h5")
 
@@ -32,6 +32,9 @@ N = length(Û)     # Number of qubits
 # Initialize the unitary MPO
 U0 = randomprocess(Û; χ = χ)
 
+F(U::MPO) = fidelity(U, Û; process = true)
+obs = Observer(F)
+
 # Initialize stochastic gradient descent optimizer
 @show maxlinkdim(U0)
 
@@ -42,14 +45,16 @@ U = tomography(train_data, U0;
                optimizer = SGD(η = 0.1),
                batchsize = 500,
                epochs = 5,
-               target = Û)
+               observer! = obs,
+               print_metrics = ["F"])
+
 @show maxlinkdim(U)
 println()
 
 
 # Noisy circuit
 # Generate samples
-data, Λ = getsamples(N, gates, nshots;
+data, Λ = getsamples(circuit, nshots; local_basis = ["X","Y","Z"],
                      process = true,
                      noise = ("amplitude_damping", (γ = 0.01,)))
 writesamples(data, Λ, "data/qpt_circuit_noisy.h5")
@@ -71,14 +76,20 @@ N = length(Φ)
 # Initialize stochastic gradient descent optimizer
 opt = SGD(η = 0.1)
 
+F(Λ::LPDO) = fidelity(Λ, Φ; process = true, warnings = false)
+obs = Observer(F)
+
 # Run process tomography
 println("Run process tomography to learn noisy process Λ")
-Λ = tomography(train_data, Λ0;
-               test_data = test_data,
-               optimizer = opt,
-               batchsize = 500,
-               epochs = 5,
-               target = Φ)
+@disable_warn_order begin
+  Λ = tomography(train_data, Λ0;
+                 test_data = test_data,
+                 optimizer = opt,
+                 batchsize = 500,
+                 epochs = 5,
+                 observer! = obs,
+                 print_metrics = ["F"])
+end
 @show maxlinkdim(Λ.X)
 println()
 

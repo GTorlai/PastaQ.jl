@@ -2,6 +2,7 @@ using PastaQ
 using PastaQ.ITensors
 using Test
 using LinearAlgebra
+using Random
 
 function state_to_int(state::Array)
   index = 0
@@ -29,11 +30,11 @@ end
   @test length(ψ) == 1
   @test typeof(ψ) == MPS
   @test length(inds(ψ[1],"Link")) == 0
-  @test PastaQ.fullvector(ψ) ≈ [1, 0]
+  @test PastaQ.array(ψ) ≈ [1, 0]
   N = 5
   ψ = qubits(N)
   @test length(ψ) == 5
-  ψ_vec = PastaQ.fullvector(ψ)
+  ψ_vec = PastaQ.array(ψ)
   exact_vec = zeros(1<<N)
   exact_vec[1] = 1.0
   @test ψ_vec ≈ exact_vec
@@ -41,9 +42,9 @@ end
 
 @testset "circuit MPO initialization" begin
   N = 5
-  U = identity_mpo(N)
+  U = PastaQ.identity_mpo(N)
   @test length(U) == N
-  U_mat = PastaQ.fullmatrix(U)
+  U_mat = PastaQ.array(U)
   exact_mat = Matrix{ComplexF64}(I, 1<<N, 1<<N)
   @test U_mat ≈ exact_mat
 end
@@ -55,10 +56,10 @@ end
   @test typeof(ρ1) == MPO
   ψ = qubits(N)
   ρ2 = qubits(N,mixed=true)
-  @test PastaQ.fullmatrix(ρ1) ≈ PastaQ.fullmatrix(ρ2)
+  @test PastaQ.array(ρ1) ≈ PastaQ.array(ρ2)
   exact_mat = zeros(1<<N,1<<N)
   exact_mat[1,1] = 1.0
-  @test PastaQ.fullmatrix(ρ2) ≈ exact_mat
+  @test PastaQ.array(ρ2) ≈ exact_mat
 end
 
 @testset "reset qubits" begin
@@ -69,7 +70,7 @@ end
   ψ = runcircuit(ψ0,gates)
   
   resetqubits!(ψ)
-  psi_vec = PastaQ.fullvector(ψ)
+  psi_vec = PastaQ.array(ψ)
 
   exact_vec = zeros(1<<N)
   exact_vec[1] = 1.0
@@ -80,27 +81,23 @@ end
   ρ = runcircuit(ρ0,gates)
   
   resetqubits!(ρ)
-  ρ_mat = PastaQ.fullmatrix(ρ)
+  ρ_mat = PastaQ.array(ρ)
 
   exact_mat = zeros(1<<N,1<<N)
   exact_mat[1,1] = 1.0
   @test exact_mat ≈ ρ_mat
 end
 
-
 @testset "runcircuit: unitary quantum circuit" begin
   N = 3
   depth = 4
-  gates = randomcircuit(N,depth)
-  ngates = N*depth + depth÷2 * (N-1)
-  @test length(gates) == ngates
-  
+  gates = randomcircuit(N,depth; layered = false)
   #Pure state, noiseless circuit
   ψ0 = qubits(N)
   ψ = runcircuit(ψ0,gates)
   @test prod(ψ) ≈ runcircuit(prod(ψ0),buildcircuit(ψ0,gates))
-  @test array(prod(ψ)) ≈ array(prod(runcircuit(N,gates)))
-  @test array(prod(ψ)) ≈ array(prod(runcircuit(gates)))
+  @test PastaQ.array(prod(ψ)) ≈ PastaQ.array(prod(runcircuit(N,gates)))
+  @test PastaQ.array(prod(ψ)) ≈ PastaQ.array(prod(runcircuit(gates)))
   
   # Mixed state, noiseless circuit
   ρ0 = qubits(N,mixed=true) 
@@ -112,9 +109,7 @@ end
 @testset "runcircuit: noisy quantum circuit" begin
   N = 5
   depth = 4
-  gates = randomcircuit(N,depth)
-  ngates = N*depth + depth÷2 * (N-1)
-  @test length(gates) == ngates
+  gates = randomcircuit(N,depth; layered = false)
 
   # Pure state, noisy circuit
   ψ0 = qubits(N)
@@ -135,7 +130,7 @@ end
 
 @testset "runcircuit: inverted gate order" begin
   N = 8
-  gates = randomcircuit(N,2)
+  gates = randomcircuit(N,2; layered = false)
   
   for n in 1:10
     s1 = rand(2:N)
@@ -150,7 +145,7 @@ end
 
 @testset "runcircuit: long range gates" begin
   N = 8
-  gates = randomcircuit(N,2)
+  gates = randomcircuit(N,2; layered = false)
   
   for n in 1:10
     s1 = rand(1:N)
@@ -166,4 +161,24 @@ end
   
 end
 
+@testset "layered circuit" begin
+  N = 4
+  depth = 10
+  ψ0 = qubits(N)
+  
+  Random.seed!(1234)
+  circuit = randomcircuit(N, depth)
+  ψ = runcircuit(ψ0,circuit)
+  Random.seed!(1234)
+  circuit = randomcircuit(N, depth)
+  @test prod(ψ) ≈ prod(runcircuit(ψ0,circuit))
+  
+  Random.seed!(1234)
+  circuit = randomcircuit(N, depth)
+  ρ = runcircuit(ψ0, circuit; noise = ("depolarizing",(p=0.1,)))
+  Random.seed!(1234)
+  circuit = randomcircuit(N, depth)
+  @test prod(ρ) ≈ prod(runcircuit(ψ0, circuit;noise = ("depolarizing",(p=0.1,))))
+
+end
 
