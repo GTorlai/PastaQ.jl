@@ -25,7 +25,13 @@ from the unprimed to the primed indices (if they are matrix-like).
 
 Matrix-like ITensors should be Hermitian and non-negative.
 """
-function fidelity(ρ::ITensor{N}, σ::ITensor{N}) where {N}
+function fidelity(ρ::ITensor{N}, σ::ITensor{N}; warnings::Bool = true) where {N}
+  if warnings
+    println("--------------")
+    println(" WARNING")
+    println("\nCalculation of quantum fidelity between two density matrices is not scalable!\nTo suppress this warning, add `nowarning = true`.\n")
+    println("--------------\n")
+  end
   ρ ./= tr(ρ)
   σ ./= tr(σ)
   F = product(product(sqrt(ρ), σ), sqrt(ρ))
@@ -103,14 +109,10 @@ function fidelity(A::MPO, B::MPO; process::Bool = false, warnings::Bool = true)
     (_ischoi(A) && !_ischoi(B)) && return _choifidelity(A,_unitaryMPO_to_choiMPS(B)) 
     # 3: Choi MPO - Choi MPO
   end
-  if warnings
-    println("--------------")
-    println(" WARNING")
-    println("\nCalculation of quantum fidelity between two density matrices is not scalable!\nTo suppress this warning, add `nowarning = true`.\n")
-    println("--------------\n")
-  end
   # quantum state/process fidelity bewtee two MPOs density matrices 
-  return fidelity(prod(A), prod(B)) 
+  @disable_warn_order begin
+  return fidelity(prod(A), prod(B); warnings = warnings)
+  end
 end
 
 

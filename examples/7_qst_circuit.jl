@@ -31,6 +31,10 @@ N = length(Ψ)     # Number of qubits
 # Initialize stochastic gradient descent optimizer
 opt = SGD(η = 0.01)
 
+# Initialize the observer for the fidelity
+F(ψ::MPS) = fidelity(ψ,Ψ)
+obs = Observer(F)
+
 # Run quantum state tomography, where a variational MPS `|ψ(θ)⟩`
 # is optimized to mimimize the cross entropy between the data and 
 # the tensor-network distribution `P(x) = |⟨x|ψ(θ)⟩|²`.
@@ -40,7 +44,8 @@ println("Running tomography to learn a pure state ψ:")
                optimizer = opt,
                batchsize = 1000,
                epochs = 5,
-               target = Ψ)
+               observer! = obs,
+               print_metrics = "F")
 @show maxlinkdim(ψ)
 println()
 
@@ -69,6 +74,12 @@ N = length(ϱ)     # Number of qubits
 
 # Initialize stochastic gradient descent optimizer
 opt = SGD(η = 0.1)
+
+# Initialize the observer
+F(ρ::LPDO) = fidelity(ρ,ϱ; warnings = false)
+
+obs = Observer(F)
+
 # Run quantum state tomography, where a variational LPDO `ρ(θ)`
 # is optimized to mimimize the cross entropy between the data and 
 # the tensor-network distribution `P(x) = ⟨x|ρ(θ)|x⟩`.
@@ -78,7 +89,8 @@ println("Running tomography to learn a mixed state ρ:")
                optimizer = opt,
                batchsize = 1000,
                epochs = 5,
-               target = ϱ)
+               observer! = obs,
+               print_metrics = "F")
 @show maxlinkdim(ρ.X)
 println()
 

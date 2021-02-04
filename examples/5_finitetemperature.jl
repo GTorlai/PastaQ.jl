@@ -54,7 +54,7 @@ zz_layer = [("expτZZ", (j, j+1), (τ = τ,)) for j in 1:N-1]
 x_layer = [("expτX", j, (τ = τ, B = B)) for j in 1:N]
 
 # Build the gate structure
-circuit = Tuple[]
+circuit = []
 for d in 1:depth
   append!(circuit, zz_layer)
   append!(circuit, x_layer)
@@ -110,7 +110,7 @@ depth = Δ ÷ τ # Depth of the circuit
 steps = β ÷ Δ # Total number of circuit application
 
 # Initialize the density operator
-ρ = identity_mpo(H)
+ρ = PastaQ.identity_mpo(H)
 
 println("Running imaginary time evolution to approximate the density matrix ρ = exp(-βH):")
 for b in 1:steps

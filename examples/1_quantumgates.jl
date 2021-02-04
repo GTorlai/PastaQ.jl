@@ -15,7 +15,7 @@ g = ("X",2)
 
 # Show samples from P(x) = |⟨x|ψ⟩|²
 println("Sample from |ψ⟩ = X₂|0,0,0⟩:")
-display(getsamples(ψ, 3; local_basis = nothing))
+display(getsamples(ψ, 3))
 println()
 
 # Custom gates
@@ -40,6 +40,6 @@ resetqubits!(ψ)
 println("Sample from |ψ⟩ = iX₁|0,0,0⟩:")
 g = ("iX", 1)
 ψ = runcircuit(ψ, g)
-display(getsamples(ψ, 3; local_basis = nothing))
+display(getsamples(ψ, 3))
 println()
 

@@ -125,7 +125,9 @@ end
 
 function printobserver(epoch::Int, observer::Observer, print_metrics::Union{Bool,String,AbstractArray})
   
-  (print_metrics isa Bool) && !print_metrics && return
+  print_metrics == false && return
+  
+  #(print_metrics isa Bool) && !print_metrics && return
   
   @printf("%-4d  ",epoch)
   @printf("⟨logP⟩ = %-4.4f  ", results(observer,"train_loss")[end]) 

@@ -32,6 +32,9 @@ N = length(Û)     # Number of qubits
 # Initialize the unitary MPO
 U0 = randomprocess(Û; χ = χ)
 
+F(U::MPO) = fidelity(U, Û; process = true)
+obs = Observer(F)
+
 # Initialize stochastic gradient descent optimizer
 @show maxlinkdim(U0)
 
@@ -42,7 +45,9 @@ U = tomography(train_data, U0;
                optimizer = SGD(η = 0.1),
                batchsize = 500,
                epochs = 5,
-               target = Û)
+               observer! = obs,
+               print_metrics = ["F"])
+
 @show maxlinkdim(U)
 println()
 
@@ -71,6 +76,9 @@ N = length(Φ)
 # Initialize stochastic gradient descent optimizer
 opt = SGD(η = 0.1)
 
+F(Λ::LPDO) = fidelity(Λ, Φ; process = true, warnings = false)
+obs = Observer(F)
+
 # Run process tomography
 println("Run process tomography to learn noisy process Λ")
 Λ = tomography(train_data, Λ0;
@@ -78,7 +86,8 @@ println("Run process tomography to learn noisy process Λ")
                optimizer = opt,
                batchsize = 500,
                epochs = 5,
-               target = Φ)
+               observer! = obs,
+               print_metrics = ["F"])
 @show maxlinkdim(Λ.X)
 println()
 

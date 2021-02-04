@@ -34,20 +34,33 @@ println()
 
 # Generate data
 nshots = 10_000
-bases = randombases(N, nshots)
-data = getsamples(Ψ, bases; local_basis = ["X","Y","Z"])
+data = getsamples(Ψ, nshots; local_basis = ["X","Y","Z"])
 
 # Quantum state tomography
 # Initialize variational state
 χ = maxlinkdim(Ψ)
 ψ0 = randomstate(Ψ0; χ = χ)
+
+# Measurements 
+Energy(ψ::MPS) = inner(ψ,H,ψ)
+F(ψ::MPS) = fidelity(ψ,Ψ)
+
+# Initialize observer
+obs = Observer([F,Energy,("Z",1,"Z",N÷2)])
+
+ZZ = PastaQ.measure(Ψ,("Z",1,"Z",N÷2))
+@show ZZ
+@printf("⟨Ψ|Ĥ|Ψ⟩ =  %.5f (DMRG)",E)
+@printf("⟨Ψ|Ŝᶻ(1)Ŝˣ(%d)|Ψ⟩ = %.5f\n",N÷2,ZZ)
 # Run tomography
 println("Running tomography to learn the Ising model ground state from sample data")
 ψ = tomography(data, ψ0;
                optimizer = SGD(η = 0.01),
                batchsize = 500,
                epochs = 10,
-               target = Ψ)
+               observer! = obs,
+               print_metrics = ["Energy","F","Z(1)Z(5)"])
+
 @show maxlinkdim(ψ)
 println()
 
