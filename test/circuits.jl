@@ -5,8 +5,8 @@ using Random
 
 @testset "pre-defined ciruits" begin
   N = 10
-  @test length(qft(N)) == reduce(+,1:N-1) + N
-  @test length(qft(N; inverse = true)) == reduce(+,1:N-1)+ N
+  @test length(qft(N)) == sum(1:N-1) + N
+  @test length(qft(N; inverse = true)) == sum(1:N-1)+ N
   @test length(ghz(N)) == N
 end
 
@@ -84,7 +84,7 @@ end
   end
 
   circuit = randomcircuit(N,depth; twoqubitgates = "CX")
-  @test size(circuit,1) == depth
+  @test PastaQ.nlayers(circuit) == depth
   for d in 1:depth
     @test all(x->x == "CX",first.(circuit[depth]))
   end

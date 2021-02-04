@@ -25,13 +25,7 @@ from the unprimed to the primed indices (if they are matrix-like).
 
 Matrix-like ITensors should be Hermitian and non-negative.
 """
-function fidelity(ρ::ITensor{N}, σ::ITensor{N}; warnings::Bool = true) where {N}
-  if warnings
-    println("--------------")
-    println(" WARNING")
-    println("\nCalculation of quantum fidelity between two density matrices is not scalable!\nTo suppress this warning, add `warnings = false`.\n")
-    println("--------------\n")
-  end
+function fidelity(ρ::ITensor{N}, σ::ITensor{N}) where {N}
   ρ ./= tr(ρ)
   σ ./= tr(σ)
   F = product(product(sqrt(ρ), σ), sqrt(ρ))
@@ -97,21 +91,19 @@ If `process = true`, get process fidelities:
 3. Quantum process fidelity bewteen two MPO Choi matrices
    F = (Tr[√(√A B √A)])² 
 """
-function fidelity(A::MPO, B::MPO; process::Bool = false, warnings::Bool = true)
+function fidelity(A::MPO, B::MPO; process::Bool = false)
   # if quantum state fidelity:
   if process
     # check whether a MPO is Choi or not (from number of site indices)
     # 1: unitary   -   unitary
-    (!_ischoi(A) && !_ischoi(B)) && return fidelity(_unitaryMPO_to_choiMPS(A), _unitaryMPO_to_choiMPS(B))
+    (!ischoi(A) && !ischoi(B)) && return fidelity(unitary_mpo_to_choi_mps(A), unitary_mpo_to_choi_mps(B))
     # 2: unitary   -   Choi MPO
-    (!_ischoi(A) && _ischoi(B)) && return _choifidelity(_unitaryMPO_to_choiMPS(A),B) 
+    (!ischoi(A) && ischoi(B)) && return _choifidelity(unitary_mpo_to_choi_mps(A),B) 
     # 2reverse: Choi MPO  -   unitary
-    (_ischoi(A) && !_ischoi(B)) && return _choifidelity(A,_unitaryMPO_to_choiMPS(B)) 
+    (ischoi(A) && !ischoi(B)) && return _choifidelity(A,unitary_mpo_to_choi_mps(B)) 
   end
   # quantum state/process fidelity bewtee two MPOs density matrices 
-  @disable_warn_order begin
-  return fidelity(prod(A), prod(B); warnings = warnings)
-  end
+  return fidelity(prod(A), prod(B))
 end
 
 
@@ -120,10 +112,10 @@ end
    F = ⟨ψ|ϱ|ψ⟩=|X†|ψ⟩|²
 2. Quantum process fidelity bewteen a Choi MPO and a Choi LPDO
 """
-function fidelity(A::MPO, B::LPDO{MPO}; process::Bool = false, warnings::Bool = true) 
+function fidelity(A::MPO, B::LPDO{MPO}; process::Bool = false) 
   #1: Choi MPO   -  Choi LPDO
-  (process && !_ischoi(A)) && return fidelity(_unitaryMPO_to_choiMPS(A),B)
-  return fidelity(A, MPO(B); warnings = warnings)
+  (process && !ischoi(A)) && return fidelity(unitary_mpo_to_choi_mps(A),B)
+  return fidelity(A, MPO(B))
 end
 fidelity(B::LPDO{MPO}, A::MPO; kwargs...) = fidelity(A, B; kwargs...)
 

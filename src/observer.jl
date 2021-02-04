@@ -44,7 +44,7 @@ end
 
 
 """
-    function Observer(observables::Vector{<:Any})
+    Observer(observables::Vector{<:Any})
     Observer(measurement::Union{String,Tuple,Function})
 
 Initialize an Observer given a set of measurements, expressed

@@ -432,7 +432,7 @@ function runcircuit(N::Int, circuit::Union{Tuple,Vector{<:Any},Vector{Vector{<:A
 end
 
 runcircuit(circuit::Any, args...; kwargs...) = 
-  runcircuit(numberofqubits(circuit), circuit,  args...; kwargs...)
+  runcircuit(nqubits(circuit), circuit,  args...; kwargs...)
 
 
 

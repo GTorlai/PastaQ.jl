@@ -30,11 +30,11 @@ end
   @test length(ψ) == 1
   @test typeof(ψ) == MPS
   @test length(inds(ψ[1],"Link")) == 0
-  @test array(ψ) ≈ [1, 0]
+  @test PastaQ.array(ψ) ≈ [1, 0]
   N = 5
   ψ = qubits(N)
   @test length(ψ) == 5
-  ψ_vec = array(ψ)
+  ψ_vec = PastaQ.array(ψ)
   exact_vec = zeros(1<<N)
   exact_vec[1] = 1.0
   @test ψ_vec ≈ exact_vec
@@ -44,7 +44,7 @@ end
   N = 5
   U = PastaQ.identity_mpo(N)
   @test length(U) == N
-  U_mat = array(U)
+  U_mat = PastaQ.array(U)
   exact_mat = Matrix{ComplexF64}(I, 1<<N, 1<<N)
   @test U_mat ≈ exact_mat
 end
@@ -56,10 +56,10 @@ end
   @test typeof(ρ1) == MPO
   ψ = qubits(N)
   ρ2 = qubits(N,mixed=true)
-  @test array(ρ1) ≈ array(ρ2)
+  @test PastaQ.array(ρ1) ≈ PastaQ.array(ρ2)
   exact_mat = zeros(1<<N,1<<N)
   exact_mat[1,1] = 1.0
-  @test array(ρ2) ≈ exact_mat
+  @test PastaQ.array(ρ2) ≈ exact_mat
 end
 
 @testset "reset qubits" begin
@@ -70,7 +70,7 @@ end
   ψ = runcircuit(ψ0,gates)
   
   resetqubits!(ψ)
-  psi_vec = array(ψ)
+  psi_vec = PastaQ.array(ψ)
 
   exact_vec = zeros(1<<N)
   exact_vec[1] = 1.0
@@ -81,7 +81,7 @@ end
   ρ = runcircuit(ρ0,gates)
   
   resetqubits!(ρ)
-  ρ_mat = array(ρ)
+  ρ_mat = PastaQ.array(ρ)
 
   exact_mat = zeros(1<<N,1<<N)
   exact_mat[1,1] = 1.0
@@ -96,8 +96,8 @@ end
   ψ0 = qubits(N)
   ψ = runcircuit(ψ0,gates)
   @test prod(ψ) ≈ runcircuit(prod(ψ0),buildcircuit(ψ0,gates))
-  @test array(prod(ψ)) ≈ array(prod(runcircuit(N,gates)))
-  @test array(prod(ψ)) ≈ array(prod(runcircuit(gates)))
+  @test PastaQ.array(prod(ψ)) ≈ PastaQ.array(prod(runcircuit(N,gates)))
+  @test PastaQ.array(prod(ψ)) ≈ PastaQ.array(prod(runcircuit(gates)))
   
   # Mixed state, noiseless circuit
   ρ0 = qubits(N,mixed=true) 

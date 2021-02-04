@@ -24,7 +24,6 @@ using Random
   
   N = 3
   Λ = randomprocess(N; mixed = true)
-  #Λmat = array(Λ)
 end
 
 @testset "hilbertspace" begin
@@ -47,82 +46,60 @@ end
   ρ = PastaQ.choimatrix(PastaQ.hilbertspace(U),circuit; noise = ("DEP",(p=0.01,)))
   Λ = randomprocess(4; mixed = true)
 
-  @test PastaQ._haschoitags(U) == false
-  @test PastaQ._haschoitags(ρ) == true
-  @test PastaQ._haschoitags(Λ) == true
+  @test PastaQ.ischoi(ρ) == true
+  @test PastaQ.ischoi(U) == false
+  @test PastaQ.ischoi(Λ) == true
+  @test PastaQ.haschoitags(U) == false
+  @test PastaQ.haschoitags(ρ) == true
+  @test PastaQ.haschoitags(Λ) == true
   
-  Ψ = PastaQ._choitags(U)
+  Ψ = PastaQ.choitags(U)
   @test hastags(inds(Ψ[1]),"Input") == true 
   @test hastags(inds(Ψ[1]),"Output") == true 
   @test plev(firstind(Ψ[1],tags="Input")) == 0
   @test plev(firstind(Ψ[1],tags="Output")) == 0
   
-  V = PastaQ._mpotags(Ψ)
+  V = PastaQ.mpotags(Ψ)
   @test hastags(inds(V[1]),"Input") == false 
   @test hastags(inds(V[1]),"Output") == false 
   @test plev(inds(V[1],tags="Qubit")[1]) == 1
   @test plev(inds(V[1],tags="Qubit")[2]) == 0
 
-  Ψ = PastaQ._unitaryMPO_to_choiMPS(U)
+  Ψ = PastaQ.unitary_mpo_to_choi_mps(U)
   @test Ψ isa MPS 
   @test hastags(inds(Ψ[1]),"Input") == true 
   @test hastags(inds(Ψ[1]),"Output") == true 
   @test plev(firstind(Ψ[1],tags="Input")) == 0
   @test plev(firstind(Ψ[1],tags="Output")) == 0
-  L = PastaQ._unitaryMPO_to_choiMPS(LPDO(U))
-  @test L isa LPDO{MPS}
-  @test hastags(inds(L.X[1]),"Input") == true 
-  @test hastags(inds(L.X[1]),"Output") == true 
-  @test plev(firstind(L.X[1],tags="Input")) == 0
-  @test plev(firstind(L.X[1],tags="Output")) == 0
   
-  V = PastaQ._choiMPS_to_unitaryMPO(Ψ)
+  V = PastaQ.choi_mps_to_unitary_mpo(Ψ)
   @test V isa MPO
   @test hastags(inds(V[1]),"Input") == false 
   @test hastags(inds(V[1]),"Output") == false 
   @test plev(inds(V[1],tags="Qubit")[1]) == 1
   @test plev(inds(V[1],tags="Qubit")[2]) == 0
   
-  X = PastaQ._choiMPS_to_unitaryMPO(L)
-  @test X isa LPDO{MPO}
-  @test hastags(inds(X.X[1]),"Input") == false 
-  @test hastags(inds(X.X[1]),"Output") == false 
-  @test plev(inds(X.X[1],tags="Qubit")[1]) == 1
-  @test plev(inds(X.X[1],tags="Qubit")[2]) == 0
-  
 end
-#@testset "replace hilbert space" begin
-#
-#  N = 5
-#  # REF is MPS
-#  REF = qubits(N)
-#  ψ = qubits(N)
-#  ρ = qubits(N; mixed = true)
-#  ϱ = randomstate(N; mixed = true)
-#  Λ = randomprocess(N; mixed = true)
-#
-#  PastaQ.replace_hilbertspace!(ψ,REF) 
-#  @test siteinds(ψ) == siteinds(REF)
-#
-#  PastaQ.replace_hilbertspace!(ρ,REF) 
-#  @test firstsiteinds(ρ) == siteinds(REF)
-#
-#
-#
-#
-#end
 
-@testset "numberofqubits" begin
+@testset "nqubits/nlayers/ngates" begin
   
-  @test numberofqubits(("H",2)) == 2
-  @test numberofqubits(("CX",(2,5))) == 5
+  @test nqubits(("H",2)) == 2
+  @test nqubits(("CX",(2,5))) == 5
 
   for i in 1:10
     depth = 4
     N = rand(2:50)
-    gates = randomcircuit(N, depth)
-    n = numberofqubits(gates)
+    gates = randomcircuit(N, depth; twoqubitgates = "CX", onequbitgates = "Rn")
+    n = nqubits(gates)
     @test N == n
+    @test PastaQ.nlayers(gates) == depth
+    @test PastaQ.ngates(gates) == depth ÷ 2 * (2*N÷2-1+2*N)
+    gates = randomcircuit(N, depth; twoqubitgates = "CX", onequbitgates = "Rn", layered = false)
+    n = nqubits(gates)
+    @test N == n
+    @test PastaQ.nlayers(gates) == 1
+    @test PastaQ.ngates(gates) == depth ÷ 2 * (2*N÷2-1+2*N)
+
   end
 end
 

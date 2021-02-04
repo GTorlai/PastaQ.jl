@@ -3,7 +3,7 @@
 
 Generate the full dense vector from an MPS
 """
-function ITensors.array(M::MPS; reverse::Bool = true)
+function array(M::MPS; reverse::Bool = true)
   # check if it is a vectorized MPO
   if length(siteinds(M,1)) == 2
     s = []
@@ -28,7 +28,7 @@ end
 
 Generate the full dense matrix from an MPO or LPDO.
 """
-function ITensors.array(M::MPO; reverse::Bool = true)
+function array(M::MPO; reverse::Bool = true)
   if length(siteinds(M,1)) == 4
     s = []
     for j in 1:length(M)
@@ -47,8 +47,8 @@ function ITensors.array(M::MPO; reverse::Bool = true)
   return array(permute(Mmat, c', c))
 end
 
-function ITensors.array(L::LPDO{MPO}; reverse::Bool = true) 
-  !_ischoi(L) && return array(MPO(L); reverse = reverse)
+function array(L::LPDO{MPO}; reverse::Bool = true) 
+  !ischoi(L) && return array(MPO(L); reverse = reverse)
   M = MPO(L) 
   s = []
   for j in 1:length(M)
@@ -207,25 +207,26 @@ end
 
 Check whether a given LPDO{MPO}  
 """
-_ischoi(M::LPDO{MPO}) = (length(inds(M.X[1],"Site")) == 2 && hastags(M.X[1],"Purifier"))
+ischoi(M::LPDO{MPO}) = (length(inds(M.X[1],"Site")) == 2 && haschoitags(M))#hastags(M.X[1],"Purifier"))
 
-_ischoi(M::MPO) = length(inds(M[1],"Site")) == 4 
+ischoi(M::MPO) = (length(inds(M[1],"Site")) == 4 && haschoitags(M))
 
 
 
 """
-    _haschoitags(L::LPDO)
+    haschoitags(L::LPDO)
 
-    _haschoitags(M::Union{MPS,MPO})
+    haschoitags(M::Union{MPS,MPO})
 
 Check whether the TN has input/output Choi tags
 """
-_haschoitags(L::LPDO) = (hastags(inds(L.X[1]),"Input") && hastags(inds(L.X[1]),"Output"))
-_haschoitags(M::Union{MPS,MPO}) = _haschoitags(LPDO(M)) 
+haschoitags(L::LPDO) = (hastags(inds(L.X[1]),"Input") && hastags(inds(L.X[1]),"Output"))
+haschoitags(M::Union{MPS,MPO}) = haschoitags(LPDO(M)) 
 
 
 """
-    _choitags(U::Union{MPS, MPO})
+    choitags(U::Union{MPS, MPO})
+    choitags(L::LPDO{MPO})
 
 Assign the input/output tags defined for a Choi matrix to an MPO.
 
@@ -236,15 +237,15 @@ Assign the input/output tags defined for a Choi matrix to an MPO.
   σ₃ -o- σ₃′       σ₃ⁱ -o- σ₃ᴼ
                   
 """
-function _choitags(L::LPDO{MPO})
-  _haschoitags(L) && return L
+function choitags(L::LPDO{MPO})
+  haschoitags(L) && return L
   U = copy(L.X)
-  U = addtags(U, "Input", plev = 0, tags = "Qubit")
-  U = addtags(U, "Output", plev = 1, tags = "Qubit")
+  U = addtags(U, "Input", plev = 0, tags = "Site")
+  U = addtags(U, "Output", plev = 1, tags = "Site")
   return LPDO(noprime(U))
 end
 
-_choitags(U::MPO) = _choitags(LPDO(U)).X
+choitags(U::MPO) = choitags(LPDO(U)).X
 
 """
     _mpotags(Ψ::MPS)
@@ -252,8 +253,8 @@ _choitags(U::MPO) = _choitags(LPDO(U)).X
 Inverse of _choitags
 """
 
-function _mpotags(L::LPDO)
-  !_haschoitags(L) && return L
+function mpotags(L::LPDO)
+  !haschoitags(L) && return L
   U = copy(L.X) 
   U = prime(U,tags="Output")
   U = removetags(U, "Input")
@@ -261,12 +262,11 @@ function _mpotags(L::LPDO)
   return LPDO(U)
 end
 
-_mpotags(M::Union{MPS,MPO}) = _mpotags(LPDO(M)).X
+mpotags(M::Union{MPS,MPO}) = mpotags(LPDO(M)).X
 
 
 """
-    _unitaryMPO_to_choiMPS(L::LPDO{MPO})
-    _unitaryMPO_to_choiMPS(U::MPO)
+    unitaryMPO_to_choiMPS(U::MPO)
 
 
      MPO          MPS (vectorized MPO) 
@@ -279,11 +279,10 @@ _mpotags(M::Union{MPS,MPO}) = _mpotags(LPDO(M)).X
 Transforms a unitary MPO into a Choi MPS with appropriate tags.
 """
 #_unitaryMPO_to_choiMPS(L::LPDO{MPO}) = LPDO(convert(MPS, _choitags(L).X)) 
-_unitaryMPO_to_choiMPS(U::MPO) = convert(MPS, _choitags(U))
-_unitaryMPO_to_choiMPS(L::LPDO{MPO}) = LPDO(_unitaryMPO_to_choiMPS(L.X))
+unitary_mpo_to_choi_mps(U::MPO) = convert(MPS, choitags(U))
+unitary_mpo_to_choi_mps(L::LPDO{MPO}) = unitary_mpo_to_choi_mps(L.X)
 
 """
-    _choiMPS_to_unitaryMPO(L::LPDO{MPS})
     _choiMPS_to_unitaryMPO(Ψ::MPS)
 
 Transforms a Choi MPS into an MPO with appropriate tags.
@@ -291,15 +290,21 @@ Inverse of `_unitaryMPO_to_choiMPS`.
 """
 #_choiMPS_to_unitaryMPO(L::LPDO{MPS}) = LPDO(convert(MPO, _mpotags(L).X))
 #_choiMPS_to_unitaryMPO(Ψ::MPS)       = _choiMPS_to_unitaryMPO(LPDO(Ψ)).X
-_choiMPS_to_unitaryMPO(Ψ::MPS)       = convert(MPO, _mpotags(Ψ))
-_choiMPS_to_unitaryMPO(L::LPDO{MPS}) = LPDO(_choiMPS_to_unitaryMPO(L.X)) 
+choi_mps_to_unitary_mpo(Ψ::MPS)       = convert(MPO, mpotags(Ψ))
+choi_mps_to_unitary_mpo(L::LPDO{MPS}) = choi_mps_to_unitary_mpo(L.X) 
 
-function numberofqubits(g::Tuple)
+function nqubits(g::Tuple)
   s = g[2]
   n = (s isa Number ? s : maximum(s))
   return n
 end
 
-numberofqubits(gates::Vector{<:Any}) =  
-  maximum([numberofqubits(gates[n]) for n in 1:length(gates)])
+nqubits(gates::Vector{<:Any}) = maximum((nqubits(gate) for gate in gates))
+
+
+nlayers(circuit::Vector{<:Any}) = 1
+nlayers(circuit::Vector{<:Vector{<:Any}}) = length(circuit)
+
+ngates(circuit::Vector{<:Any}) = length(circuit)
+ngates(circuit::Vector{<:Vector{<:Any}}) = length(vcat(circuit...))
 

@@ -81,13 +81,15 @@ obs = Observer(F)
 
 # Run process tomography
 println("Run process tomography to learn noisy process Λ")
-Λ = tomography(train_data, Λ0;
-               test_data = test_data,
-               optimizer = opt,
-               batchsize = 500,
-               epochs = 5,
-               observer! = obs,
-               print_metrics = ["F"])
+@disable_warn_order begin
+  Λ = tomography(train_data, Λ0;
+                 test_data = test_data,
+                 optimizer = opt,
+                 batchsize = 500,
+                 epochs = 5,
+                 observer! = obs,
+                 print_metrics = ["F"])
+end
 @show maxlinkdim(Λ.X)
 println()
 

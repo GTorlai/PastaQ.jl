@@ -649,7 +649,7 @@ function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}}, L::LPDO;
       end
       
       if model isa LPDO{MPS}
-        update!(observer!, _choiMPS_to_unitaryMPO(normalized_model), best_model, tot_time, train_loss, test_loss)
+        update!(observer!, LPDO(choi_mps_to_unitary_mpo(normalized_model)), best_model, tot_time, train_loss, test_loss)
       else
         update!(observer!,normalized_model, best_model,tot_time, train_loss, test_loss)
       end
@@ -666,7 +666,7 @@ function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}}, L::LPDO;
 end
 
 tomography(data::Matrix{Pair{String,Pair{String, Int}}}, U::MPO; kwargs...) = 
-  _choiMPS_to_unitaryMPO(tomography(data, LPDO(_unitaryMPO_to_choiMPS(U)); kwargs...).X)    
+  choi_mps_to_unitary_mpo(tomography(data, LPDO(unitary_mpo_to_choi_mps(U)); kwargs...))    
 
 
 

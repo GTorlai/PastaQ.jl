@@ -71,5 +71,4 @@ export
 
 # utils.jl
   split_dataset,
-  numberofqubits,
-  array
+  nqubits

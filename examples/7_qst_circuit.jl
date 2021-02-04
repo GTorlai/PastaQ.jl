@@ -84,13 +84,15 @@ obs = Observer(F)
 # is optimized to mimimize the cross entropy between the data and 
 # the tensor-network distribution `P(x) = ⟨x|ρ(θ)|x⟩`.
 println("Running tomography to learn a mixed state ρ:")
-ρ = tomography(train_data, ρ0;
-               test_data = test_data,
-               optimizer = opt,
-               batchsize = 1000,
-               epochs = 5,
-               observer! = obs,
-               print_metrics = "F")
+@disable_warn_order begin
+  ρ = tomography(train_data, ρ0;
+                 test_data = test_data,
+                 optimizer = opt,
+                 batchsize = 1000,
+                 epochs = 5,
+                 observer! = obs,
+                 print_metrics = "F")
+end
 @show maxlinkdim(ρ.X)
 println()
 

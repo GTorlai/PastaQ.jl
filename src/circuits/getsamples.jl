@@ -450,7 +450,7 @@ getsamples(N::Int64, gates::Vector{Vector{<:Any}}, nshots::Int64; kwargs...) =
   getsamples(N, vcat(gates...), nshots; kwargs...)
 
 getsamples(gates::Vector, nshots::Int64; kwargs...) =
-  getsamples(numberofqubits(gates), gates, nshots; kwargs...)
+  getsamples(nqubits(gates), gates, nshots; kwargs...)
 
 
 function getsamples(gates::Array,preps::Array, bases::Array ;
@@ -496,7 +496,7 @@ function getsamples(M0::Union{LPDO,MPO}, preps::Array, bases::Array;
   
   Threads.@threads for n in 1:size(bases,1)
     nthread = Threads.threadid()
-    M′= (_ischoi(M) ? projectchoi(M,preps[n,:]) : projectunitary(M,preps[n,:]))
+    M′= (ischoi(M) ? projectchoi(M,preps[n,:]) : projectunitary(M,preps[n,:]))
     meas_gates = measurementgates(bases[n,:])
     M_meas = runcircuit(copy(M′),meas_gates)
     measurement = getsamples!(copy(M_meas); readout_errors = readout_errors)
