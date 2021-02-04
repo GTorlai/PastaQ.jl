@@ -1,4 +1,3 @@
-
 # TODO: make a faster custom version that doesn't convert to MPO first
 ITensors.inner(ρ::LPDO{MPO}, σ::LPDO{MPO}) =
   inner(MPO(ρ), MPO(σ))
@@ -19,13 +18,25 @@ ITensors.inner(ρ::MPO, σ::LPDO{MPS}) =
   inner(σ.X, ρ, σ.X)
 
 """
-    fidelity(ψ::MPS, ϕ::MPS)
+    fidelity(ρ::ITensor, σ::ITensor)
 
-Compute the fidelity between two MPS:
+Compute the quantum fidelity between two ITensors, which are treated as density operators
+from the unprimed to the primed indices (if they are matrix-like).
 
-`F = |⟨ψ̃|ϕ̃⟩|²`
+Matrix-like ITensors should be Hermitian and non-negative.
+"""
+function fidelity(ρ::ITensor{N}, σ::ITensor{N}) where {N}
+  ρ ./= tr(ρ)
+  σ ./= tr(σ)
+  F = product(product(sqrt(ρ), σ), sqrt(ρ))
+  F = real(tr(sqrt(F)))^2
+  return F
+end
 
-where `ψ̃` and `ϕ̃` are the normalized MPS.
+"""
+Quantum state fidelity between two wavefunctions.
+
+F = |⟨ψ|ϕ⟩|²
 """
 function fidelity(ψ::MPS, ϕ::MPS)
   log_F̃ = 2.0 * real(loginner(ψ, ϕ))
@@ -35,14 +46,10 @@ function fidelity(ψ::MPS, ϕ::MPS)
 end
 
 """
-    fidelity(ψ::MPS, ρ::Union{MPO, LPDO})
-    fidelity(ρ::Union{MPO, LPDO}, ψ::MPS)
+Quantum state fidelity between an MPS wavefunction and a 
+density operator.
 
-Compute the fidelity between an MPS and MPO/LPDO:
-
-`F = ⟨ψ̃|ρ̃|ψ̃⟩`
-
-where `ψ̃` and `ρ̃` are the normalized MPS and MPO/LDPO.
+F = ⟨ψ|ρ|ψ⟩
 """
 function fidelity(ψ::MPS, ρ::MPO)
   # TODO: replace with:
@@ -53,36 +60,88 @@ function fidelity(ψ::MPS, ρ::MPO)
   # TODO Check if trace is real
   #@assert imag(tr(ρ)) ≈ 0.0 atol=1e-5
   log_K = 2 * lognorm(ψ) + log(real(tr(ρ))) 
-  
   fidelity = exp(log_F̃ - log_K)
   return fidelity
 end
 
-# TODO: replace with:
-# X = L.X
-# log_F̃ = lognorm(X, ψ) # = loginner(X, ψ, X, ψ)
-# log_K = 2.0 * (lognorm(ψ) + lognorm(L))
-# return exp(log_F̃ - log_K)
-fidelity(M::Union{MPS,MPO}, L::LPDO{MPO}) = fidelity(M, MPO(L))
-
-fidelity(M::Union{MPS,MPO}, L::LPDO{MPS}) = fidelity(M, L.X)
-
-fidelity(L::LPDO, M::Union{MPS,MPO}) = fidelity(M,L)
-
 fidelity(ρ::MPO, ψ::MPS) = fidelity(ψ, ρ)
 
-fidelity(ρ::MPO, σ::MPO) = fidelity(prod(ρ), prod(σ))
+"""
+Quantum state fidelity between an MPS wavefunction and a 
+LPDO density operator.
 
-fidelity(L::LPDO{MPS}, M::LPDO{MPS}) = fidelity(L.X, M.X)
+F = ⟨ψ|ϱ|ψ⟩=|X†|ψ⟩|²
+"""
+function fidelity(Ψ::MPS, ϱ::LPDO{MPO})
+  proj = bra(ϱ) * Ψ
+  K = abs2(norm(Ψ)) * tr(ϱ)
+  return inner(proj,proj) / K
+end
 
-fidelity(L::LPDO{MPO}, M::LPDO{MPO}) = fidelity(MPO(L),MPO(M))
+"""
+Quantum state fidelity between two MPO density matrices.
 
-const statefidelity = fidelity
+F = (tr[√(√A B √A)])² 
 
-processfidelity(A::MPO, B::MPO) = fidelity(_UnitaryMPOtoMPS(A), _UnitaryMPOtoMPS(B))
+If `process = true`, get process fidelities:
+1. Quantum process fidelity between two MPO unitary operators.
+   F = |⟨⟨A|B⟩⟩|²
+2. Quantum process fidelity bewteen a MPO unitary and MPO Choi matrix
+   F = ⟨⟨A|B|A⟩⟩
+3. Quantum process fidelity bewteen two MPO Choi matrices
+   F = (Tr[√(√A B √A)])² 
+"""
+function fidelity(A::MPO, B::MPO; process::Bool = false, warnings::Bool = true)
+  # if quantum state fidelity:
+  if process
+    # check whether a MPO is Choi or not (from number of site indices)
+    # 1: unitary   -   unitary
+    (!_ischoi(A) && !_ischoi(B)) && return fidelity(_unitaryMPO_to_choiMPS(A), _unitaryMPO_to_choiMPS(B))
+    # 2: unitary   -   Choi MPO
+    (!_ischoi(A) && _ischoi(B)) && return _choifidelity(_unitaryMPO_to_choiMPS(A),B) 
+    # 2reverse: Choi MPO  -   unitary
+    (_ischoi(A) && !_ischoi(B)) && return _choifidelity(A,_unitaryMPO_to_choiMPS(B)) 
+    # 3: Choi MPO - Choi MPO
+  end
+  if warnings
+    println("--------------")
+    println(" WARNING")
+    println("\nCalculation of quantum fidelity between two density matrices is not scalable!\nTo suppress this warning, add `nowarning = true`.\n")
+    println("--------------\n")
+  end
+  # quantum state/process fidelity bewtee two MPOs density matrices 
+  return fidelity(prod(A), prod(B)) 
+end
 
-processfidelity(Λ::LPDO{MPO},E::MPO) = fidelity(Λ,E)
-processfidelity(Λ::MPO,E::LPDO{MPO}) = fidelity(Λ,E)
+
+"""
+1. Quantum process fidelity between a unitary MPO and a Choi LPDO.
+   F = ⟨ψ|ϱ|ψ⟩=|X†|ψ⟩|²
+2. Quantum process fidelity bewteen a Choi MPO and a Choi LPDO
+"""
+function fidelity(A::MPO, B::LPDO{MPO}; process::Bool = false, warnings::Bool = true) 
+  #1: Choi MPO   -  Choi LPDO
+  (process && !_ischoi(A)) && return fidelity(_unitaryMPO_to_choiMPS(A),B)
+  return fidelity(A, MPO(B); warnings = warnings)
+end
+fidelity(B::LPDO{MPO}, A::MPO; kwargs...) = fidelity(A, B; kwargs...)
+
+"""
+Quantum fidelity between two LPDO density matrices.
+
+F = (tr[√(√A B √A)])² 
+"""
+fidelity(A::LPDO{MPO}, B::LPDO{MPO}; kwargs...) = fidelity(MPO(A), MPO(B); kwargs...)
+
+function _choifidelity(U::MPS, Λ::MPO)
+  K = abs2(norm(U)) * real(tr(Λ))
+  O = noprime(Λ * U)
+  fidelity = inner(U,O) / K
+  return real(fidelity)
+end
+
+_choifidelity(Λ::MPO, U::MPS) = _choifidelity(U,Λ)
+
 
 """
     frobenius_distance(ρ::Union{MPO, LPDO}, σ::Union{MPO, LPDO})
@@ -93,8 +152,8 @@ Compute the trace norm of the difference between two LPDOs and MPOs:
 
 where `ρ̃` and `σ̃` are the normalized density matrices.
 """
-function frobenius_distance(ρ::Union{MPO, LPDO},
-                            σ::Union{MPO, LPDO})
+function frobenius_distance(ρ::Union{MPO, LPDO{MPO}},
+                            σ::Union{MPO, LPDO{MPO}})
   ρ̃ = copy(ρ)
   σ̃ = copy(σ)
   normalize!(ρ̃)
@@ -105,10 +164,10 @@ function frobenius_distance(ρ::Union{MPO, LPDO},
   return sqrt(distance)
 end
 
-frobenius_distance(ψ::MPS, ρ::Union{MPO,LPDO}) =
+frobenius_distance(ψ::MPS, ρ::Union{MPO,LPDO{MPO}}) =
   frobenius_distance(MPO(ψ), ρ)
 
-frobenius_distance(ρ::Union{MPO,LPDO}, ψ::MPS) = 
+frobenius_distance(ρ::Union{MPO,LPDO{MPO}}, ψ::MPS) = 
   frobenius_distance(ψ,ρ)
 
 frobenius_distance(ψ::MPS, ϕ::MPS) = 
@@ -125,8 +184,8 @@ where `ρ̃` and `σ̃` are the normalized density matrices.
 
 The bound becomes tight when the target state is nearly pure.
 """
-function fidelity_bound(ρ::Union{MPO, LPDO},
-                        σ::Union{MPO, LPDO})
+function fidelity_bound(ρ::Union{MPO, LPDO{MPO}},
+                        σ::Union{MPO, LPDO{MPO}})
   ρ̃ = copy(ρ)
   σ̃ = copy(σ)
   normalize!(ρ̃)
@@ -134,28 +193,13 @@ function fidelity_bound(ρ::Union{MPO, LPDO},
   return real(inner(ρ̃, σ̃))
 end
 
-fidelity_bound(ψ::MPS, ρ::Union{MPO,LPDO}) =
+fidelity_bound(ψ::MPS, ρ::Union{MPO,LPDO{MPO}}) =
   fidelity(ψ, ρ)
 
-fidelity_bound(ρ::Union{MPO,LPDO}, ψ::MPS) = 
+fidelity_bound(ρ::Union{MPO,LPDO{MPO}}, ψ::MPS) = 
   fidelity(ρ,ψ)
 
 fidelity_bound(ψ::MPS, ϕ::MPS) = 
   fidelity(ψ,ϕ)
 
-"""
-    fidelity(ρ::ITensor, σ::ITensor)
-
-Compute the quantum fidelity between two ITensors, which are treated as density operators
-from the unprimed to the primed indices (if they are matrix-like).
-
-Matrix-like ITensors should be Hermitian and non-negative.
-"""
-function fidelity(ρ::ITensor{N}, σ::ITensor{N}) where {N}
-  ρ ./= tr(ρ)
-  σ ./= tr(σ)
-  F = product(product(sqrt(ρ), σ), sqrt(ρ))
-  F = real(tr(sqrt(F)))^2
-  return F
-end
 

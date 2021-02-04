@@ -6,8 +6,25 @@ struct LPDO{XT <: Union{MPS, MPO}}
   purifier_tag::TagSet
 end
 
-LPDO(X::MPO) = LPDO(X, ts"Purifier")
-LPDO(X::MPS) = LPDO(X, ts"")
+#LPDO(X::MPO) = LPDO(X, ts"Purifier")
+LPDO(M::MPS) = LPDO(M, ts"")
+
+function LPDO(M::MPO)
+  if length(inds(M[1])) == 3
+    # unitary MPO and density matrix MPO
+    (length(inds(M[1], tags="Qubit")) == 2) && return LPDO(M, ts"")
+    # density matrix LPDO
+    (length(inds(M[1], tags="Qubit")) == 1) && return LPDO(M, ts"Purifier")
+  elseif length(inds(M[1])) == 4
+    # Choi matrix LPDO
+    (length(inds(M[1], tags="Qubit")) == 2) && return LPDO(M, ts"Purifier")
+  elseif length(inds(M[1])) == 5
+    # Choi matrix MPO
+    (length(inds(M[1], tags="Qubit")) == 4) && return LPDO(M, ts"")
+  else
+    error("Input not recognized")
+  end
+end
 
 Base.length(L::LPDO) = length(L.X)
 
@@ -184,6 +201,6 @@ function HDF5.read(parent::Union{HDF5File, HDF5Group},
                    ::Type{LPDO{XT}}) where {XT}
   g = g_open(parent, name)
   X = read(g, "X", XT)
-  return LPDO(X)
+  return LPDO(X, ts"Purifier")
 end
 

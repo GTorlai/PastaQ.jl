@@ -7,16 +7,25 @@ using Random
   N = 10
   @test length(qft(N)) == reduce(+,1:N-1) + N
   @test length(qft(N; inverse = true)) == reduce(+,1:N-1)+ N
-  circuit = ghz(N)
-  @test length(circuit) == N
-  
+  @test length(ghz(N)) == N
 end
 
 @testset "gatelayer" begin
   N = 10
+  
   layer = gatelayer("X",N)
   @test length(layer) == N
   @test all(x -> x == "X", first.(layer))
+  
+  layer = gatelayer("X",1:2:N)
+  @test length(layer) == N÷2
+  
+  layer = gatelayer("X",[1,3,5,7])
+  @test length(layer) == 4
+  
+  layer = gatelayer("Rx",N;θ=0.1)
+  @test haskey.(last.(layer),:θ) == ones(N)
+  @test values.(last.(layer)) == [(0.1,) for _ in 1:N] 
 
   qarray = PastaQ.lineararray(N)
   layer = gatelayer("CX", qarray[1])
@@ -40,7 +49,7 @@ end
   @test haskey(pars,:ϕ)
   @test haskey(pars,:λ)
   
-  pars = PastaQ.randomparams("HaarRandomUnitary",4)
+  pars = PastaQ.randomparams("RandomUnitary",4)
   @test haskey(pars,:random_matrix)
   @test size(pars[:random_matrix]) == (4,4)
   @test pars[:random_matrix] isa Matrix{ComplexF64}
@@ -55,12 +64,12 @@ end
   @test all(x -> x == "Rn", first.(layer))
 
   qarray = PastaQ.lineararray(N)
-  layer = randomlayer("HaarRandomUnitary", qarray[1])
+  layer = randomlayer("RandomUnitary", qarray[1])
   @test length(layer) == length(qarray[1])
-  @test all(x -> x == "HaarRandomUnitary", first.(layer))
-  layer = randomlayer("HaarRandomUnitary", qarray[2])
+  @test all(x -> x == "RandomUnitary", first.(layer))
+  layer = randomlayer("RandomUnitary", qarray[2])
   @test length(layer) == length(qarray[2])
-  @test all(x -> x == "HaarRandomUnitary", first.(layer))
+  @test all(x -> x == "RandomUnitary", first.(layer))
 
 end
 
@@ -68,10 +77,10 @@ end
 @testset "random circuits" begin
   N = 30
   depth = 10
-  circuit = randomcircuit(N,depth; twoqubitgates = "HaarRandomUnitary")
+  circuit = randomcircuit(N,depth; twoqubitgates = "RandomUnitary")
   @test length(circuit) == depth
   for d in 1:depth
-    @test all(x->x == "HaarRandomUnitary",first.(circuit[depth]))
+    @test all(x->x == "RandomUnitary",first.(circuit[depth]))
   end
 
   circuit = randomcircuit(N,depth; twoqubitgates = "CX")
@@ -83,7 +92,7 @@ end
   circuit = randomcircuit(N,depth; twoqubitgates = "CX", onequbitgates = "Rn")
   @test size(circuit,1) == depth
   
-  circuit = randomcircuit(N, depth; twoqubitgates = "HaarRandomUnitary", onequbitgates = ["Rn","X"])
+  circuit = randomcircuit(N, depth; twoqubitgates = "RandomUnitary", onequbitgates = ["Rn","X"])
   @test size(circuit,1) == depth
 end
 

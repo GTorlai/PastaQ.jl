@@ -172,7 +172,7 @@ end
   end
   # to Choi
   Λ = randomprocess(U0;mixed=true)
-  Γ0 = LPDO(PastaQ._UnitaryMPOtoMPS(U0))
+  Γ0 = LPDO(PastaQ._unitaryMPO_to_choiMPS(U0))
   for j in 1:length(N)
     @test firstind(Λ.X[j],tags="Input") == firstind(Γ0.X[j],tags="Input")
     @test firstind(Λ.X[j],tags="Output") == firstind(Γ0.X[j],tags="Output")

@@ -7,7 +7,7 @@ tensor, with type `ElT`, are randomly drawn from a uniform distribution centered
 around zero, with width `σ`.
 """
 function random_mps(ElT::Type{<:Number},
-                    sites::Vector{<: Index},
+                    sites::Vector{<:Index},
                     χ::Int64,
                     σ::Float64) 
   d = dim(sites[1]) # Dimension of the local Hilbert space
@@ -97,8 +97,6 @@ function random_mpo(ElT::Type{<:Number},sites::Vector{<: Index},χ::Int64,σ::Fl
   proc_tagcheck = (any(x -> hastags(x,"Input") , sites))
   if proc_tagcheck
     removetags!(U,"Input")
-  #  addtags!(U, "Input", plev = 0, tags = "Qubit")
-  #  addtags!(U, "Output", plev = 1, tags = "Qubit")
   end
   return U
 end
@@ -115,7 +113,7 @@ randomly drawn from a uniform distribution centered around zero, with width `σ`
 function random_lpdo(ElT::Type{<:Number},
                      sites::Vector{<: Index},
                      χ::Int64, ξ::Int64, σ::Float64;
-                    purifier_tag = ts"Purifier")
+                     purifier_tag = ts"Purifier")
   d = dim(sites[1]) # Dimension of the local Hilbert space
   N = length(sites)
   links = [Index(χ; tags="Link, l=$l") for l in 1:N-1]
@@ -219,7 +217,7 @@ function random_choi(ElT::Type{<: Number},
     end
   end
   noprime!(Λ)
-  return LPDO(Λ)
+  return LPDO(Λ, purifier_tag)
 end
 
 

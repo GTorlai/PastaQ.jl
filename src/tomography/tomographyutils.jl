@@ -1,37 +1,42 @@
-function trace_outputsites(L::LPDO)
+"""
+    tr(L::LPDO, tag::String)
+
+Trace `"Input"` or `"Output"` qubits.
+"""
+function tr(L::LPDO, tag::String)
   N = length(L)
   
   Φ = ITensor[]
 
-  tmp = noprime(ket(L,1),tags="Output") * bra(L,1)
-  Cdn = combiner(commonind(tmp,L.X[2]),commonind(tmp,L.X[2]'))
+  tmp = noprime(ket(L, 1), tags = tag) * bra(L, 1)
+  Cdn = combiner(commonind(tmp, L.X[2]),commonind(tmp, L.X[2]'))
   push!(Φ,tmp * Cdn)
 
   for j in 2:N-1
-    tmp = noprime(ket(L,j),tags="Output") * bra(L,j)
+    tmp = noprime(ket(L, j), tags = tag) * bra(L, j)
     Cup = Cdn
-    Cdn = combiner(commonind(tmp,L.X[j+1]),commonind(tmp,L.X[j+1]'))
+    Cdn = combiner(commonind(tmp, L.X[j+1]),commonind(tmp, L.X[j+1]'))
     push!(Φ,tmp * Cup * Cdn)
   end
-  tmp = noprime(ket(L,N),tags="Output") * bra(L,N)
+  tmp = noprime(ket(L, N), tags = tag) * bra(L, N)
   Cup = Cdn
-  push!(Φ,tmp * Cup)
+  push!(Φ, tmp * Cup)
   return MPO(Φ)
 end
 
-function splitobserverargs!(observer::Observer) 
-  for obs in keys(observer.measurements)
-    observable = first(observer.measurements[obs])
-    if !isnothing(observable)
-      arg = last(observable)
-      if arg isa MPO
-        observer.measurements[obs] = (observer.measurements[obs][1][1] => makeChoi(observer.measurements[obs][1][2])) => []
-      end
-    end
-  end
-  return observer
-end
+"""
+    configure!(observer::Union{Observer,Nothing},
+               optimizer::Optimizer, 
+               batchsize::Int,
+               measurement_frequency::Int,
+               train_data::Matrix,
+               test_data::Union{Array,Nothing})
 
+Configure the Observer for quantum tomography:
+- Save the Optimizer parameters
+- Save batchsize/measurement_frequency/dataset_size
+- Initialize train_loss (test_loss) measurements
+"""
 function configure!(observer::Union{Observer,Nothing},
                     optimizer::Optimizer, 
                     batchsize::Int,
@@ -51,6 +56,7 @@ function configure!(observer::Union{Observer,Nothing},
       params[string(typeof(optimizer))][par] = getfield(optimizer,par)
     end
   end
+  
   # batchsize 
   params["batchsize"] = batchsize
   # storing this can help to back out simulation time and observables evolution
@@ -67,6 +73,17 @@ function configure!(observer::Union{Observer,Nothing},
   return observer
 end
 
+"""
+    update!(observer::Observer,
+            normalized_model::LPDO,
+            best_model::LPDO,
+            simulation_time::Float64,
+            train_loss::Float64,
+            test_loss::Union{Nothing,Float64})
+
+Update the observer for quantum tomography.
+Perform measuremenst and record data.
+"""
 function update!(observer::Observer,
                  normalized_model::LPDO,
                  best_model::LPDO,
@@ -80,9 +97,17 @@ function update!(observer::Observer,
     push!(observer.measurements["test_loss"][2], test_loss)
   end
   
-  measure!(observer, normalized_model)
+  # check whether there is an object with Kraus index if so, feed it
+  # directly to the measurement. Otherwise, take the inner object
+  # as argument, which may be a MPS wavefunction, a unitary MPO, or
+  # a MPO density matrix.
+  M = (normalized_model.purifier_tag == ts"" ? normalized_model.X : normalized_model)
+  measure!(observer, M)
 end
 
+"""
+Varioua printing functionalities
+"""
 
 printmetric(name::String, metric::Int) = @printf("%s = %d  ",name,metric)
 printmetric(name::String, metric::Float64) = @printf("%s = %-4.4f  ",name,metric)

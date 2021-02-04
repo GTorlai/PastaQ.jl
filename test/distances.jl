@@ -4,54 +4,84 @@ using Test
 using LinearAlgebra
 using Random
 
-@testset "fidelity" begin
-  
-  #
-  # F = |<PSI1|PSI2>|^2
-  #
-  
-  N = 3
-  χ = 4
-  Random.seed!(1111)
-  ψ1 = randomstate(N;χ=χ)
-  ψ2 = copy(ψ1)
-  ψ2[1] = ITensor(ones(2,4),inds(ψ2[1])[1],inds(ψ2[1])[2])
-  
-  ψ1_vec = array(ψ1)
-  ψ2_vec = array(ψ2)
- 
-  K1 = sum(ψ1_vec .* conj(ψ1_vec)) 
-  ψ1_vec ./= sqrt(K1)
-  K2 = sum(ψ2_vec .* conj(ψ2_vec)) 
-  ψ2_vec ./= sqrt(K2)
-  
-  ex_F = abs2(dot(ψ1_vec ,ψ2_vec))
-  F = fidelity(ψ1,ψ2)
-  
-  @test ex_F ≈ F
 
-  #
-  # F = <PSI|RHO|PSI>
-  #
- 
-  N = 3
-  χ, ξ = 2, 2
-  ρ = randomstate(N; mixed = true, χ = χ, ξ = ξ)
-  σ = randomstate(ρ; mixed = true, χ = χ, ξ = ξ)
-  #@show typeof(ρ)
-  F = fidelity(prod(ρ), prod(σ))
+@testset "quantum state fidelity" begin
+  N = 4
+  circuit1 = randomcircuit(N,3)
+  circuit2 = randomcircuit(N,3)
+  # MPS wavefunction
+  ψ1 = runcircuit(circuit1)
+  ψ2 = runcircuit(qubits(ψ1),circuit2)
+  # MPO density matrix
+  ρ1 = runcircuit(qubits(ψ1), circuit1; noise = ("DEP",(p=0.01,)))
+  ρ2 = runcircuit(qubits(ψ1), circuit2; noise = ("DEP",(p=0.01,)))
+  # LPDO density matrix
+  ϱ1 = normalize!(randomstate(ψ1; mixed = true))
+  ϱ2 = normalize!(randomstate(ψ1; mixed = true))
+
+  ψ1vec = array(ψ1)
+  ρ1mat = array(ρ1)
+  ϱ1mat = array(ϱ1)
   
-  ρ_mat = array(ρ)
-  ρ_mat ./= tr(ρ_mat)
-  σ_mat = array(σ)
-  σ_mat ./= tr(σ_mat)
-  F_mat = sqrt(ρ_mat) * σ_mat * sqrt(ρ_mat)
-  F_mat = real(tr(sqrt(F_mat)))^2
-
-  @test F ≈ F_mat
-
-
+  ψ2vec = array(ψ2)
+  ρ2mat = array(ρ2)
+  ϱ2mat = array(ϱ2)
+  
+  @test fidelity(ψ1,ψ2) ≈ abs2(ψ1vec' * ψ2vec)
+  @test fidelity(ψ1,ρ2) ≈ ψ1vec' * ρ2mat * ψ1vec
+  @test fidelity(ψ1,ϱ2) ≈ (ψ1vec' * ϱ2mat * ψ1vec) 
+  
+  @test fidelity(ρ1,ρ2; warnings = false) ≈ real(tr(sqrt(sqrt(ρ1mat)*ρ2mat*sqrt(ρ1mat))))^2 atol=1e-8 
+  @test fidelity(ρ1,ϱ2; warnings = false) ≈ real(tr(sqrt(sqrt(ρ1mat)*ϱ2mat*sqrt(ρ1mat))))^2 atol=1e-8
+  @test fidelity(ϱ1,ϱ2; warnings = false) ≈ real(tr(sqrt(sqrt(ϱ1mat)*ϱ2mat*sqrt(ϱ1mat))))^2 atol=1e-8 
 end
+
+
+
+
+@testset "quantum process fidelity" begin
+  N = 3
+  
+  circuit1 = randomcircuit(N,3)
+  circuit2 = randomcircuit(N,3)
+  # MPO unitary 
+  U1 = runcircuit(circuit1; process = true)
+  U2 = randomprocess(U1)
+  
+  # MPO Choi matrix 
+  ρ1 = PastaQ.choimatrix(PastaQ.hilbertspace(U1), circuit1; noise = ("DEP",(p=0.01,)))
+  ρ2 = PastaQ.choimatrix(PastaQ.hilbertspace(U1), circuit2; noise = ("DEP",(p=0.01,)))
+  # LPDO Choi matrix
+  ϱ1 = normalize!(randomprocess(U1; mixed = true))
+  ϱ2 = normalize!(randomprocess(U1; mixed = true))
+
+  @disable_warn_order begin
+    ϕ1 = PastaQ._unitaryMPO_to_choiMPS(U1)
+    normalize!(ϕ1)
+    ϕ1vec = array(ϕ1)
+    ρ1mat = array(ρ1)
+    ρ1mat = ρ1mat / tr(ρ1mat) 
+    ϱ1mat = array(ϱ1)
+    ϱ1mat = ϱ1mat / tr(ϱ1mat) 
+
+    
+    ϕ2 = PastaQ._unitaryMPO_to_choiMPS(U2)
+    normalize!(ϕ2)
+    ϕ2vec = array(ϕ2)
+    ρ2mat = array(ρ2)
+    ρ2mat = ρ2mat / tr(ρ2mat) 
+    ϱ2mat = array(ϱ2)
+    ϱ2mat = ϱ2mat / tr(ϱ2mat) 
+    @test fidelity(U1,U2; process = true) ≈ abs2(ϕ1vec' * ϕ2vec)
+    @test fidelity(U1,ρ2; process = true) ≈ ϕ1vec' * ρ2mat * ϕ1vec
+    @test fidelity(U1,ϱ2; process = true) ≈ (ϕ1vec' * ϱ2mat * ϕ1vec) 
+    
+    @test fidelity(ρ1,ρ2; process = true, warnings = false) ≈ real(tr(sqrt(sqrt(ρ1mat)*ρ2mat*sqrt(ρ1mat))))^2 atol=1e-8 
+    @test fidelity(ρ1,ϱ2; process = true, warnings = false) ≈ real(tr(sqrt(sqrt(ρ1mat)*ϱ2mat*sqrt(ρ1mat))))^2 atol=1e-8
+    @test fidelity(ϱ1,ϱ2; process = true, warnings = false) ≈ real(tr(sqrt(sqrt(ϱ1mat)*ϱ2mat*sqrt(ϱ1mat))))^2 atol=1e-8
+  end
+end
+
 
 @testset "frobenius distance" begin 
 
@@ -209,35 +239,5 @@ end
   F̃ = fidelity_bound(ρ,σ)
   @test f ≈ F̃
 end
-
-
-
-@testset "process fidelity" begin
-  N = 3
-  circuit = randomcircuit(N,3)
-
-  U = runcircuit(circuit; process = true)
-  V = randomprocess(U)
-  Ψ = PastaQ._UnitaryMPOtoMPS(U)
-  Φ = PastaQ._UnitaryMPOtoMPS(V)
-  @test processfidelity(U,V) ≈ fidelity(Ψ,Φ)
-
-  Λ = runcircuit(circuit; process = true,noise=("DEP",(p=0.1,)))
-  V = randomprocess(Λ; mixed = true)
-  @test processfidelity(Λ,V) ≈ fidelity(V,Λ)
-
-end
-
-
-
-
-
-
-
-
-
-
-
-
 
 

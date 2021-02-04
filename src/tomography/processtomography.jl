@@ -1,3 +1,9 @@
+"""
+    nll(L::LPDO{MPS},data::Matrix{Pair{String,Pair{String, Int}}}) 
+
+Compute the negative log-likelihood of process data using a MPO ansatz
+for the vectorized unitary operator.
+"""
 function nll(L::LPDO{MPS},data::Matrix{Pair{String,Pair{String, Int}}})
   
   data_in = first.(data)
@@ -28,6 +34,12 @@ end
 
 nll(ψ::MPS, data::Matrix{Pair{String,Pair{String, Int}}}) = nll(LPDO(ψ), data)
 
+"""
+    nll(L::LPDO{MPO},data::Matrix{Pair{String,Pair{String, Int}}})
+
+Compute the negative log-likelihood of process data using a LPDO ansatz
+for the Choi matrix.
+"""
 function nll(L::LPDO{MPO},data::Matrix{Pair{String,Pair{String, Int}}})
   # if the MPO in LPDO{MPO} is a unitary MPO (instead of a MPO with Kraus index)
   # then transform the MPO to MPS and run the nll on that
@@ -67,7 +79,7 @@ end
 function TP(L::LPDO)
   Λ = copy(L)
   normalize!(Λ; localnorm = 2)
-  Φ = trace_outputsites(Λ)
+  Φ = tr(Λ, "Output")
   
   D = 2^length(Φ)
   @assert D ≈ tr(Φ)
@@ -75,6 +87,14 @@ function TP(L::LPDO)
   return real(Γ)
 end
 
+"""
+    gradnll(L::LPDO{MPS},
+            data::Matrix{Pair{String,Pair{String, Int}}};
+            sqrt_localnorms = nothing)
+
+Compute the gradients of the negative log-likelihood for process data
+using a MPS representation of the vectorized unitary operation.
+"""
 function gradnll(L::LPDO{MPS},
                  data::Matrix{Pair{String,Pair{String, Int}}};
                  sqrt_localnorms = nothing)
@@ -190,7 +210,14 @@ function gradnll(L::LPDO{MPS},
   return gradients_tot, loss_tot
 end
 
+"""
+    gradnll(L::LPDO{MPO},
+            data::Matrix{Pair{String,Pair{String, Int}}};
+            sqrt_localnorms = nothing)
 
+Compute the negative log-likelihood of process data using a LPDO ansatz
+for the Choi matrix.
+"""
 function gradnll(L::LPDO{MPO}, 
                  data::Matrix{Pair{String,Pair{String, Int}}};
                  sqrt_localnorms = nothing)
@@ -362,6 +389,12 @@ j-1]
   return gradients_tot, loss_tot
 end
 
+"""
+    gradTP(L::LPDO, gradlogZ::Vector{<:ITensor}, 
+           logZ::Float64; sqrt_localnorms = nothing)
+
+Compute the gradients of the trace-preserving regularization.
+"""
 function gradTP(L::LPDO, gradlogZ::Vector{<:ITensor}, logZ::Float64; sqrt_localnorms = nothing)
   N = length(L)
   D = 2^N
@@ -497,7 +530,7 @@ end
     PastaQ.gradients(ψ::MPS, data::Array; localnorms = nothing)
 
 Compute the gradients of the cost function:
-`C = log(Z) - ⟨log P(σ)⟩_data`
+`C = log(Z) - ⟨log P(σ)⟩_data + TP`
 """
 function gradients(L::LPDO, 
                    data::Matrix{Pair{String,Pair{String, Int}}};
@@ -510,7 +543,7 @@ function gradients(L::LPDO,
   grads = g_logZ + g_nll  
   loss = logZ + NLL
   
-  # Renormalization
+  # trace-preserving regularization
   if !isnothing(trace_preserving_regularizer)
     grads += trace_preserving_regularizer * g_TP 
   end
@@ -554,7 +587,6 @@ function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}}, L::LPDO;
   
   # configure the observer. if no observer is provided, create an empty one
   observer! = configure!(observer!, optimizer, batchsize, measurement_frequency, train_data, test_data)
-  #observer! = splitobserverargs!(observer!)
   
   optimizer = copy(optimizer)
   model = copy(L)
@@ -617,7 +649,7 @@ function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}}, L::LPDO;
       end
       
       if model isa LPDO{MPS}
-        update!(observer!, LPDO(_MPStoUnitaryMPO(normalized_model), ts""), best_model, tot_time, train_loss, test_loss)
+        update!(observer!, _choiMPS_to_unitaryMPO(normalized_model), best_model, tot_time, train_loss, test_loss)
       else
         update!(observer!,normalized_model, best_model,tot_time, train_loss, test_loss)
       end
@@ -634,5 +666,8 @@ function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}}, L::LPDO;
 end
 
 tomography(data::Matrix{Pair{String,Pair{String, Int}}}, U::MPO; kwargs...) = 
-  _MPStoUnitaryMPO(tomography(data, LPDO(_UnitaryMPOtoMPS(U),ts""); kwargs...))
+  _choiMPS_to_unitaryMPO(tomography(data, LPDO(_unitaryMPO_to_choiMPS(U)); kwargs...).X)    
+
+
+
 

@@ -258,7 +258,7 @@ end
   N = 5
   χ = 4
   U = randomprocess(N;χ=χ)
-  Λ = LPDO(PastaQ._UnitaryMPOtoMPS(U))
+  Λ = LPDO(PastaQ._unitaryMPO_to_choiMPS(U))
   @test length(Λ) == N
   logZ = 2*lognorm(Λ.X)
   sqrt_localZ = []
@@ -273,7 +273,7 @@ end
   
   Random.seed!(1234)
   U = randomprocess(N; χ = χ)
-  Λ = LPDO(PastaQ._UnitaryMPOtoMPS(U))
+  Λ = LPDO(PastaQ._unitaryMPO_to_choiMPS(U))
   num_grad = numgradslogZ(Λ)
   
   sqrt_localnorms = []
@@ -301,7 +301,7 @@ end
   data = data_in .=> data_out
   
   U = randomprocess(N;χ=χ)
-  Λ = LPDO(PastaQ._UnitaryMPOtoMPS(U))
+  Λ = LPDO(PastaQ._unitaryMPO_to_choiMPS(U))
   num_grad = numgradsnll(Λ,data)
   sqrt_localnorms = []
   normalize!(Λ; sqrt_localnorms! = sqrt_localnorms,localnorm = 2)
@@ -319,7 +319,7 @@ end
 
   Random.seed!(1234)
   U = randomprocess(N; χ = χ)
-  Λ = LPDO(PastaQ._UnitaryMPOtoMPS(U))
+  Λ = LPDO(PastaQ._unitaryMPO_to_choiMPS(U))
   
   num_grad = numgradsTP(Λ;  accuracy = 1e-8)
   Γ_test = PastaQ.TP(Λ)
@@ -353,7 +353,7 @@ end
   data = data_in .=> data_out
   
   U = randomprocess(N;χ=χ)
-  Λ = LPDO(PastaQ._UnitaryMPOtoMPS(U))
+  Λ = LPDO(PastaQ._unitaryMPO_to_choiMPS(U))
   TP_distance = PastaQ.TP(Λ)
   logZ = log(tr(Λ))
   NLL = PastaQ.nll(Λ,data)

@@ -58,10 +58,7 @@ export
 # optimizers.jl
   Optimizer,
   SGD,
-  AdaGrad,
   AdaDelta,
-  Adam,
-  AdaMax,
 
 # observer.jl
   Observer,
@@ -73,7 +70,6 @@ export
   readsamples,
 
 # utils.jl
-  maxlinkdim,
   split_dataset,
   numberofqubits,
   array

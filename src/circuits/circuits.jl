@@ -1,7 +1,7 @@
 """
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
--                              STANDARD CIRCUITS                               -
+-                         STANDARD CIRCUIT GEOMETRIES                          -
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 """
@@ -153,7 +153,7 @@ randomlayer(gatenames::Vector{<:AbstractString}, support::Int; kwargs...) =
 Build a random quantum circuit with `N` qubits and depth `depth`.
 """
 function randomcircuit(N::Int, depth::Int, coupling_sequence::Vector{<:Any};
-                       twoqubitgates::Union{String,Vector{String}} = "HaarRandomUnitary",
+                       twoqubitgates::Union{String,Vector{String}} = "RandomUnitary",
                        onequbitgates::Union{Nothing,String,Vector{String}} = nothing,
                        layered::Bool = true,
                        rng = Random.GLOBAL_RNG)

@@ -20,13 +20,12 @@ end
 measure(ψ::MPS, measurement::Tuple{String,Int}) = 
   measure(ψ, measurement, siteinds(ψ))
 
-measure(L::LPDO{MPS}, args...) = measure(L.X, args...)
-
 function measure(ρ::MPO, args...)
   error("Measurement of one-body operator on MPOs not yet implemented")
 end
-
-measure(L::LPDO{MPO}, args...) = measure(MPO(L), args...)
+function measure(L::LPDO, args...)
+  error("Measurement of one-body operator on LPDOs not yet implemented")
+end
 
 
 """
@@ -147,7 +146,6 @@ measure(ψ::MPS, measurement::Tuple{String,String}) =
   measure(ψ::MPS, measurement, siteinds(ψ))
 
 
-
 """
     entanglemententropy(ψ::MPS; bond = nothing)
 
@@ -178,4 +176,10 @@ function entanglemententropy(ψ0::MPS; bond::Int = length(ψ0)÷2)
     return S
 end
 
+function entanglemententropy(ρ0::MPO; kwargs...)
+  error("Measurement of entanglement entropy for MPOs not yet implemented")
+end
+function entanglemententropy(ρ0::LPDO; kwargs...)
+  error("Measurement of entanglement entropy for LPDOs not yet implemented")
+end
 

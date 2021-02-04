@@ -309,7 +309,7 @@ function gate(::GateName"randU", N::Int = 2;
   return Q
 end
 
-gate(::GateName"HaarRandomUnitary", N::Int = 2; kwargs...) = 
+gate(::GateName"RandomUnitary", N::Int = 2; kwargs...) = 
   gate("randU", N; kwargs...)
 #
 # Noise model gate definitions
@@ -521,7 +521,7 @@ randomparams(::GateName"CRn", args...;rng = Random.GLOBAL_RNG) =
 
 randomparams(::GateName,args...; kwargs...) = NamedTuple()
 
-randomparams(::GateName"HaarRandomUnitary", N::Int = 2; eltype = ComplexF64, rng = Random.GLOBAL_RNG) = 
+randomparams(::GateName"RandomUnitary", N::Int = 2; eltype = ComplexF64, rng = Random.GLOBAL_RNG) = 
   (random_matrix = randn(rng, eltype, N, N),)
 
 randomparams(s::AbstractString; kwargs...) = 

@@ -1,4 +1,12 @@
 """
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+-                   MEASUREMENTS / STATE PREPARATION SETTINGS                  -
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+"""
+
+"""
     randombases(N::Int, nshots::Int;
                 local_basis = ["X","Y","Z"],
                 ndistinctbases = nothing)
@@ -108,6 +116,19 @@ function readouterror!(measurement::Union{Vector, Matrix},
   end
   return measurement
 end
+
+
+
+"""
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+-                            PROJECTIVE MEASUREMENTS                           -
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+"""
+
+
+
 
 """
     getsamples!(M::Union{MPS,MPO};
@@ -244,9 +265,16 @@ function getsamples(M::Union{MPS,MPO}, nshots::Int64;
   return data
 end
 
-#
-# QUANTUM PROCESS TOMOGRAPHY
-#
+
+
+"""
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+-                               TOMOGRAPHY DATA                                -
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+"""
+
 
 """ 
     getsamples(M0::Union{MPS, MPO},
@@ -468,7 +496,7 @@ function getsamples(M0::Union{LPDO,MPO}, preps::Array, bases::Array;
   
   Threads.@threads for n in 1:size(bases,1)
     nthread = Threads.threadid()
-    M′= (ischoi(M) ? projectchoi(M,preps[n,:]) : projectunitary(M,preps[n,:]))
+    M′= (_ischoi(M) ? projectchoi(M,preps[n,:]) : projectunitary(M,preps[n,:]))
     meas_gates = measurementgates(bases[n,:])
     M_meas = runcircuit(copy(M′),meas_gates)
     measurement = getsamples!(copy(M_meas); readout_errors = readout_errors)

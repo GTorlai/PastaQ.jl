@@ -146,3 +146,13 @@ end
 
 
 
+function save_tomographyobserver(observer::Observer, output_path::String)
+    
+  #h5rewrite(output_path) do file
+  #  #g = create_group(file, "mygroup")
+  #  #g["dset1"] = 3.2 
+  #  #attributes(g)["Description"] = "This group contains only a single dataset"
+  #  write(file,"results", 1.0)
+  #end
+end
+

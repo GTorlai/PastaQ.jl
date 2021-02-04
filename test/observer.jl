@@ -169,16 +169,15 @@ end
   depth = 5
   R = 3
   Random.seed!(1234)
-  circuit = Vector{Vector{<:Tuple}}(undef, depth)
+  circuit = Vector{Vector{<:Any}}(undef, depth)
   for d in 1:depth
-    layer = Tuple[]
+    layer = []
     layer = [("CX",(1,rand(2:N))),("CX",(1,rand(2:N))),("CX",(1,rand(2:N)))]#gatelayer(bonds,"CX") 
     circuit[d] = layer
   end
-   
+  
   obs = Observer("X")
-  #circuit = randomcircuit(N,depth)# 
-  ψ = runcircuit(circuit; observer! = obs)#move_sites_back_before_measurements = true)
+  ψ = runcircuit(circuit; observer! = obs)
   @test length(results(obs,"X")) == depth
   @test length(results(obs,"X")[1]) == N
   
@@ -250,8 +249,6 @@ end
 
 end
 
-
-
 @testset "process tomography observer output" begin
   Random.seed!(1234)
   data,V = readsamples("../examples/data/qpt_circuit_test.h5")
@@ -261,7 +258,7 @@ end
   U0 = randomprocess(V; χ = χ, σ = 0.1)
   opt = SGD(η = 0.01)
   
-  F(U::MPO) = processfidelity(U,V)
+  F(U::MPO) = fidelity(U,V; process = true)
   obs = Observer([maxlinkdim,norm,F])
   epochs = 9
   

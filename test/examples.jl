@@ -56,7 +56,7 @@ N = length(ϱ)     # Number of qubits
 ρ0 = randomstate(ϱ; mixed = true, χ = χ, ξ = ξ, σ = 0.1)
 opt = SGD(η = 0.01)
 
-F2(ρ::LPDO) = fidelity(ρ,ϱ)
+F2(ρ::LPDO) = fidelity(ρ,ϱ; warnings = false)
 Frobenius2(ρ::LPDO) = frobenius_distance(ρ,ϱ)
                                        
 obs = Observer([F2,Frobenius2])
@@ -75,7 +75,7 @@ U0 = randomprocess(U; χ = χ)
 opt = SGD(η = 0.1)
 
 
-F(U::MPO) = processfidelity(U,V)
+F(U::MPO) = fidelity(U,V; process = true)
 
 obs = Observer(F)
 print_metrics = ["F"]
@@ -94,7 +94,7 @@ N = length(ϱ)
 ξ = 2
 Λ0 = randomprocess(ϱ; mixed = true, χ = χ, ξ = ξ, σ = 0.1)
 opt = SGD(η = 0.1)
-F(Λ::LPDO) = fidelity(Λ,ϱ)
+F(Λ::LPDO) = fidelity(Λ,ϱ; process = true, warnings = false)
 
 @disable_warn_order begin
   obs = Observer(F)
