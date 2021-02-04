@@ -49,9 +49,8 @@ F(ψ::MPS) = fidelity(ψ,Ψ)
 obs = Observer([F,Energy,("Z",1,"Z",N÷2)])
 
 ZZ = PastaQ.measure(Ψ,("Z",1,"Z",N÷2))
-@show ZZ
-@printf("⟨Ψ|Ĥ|Ψ⟩ =  %.5f (DMRG)",E)
-@printf("⟨Ψ|Ŝᶻ(1)Ŝˣ(%d)|Ψ⟩ = %.5f\n",N÷2,ZZ)
+@printf("⟨Ψ|Ĥ|Ψ⟩ =  %.5f   ",E)
+@printf("⟨Ψ|Ŝᶻ(1)Ŝˣ(%d)|Ψ⟩ = %.5f   (DMRG)\n",N÷2,ZZ)
 # Run tomography
 println("Running tomography to learn the Ising model ground state from sample data")
 ψ = tomography(data, ψ0;

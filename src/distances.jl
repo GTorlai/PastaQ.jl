@@ -29,7 +29,7 @@ function fidelity(ρ::ITensor{N}, σ::ITensor{N}; warnings::Bool = true) where {
   if warnings
     println("--------------")
     println(" WARNING")
-    println("\nCalculation of quantum fidelity between two density matrices is not scalable!\nTo suppress this warning, add `nowarning = true`.\n")
+    println("\nCalculation of quantum fidelity between two density matrices is not scalable!\nTo suppress this warning, add `warnings = false`.\n")
     println("--------------\n")
   end
   ρ ./= tr(ρ)
@@ -107,7 +107,6 @@ function fidelity(A::MPO, B::MPO; process::Bool = false, warnings::Bool = true)
     (!_ischoi(A) && _ischoi(B)) && return _choifidelity(_unitaryMPO_to_choiMPS(A),B) 
     # 2reverse: Choi MPO  -   unitary
     (_ischoi(A) && !_ischoi(B)) && return _choifidelity(A,_unitaryMPO_to_choiMPS(B)) 
-    # 3: Choi MPO - Choi MPO
   end
   # quantum state/process fidelity bewtee two MPOs density matrices 
   @disable_warn_order begin
