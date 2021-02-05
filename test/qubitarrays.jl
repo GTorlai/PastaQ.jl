@@ -5,7 +5,7 @@ using Test
 
 @testset "linear array" begin
   N = 10
-  couplings = lineararray(N)
+  couplings = PastaQ.lineararray(N)
   @test length(couplings) == 2
   @test length(couplings[1]) == N ÷ 2
   @test length(couplings[2]) == (N ÷ 2-1)
@@ -21,7 +21,7 @@ using Test
   end
 
   N = 11
-  couplings = lineararray(N)
+  couplings = PastaQ.lineararray(N)
   @test length(couplings) == 2
   @test length(couplings[1]) == N ÷ 2
   @test length(couplings[2]) == N ÷ 2
@@ -42,7 +42,7 @@ end
   Lx = 4
   Ly = 4
 
-  couplings = squarearray(Lx,Ly)
+  couplings = PastaQ.squarearray(Lx,Ly)
   @test length(couplings) == 4
   @test length(couplings[1]) == Lx * (Ly÷2)
   @test length(couplings[2]) == (Lx÷2) * (Ly÷2)
@@ -60,7 +60,7 @@ end
     end
   end
 
-  couplings = squarearray(Lx,Ly; rotated = true)
+  couplings = PastaQ.squarearray(Lx,Ly; rotated = true)
   for cycle in couplings
     q = 1:N |> collect
     for bond in cycle
@@ -74,7 +74,7 @@ end
   Lx = 5
   Ly = 5
 
-  couplings = squarearray(Lx,Ly)
+  couplings = PastaQ.squarearray(Lx,Ly)
   @test length(couplings) == 4
   @test length(couplings[1]) == Lx * (Ly ÷ 2)
   @test length(couplings[2]) == (Lx÷2) * Ly
@@ -92,7 +92,7 @@ end
     end
   end
 
-  couplings = squarearray(Lx,Ly; rotated = true)
+  couplings = PastaQ.squarearray(Lx,Ly; rotated = true)
   for cycle in couplings
     q = 1:N |> collect
     for bond in cycle
@@ -111,7 +111,7 @@ end
 
   for d in 1:10
     q = 1:N |> collect
-    bonds = randomcouplings(N,R)
+    bonds = PastaQ.randomcouplings(N,R)
     for bond in bonds
       @test bond[1] in q
       deleteat!(q, findfirst(x -> x == bond[1],q))  

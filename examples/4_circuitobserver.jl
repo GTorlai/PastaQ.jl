@@ -10,7 +10,7 @@ depth = 10 # Depth of the quantum circuit
 # Generate random quantum circuit built out of
 # random 2-qubit unitaries 
 println("Random circuit of depth $depth on $N qubits:")
-circuit = randomcircuit(N, depth; seed = 1234)
+circuit = randomcircuit(N, depth)
 
 # Define custom function to measure an observable, in this
 # case a Pauli operator on `site`
@@ -27,7 +27,7 @@ end
 σz(ψ::MPS) = [measure_pauli(ψ, j, "Z") for j in 1:length(ψ)]
 
 # define the Circuit observer
-obs = CircuitObserver([
+obs = Observer([
   "χs" => linkdims,      # bond dimension at each bond
   "χmax" => maxlinkdim,  # maximum bond dimension
   "σˣ(2)" => σx2,        # pauli X on site 2
@@ -39,18 +39,18 @@ obs = CircuitObserver([
 
 # collect the measurements
 println("Bond dimensions at each layer:")
-display(measurements(obs,"χs"))
+display(results(obs,"χs"))
 println()
 
 println("Maximum bond dimension at each layer:")
-display(measurements(obs,"χmax"))
+display(results(obs,"χmax")')
 println()
 
-println("<ψ|σˣ(2)|ψ⟩ at each layer:")
-display(measurements(obs,"σˣ(2)"))
+println("⟨ψ|σˣ(2)|ψ⟩ at each layer:")
+display(results(obs,"σˣ(2)"))
 println()
 
-println("<ψ|σᶻ(n)|ψ⟩ at each layer:")
-display(measurements(obs,"σᶻ"))
+println("⟨ψ|σᶻ(n)|ψ⟩ at each layer:")
+display(results(obs,"σᶻ"))
 println()
 

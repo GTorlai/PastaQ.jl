@@ -11,7 +11,7 @@ depth = 4 # Depth of the quantum circuit
 # layers of single-qubit random rotations + `CX` 
 # gates, alternating between even and of odd layers.
 println("Random circuit of depth $depth on $N qubits:")
-circuit = randomcircuit(N, depth; twoqubitgate = "CX", onequbitgates = ["Rn"])
+circuit = randomcircuit(N, depth; twoqubitgates = "CX", onequbitgates = "Rn")
 display(circuit)
 println()
 

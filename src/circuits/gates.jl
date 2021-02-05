@@ -299,9 +299,9 @@ gate(::GateName"CCCNOT") =
    0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0]
 
 #
-# n-qubit gates
-#
-
+# Random Haard unitary:
+# 
+# Reference: http://math.mit.edu/~edelman/publications/random_matrix_theory.pdf
 function gate(::GateName"randU", N::Int = 2;
               eltype = ComplexF64,
               random_matrix = randn(eltype, N, N))
@@ -309,8 +309,8 @@ function gate(::GateName"randU", N::Int = 2;
   return Q
 end
 
-gate(::GateName"Haar", N::Int = 2; eltype = ComplexF64, random_matrix = randn(eltype, N, N)) =
-  gate("randU", N; eltype = eltype, random_matrix = random_matrix)
+gate(::GateName"RandomUnitary", N::Int = 2; kwargs...) = 
+  gate("randU", N; kwargs...)
 #
 # Noise model gate definitions
 #
@@ -430,22 +430,21 @@ gate(s::String, args...; kwargs...) = gate(GateName(s), args...; kwargs...)
 gate(gn::GateName, N::Int; kwargs...) =
   gate(gn; kwargs...)
 
-function gate(gn::GateName, s1::Index, ss::Index...; dag_gate::Bool = false, kwargs...)
+function gate(gn::GateName, s1::Index, ss::Index...; dag::Bool = false, kwargs...)
   #@show gn,dag_gate
   s = tuple(s1, ss...)
   rs = reverse(s)
   g = gate(gn, dim(s); kwargs...)
-  g = (dag_gate ? Array(g') : g)
-  #g = (dag_gate ? Array(gate(gn, dim(s); kwargs...)') : gate(gn, dim(s); kwargs...))
+  g = (dag ? Array(g') : g)
   if ndims(g) == 1
     # TODO:
     #error("gate must have more than one dimension, use state(...) for state vectors.")
     return itensor(g, rs...)
   elseif ndims(g) == 2
-    return itensor(g, prime.(rs)..., dag.(rs)...)
+    return itensor(g, prime.(rs)..., ITensors.dag.(rs)...)
   elseif ndims(g) == 3
     kraus = Index(size(g, 3),tags="kraus")  
-    return itensor(g, prime.(rs)..., dag.(rs)..., kraus)
+    return itensor(g, prime.(rs)..., ITensors.dag.(rs)..., kraus)
   end
   error("Gate definitions must be either Vector{T} (for a state), Matrix{T} (for a gate) or Array{T,3} (for a noise model). For gate name $gn, gate size is $(size(g)).") 
 end
@@ -521,19 +520,10 @@ randomparams(::GateName"Rn",args...; rng = Random.GLOBAL_RNG) =
 randomparams(::GateName"CRn", args...;rng = Random.GLOBAL_RNG) = 
   ( θ = π * rand(rng), ϕ = 2 * π * rand(rng), λ = π * rand(rng))
 
-randomparams(::GateName"X",args...; kwargs...) = nothing
-randomparams(::GateName"Y",args...; kwargs...) = nothing
-randomparams(::GateName"Z",args...; kwargs...) = nothing
-randomparams(::GateName"P",args...; kwargs...) = nothing
-randomparams(::GateName"T",args...; kwargs...) = nothing
-randomparams(::GateName"CX",args...; kwargs...) = nothing
-randomparams(::GateName"CY",args...; kwargs...) = nothing
-randomparams(::GateName"CZ",args...; kwargs...) = nothing
-randomparams(::GateName"Swap",args...; kwargs...) = nothing
-randomparams(::GateName"iSwap",args...; kwargs...) = nothing
+randomparams(::GateName,args...; kwargs...) = NamedTuple()
 
-randomparams(::GateName"Haar", N::Int = 2; rng = Random.GLOBAL_RNG) = 
-  (random_matrix = randn(rng,ComplexF64, N, N),)
+randomparams(::GateName"RandomUnitary", N::Int = 2; eltype = ComplexF64, rng = Random.GLOBAL_RNG) = 
+  (random_matrix = randn(rng, eltype, N, N),)
 
 randomparams(s::AbstractString; kwargs...) = 
   randomparams(GateName(s); kwargs...)

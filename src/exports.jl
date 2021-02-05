@@ -8,6 +8,7 @@ export
   randomcircuit,
   qft,
   ghz,
+  dag, 
 
 # circuits/gates.jl
   # Methods
@@ -33,11 +34,6 @@ export
   minimize!,
   maximize!,
 
-# circuits/qubitarrays.jl
-  lineararray,
-  squarearray,
-  randomcouplings,
-
 # lpdo.jl
   LPDO,
   normalize!,
@@ -59,30 +55,25 @@ export
 
 # distances.jl
   fidelity,
+  statefidelity,
+  processfidelity,
   fidelity_bound,
   frobenius_distance,
 
 # optimizers.jl
   Optimizer,
   SGD,
-  AdaGrad,
   AdaDelta,
-  Adam,
-  AdaMax,
 
 # observer.jl
   Observer,
   save,
-  observable,
-  result,
-  parameters,
+  results,
 
 # inputoutput.jl
   writesamples,
   readsamples,
 
 # utils.jl
-  maxlinkdim,
   split_dataset,
-  numberofqubits,
-  array
+  nqubits

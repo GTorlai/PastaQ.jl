@@ -1,3 +1,9 @@
+"""
+    nll(L::LPDO{MPS},data::Matrix{Pair{String,Pair{String, Int}}}) 
+
+Compute the negative log-likelihood of process data using a MPO ansatz
+for the vectorized unitary operator.
+"""
 function nll(L::LPDO{MPS},data::Matrix{Pair{String,Pair{String, Int}}})
   
   data_in = first.(data)
@@ -28,7 +34,18 @@ end
 
 nll(ψ::MPS, data::Matrix{Pair{String,Pair{String, Int}}}) = nll(LPDO(ψ), data)
 
+"""
+    nll(L::LPDO{MPO},data::Matrix{Pair{String,Pair{String, Int}}})
+
+Compute the negative log-likelihood of process data using a LPDO ansatz
+for the Choi matrix.
+"""
 function nll(L::LPDO{MPO},data::Matrix{Pair{String,Pair{String, Int}}})
+  # if the MPO in LPDO{MPO} is a unitary MPO (instead of a MPO with Kraus index)
+  # then transform the MPO to MPS and run the nll on that
+  #if !hastags(L.X[1],"Purifier")
+  #  return nll(_UnitaryMPOtoMPS(copy(L.X)), data)
+  #end
   
   data_in = first.(data)
   data_out = convertdatapoints(last.(data))
@@ -62,7 +79,7 @@ end
 function TP(L::LPDO)
   Λ = copy(L)
   normalize!(Λ; localnorm = 2)
-  Φ = trace_outputsites(Λ)
+  Φ = tr(Λ, "Output")
   
   D = 2^length(Φ)
   @assert D ≈ tr(Φ)
@@ -70,6 +87,14 @@ function TP(L::LPDO)
   return real(Γ)
 end
 
+"""
+    gradnll(L::LPDO{MPS},
+            data::Matrix{Pair{String,Pair{String, Int}}};
+            sqrt_localnorms = nothing)
+
+Compute the gradients of the negative log-likelihood for process data
+using a MPS representation of the vectorized unitary operation.
+"""
 function gradnll(L::LPDO{MPS},
                  data::Matrix{Pair{String,Pair{String, Int}}};
                  sqrt_localnorms = nothing)
@@ -185,7 +210,14 @@ function gradnll(L::LPDO{MPS},
   return gradients_tot, loss_tot
 end
 
+"""
+    gradnll(L::LPDO{MPO},
+            data::Matrix{Pair{String,Pair{String, Int}}};
+            sqrt_localnorms = nothing)
 
+Compute the negative log-likelihood of process data using a LPDO ansatz
+for the Choi matrix.
+"""
 function gradnll(L::LPDO{MPO}, 
                  data::Matrix{Pair{String,Pair{String, Int}}};
                  sqrt_localnorms = nothing)
@@ -357,6 +389,12 @@ j-1]
   return gradients_tot, loss_tot
 end
 
+"""
+    gradTP(L::LPDO, gradlogZ::Vector{<:ITensor}, 
+           logZ::Float64; sqrt_localnorms = nothing)
+
+Compute the gradients of the trace-preserving regularization.
+"""
 function gradTP(L::LPDO, gradlogZ::Vector{<:ITensor}, logZ::Float64; sqrt_localnorms = nothing)
   N = length(L)
   D = 2^N
@@ -492,7 +530,7 @@ end
     PastaQ.gradients(ψ::MPS, data::Array; localnorms = nothing)
 
 Compute the gradients of the cost function:
-`C = log(Z) - ⟨log P(σ)⟩_data`
+`C = log(Z) - ⟨log P(σ)⟩_data + TP`
 """
 function gradients(L::LPDO, 
                    data::Matrix{Pair{String,Pair{String, Int}}};
@@ -505,7 +543,7 @@ function gradients(L::LPDO,
   grads = g_logZ + g_nll  
   loss = logZ + NLL
   
-  # Renormalization
+  # trace-preserving regularization
   if !isnothing(trace_preserving_regularizer)
     grads += trace_preserving_regularizer * g_TP 
   end
@@ -549,7 +587,6 @@ function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}}, L::LPDO;
   
   # configure the observer. if no observer is provided, create an empty one
   observer! = configure!(observer!, optimizer, batchsize, measurement_frequency, train_data, test_data)
-  observer! = splitobserverargs!(observer!)
   
   optimizer = copy(optimizer)
   model = copy(L)
@@ -563,9 +600,11 @@ function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}}, L::LPDO;
   batchsize = min(size(train_data)[1],batchsize)
   num_batches = Int(floor(size(train_data)[1]/batchsize))
 
-  best_model = nothing
   tot_time = 0.0
-  
+  best_model = nothing
+  best_testloss = 1000.0
+  test_loss = nothing
+
   # Training iterations
   for ep in 1:epochs
     ep_time = @elapsed begin
@@ -593,10 +632,28 @@ function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}}, L::LPDO;
     end
     end # end @elapsed
     tot_time += ep_time
-    
     # measurement stage
     if ep % measurement_frequency == 0
-      observer!, best_model = update!(observer!, best_model, model, test_data, train_loss, tot_time)
+      normalized_model = copy(model)
+      sqrt_localnorms = []
+      normalize!(normalized_model; sqrt_localnorms! = sqrt_localnorms,
+                 localnorm = 2)
+      if !isnothing(test_data)
+        test_loss = nll(normalized_model, test_data)
+        if test_loss ≤ best_testloss
+          best_testloss = test_loss
+          best_model = copy(normalized_model)
+        end
+      else
+        best_model = copy(model)
+      end
+      
+      if model isa LPDO{MPS}
+        update!(observer!, LPDO(choi_mps_to_unitary_mpo(normalized_model)), best_model, tot_time, train_loss, test_loss)
+      else
+        update!(observer!,normalized_model, best_model,tot_time, train_loss, test_loss)
+      end
+
       # printing
       printobserver(ep, observer!, print_metrics)
       # saving
@@ -608,8 +665,9 @@ function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}}, L::LPDO;
   return best_model
 end
 
-function tomography(data::Matrix{Pair{String,Pair{String, Int}}}, U::MPO; optimizer::Optimizer, kwargs...)
-  V = tomography(data, makeChoi(U); optimizer = optimizer, kwargs...)
-  return makeUnitary(V)
-end
+tomography(data::Matrix{Pair{String,Pair{String, Int}}}, U::MPO; kwargs...) = 
+  choi_mps_to_unitary_mpo(tomography(data, LPDO(unitary_mpo_to_choi_mps(U)); kwargs...))    
+
+
+
 

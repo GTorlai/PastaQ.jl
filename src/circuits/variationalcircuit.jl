@@ -1,7 +1,7 @@
 """
 Evaluate a MPO cost function on a variational circuit
 """
-function _loss(circuit::Vector{<:Vector{<:Tuple}}, costfunction::MPO)
+function _loss(circuit::Vector{<:Vector{<:Any}}, costfunction::MPO)
   ψθ = runcircuit(qubits(costfunction), circuit)
   L = inner(ψθ, costfunction, ψθ)
   @assert imag(L) < 1e-7
@@ -12,30 +12,46 @@ end
 Minimize a MPO cost function
 """
 function minimize!(costfunction::MPO, 
-                   circuit::Vector{<:Vector{<:Tuple}};
-                   optimizer=Flux.Optimise.Descent(0.1),
-                   epochs::Int=1000,
-                   optimum = nothing,
+                   circuit::Vector{<:Vector{<:Any}};
+                   optimizer = Flux.Optimise.Descent(0.1),
+                   epochs::Int = 1000,
                    maxdim::Int64 = 10_000,
                    cutoff::Float64 = 1e-12)
   
-  circuitmap = _circuitmap(circuit)
+  # identity trainable parameters
+  circuitmap = circuitmap(circuit)
   for ep in 1:epochs
     θ = _getparameters(circuit)
     loss, ∇ = gradients(circuit, costfunction, circuitmap; maxdim = maxdim, cutoff = cutoff)
     Flux.Optimise.update!(optimizer, θ, ∇)
     _setparameters!(circuit, θ)
     @printf("iter = %d  loss = %.5f",ep,real(loss))
-    if !isnothing(optimum)
-      δ = abs(optimum-loss)/abs(optimum)
-      @printf("  δ = %.2E", δ)
-    end
     println()
   end
 end
 
 maximize!(costfunction::MPO, args...; kwargs...)  = 
   minimize!(-costfunction,args...; kwargs...)
+
+
+function circuitmap(circuit::Vector{<:Vector{<:Tuple}}) 
+  circuitmap = []
+  # loop over the layers
+  for layer in circuit# in 1:nlayers(circuit)
+    #layer = circuit[d] 
+    # find where there are parametrized gates
+    parametrizedgate_location = findall(x -> x == 1, length.(layer) .== 3)    
+    parametrizedgates = layer[parametrizedgate_location]
+    # remove gates with the arg `nograd=true` 
+    mask = .!BitArray(haskey.(last.(parametrizedgates),:nograd))
+    trainablegates = parametrizedgates[findall(x->x==1, mask .== 1)]
+    trainablegates_location = parametrizedgate_location[findall(x->x==1, mask .== 1)]
+    layermap = (isempty(trainablegates) ? [] : trainablegates_location .=> keys.(last.(trainablegates))) 
+    push!(circuitmap, layermap)
+  end
+  return circuitmap
+end
+
 
 """
 Compute the left and right environments with respect to the bra
@@ -102,25 +118,6 @@ function gradients(circuit::Vector{<:Vector{<:Tuple}}, costfunction::MPO, circui
   end
   return inner(ΨL[2],ΨR[1]), gradients
 end
-
-function _circuitmap(circuit::Vector{<:Vector{<:Tuple}}) 
-  circuitmap = []
-  # loop over the layers
-  for d in 1:length(circuit)
-    layer = circuit[d] 
-    # find where there are parametrized gates
-    parametrizedgate_location = findall(x -> x==1, length.(layer) .== 3)    
-    parametrizedgates = layer[parametrizedgate_location]
-    # remove gates with the arg `nograd=true` 
-    mask = .!BitArray(haskey.(last.(parametrizedgates),:nograd))
-    trainablegates = parametrizedgates[findall(x->x==1, mask .== 1)]
-    trainablegates_location = parametrizedgate_location[findall(x->x==1, mask .== 1)]
-    layermap = (isempty(trainablegates) ? [] : trainablegates_location .=> keys.(last.(trainablegates))) 
-    push!(circuitmap, layermap)
-  end
-  return circuitmap
-end
-
 
 _getparameters(circuit::Vector{<:Vector{<:Tuple}}) = 
   _getparameters(circuit,_circuitmap(circuit)) 

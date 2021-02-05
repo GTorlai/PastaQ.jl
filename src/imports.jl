@@ -6,8 +6,8 @@ import ITensors:
   # circuits/gates.jl
   space,
   state,
-  array
-  dag,
+  array,
+  dag
 
 import LinearAlgebra:
   normalize!,
