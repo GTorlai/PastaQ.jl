@@ -26,6 +26,7 @@ export
   # Methods
   trivialstate,
   trivialprocess,
+  qubits,
   buildcircuit,
   runcircuit,
 
