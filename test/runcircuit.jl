@@ -24,15 +24,15 @@ function empiricalprobability(samples::Matrix)
 end
 
 
-@testset "qubits initialization" begin
+@testset "trivialstate initialization" begin
   N = 1
-  ψ = qubits(N)
+  ψ = trivialstate(N)
   @test length(ψ) == 1
   @test typeof(ψ) == MPS
   @test length(inds(ψ[1],"Link")) == 0
   @test PastaQ.array(ψ) ≈ [1, 0]
   N = 5
-  ψ = qubits(N)
+  ψ = trivialstate(N)
   @test length(ψ) == 5
   ψ_vec = PastaQ.array(ψ)
   exact_vec = zeros(1<<N)
@@ -42,7 +42,7 @@ end
 
 @testset "circuit MPO initialization" begin
   N = 5
-  U = PastaQ.identity_mpo(N)
+  U = trivialprocess(N)
   @test length(U) == N
   U_mat = PastaQ.array(U)
   exact_mat = Matrix{ComplexF64}(I, 1<<N, 1<<N)
@@ -51,56 +51,56 @@ end
 
 @testset "Density matrix initialization" begin
   N = 5
-  ρ1 = qubits(N,mixed=true)
+  ρ1 = trivialstate(N,mixed=true)
   @test length(ρ1) == N
   @test typeof(ρ1) == MPO
-  ψ = qubits(N)
-  ρ2 = qubits(N,mixed=true)
+  ψ = trivialstate(N)
+  ρ2 = trivialstate(N,mixed=true)
   @test PastaQ.array(ρ1) ≈ PastaQ.array(ρ2)
   exact_mat = zeros(1<<N,1<<N)
   exact_mat[1,1] = 1.0
   @test PastaQ.array(ρ2) ≈ exact_mat
 end
 
-@testset "reset qubits" begin
-  N = 5
-  depth = 5
-  gates = randomcircuit(N,depth)
-  ψ0 = qubits(N)
-  ψ = runcircuit(ψ0,gates)
-  
-  resetqubits!(ψ)
-  psi_vec = PastaQ.array(ψ)
-
-  exact_vec = zeros(1<<N)
-  exact_vec[1] = 1.0
-  @test psi_vec ≈ exact_vec
-
-  
-  ρ0 = qubits(N,mixed=true)
-  ρ = runcircuit(ρ0,gates)
-  
-  resetqubits!(ρ)
-  ρ_mat = PastaQ.array(ρ)
-
-  exact_mat = zeros(1<<N,1<<N)
-  exact_mat[1,1] = 1.0
-  @test exact_mat ≈ ρ_mat
-end
+#@testset "reset trivialstate" begin
+#  N = 5
+#  depth = 5
+#  gates = randomcircuit(N,depth)
+#  ψ0 = trivialstate(N)
+#  ψ = runcircuit(ψ0,gates)
+#  
+#  resettrivialstate!(ψ)
+#  psi_vec = PastaQ.array(ψ)
+#
+#  exact_vec = zeros(1<<N)
+#  exact_vec[1] = 1.0
+#  @test psi_vec ≈ exact_vec
+#
+#  
+#  ρ0 = trivialstate(N,mixed=true)
+#  ρ = runcircuit(ρ0,gates)
+#  
+#  resettrivialstate!(ρ)
+#  ρ_mat = PastaQ.array(ρ)
+#
+#  exact_mat = zeros(1<<N,1<<N)
+#  exact_mat[1,1] = 1.0
+#  @test exact_mat ≈ ρ_mat
+#end
 
 @testset "runcircuit: unitary quantum circuit" begin
   N = 3
   depth = 4
   gates = randomcircuit(N,depth; layered = false)
   #Pure state, noiseless circuit
-  ψ0 = qubits(N)
+  ψ0 = trivialstate(N)
   ψ = runcircuit(ψ0,gates)
   @test prod(ψ) ≈ runcircuit(prod(ψ0),buildcircuit(ψ0,gates))
   @test PastaQ.array(prod(ψ)) ≈ PastaQ.array(prod(runcircuit(N,gates)))
   @test PastaQ.array(prod(ψ)) ≈ PastaQ.array(prod(runcircuit(gates)))
   
   # Mixed state, noiseless circuit
-  ρ0 = qubits(N,mixed=true) 
+  ρ0 = trivialstate(N,mixed=true) 
   ρ = runcircuit(ρ0,gates)
   @test prod(ρ) ≈ runcircuit(prod(ρ0),buildcircuit(ρ0,gates); apply_dag=true)
   
@@ -112,7 +112,7 @@ end
   gates = randomcircuit(N,depth; layered = false)
 
   # Pure state, noisy circuit
-  ψ0 = qubits(N)
+  ψ0 = trivialstate(N)
   ρ = runcircuit(ψ0, gates; noise = ("depolarizing", (p = 0.1,)))
   ρ0 = MPO(ψ0)
   U = buildcircuit(ρ0, gates; noise = ("depolarizing", (p = 0.1,)))
@@ -120,7 +120,7 @@ end
     @test prod(ρ) ≈ runcircuit(prod(ρ0), U; apply_dag=true)
     
     ## Mixed state, noisy circuit
-    ρ0 = qubits(N, mixed = true)
+    ρ0 = trivialstate(N, mixed = true)
     ρ = runcircuit(ρ0, gates; noise = ("depolarizing", (p = 0.1,)))
     U = buildcircuit(ρ0, gates, noise = ("depolarizing", (p = 0.1,)))
     @test prod(ρ) ≈ runcircuit(prod(ρ0), U; apply_dag=true)
@@ -137,7 +137,7 @@ end
     s2 = s1-1
     push!(gates,("CX", (s1,s2)))
   end
-  ψ0 = qubits(N)
+  ψ0 = trivialstate(N)
   ψ = runcircuit(ψ0, gates)
   @test prod(ψ) ≈ runcircuit(prod(ψ0),buildcircuit(ψ0,gates))
 
@@ -155,7 +155,7 @@ end
     end
     push!(gates,("CX", (s1,s2)))
   end
-  ψ0 = qubits(N)
+  ψ0 = trivialstate(N)
   ψ = runcircuit(ψ0,gates)
   @test prod(ψ) ≈ runcircuit(prod(ψ0),buildcircuit(ψ0,gates)) 
   
@@ -164,7 +164,7 @@ end
 @testset "layered circuit" begin
   N = 4
   depth = 10
-  ψ0 = qubits(N)
+  ψ0 = trivialstate(N)
   
   Random.seed!(1234)
   circuit = randomcircuit(N, depth)

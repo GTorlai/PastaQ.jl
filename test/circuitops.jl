@@ -4,7 +4,7 @@ using Test
 using LinearAlgebra
 
 @testset "apply gate: Id" begin
-  psi = qubits(2)
+  psi = trivialstate(2)
   gate_data = ("I", 1)
   psi = runcircuit(psi,gate_data)
   @test PastaQ.array(psi) ≈ [1.,0.,0.,0.]
@@ -12,7 +12,7 @@ end
   
 @testset "apply gate: X" begin
   # Build gate first, then apply using an ITensor
-  psi = qubits(2)
+  psi = trivialstate(2)
   site = 1
   gate_data = ("X", 1)
   psi=runcircuit(psi,gate_data)
@@ -21,7 +21,7 @@ end
 end
 
 @testset "apply gate: Y" begin
-  psi = qubits(2)
+  psi = trivialstate(2)
   site = 1
   gate_data = ("Y", 1)
   psi=runcircuit(psi,gate_data)
@@ -31,7 +31,7 @@ end
 
 @testset "apply gate: Z" begin
   # Build gate first, then apply using an ITensor
-  psi = qubits(2)
+  psi = trivialstate(2)
   site = 1
   gate_data = ("Z", 1)
   psi=runcircuit(psi,gate_data)
@@ -41,7 +41,7 @@ end
 
 @testset "apply gate: H" begin
   # Build gate first, then apply using an ITensor
-  psi = qubits(2)
+  psi = trivialstate(2)
   site = 1
   gate_data = ("H", 1)
   psi=runcircuit(psi,gate_data)
@@ -49,11 +49,11 @@ end
 end
 
 @testset "apply gate: S" begin
-  psi = qubits(1)
+  psi = trivialstate(1)
   gate_data = ("S", 1)
   psi=runcircuit(psi,gate_data)
   @test PastaQ.array(psi[1]) ≈ [1.,0.]
-  psi = qubits(1)
+  psi = trivialstate(1)
   gate_data = ("X", 1)
   psi=runcircuit(psi,gate_data)
   gate_data = ("S", 1)
@@ -62,11 +62,11 @@ end
 end
 
 @testset "apply gate: T" begin
-  psi = qubits(1)
+  psi = trivialstate(1)
   gate_data = ("T", 1)
   psi=runcircuit(psi,gate_data)
   @test PastaQ.array(psi[1]) ≈ [1.,0.]
-  psi = qubits(1)
+  psi = trivialstate(1)
   gate_data = ("X", 1)
   psi=runcircuit(psi,gate_data)
   gate_data = ("T", 1)
@@ -76,11 +76,11 @@ end
 
 @testset "apply gate: Rx" begin
   θ = π * rand()
-  psi = qubits(1)
+  psi = trivialstate(1)
   gate_data = ("Rx",1,(θ=θ,))
   psi=runcircuit(psi,gate_data)
   @test PastaQ.array(psi[1]) ≈ [cos(θ/2.),-im*sin(θ/2.)]
-  psi = qubits(1)
+  psi = trivialstate(1)
   psi=runcircuit(psi,("X",1))
   #PastaQ.applygate!(psi,"X",1)
   gate_data = ("Rx",1,(θ=θ,))
@@ -90,11 +90,11 @@ end
 
 @testset "apply gate: Ry" begin
   θ = π * rand()
-  psi = qubits(1)
+  psi = trivialstate(1)
   gate_data = ("Ry",1,(θ=θ,))
   psi=runcircuit(psi,gate_data)
   @test PastaQ.array(psi[1]) ≈ [cos(θ/2.),sin(θ/2.)]
-  psi = qubits(1)
+  psi = trivialstate(1)
   psi=runcircuit(psi,("X",1))
   gate_data = ("Ry",1,(θ=θ,))
   psi=runcircuit(psi,gate_data)
@@ -104,11 +104,11 @@ end
 
 @testset "apply gate: Rz" begin
   ϕ = 2π * rand()
-  psi = qubits(1)
+  psi = trivialstate(1)
   gate_data = ("Rz",1,(ϕ=ϕ,))
   psi=runcircuit(psi,gate_data)
   @test PastaQ.array(psi[1]) ≈ [1.0, 0.0]
-  psi = qubits(1)
+  psi = trivialstate(1)
   psi=runcircuit(psi,("X",1))
   gate_data = ("Rz",1,(ϕ=ϕ,))
   psi=runcircuit(psi,gate_data)
@@ -119,11 +119,11 @@ end
   θ = 1.0
   ϕ = 2.0
   λ = 3.0
-  psi = qubits(1)
+  psi = trivialstate(1)
   gate_data = ("Rn",1,(θ=θ,ϕ=ϕ,λ=λ))
   psi=runcircuit(psi,gate_data)
   @test PastaQ.array(psi[1]) ≈ [cos(θ/2.),exp(im*ϕ) * sin(θ/2.)]
-  psi = qubits(1)
+  psi = trivialstate(1)
   psi=runcircuit(psi,("X",1))
   gate_data = ("Rn",1,(θ=θ,ϕ=ϕ,λ=λ))
   psi=runcircuit(psi,gate_data)
@@ -133,57 +133,57 @@ end
 
 
 @testset "apply gate: prep X+/X-" begin
-  psi = qubits(1, ["X+"])
+  psi = trivialstate(1, ["X+"])
   @test PastaQ.array(psi) ≈ 1/sqrt(2.)*[1.,1.]
   
-  psi = qubits(1, ["X-"])
+  psi = trivialstate(1, ["X-"])
   @test PastaQ.array(psi) ≈ 1/sqrt(2.)*[1.,-1.]
 end
 
 @testset "apply gate: prep Y+/Y-" begin
-  psi = qubits(1, ["Y+"])
+  psi = trivialstate(1, ["Y+"])
   @test PastaQ.array(psi) ≈ 1/sqrt(2.)*[1.,im]
   
-  psi = qubits(1, ["Y-"])
+  psi = trivialstate(1, ["Y-"])
   @test PastaQ.array(psi) ≈ 1/sqrt(2.)*[1.,-im]
 end
 
 @testset "apply gate: prep Z+/Z-" begin
-  psi = qubits(1, ["Z+"])
+  psi = trivialstate(1, ["Z+"])
   @test PastaQ.array(psi) ≈ [1.,0.]
   
-  psi = qubits(1, ["Z-"])
+  psi = trivialstate(1, ["Z-"])
   @test PastaQ.array(psi) ≈ [0.,1.]
 end
 
 @testset "apply gate: meas X" begin
-  psi = qubits(1, ["X+"])
+  psi = trivialstate(1, ["X+"])
   gate_data = ("basisX", 1, (dag = true,))
   psi=runcircuit(psi,gate_data)
   @test PastaQ.array(psi) ≈ [1.,0.]
-  psi = qubits(1, ["X-"])
+  psi = trivialstate(1, ["X-"])
   gate_data = ("basisX", 1, (dag = true,))
   psi=runcircuit(psi,gate_data)
   @test PastaQ.array(psi) ≈ [0.,1.]
 end
 
 @testset "apply gate: meas Y" begin
-  psi = qubits(1, ["Y+"])
+  psi = trivialstate(1, ["Y+"])
   gate_data = ("basisY", 1, (dag = true,))
   psi=runcircuit(psi,gate_data)
   @test PastaQ.array(psi) ≈ [1.,0.]
-  psi = qubits(1, ["Y-"])
+  psi = trivialstate(1, ["Y-"])
   gate_data = ("basisY", 1, (dag = true,))
   psi=runcircuit(psi,gate_data)
   @test PastaQ.array(psi) ≈ [0.,1.]
 end
 
 @testset "apply gate: meas Z" begin
-  psi = qubits(1)
+  psi = trivialstate(1)
   gate_data = ("basisZ", 1, (dag = true,))
   psi=runcircuit(psi,gate_data)
   @test PastaQ.array(psi) ≈ [1.,0.]
-  psi = qubits(1, ["Z-"])
+  psi = trivialstate(1, ["Z-"])
   gate_data = ("basisZ", 1, (dag = true,))
   psi=runcircuit(psi,gate_data)
   @test PastaQ.array(psi) ≈ [0.,1.]
@@ -193,14 +193,14 @@ end
 
 @testset "apply gate: CX" begin
   # CONTROL - TARGET
-  psi = qubits(2)
+  psi = trivialstate(2)
   # |00> -> |00> = (1 0 0 0) (natural order)
   gate_data = ("CX",(1,2))
   psi=runcircuit(psi,gate_data)
   psi_vec = PastaQ.array(psi)
   @test psi_vec ≈ [1.,0.,0.,0.]
   
-  psi = qubits(2)
+  psi = trivialstate(2)
   # |10> -> |11> = (0 0 0 1) (natural order)
   gate_data = ("X",1)
   psi=runcircuit(psi,gate_data)
@@ -209,7 +209,7 @@ end
   psi_vec = PastaQ.array(psi)
   @test psi_vec ≈ [0.,0.,0.,1.]
   
-  psi = qubits(2)
+  psi = trivialstate(2)
   # |01> -> |01> = (0 1 0 0) (natural order)
   gate_data = ("X",2)
   psi=runcircuit(psi,gate_data)
@@ -218,7 +218,7 @@ end
   psi_vec = PastaQ.array(psi)
   @test psi_vec ≈ [0.,1.,0.,0.]
   
-  psi = qubits(2)
+  psi = trivialstate(2)
   # |11> -> |10> = (0 0 1 0) (natural order)
   gate_data = ("X",1)
   psi=runcircuit(psi,gate_data)
@@ -233,14 +233,14 @@ end
 
 @testset "apply gate: CY" begin
   # CONTROL - TARGET
-  psi = qubits(2)
+  psi = trivialstate(2)
   # |00> -> |00> = (1 0 0 0) (natural order)
   gate_data = ("CY",(1,2))
   psi=runcircuit(psi,gate_data)
   psi_vec = PastaQ.array(psi)
   @test psi_vec ≈ [1.,0.,0.,0.]
   
-  psi = qubits(2)
+  psi = trivialstate(2)
   # |10> -> i|11> = (0 0 0 i) (natural order)
   gate_data = ("X",1)
   psi=runcircuit(psi,gate_data)
@@ -249,7 +249,7 @@ end
   psi_vec = PastaQ.array(psi)
   @test psi_vec ≈ [0.,0.,0.,im]
   
-  psi = qubits(2)
+  psi = trivialstate(2)
   # |01> -> |01> = (0 1 0 0) (natural order)
   gate_data = ("X",2)
   psi=runcircuit(psi,gate_data)
@@ -258,7 +258,7 @@ end
   psi_vec = PastaQ.array(psi)
   @test psi_vec ≈ [0.,1.,0.,0.]
   
-  psi = qubits(2)
+  psi = trivialstate(2)
   # |11> -> -i|10> = (0 0 -i 0) (natural order)
   gate_data = ("X",1)
   psi=runcircuit(psi,gate_data)
@@ -270,14 +270,14 @@ end
   @test psi_vec ≈ [0.,0.,-im,0.]
   
   # TARGET - CONTROL
-  psi = qubits(2)
+  psi = trivialstate(2)
   # |00> -> |00> = (1 0 0 0) (natural order)
   gate_data = ("CY",(2,1))
   psi=runcircuit(psi,gate_data)
   psi_vec = PastaQ.array(psi)
   @test psi_vec ≈ [1.,0.,0.,0.]
   
-  psi = qubits(2)
+  psi = trivialstate(2)
   # |10> -> |10> = (0 0 1 0) (natural order)
   gate_data = ("X",1)
   psi=runcircuit(psi,gate_data)
@@ -286,7 +286,7 @@ end
   psi_vec = PastaQ.array(psi)
   @test psi_vec ≈ [0.,0.,1.,0.]
   
-  psi = qubits(2)
+  psi = trivialstate(2)
   # |01> -> i|11> = (0 0 0 i) (natural order)
   gate_data = ("X",2)
   psi=runcircuit(psi,gate_data)
@@ -295,7 +295,7 @@ end
   psi_vec = PastaQ.array(psi)
   @test psi_vec ≈ [0.,0.,0.,im]
   
-  psi = qubits(2)
+  psi = trivialstate(2)
   # |11> -> -i|01> = (0 -i 0 0) (natural order)
   gate_data = ("X",1)
   psi=runcircuit(psi,gate_data)
@@ -310,14 +310,14 @@ end
 
 @testset "apply gate: CZ" begin
   # CONTROL - TARGET
-  psi = qubits(2)
+  psi = trivialstate(2)
   # |00> -> |00> = (1 0 0 0) (natural order)
   gate_data = ("CZ",(1,2))
   psi=runcircuit(psi,gate_data)
   psi_vec = PastaQ.array(psi)
   @test psi_vec ≈ [1.,0.,0.,0.]
   
-  psi = qubits(2)
+  psi = trivialstate(2)
   # |10> -> |10> = (0 0 1 0) (natural order)
   gate_data = ("X",1)
   psi=runcircuit(psi,gate_data)
@@ -326,7 +326,7 @@ end
   psi_vec = PastaQ.array(psi)
   @test psi_vec ≈ [0.,0.,1.,0.]
   
-  psi = qubits(2)
+  psi = trivialstate(2)
   # |01> -> |01> = (0 1 0 0) (natural order)
   gate_data = ("X",2)
   psi=runcircuit(psi,gate_data)
@@ -335,7 +335,7 @@ end
   psi_vec = PastaQ.array(psi)
   @test psi_vec ≈ [0.,1.,0.,0.]
   
-  psi = qubits(2)
+  psi = trivialstate(2)
   # |11> -> -|11> = (0 0 0 -1) (natural order)
   gate_data = ("X",1)
   psi=runcircuit(psi,gate_data)
@@ -348,14 +348,14 @@ end
   
 
   # CONTROL - TARGET
-  psi = qubits(2)
+  psi = trivialstate(2)
   # |00> -> |00> = (1 0 0 0) (natural order)
   gate_data = ("CZ",(2,1))
   psi=runcircuit(psi,gate_data)
   psi_vec = PastaQ.array(psi)
   @test psi_vec ≈ [1.,0.,0.,0.]
   
-  psi = qubits(2)
+  psi = trivialstate(2)
   # |10> -> |10> = (0 0 1 0) (natural order)
   gate_data = ("X",1)
   psi=runcircuit(psi,gate_data)
@@ -364,7 +364,7 @@ end
   psi_vec = PastaQ.array(psi)
   @test psi_vec ≈ [0.,0.,1.,0.]
   
-  psi = qubits(2)
+  psi = trivialstate(2)
   # |01> -> |01> = (0 1 0 0) (natural order)
   gate_data = ("X",2)
   psi=runcircuit(psi,gate_data)
@@ -373,7 +373,7 @@ end
   psi_vec = PastaQ.array(psi)
   @test psi_vec ≈ [0.,1.,0.,0.]
   
-  psi = qubits(2)
+  psi = trivialstate(2)
   # |11> -> -|11> = (0 0 0 -1) (natural order)
   gate_data = ("X",1)
   psi=runcircuit(psi,gate_data)
@@ -388,14 +388,14 @@ end
 
 @testset "apply gate: Sw" begin
   # CONTROL - TARGET
-  psi = qubits(2)
+  psi = trivialstate(2)
   # |00> -> |00> = (1 0 0 0) (natural order)
   gate_data = ("Sw",(1,2))
   psi=runcircuit(psi,gate_data)
   psi_vec = PastaQ.array(psi)
   @test psi_vec ≈ [1.,0.,0.,0.]
   
-  psi = qubits(2)
+  psi = trivialstate(2)
   # |10> -> |01> = (0 1 0 0) (natural order)
   gate_data = ("X",1)
   psi=runcircuit(psi,gate_data)
@@ -404,7 +404,7 @@ end
   psi_vec = PastaQ.array(psi)
   @test psi_vec ≈ [0.,1.,0.,0.]
   
-  psi = qubits(2)
+  psi = trivialstate(2)
   # |01> -> |10> = (0 0 1 0) (natural order)
   gate_data = ("X",2)
   psi=runcircuit(psi,gate_data)
@@ -413,7 +413,7 @@ end
   psi_vec = PastaQ.array(psi)
   @test psi_vec ≈ [0.,0.,1.,0.]
   
-  psi = qubits(2)
+  psi = trivialstate(2)
   # |11> -> |11> = (0 0 0 1) (natural order)
   gate_data = ("X",1)
   psi=runcircuit(psi,gate_data)

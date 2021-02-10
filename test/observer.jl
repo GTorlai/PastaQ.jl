@@ -189,7 +189,7 @@ end
   @test length(results(obs,"norm")) == depth 
   @test results(obs,"norm")[end] ≈ norm(ψ)
   @test results(obs,"maxlinkdim")[end] ≈ maxlinkdim(ψ)
-  ϕ = qubits(ψ) 
+  ϕ = trivialstate(ψ) 
   f1(ψ::MPS) = fidelity(ψ,ϕ)
   f2(ψ::MPS) = fidelity_bound(ψ,ϕ) 
   obs = Observer(f1)
@@ -206,7 +206,7 @@ end
   Random.seed!(1234)
   data,Ψ = readsamples("../examples/data/qst_circuit_test.h5")
   test_data = copy(data[1:10,:])
-  N = length(Ψ)     # Number of qubits
+  N = length(Ψ)     # Number of trivialstate
   χ = maxlinkdim(Ψ) # Bond dimension of variational MPS
   ψ0 = randomstate(Ψ; χ = χ, σ = 0.1)
   opt = SGD(η = 0.01)
@@ -253,7 +253,7 @@ end
   Random.seed!(1234)
   data,V = readsamples("../examples/data/qpt_circuit_test.h5")
   test_data = copy(data[1:10,:])
-  N = length(V)     # Number of qubits
+  N = length(V)     # Number of trivialstate
   χ = maxlinkdim(V) # Bond dimension of variational MPS
   U0 = randomprocess(V; χ = χ, σ = 0.1)
   opt = SGD(η = 0.01)

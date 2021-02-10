@@ -34,5 +34,6 @@ include("tomography/tomographyutils.jl")
 
 include("inputoutput.jl")
 include("utils.jl")
+include("deprecated.jl")
 
 end # module
