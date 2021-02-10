@@ -378,10 +378,6 @@ function runcircuit(M::Union{MPS, MPO}, circuit::Vector{<:Vector{<:Any}};
   return M
 end
 
-
-
-
-
 """
     runcircuit(N::Int, gates::Vector{<:Tuple};
                process = false,
@@ -426,8 +422,6 @@ runcircuit(N::Int, args...; kwargs...) =
 
 runcircuit(circuit::Any, args...; kwargs...) = 
   runcircuit(nqubits(circuit), circuit,  args...; kwargs...)
-
-
 
 
 """

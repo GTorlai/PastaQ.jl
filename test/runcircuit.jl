@@ -125,7 +125,26 @@ end
     U = buildcircuit(ρ0, gates, noise = ("depolarizing", (p = 0.1,)))
     @test prod(ρ) ≈ runcircuit(prod(ρ0), U; apply_dag=true)
   end
+  
+end
 
+@testset "alternative noise definition" begin
+  N = 5
+  depth = 4
+  circuit0 = randomcircuit(N,depth; twoqubitgates = "CX", onequbitgates = "Rn", layered = false)
+  ρ0 = runcircuit(circuit0; noise = ("DEP",(p=0.01,)))
+
+  ψ = trivialstate(ρ0)
+  circuit = []
+  for g in circuit0
+    push!(circuit,g)
+    ns = g[2]
+    for n in ns
+      push!(circuit,("DEP",n,(p=0.01,)))
+    end
+  end
+  ρ = runcircuit(ψ, circuit)
+  @test PastaQ.array(ρ0) ≈ PastaQ.array(ρ)
 end
 
 @testset "runcircuit: inverted gate order" begin
