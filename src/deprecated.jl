@@ -12,7 +12,7 @@ qubits(N::Int; mixed::Bool = false) =
   qubits(siteinds("Qubit", N); mixed = mixed)
 
 function qubits(sites::Vector{<:Index}; mixed::Bool = false)
-  @warn "Method `qubits` is deprecated, use `trivialstate` or `trivialprocess` instead."
+  @warn "Method `qubits` is deprecated, use `productstate` or `productoperator` instead."
   ψ = productMPS(sites, "0")
   mixed && return MPO(ψ)
   return ψ
@@ -40,7 +40,7 @@ qubits(N::Int, states::Vector{String}; mixed::Bool = false) =
 
 function qubits(sites::Vector{<:Index}, states::Vector{String};
                 mixed::Bool = false)
-  @warn "Method `qubits` is deprecated, use `trivialstate` or `trivialprocess` instead."
+  @warn "Method `qubits` is deprecated, use `productstate` or `productoperator` instead."
   N = length(sites)
   @assert N == length(states)
 

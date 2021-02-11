@@ -87,7 +87,7 @@ An MPO `M` is normalized by `tr(M)`, and the resulting MPO will have the propert
 
 An LPDO `L = X X†` is normalized by `tr(L) = tr(X X†)`, so each `X` is normalized by `√tr(L) = √tr(X X†)`. The resulting LPDO will have the property `tr(L) ≈ 1`.
 
-Passing a vector `v` as the keyword arguments `localnorms!` (`sqrt_localnorms!`) will fill the vector with the (square root) of the normalization factor per site. For an MPS `ψ`, `prod(v) ≈ norm(ψ)`. For an MPO `M`, `prod(v) ≈ tr(M). For an LPDO `L`, `prod(v)^2 ≈ tr(L)`.
+Passing a vector `v` as the keyword arguments `localnorms!` (`sqrt_localnorms!`) will fill the vector with the (square root) of the normalization factor per site. For an MPS `ψ`, `prod(v) ≈ norm(ψ)`. For an MPO `M`, `prod(v) ≈ tr(M)`. For an LPDO `L`, `prod(v)^2 ≈ tr(L)`.
 """
 function normalize!(M::MPO;
                     plev = 0 => 1,
@@ -188,7 +188,7 @@ function ITensors.MPO(lpdo0::LPDO)
   return rho
 end
 
-function HDF5.write(parent::Union{HDF5File,HDF5Group},
+function HDF5.write(parent::Union{HDF5.File,HDF5.Group},
                     name::AbstractString,
                     L::LPDO)
   g = g_create(parent, name)
@@ -196,7 +196,7 @@ function HDF5.write(parent::Union{HDF5File,HDF5Group},
   write(parent, "X", L.X)
 end
 
-function HDF5.read(parent::Union{HDF5File, HDF5Group},
+function HDF5.read(parent::Union{HDF5.File, HDF5.Group},
                    name::AbstractString,
                    ::Type{LPDO{XT}}) where {XT}
   g = g_open(parent, name)

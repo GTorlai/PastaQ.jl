@@ -1,159 +1,6 @@
 """
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
--                                QUANTUM STATES                                -
---------------------------------------------------------------------------------
---------------------------------------------------------------------------------
-"""
-
-"""
-    trivialstate(N::Int; mixed::Bool=false)
-    
-    trivialstate(sites::Vector{<:Index}; mixed::Bool=false)
-
-
-Initialize qubits to:
-- An MPS wavefunction `|ψ⟩` if `mixed = false`
-- An MPO density matrix `ρ` if `mixed = true`
-"""
-trivialstate(N::Int; mixed::Bool = false) =
-  trivialstate(siteinds("Qubit", N); mixed = mixed)
-
-function trivialstate(sites::Vector{<:Index}; mixed::Bool = false)
-  ψ = productMPS(sites, "0")
-  mixed && return MPO(ψ)
-  return ψ
-end
-
-"""
-    trivialstate(M::Union{MPS,MPO,LPDO}; mixed::Bool=false)
-
-Initialize qubits on the Hilbert space of a reference state,
-given as `MPS`, `MPO` or `LPDO`.
-"""
-trivialstate(M::Union{MPS,MPO,LPDO}; mixed::Bool = false) =
-  trivialstate(hilbertspace(M); mixed = mixed)
-
-
-"""
-    trivialstate(N::Int, states::Vector{String}; mixed::Bool=false)
-
-    trivialstate(sites::Vector{<:Index}, states::Vector{String};mixed::Bool = false)
-    
-    trivialstate(M::Union{MPS,MPO,LPDO}, states::Vector{String}; mixed::Bool = false) 
-
-Initialize the qubits to a given single-qubit product state.
-"""
-trivialstate(N::Int, states::Vector{String}; mixed::Bool = false) =
-  trivialstate(siteinds("Qubit", N), states; mixed = mixed)
-
-trivialstate(M::Union{MPS,MPO,LPDO}, states::Vector{String}; mixed::Bool = false) = 
-  trivialstate(hilbertspace(M), states; mixed = mixed)
-
-function trivialstate(sites::Vector{<:Index}, states::Vector{String};
-                      mixed::Bool = false)
-  N = length(sites)
-  @assert N == length(states)
-
-  ψ = productMPS(sites, "0")
-
-  if N == 1
-    s1 = sites[1]
-    state1 = state(states[1])
-    if eltype(state1) <: Complex
-      ψ[1] = complex(ψ[1])
-    end
-    for j in 1:dim(s1)
-      ψ[1][s1 => j] = state1[j]
-    end
-    mixed && return MPO(ψ)
-    return ψ
-  end
-
-  # Set first site
-  s1 = sites[1]
-  l1 = linkind(ψ, 1)
-  state1 = state(states[1])
-  if eltype(state1) <: Complex
-    ψ[1] = complex(ψ[1])
-  end
-  for j in 1:dim(s1)
-    ψ[1][s1 => j, l1 => 1] = state1[j]
-  end
-
-  # Set sites 2:N-1
-  for n in 2:N-1
-    sn = sites[n]
-    ln_1 = linkind(ψ, n-1)
-    ln = linkind(ψ, n)
-    state_n = state(states[n])
-    if eltype(state_n) <: Complex
-      ψ[n] = complex(ψ[n])
-    end
-    for j in 1:dim(sn)
-      ψ[n][sn => j, ln_1 => 1, ln => 1] = state_n[j]
-    end
-  end
-  
-  # Set last site N
-  sN = sites[N]
-  lN_1 = linkind(ψ, N-1)
-  state_N = state(states[N])
-  if eltype(state_N) <: Complex
-    ψ[N] = complex(ψ[N])
-  end
-  for j in 1:dim(sN)
-    ψ[N][sN => j, lN_1 => 1] = state_N[j]
-  end
-  
-  mixed && return MPO(ψ)
-  return ψ
-end
-
-"""
-    trivialprocess(N::Int; mixed::Bool = false)
-
-    trivialprocess(sites::Vector{<:Index}; mixed::Bool=false)
-
-Initialize a circuit MPO
-"""
-trivialprocess(N::Int;  mixed::Bool = false) = 
-  trivialprocess(siteinds("Qubit", N); mixed = mixed)
-
-trivialprocess(M::Union{MPS, MPO,LPDO}; mixed::Bool = false) = 
-  trivialprocess(hilbertspace(M); mixed = mixed)
-
-function trivialprocess(sites::Vector{<:Index}; mixed::Bool = false) 
-  U = MPO(sites, "Id")
-  !mixed && return U
-  
-  N = length(U)
-  U = prime(choitags(U))
-  
-  M = ITensor[]
-  push!(M,U[1] * noprime(U[1]))
-  if N > 1
-    Cdn = combiner(inds(M[1], tags = "Link")[1],inds(M[1], tags = "Link")[2],
-                  tags = "Link,l=1")
-    M[1] = M[1] * Cdn
-    for j in 2:N-1
-      push!(M,U[j] * noprime(U[j]))
-      Cup = Cdn
-      Cdn = combiner(inds(M[j], tags = "Link,l=$j")[1], 
-                     inds(M[j], tags = "Link,l=$j")[2], 
-                     tags="Link,l=$j")
-      M[j] = M[j] * Cup * Cdn
-    end
-    push!(M, U[N] * noprime(U[N]))
-    M[N] = M[N] * Cdn
-  end
-  return MPO(M)
-end
-
-
-"""
---------------------------------------------------------------------------------
---------------------------------------------------------------------------------
 -                              QUANTUM CIRCUITS                                -
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
@@ -281,11 +128,8 @@ a local noise model. Returns a MPO with `N` tensor having 4 sites indices.
 choimatrix(circuit::Vector{<:Any}; kwargs...) = 
   choimatrix(nqubits(circuit), gates; kwargs...)
 
-choimatrix(N::Int, args...; kwargs...) = 
-  choimatrix(trivialprocess(N; mixed = true), args...; kwargs...) 
-
-choimatrix(sites::Vector{<:Index}, args...; kwargs...)  =
-  choimatrix(trivialprocess(sites; mixed = true), args...; kwargs...)
+choimatrix(sites::Union{Int, Vector{<:Index}}, args...; kwargs...) = 
+  choimatrix(unitary_mpo_to_choi_mpo(productoperator(sites)), args...; kwargs...) 
 
 function choimatrix(Λ0::MPO, circuit::Vector{<:Any};
                     noise = nothing, cutoff = 1e-15, maxdim = 10000,
@@ -297,10 +141,12 @@ function choimatrix(Λ0::MPO, circuit::Vector{<:Any};
   # if circuit has layer structure, transform to vectorized circuit
   circuit = (circuit isa Vector{<:Vector} ? vcat(circuit...) : circuit)
   
+  # TODO: simplify by building the circuit directly from the Choi MPO.
   s = [firstind(Λ0[j], tags = "Output") for j in 1:length(Λ0)]
-  compiler = trivialprocess(s)
+  compiler = productoperator(s)
   prime!(compiler,-1,tags = "Qubit") 
   circuit_tensors = buildcircuit(compiler, circuit; noise = noise)
+
   # contract to compute the Choi matrix
   return runcircuit(Λ0, circuit_tensors; apply_dag = true, cutoff = cutoff,
                     maxdim = maxdim, svd_alg = svd_alg)
@@ -405,7 +251,7 @@ The starting state is generated automatically based on the flags `process`, `noi
 function runcircuit(sites::Vector{<:Index}, circuit::Union{Tuple,Vector{<:Any},Vector{Vector{<:Any}}};
                     process = false, noise = nothing, kwargs...)
   
-  (process && isnothing(noise)) && return runcircuit(trivialprocess(sites), circuit; 
+  (process && isnothing(noise)) && return runcircuit(productoperator(sites), circuit; 
                                                      noise = nothing, 
                                                      apply_dag = false, 
                                                      kwargs...) 
@@ -414,7 +260,7 @@ function runcircuit(sites::Vector{<:Index}, circuit::Union{Tuple,Vector{<:Any},V
                                                       noise = noise, 
                                                       kwargs...)
   
-  return runcircuit(trivialstate(sites), circuit; noise = noise, kwargs...) 
+  return runcircuit(productstate(sites), circuit; noise = noise, kwargs...) 
 end
 
 runcircuit(N::Int, args...; kwargs...) = 
