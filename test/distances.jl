@@ -11,10 +11,10 @@ using Random
   circuit2 = randomcircuit(N,3)
   # MPS wavefunction
   ψ1 = runcircuit(circuit1)
-  ψ2 = runcircuit(qubits(ψ1),circuit2)
+  ψ2 = runcircuit(trivialstate(ψ1),circuit2)
   # MPO density matrix
-  ρ1 = runcircuit(qubits(ψ1), circuit1; noise = ("DEP",(p=0.01,)))
-  ρ2 = runcircuit(qubits(ψ1), circuit2; noise = ("DEP",(p=0.01,)))
+  ρ1 = runcircuit(trivialstate(ψ1), circuit1; noise = ("DEP",(p=0.01,)))
+  ρ2 = runcircuit(trivialstate(ψ1), circuit2; noise = ("DEP",(p=0.01,)))
   # LPDO density matrix
   ϱ1 = normalize!(randomstate(ψ1; mixed = true))
   ϱ2 = normalize!(randomstate(ψ1; mixed = true))

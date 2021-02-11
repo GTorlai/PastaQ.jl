@@ -311,9 +311,34 @@ end
 
 gate(::GateName"RandomUnitary", N::Int = 2; kwargs...) = 
   gate("randU", N; kwargs...)
-#
+
+
+  #
 # Noise model gate definitions
 #
+function gate(::GateName"pauli_error"; pX::Number = 0.0, pY::Number = 0.0, pZ::Number = 0.0)
+  kraus = zeros(Complex{Float64},2,2,4)
+  kraus[:,:,1] = √(1-pX-pY-pZ) * gate("Id")
+  kraus[:,:,2] = √pX * gate("X")
+  kraus[:,:,3] = √pY * gate("Y")
+  kraus[:,:,4] = √pZ * gate("Z")
+  return kraus 
+end
+
+gate(::GateName"pauli_channel"; kwargs...) = gate("pauli_error"; kwargs...)
+
+
+gate(::GateName"bit_flip"; p::Number) = 
+  gate("pauli_error"; pX = p)[:,:,1:2]
+  
+gate(::GateName"phase_flip"; p::Number) = 
+  gate("pauli_error"; pZ = p)[:,:,[1,4]]
+
+gate(::GateName"bit_phase_flip"; p::Number) = 
+  gate("pauli_error"; pY = p)[:,:,[1,3]]
+
+gate(::GateName"phase_bit_flip"; kwargs...) = 
+  gate("bit_phase_flip"; kwargs...)
 
 function gate(::GateName"AD"; γ::Number)
   kraus = zeros(2,2,2)
@@ -342,18 +367,9 @@ gate(::GateName"phase_damping"; kwargs...) = gate("PD"; kwargs...)
 # To accept the gate name "dephasing"
 gate(::GateName"dephasing"; kwargs...) = gate("PD"; kwargs...)
 
-function gate(::GateName"DEP"; p::Number)
-  kraus = zeros(Complex{Float64},2,2,4)
-  kraus[:,:,1] = sqrt(1-p)   * [1 0 
-                                0 1]
-  kraus[:,:,2] = sqrt(p/3.0) * [0 1 
-                                1 0]
-  kraus[:,:,3] = sqrt(p/3.0) * [0 -im 
-                                im 0]
-  kraus[:,:,4] = sqrt(p/3.0) * [1  0 
-                                0 -1]
-  return kraus 
-end
+gate(::GateName"DEP"; p::Number) = 
+  gate("pauli_error"; pX = p/3.0, pY = p/3.0, pZ = p/3.0)
+
 
 # To accept the gate name "depolarizing"
 gate(::GateName"depolarizing"; kwargs...) = gate("DEP"; kwargs...)

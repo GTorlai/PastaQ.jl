@@ -24,8 +24,9 @@ export
 
 # circuits/runcircuit.jl
   # Methods
+  trivialstate,
+  trivialprocess,
   qubits,
-  resetqubits!,
   buildcircuit,
   runcircuit,
 

@@ -252,8 +252,6 @@ function getsamples(M::Union{MPS,MPO}, nshots::Int64;
                     ndistinctbases = nothing,
                     readout_errors = (p1given0 = nothing,
                                       p0given1 = nothing))
-  nthreads = Threads.nthreads()
-  
   if isnothing(local_basis)
     data = getsamples!(copy(M), nshots; readout_errors = readout_errors)
   else
@@ -307,10 +305,10 @@ function getsamples(hilbert0::Vector{<:Index},
   # Generate preparation/measurement gates
   meas_gates = measurementgates(basis)
   # Prepare quantum state
-  M_in = qubits(hilbert0, prep)
+  M_in = trivialstate(hilbert0, prep)
 
   # TODO: delete
-  #M0 = qubits(hilbert0)
+  #M0 = trivialstate(hilbert0)
   #prep_gates = preparationgates(prep)
   #M_in  = runcircuit(M0, prep_gates)
 
@@ -461,7 +459,7 @@ function getsamples(gates::Array,preps::Array, bases::Array ;
   N = size(preps)[2]
   nshots = size(preps)[1]
   
-  ψ0 = qubits(N)
+  ψ0 = trivialstate(N)
   hilbert = hilbertspace(ψ0) 
   # Pre-compile quantum channel
   gate_tensors = buildcircuit(ψ0, gates; noise=noise, kwargs...)

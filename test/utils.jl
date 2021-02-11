@@ -6,11 +6,11 @@ using Random
 
 @testset "array" begin
   N = 5
-  ψ = qubits(N)
+  ψ = trivialstate(N)
   ψvec = array(ψ)
   @test size(ψvec) == (1<<N,)
   
-  ρ = qubits(N; mixed = true)
+  ρ = trivialstate(N; mixed = true)
   ρmat = array(ρ)
   @test size(ρmat) == (1<<N,1<<N)
   
@@ -28,8 +28,8 @@ end
 
 @testset "hilbertspace" begin
   N = 5
-  ψ = qubits(N)
-  ρ = qubits(ψ; mixed = true)
+  ψ = trivialstate(N)
+  ρ = trivialstate(ψ; mixed = true)
   Λ = randomstate(ψ; mixed = true)
 
   @test PastaQ.hilbertspace(ψ) == siteinds(ψ)
