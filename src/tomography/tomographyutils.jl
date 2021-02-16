@@ -75,7 +75,7 @@ end
 
 """
     update!(observer::Observer,
-            normalized_model::LPDO,
+            normalized_model::Union{MPS,MPO,LPDO},
             best_model::LPDO,
             simulation_time::Float64,
             train_loss::Float64,
@@ -85,7 +85,7 @@ Update the observer for quantum tomography.
 Perform measuremenst and record data.
 """
 function update!(observer::Observer,
-                 normalized_model::LPDO,
+                 normalized_model::Union{MPS,MPO,LPDO},
                  best_model::LPDO,
                  simulation_time::Float64,
                  train_loss::Float64,
@@ -96,13 +96,12 @@ function update!(observer::Observer,
   if !isnothing(test_loss)
     push!(observer.measurements["test_loss"][2], test_loss)
   end
-  
-  # check whether there is an object with Kraus index if so, feed it
-  # directly to the measurement. Otherwise, take the inner object
-  # as argument, which may be a MPS wavefunction, a unitary MPO, or
-  # a MPO density matrix.
-  M = (normalized_model.purifier_tag == ts"" ? normalized_model.X : normalized_model)
-  measure!(observer, M)
+  if normalized_model isa LPDO{MPS}
+    measure!(observer, normalized_model.X)
+  else
+    measure!(observer, normalized_model)
+  end
+  return observer
 end
 
 """

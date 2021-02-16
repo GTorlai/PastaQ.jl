@@ -132,8 +132,9 @@ function measure!(observer::Observer, M::Union{MPS,MPO,LPDO}, reference_indices:
   end
 end
 
-measure!(observer::Observer, M::Union{MPS,MPO,LPDO}) =  
+function measure!(observer::Observer, M::Union{MPS,MPO,LPDO})
   measure!(observer, M, hilbertspace(M))
+end
 
 
 Base.copy(observer::Observer) = Observer(copy(observer.measurements)) 
