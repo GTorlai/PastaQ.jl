@@ -178,6 +178,21 @@ printlattice(code::SurfaceCode; title::String = "") =
   printlattice!(plot([0],[0],color=:black, legend=false, aspect_ratio=:equal,
     background_color=:transparent, ticks=false, axis=false,foreground_color=:black,title=title), code)
 
+
+function printTN(code::SurfaceCode; title::String = "") 
+  markersize = 12/sqrt(code.d)
+  p = scatter(first.(code.Qcoord),last.(code.Qcoord),markersize=markersize,color=:black,
+  background_color=:transparent, ticks=false, axis=false,foreground_color=:black, title=title,legend=false, aspect_ratio=:equal)
+  for y in 1:2*code.d-1
+    p = plot!([1,2*code.d-1],[y,y],color=:black)
+  end
+  for x in 0:2*code.d-2
+    p = plot!([x+1,x+1],[2*code.d-1,1],color=:black)
+  end
+  p = scatter!(first.(code.Xcoord),last.(code.Xcoord),markersize=5,color=:red,markershape=:square)
+  p = scatter!(first.(code.Zcoord),last.(code.Zcoord),markersize=5,color=:blue,markershape=:square)
+  return p
+end
 function printXstabilizers!(p::Plots.Plot, code::SurfaceCode; a::Float64 = 1.0, markersize=4, ϵ::Float64=0.02)
   #p = scatter!(first.(code.Xcoord),last.(code.Xcoord),markersize=10,color=:red,markershape=:star5)
   for (x,y) in code.Xcoord

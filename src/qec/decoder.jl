@@ -50,11 +50,12 @@ Generate a logical operator for the Surface code
 function logicaloperator(code::SurfaceCode, logical::String)
   logical == "I" && return [[0,0] for _ in 1:nqubits(code)] 
   
-  Lx = [n in [y*(2*code.d-1)+2 for y in 0:code.d-1] ? 1 : 0 for n in 1:nqubits(code)]
-  Lx = topauli(nqubits(code), [y*(2*code.d-1)+2 for y in 0:code.d-1])
+  #Lx = topauli(nqubits(code), [y*(2*code.d-1)+2 for y in 0:code.d-1])
+  Lx = topauli(nqubits(code), [y*(2*code.d-1)+1 for y in 0:code.d-1])
   logical == "X" && return combine_pauliXZ(Lx,zeros(Int64,nqubits(code)))
   
-  Lz = topauli(nqubits(code), [2*code.d-1+x for x in 1:code.d])
+  #Lz = topauli(nqubits(code), [2*code.d-1+x for x in 1:code.d])
+  Lz = topauli(nqubits(code), 1:code.d|>collect)
   logical == "Z" && return combine_pauliXZ(zeros(Int64,nqubits(code)), Lz)
   
   logical == "Y" && return combine_pauliXZ(Lx,Lz)
@@ -248,16 +249,13 @@ function decode(S::Vector, code::SurfaceCode; error_probability::NamedTuple)
   Ψ = Vector{MPS}()
   Λ = Vector{MPO}()
   for nthread in 1:nthreads
-    M = ITensor[]; U = ITensor[]; X = ITensor[]
+    M = ITensor[]; U = ITensor[];
     push!(M, ITensor(zeros(2,2), sites[1], linksΨ[1])) 
-    push!(X, ITensor(zeros(2,2), sites[1], linksΨ[1])) 
     push!(U, ITensor(zeros(2,2,2), sites[1], sites[1]', linksΛ[1])) 
     for j in 2:N-1
       push!(M, ITensor(zeros(2,2,2), linksΨ[j-1], sites[j], linksΨ[j]))
-      push!(X, ITensor(zeros(2,2,2), linksΨ[j-1], sites[j], linksΨ[j]))
       push!(U, ITensor(zeros(2,2,2,2), linksΛ[j-1], sites[j], sites[j]', linksΛ[j]))
     end
-    push!(X, ITensor(zeros(2,2), sites[N], linksΨ[N-1])) 
     push!(M, ITensor(zeros(2,2), sites[N], linksΨ[N-1])) 
     push!(U, ITensor(zeros(2,2,2), sites[N], sites[N]', linksΛ[N-1])) 
     push!(ϕ, MPS(M))
@@ -366,7 +364,8 @@ end
 
 
 Random.seed!(1234)
-d = 9
+d = 5
+
 code = SurfaceCode(d)
 #pX = 0.113
 #pY = 0.00
