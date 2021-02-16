@@ -113,11 +113,11 @@ randomly drawn from a uniform distribution centered around zero, with width `σ`
 function random_lpdo(ElT::Type{<:Number},
                      sites::Vector{<: Index},
                      χ::Int64, ξ::Int64, σ::Float64;
-                     purifier_tag = ts"Purifier")
+                     purifier_tags = default_purifier_tags)
   d = dim(sites[1]) # Dimension of the local Hilbert space
   N = length(sites)
   links = [Index(χ; tags="Link, l=$l") for l in 1:N-1]
-  kraus = [Index(ξ; tags=addtags(purifier_tag, "k=$s")) for s in 1:N]
+  kraus = [Index(ξ; tags=addtags(purifier_tags, "k=$s")) for s in 1:N]
 
   M = ITensor[]
   if N == 1
@@ -151,12 +151,12 @@ function random_lpdo(ElT::Type{<:Number},
   end
   push!(M,ITensor(rand_mat,sites[N],links[N-1],kraus[N]))
   
-  return LPDO(MPO(M), purifier_tag)
+  return LPDO(MPO(M), purifier_tags)
 end
 
 """
     random_choi(ElT::Type{<:Number},sites::Vector{<: Index},χ::Int64,ξ::Int64,σ::Float64;
-                purifier_tag = ts"Purifier")
+                purifier_tags = default_purifier_tags)
 
 Make a random Choi matrix with bond dimension `χ`, kraus dimension `ξ` ,and using 
 the Hilbert spacee `sites`. Each bulk tensor has two site indices (corresponding 
@@ -167,11 +167,11 @@ centered around zero, with width `σ`.
 function random_choi(ElT::Type{<: Number},
                      sites::Vector{<: Index},
                      χ::Int64, ξ::Int64, σ::Float64;
-                     purifier_tag = ts"Purifier")
+                     purifier_tags = default_purifier_tags)
   d = dim(sites[1]) # Dimension of the local Hilbert space
   N = length(sites)
   links = [Index(χ; tags="Link, l=$l") for l in 1:N-1]
-  kraus = [Index(ξ; tags=addtags(purifier_tag, "k=$s")) for s in 1:N]
+  kraus = [Index(ξ; tags=addtags(purifier_tags, "k=$s")) for s in 1:N]
 
   M = ITensor[]
   if N == 1
@@ -181,7 +181,7 @@ function random_choi(ElT::Type{<: Number},
       rand_mat += im * σ * (ones(d,d,ξ) - 2*rand(d,d,ξ))
     end
     push!(M,ITensor(rand_mat,sites[1],sites[1]',kraus[1]))
-    return LPDO(MPO(M))
+    return LPDO(choitags(MPO(M)), purifier_tags)
   end
 
   # Site 1 
@@ -217,7 +217,7 @@ function random_choi(ElT::Type{<: Number},
     end
   end
   noprime!(Λ)
-  return LPDO(Λ, purifier_tag)
+  return LPDO(Λ, purifier_tags)
 end
 
 
@@ -271,9 +271,9 @@ function randomstate(ElT::Type{<: Number}, T::Type,
   χ::Int64 = get(kwargs, :χ, 1)
   ξ::Int64 = get(kwargs, :ξ, 1)
   σ::Float64 = get(kwargs, :σ, 0.1)
-  purifier_tag = get(kwargs,:purifier_tag,ts"Purifier")
-  alg::String = get(kwargs,:alg,"rand")
-  normalize::Bool = get(kwargs,:normalize,false)
+  purifier_tags = get(kwargs, :purifier_tags, default_purifier_tags)
+  alg::String = get(kwargs, :alg, "rand")
+  normalize::Bool = get(kwargs, :normalize, false)
 
   if T == MPS
     # Build MPS by random parameter initialization
@@ -286,7 +286,7 @@ function randomstate(ElT::Type{<: Number}, T::Type,
   elseif T == MPO
     error("initialization of random MPO density matrix not yet implemented.")
   elseif T == LPDO
-    M = random_lpdo(ElT,sites,χ,ξ,σ;purifier_tag=purifier_tag)
+    M = random_lpdo(ElT,sites,χ,ξ,σ;purifier_tags=purifier_tags)
   else
     error("ansatz type not recognized")
   end
@@ -350,8 +350,8 @@ function randomprocess(ElT::Type{<: Number}, T::Type,
   χ::Int64 = get(kwargs,:χ,1)
   ξ::Int64 = get(kwargs,:ξ,1)
   σ::Float64 = get(kwargs,:σ,0.1)
-  purifier_tag = get(kwargs,:purifier_tag,ts"Purifier")
-  alg::String = get(kwargs,:alg,"rand")
+  purifier_tags = get(kwargs, :purifier_tags, default_purifier_tags)
+  alg::String = get(kwargs, :alg, "rand")
   processtags = !(any(x -> hastags(x,"Input") , sites))
   if T == MPO
     if alg == "rand"
@@ -360,7 +360,7 @@ function randomprocess(ElT::Type{<: Number}, T::Type,
       error("randomMPO with circuit initialization not implemented yet")
     end
   elseif T == LPDO
-    M = random_choi(ElT,sites,χ,ξ,σ;purifier_tag=purifier_tag)
+    M = random_choi(ElT,sites,χ,ξ,σ;purifier_tags=purifier_tags)
   else
     error("ansatz type not recognized")
   end

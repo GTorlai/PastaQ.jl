@@ -1,3 +1,7 @@
+
+# The default purifier tags for LPDOs
+const default_purifier_tags = ts"Purifier"
+
 """
     array(M::MPS; reverse::Bool = true)
 
@@ -64,17 +68,13 @@ function array(L::LPDO{MPO}; reverse::Bool = true)
   return array(permute(Mmat, c', c))
 end
 
-# TEMPORARY FUNCTION
-# TODO: remove when `firstsiteinds(ψ::MPS)` is implemented
-function hilbertspace(L::LPDO)
-  return  (L.X isa MPS ? siteinds(L.X) : firstsiteinds(L.X))
-end
-
-hilbertspace(M::Union{MPS,MPO}) = hilbertspace(LPDO(M))
-
-
-
-
+# TODO: turn this into an ITensors.jl function `originalsiteinds`
+# that generically returns the site indices that would be used to
+# make an object of the same type with the same indices.
+hilbertspace(M::MPS) = siteinds(first, M; plev = 0)
+hilbertspace(M::MPO) = dag.(siteinds(first, M; plev = 0))
+hilbertspace(L::LPDO) =
+  dag.(siteinds(first, L.X; plev = 0, tags = !purifier_tags(L)))
 
 """
     convertdatapoint(datapoint::Array,basis::Array;state::Bool=false)
@@ -203,30 +203,28 @@ function split_dataset(data::Matrix; train_ratio::Float64 = 0.9, randomize::Bool
 end
 
 """
-    _ischoi(M::LPDO)
+    ischoi(M::LPDO)
 
 Check whether a given LPDO{MPO}  
 """
-ischoi(M::LPDO{MPO}) = (length(inds(M.X[1],"Site")) == 2 && haschoitags(M))#hastags(M.X[1],"Purifier"))
+ischoi(M::LPDO{MPO}) =
+  (length(inds(M.X[1],"Site")) == 2 && haschoitags(M)) # hastags(M.X[1], default_purifier_tags))
 
 ischoi(M::MPO) = (length(inds(M[1],"Site")) == 4 && haschoitags(M))
 
 
-
+# TODO: check all indices, not just the first ones
 """
     haschoitags(L::LPDO)
-
     haschoitags(M::Union{MPS,MPO})
 
 Check whether the TN has input/output Choi tags
 """
 haschoitags(L::LPDO) = (hastags(inds(L.X[1]),"Input") && hastags(inds(L.X[1]),"Output"))
-haschoitags(M::Union{MPS,MPO}) = haschoitags(LPDO(M)) 
-
+haschoitags(M::Union{MPS,MPO}) = (hastags(inds(M[1]), "Input") && hastags(inds(M[1]),"Output"))
 
 """
-    choitags(U::Union{MPS, MPO})
-    choitags(L::LPDO{MPO})
+    choitags(U::MPO)
 
 Assign the input/output tags defined for a Choi matrix to an MPO.
 
@@ -237,33 +235,26 @@ Assign the input/output tags defined for a Choi matrix to an MPO.
   σ₃ -o- σ₃′       σ₃ⁱ -o- σ₃ᴼ
                   
 """
-function choitags(L::LPDO{MPO})
-  haschoitags(L) && return L
-  U = copy(L.X)
-  U = addtags(U, "Input", plev = 0, tags = "Site")
-  U = addtags(U, "Output", plev = 1, tags = "Site")
-  return LPDO(noprime(U))
+function choitags(U::MPO)
+  haschoitags(U) && return U
+  U = addtags(siteinds, U, "Input", plev = 0)
+  U = addtags(siteinds, U, "Output", plev = 1)
+  return noprime(siteinds, U)
 end
 
-choitags(U::MPO) = choitags(LPDO(U)).X
-
 """
-    _mpotags(Ψ::MPS)
+    mpotags(U::MPO)
 
-Inverse of _choitags
+Inverse of choitags.
 """
-
-function mpotags(L::LPDO)
-  !haschoitags(L) && return L
-  U = copy(L.X) 
-  U = prime(U,tags="Output")
+function mpotags(U::MPO)
+  U = prime(U; tags = "Output")
   U = removetags(U, "Input")
   U = removetags(U, "Output")
-  return LPDO(U)
+  return U
 end
 
 mpotags(M::Union{MPS,MPO}) = mpotags(LPDO(M)).X
-
 
 """
     unitary_mpo_to_choi_mps(U::MPO)
@@ -297,14 +288,12 @@ Convert a unitary MPO to a Choi matrix represented as an MPO with 4 site indices
 unitary_mpo_to_choi_mpo(U::MPO) = MPO(LPDO(convert(MPS, choitags(U))))
 
 """
-    _choiMPS_to_unitaryMPO(Ψ::MPS)
+    choi_mps_to_unitary_mpo(Ψ::MPS)
 
 Transforms a Choi MPS into an MPO with appropriate tags.
-Inverse of `_unitaryMPO_to_choiMPS`.
+Inverse of `unitary_mpo_to_choi_mps`.
 """
-#_choiMPS_to_unitaryMPO(L::LPDO{MPS}) = LPDO(convert(MPO, _mpotags(L).X))
-#_choiMPS_to_unitaryMPO(Ψ::MPS)       = _choiMPS_to_unitaryMPO(LPDO(Ψ)).X
-choi_mps_to_unitary_mpo(Ψ::MPS)       = convert(MPO, mpotags(Ψ))
+choi_mps_to_unitary_mpo(Ψ::MPS) = mpotags(convert(MPO, Ψ))
 choi_mps_to_unitary_mpo(L::LPDO{MPS}) = choi_mps_to_unitary_mpo(L.X) 
 
 function nqubits(g::Tuple)

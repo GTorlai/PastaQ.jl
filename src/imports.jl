@@ -1,8 +1,14 @@
 import Base:
+  copy,
+  getindex,
   sqrt,
-  push!
+  length,
+  push!,
+  setindex!
 
 import ITensors:
+  # types
+  MPO,
   # circuits/gates.jl
   space,
   state,

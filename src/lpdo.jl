@@ -1,50 +1,40 @@
 
 # Locally purified density operator
-# L = prime(X, !purifier_tag(X)) * X†
+# L = prime(X, !purifier_tags(X)) * dag(X)
 struct LPDO{XT <: Union{MPS, MPO}}
   X::XT
-  purifier_tag::TagSet
-end
-
-#LPDO(X::MPO) = LPDO(X, ts"Purifier")
-LPDO(M::MPS) = LPDO(M, ts"")
-
-function LPDO(M::MPO)
-  if length(inds(M[1])) == 3
-    # unitary MPO and density matrix MPO
-    (length(inds(M[1], tags="Qubit")) == 2) && return LPDO(M, ts"")
-    # density matrix LPDO
-    (length(inds(M[1], tags="Qubit")) == 1) && return LPDO(M, ts"Purifier")
-  elseif length(inds(M[1])) == 4
-    # Choi matrix LPDO
-    (length(inds(M[1], tags="Qubit")) == 2) && return LPDO(M, ts"Purifier")
-  elseif length(inds(M[1])) == 5
-    # Choi matrix MPO
-    (length(inds(M[1], tags="Qubit")) == 4) && return LPDO(M, ts"")
-  else
-    error("Input not recognized")
+  purifier_tags::TagSet
+  function LPDO(M::Union{MPO, MPS}, purifier_tags)
+    sites = siteinds(all, M)
+    if any(s -> has_indpairs(s, 0 => 1), sites)
+      error("In `LPDO(X::MPO, purifier_tags)`, `MPO` `X` must not have pairs of primed and unprimed site indices, since the `LPDO` is interpreted as `prime(X; tags = !purifier_tags) * dag(X)`.")
+    end
+    return new{typeof(M)}(M, TagSet(purifier_tags))
   end
 end
 
-Base.length(L::LPDO) = length(L.X)
+# MPS defaults to having no purifier tag
+LPDO(M::MPS) = LPDO(M, random_tags())
 
-Base.copy(L::LPDO) = LPDO(copy(L.X), L.purifier_tag)
+length(L::LPDO) = length(L.X)
+
+copy(L::LPDO) = LPDO(copy(L.X), L.purifier_tags)
 
 # TODO: define this (not defined for MPS/MPO yet)
 #Base.lastindex(L::LPDO) = lastindex(L.X)
 
-function Base.getindex(L::LPDO, args...)
-  error("getindex(L::LPDO, args...) is purposefully not implemented yet. For the LPDO L = X X†, you can get the jth tensor X[j] with L.X[j].")
+function getindex(L::LPDO, args...)
+  error("`getindex(L::LPDO, args...)` is purposefully not implemented yet. For the LPDO `L = X X†`, you can get the jth tensor `X[j]` with `L.X[j]`.")
 end
 
-function Base.setindex!(L::LPDO, args...)
-  error("setindex!(L::LPDO, args...) is purposefully not implemented yet. For the LPDO L = X X†, you can set the jth tensor X[j] with L.X[j] = A.")
+function setindex!(L::LPDO, args...)
+  error("`setindex!(L::LPDO, args...)` is purposefully not implemented yet. For the LPDO `L = X X†`, you can set the jth tensor `X[j]` with `L.X[j] = A`.")
 end
 
-purifier_tag(L::LPDO) = L.purifier_tag
+purifier_tags(L::LPDO) = L.purifier_tags
 
-ket(L::LPDO) = prime(L.X, !purifier_tag(L))
-ket(L::LPDO, j::Int) = prime(L.X[j], !purifier_tag(L))
+ket(L::LPDO) = prime(L.X, !purifier_tags(L))
+ket(L::LPDO, j::Int) = prime(L.X[j], !purifier_tags(L))
 bra(L::LPDO) = dag(L.X)
 bra(L::LPDO, j::Int) = dag(L.X[j])
 
@@ -158,35 +148,16 @@ Contract the purifier indices to get the MPO
 `ρ = L.X L.X†`. This contraction is performed exactly,
 in the future we will support approximate contraction.
 """
-function ITensors.MPO(lpdo0::LPDO)
-  lpdo = copy(lpdo0.X)
-  noprime!(lpdo)
-  N = length(lpdo)
-  M = ITensor[]
-  prime!(lpdo[1]; tags = "Site")
-  prime!(lpdo[1]; tags = "Link")
-  tmp = lpdo[1] * noprime(dag(lpdo[1])) 
-  Cdn = combiner(commonind(tmp,lpdo[2]),commonind(tmp,lpdo[2])')
-  push!(M, tmp * Cdn)
-
-  for j in 2:N-1
-    prime!(lpdo[j]; tags = "Site")
-    prime!(lpdo[j]; tags = "Link")
-    tmp = lpdo[j] * noprime(dag(lpdo[j]))
-    Cup = Cdn
-    Cdn = combiner(commonind(tmp,lpdo[j+1]),commonind(tmp,lpdo[j+1])')
-    push!(M, tmp * Cup * Cdn)
-  end
-  prime!(lpdo[N]; tags = "Site")
-  prime!(lpdo[N]; tags = "Link")
-  tmp = lpdo[N] * noprime(dag(lpdo[N])) 
-  Cup = Cdn
-  push!(M, tmp * Cdn)
-  rho = MPO(M)
-  
-  noprime!(lpdo)
-  return rho
+function MPO(L::LPDO{MPO}; kwargs...)
+  X = L.X
+  X′ = prime(X; tags = !purifier_tags(L))
+  return *(X′, dag(X); kwargs...)
 end
+
+# TODO: implement in terms of `outer(L.X', L.X; kwargs...)
+# It could also maybe just call `MPO(::LPDO{MPO})` if it
+# is generic enough.
+ITensors.MPO(L::LPDO{MPS}; kwargs...) = MPO(L.X; kwargs...)
 
 function HDF5.write(parent::Union{HDF5.File,HDF5.Group},
                     name::AbstractString,

@@ -66,5 +66,6 @@ productoperator(N::Int) = productoperator(siteinds("Qubit", N))
 productoperator(M::Union{MPS, MPO, LPDO}) = 
   productoperator(hilbertspace(M))
 
-productoperator(sites::Vector{<:Index}) = MPO(sites, "Id")
+productoperator(sites::Vector{<:Index}) =
+  MPO([op("Id", s) for s in sites])
 

@@ -43,7 +43,7 @@ for the Choi matrix.
 function nll(L::LPDO{MPO},data::Matrix{Pair{String,Pair{String, Int}}})
   # if the MPO in LPDO{MPO} is a unitary MPO (instead of a MPO with Kraus index)
   # then transform the MPO to MPS and run the nll on that
-  #if !hastags(L.X[1],"Purifier")
+  #if !hastags(L.X[1], default_purifier_tags)
   #  return nll(_UnitaryMPOtoMPS(copy(L.X)), data)
   #end
   
@@ -237,7 +237,7 @@ function gradnll(L::LPDO{MPO},
 
   kraus = Index[]
   for j in 1:N
-    push!(kraus,firstind(ρ[j], "Purifier"))
+    push!(kraus,firstind(ρ[j], default_purifier_tags))
   end
 
   nthreads = Threads.nthreads()
@@ -482,28 +482,28 @@ function grad_TrΦ²(Λ::LPDO{MPO}; sqrt_localnorms = nothing)
   R = Vector{ITensor}(undef, N)
   L[1] = bra(Λ,1) * noprime(ket(Λ,1),tags="Output")
   L[1] = L[1] * prime(bra(Λ,1)',"Link")
-  L[1] = L[1] * prime(prime(noprime(ket(Λ,1),"Input"),2,"Link"),"Purifier")
+  L[1] = L[1] * prime(prime(noprime(ket(Λ,1),"Input"),2,"Link"), default_purifier_tags)
   for j in 2:N-1
     L[j] = L[j-1] * bra(Λ,j)
     L[j] = L[j] * noprime(ket(Λ,j),tags="Output") 
     L[j] = L[j] * prime(bra(Λ,j)',"Link")
-    L[j] = L[j] * prime(prime(noprime(ket(Λ,j),"Input"),2,"Link"),"Purifier") 
+    L[j] = L[j] * prime(prime(noprime(ket(Λ,j),"Input"),2,"Link"), default_purifier_tags) 
   end
   trΦ² = L[N-1] * bra(Λ,N)
   trΦ² = trΦ² * noprime(ket(Λ,N),tags="Output")
   trΦ² = trΦ² * prime(bra(Λ,N)',"Link") 
-  trΦ² = trΦ² * prime(prime(noprime(ket(Λ, N),"Input"),2,"Link"),"Purifier") 
+  trΦ² = trΦ² * prime(prime(noprime(ket(Λ, N),"Input"),2,"Link"), default_purifier_tags) 
   trΦ² = real(trΦ²[]) 
   
   R[N] = bra(Λ,N) * noprime(ket(Λ,N),tags="Output")
   R[N] = R[N] * prime(bra(Λ,N)',"Link") 
-  R[N] = R[N] * prime(prime(noprime(ket(Λ, N),"Input"),2,"Link"),"Purifier") 
+  R[N] = R[N] * prime(prime(noprime(ket(Λ, N),"Input"),2,"Link"), default_purifier_tags) 
   
   for j in reverse(2:N-1)
     R[j] = R[j+1] * bra(Λ,j)
     R[j] = R[j] * noprime(ket(Λ,j),tags="Output") 
     R[j] = R[j] * prime(bra(Λ,j)',"Link")
-    R[j] = R[j] * prime(prime(noprime(ket(Λ,j),"Input"),2,"Link"),"Purifier") 
+    R[j] = R[j] * prime(prime(noprime(ket(Λ,j),"Input"),2,"Link"), default_purifier_tags) 
   end
   
   gradients = Vector{ITensor}(undef, N)
@@ -649,7 +649,7 @@ function tomography(train_data::Matrix{Pair{String,Pair{String, Int}}}, L::LPDO;
       end
       
       if model isa LPDO{MPS}
-        update!(observer!, LPDO(choi_mps_to_unitary_mpo(normalized_model)), best_model, tot_time, train_loss, test_loss)
+        update!(observer!, choi_mps_to_unitary_mpo(normalized_model), best_model, tot_time, train_loss, test_loss)
       else
         update!(observer!,normalized_model, best_model,tot_time, train_loss, test_loss)
       end

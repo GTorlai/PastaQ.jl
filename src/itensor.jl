@@ -1,3 +1,8 @@
+#
+# Functions defined for ITensors.jl objects
+# that may be moved to ITensors.jl
+#
+
 
 #
 # imports.jl
@@ -7,12 +12,28 @@ import Base:
   isapprox,
   eltype
 
-#
-# Functions defined for ITensors.jl objects
-# that may be moved to ITensors.jl
+using ITensors: AbstractMPS
+
+######################################################
+# TagSet
 #
 
-using ITensors: AbstractMPS
+function random_tags()
+  ts = TagSet()
+  ntags = length(ts.data)
+  tagtype = eltype(ts.data)
+  for n in 1:length(ts.data)
+    ts = addtags(ts, ITensors.Tag(rand(tagtype)))
+  end
+  return ts
+end
+
+######################################################
+# IndexSet
+#
+
+has_indpairs(is::IndexSet, plevs::Pair{Int, Int}) =
+  any(i -> hasplev(i, first(plevs)) && setprime(i, last(plevs)) in is, is)
 
 ######################################################
 # ITensor
@@ -28,6 +49,14 @@ end
 ######################################################
 # MPS
 #
+
+## # For |ψ⟩ and |ϕ⟩, return |ψ⟩⊗⟨ϕ|
+## function ITensors.outer(ψ::MPS, ϕ::MPS; kwargs...)
+##   # XXX: implement by converting to MPOs and
+##   # contracting the MPOs?
+##   @assert ψ == ϕ'
+##   return MPO(ϕ; kwargs...)
+## end
 
 eltype(ψ::MPS) = ITensor
 eltype(ψ::MPO) = ITensor
