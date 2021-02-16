@@ -11,7 +11,7 @@ Generate error chains
 function errorchain(nqubits::Int64; error_probability::NamedTuple = (pX = 0.0, pY = 0.0, pZ = 0.0)) 
   pX, pY, pZ = error_probability[:pX], error_probability[:pY], error_probability[:pZ]
   pX+pY+pZ > 1.0 && error("total error rates greater than 1")
-  return StatsBase.sample([[0,0],[1,0],[0,1],[1,1]], StatsBase.Weights([1-pX-pY-pZ, pX, pZ, pY]), nqubits)
+  return StatsBase.sample([[0,0], [1,0], [0,1], [1,1]], StatsBase.Weights([1-pX-pY-pZ, pX, pZ, pY]), nqubits)
 end
 
 errorchain(code::SurfaceCode; kwargs...) = 
@@ -22,7 +22,6 @@ errorchains(nqubits::Int64, nchains::Int64; kwargs...) =
 
 errorchains(code::SurfaceCode, nchains::Int; kwargs...) = 
   errorchains(nqubits(code), nchains; kwargs...)
-
 
 """
 Generate a pauli chain from a qubit support:
@@ -50,15 +49,18 @@ Generate a logical operator for the Surface code
 """
 function logicaloperator(code::SurfaceCode, logical::String)
   logical == "I" && return [[0,0] for _ in 1:nqubits(code)] 
+  
   Lx = [n in [y*(2*code.d-1)+2 for y in 0:code.d-1] ? 1 : 0 for n in 1:nqubits(code)]
   Lx = topauli(nqubits(code), [y*(2*code.d-1)+2 for y in 0:code.d-1])
   logical == "X" && return combine_pauliXZ(Lx,zeros(Int64,nqubits(code)))
+  
   Lz = topauli(nqubits(code), [2*code.d-1+x for x in 1:code.d])
   logical == "Z" && return combine_pauliXZ(zeros(Int64,nqubits(code)), Lz)
+  
   logical == "Y" && return combine_pauliXZ(Lx,Lz)
+  
   error("Logical Pauli operator not recognized")
 end
-
 
 """
 Measure the wilson loops
@@ -222,7 +224,6 @@ function htensor(nlegsX::Int64, nlegsZ::Int64, error_probability::NamedTuple)
   return T
 end
 
-
 function decode(S::Vector, code::SurfaceCode; error_probability::NamedTuple)
   nthreads = Threads.nthreads()
   d = code.d
@@ -230,108 +231,119 @@ function decode(S::Vector, code::SurfaceCode; error_probability::NamedTuple)
   cosets = ["I","X","Z","Y"]
   recoveries = [[] for _ in 1:nthreads] 
   # Pre-compute each dense tensor
+  # TODO: precompute itensors for all 20 configurations of the 5 tensors (4x5) 
+  # Pre-allocate memory of two MPS and 1 MPO
+  # only change boundary tensors when switching coset
   V      = vtensor(error_probability)
   H_XZ   = htensor(1,1,error_probability)
   H_XXZ  = htensor(2,1,error_probability)
   H_XZZ  = htensor(1,2,error_probability)
   H_XXZZ = htensor(2,2,error_probability)
   
-  #nthreads = Threads.nthreads()
-
+  nthreads = Threads.nthreads()
+  sites = siteinds("Qubit", N)
+  linksΨ = [Index(2; tags="Link, l=$i") for i in 1:N-1]
+  linksΛ  = [Index(2; tags="Link, l=$i") for i in 1:N-1]
+  ϕ = Vector{MPS}()
+  Ψ = Vector{MPS}()
+  Λ = Vector{MPO}()
+  for nthread in 1:nthreads
+    M = ITensor[]; U = ITensor[]; X = ITensor[]
+    push!(M, ITensor(zeros(2,2), sites[1], linksΨ[1])) 
+    push!(X, ITensor(zeros(2,2), sites[1], linksΨ[1])) 
+    push!(U, ITensor(zeros(2,2,2), sites[1], sites[1]', linksΛ[1])) 
+    for j in 2:N-1
+      push!(M, ITensor(zeros(2,2,2), linksΨ[j-1], sites[j], linksΨ[j]))
+      push!(X, ITensor(zeros(2,2,2), linksΨ[j-1], sites[j], linksΨ[j]))
+      push!(U, ITensor(zeros(2,2,2,2), linksΛ[j-1], sites[j], sites[j]', linksΛ[j]))
+    end
+    push!(X, ITensor(zeros(2,2), sites[N], linksΨ[N-1])) 
+    push!(M, ITensor(zeros(2,2), sites[N], linksΨ[N-1])) 
+    push!(U, ITensor(zeros(2,2,2), sites[N], sites[N]', linksΛ[N-1])) 
+    push!(ϕ, MPS(M))
+    push!(Ψ, MPS(M))
+    push!(Λ, MPO(U))
+  end
+  
   # loop over syndromes
   Threads.@threads for k in 1:length(S)
     s = S[k]
     nthread = Threads.threadid()
+    #println(k)
     
     # reference pauli
     f = referencepauli(s, code)
-    
     coset_logits = [] 
-    
     # loop over cosets
     for coset in cosets 
-      s = siteinds("Qubit", N)
       pauli = f ⊙ logicaloperator(code, coset) 
       
-      # Boundary MPS
-      M = ITensor[]
-      l = [Index(2; tags="Link, l=$i") for i in 1:N-1]
-      
-      locE = pauli[Q_at(1,1,d)] .+ 1
-      push!(M, ITensor(H_XZ[locE...,:,:,:], s[1], l[1])) 
-      for j in 2:N-1
-        if isodd(j)
-          y = 2*d-1-(j-1); 
-          locE = pauli[Q_at(1,y,d)] .+ 1
-          push!(M, ITensor(H_XZZ[locE...,:,:,:], s[j], l[j-1],l[j]))
-        else
-          push!(M, δ(l[j-1], l[j], s[j]))
-        end
-      end
-      locE = pauli[Q_at(1,N,d)] .+ 1
-      push!(M, ITensor(H_XZ[locE...,:,:,:], s[N], l[N-1]))
-      Ψ = MPS(M) 
-      
-      for i in 2:N-1
-        l = [Index(2; tags="Link, l=$i") for i in 1:N-1]
-        M = ITensor[]
-        if iseven(i)
-          push!(M, δ(l[1],s[1],s[1]'))
-          for j in 2:N-1
-            if iseven(j)
-              y = 2*d-1-(j-1)
-              locE = pauli[Q_at(i,y,d)] .+ 1
-              push!(M, ITensor(V[locE...,:,:,:,:], l[j-1],l[j],s[j],s[j]'))
-            else
-              push!(M, δ(l[j-1], l[j], s[j], s[j]'))
-            end
-          end
-          push!(M, δ(l[N-1],s[N],s[N]'))
-        else
-          locE = pauli[Q_at(i,1,d)] .+ 1
-          push!(M, ITensor(H_XXZ[locE...,:,:,:], s[1], s[1]', l[1]))
-          for j in 2:N-1
-            if isodd(j)
-              y = 2*d-1-(j-1)
-              locE = pauli[Q_at(i,y,d)] .+ 1
-              push!(M, ITensor(H_XXZZ[locE...,:,:,:,:],s[j], s[j]', l[j-1], l[j]))
-            else
-              push!(M, δ(l[j-1], l[j], s[j], s[j]'))
-            end
-          end
-          locE = pauli[Q_at(i,N,d)] .+ 1
-          push!(M, ITensor(H_XXZ[locE...,:,:,:], s[N], s[N]', l[N-1]))
-        end
-        Λ = MPO(M)
-        Ψ = noprime(*(Λ, Ψ; method = "naive", maxdim = 6))
-      end
-      
-      M = ITensor[]
-      l = [Index(2; tags="Link, l=$i") for i in 1:N-1]
-      
+      links = linkinds(ϕ[nthread])
       locE = pauli[Q_at(N,1,d)] .+ 1
-      push!(M, ITensor(H_XZ[locE...,:,:,:], s[1], l[1])) 
+      ϕ[nthread][1] = ITensor(H_XZ[locE...,:,:], sites[1], links[1])
+      
       for j in 2:N-1
         if isodd(j)
-          y = 2*d-1-(j-1); 
-          locE = pauli[Q_at(N,y,d)] .+ 1
-          push!(M, ITensor(H_XZZ[locE...,:,:,:], s[j], l[j-1],l[j]))
+          locE = pauli[Q_at(N,j,d)] .+ 1
+          ϕ[nthread][j] = ITensor(H_XZZ[locE...,:,:,:], sites[j], links[j-1],links[j])
         else
-          push!(M, δ(l[j-1], l[j], s[j]))
+          ϕ[nthread][j] = δ(links[j-1], links[j], sites[j])
         end
       end
       locE = pauli[Q_at(N,N,d)] .+ 1
-      push!(M, ITensor(H_XZ[locE...,:,:,:], s[N], l[N-1]))
-      Φ = MPS(M) 
+      ϕ[nthread][N] = ITensor(H_XZ[locE...,:,:], sites[N], links[N-1])
       
-      #coset_probability =  inner(Ψ,Φ)
-      #push!(coset_probabilities, coset_probability)
-      coset_logit =  inner(Ψ,Φ)
+      Ψ[nthread] = copy(ϕ[nthread])
+      for i in reverse(2:N-1)
+        links = linkinds(Λ[nthread])
+        if iseven(i)
+          Λ[nthread][1] = δ(links[1],sites[1],sites[1]')
+          for j in 2:N-1
+            if iseven(j)
+              locE = pauli[Q_at(i,j,d)] .+ 1
+              Λ[nthread][j] = ITensor(V[locE...,:,:,:,:], links[j-1],links[j],sites[j],sites[j]')
+            else
+              Λ[nthread][j] = δ(links[j-1], links[j], sites[j], sites[j]')
+            end
+          end
+          Λ[nthread][N] = δ(links[N-1],sites[N],sites[N]')
+        else
+          locE = pauli[Q_at(i,1,d)] .+ 1
+          Λ[nthread][1] = ITensor(H_XXZ[locE...,:,:,:], sites[1], sites[1]', links[1])
+          for j in 2:N-1
+            if isodd(j)
+              #y = 2*d-1-(j-1)
+              locE = pauli[Q_at(i,j,d)] .+ 1
+              Λ[nthread][j] = ITensor(H_XXZZ[locE...,:,:,:,:],sites[j], sites[j]', links[j-1], links[j])
+            else
+              Λ[nthread][j] = δ(links[j-1], links[j], sites[j], sites[j]')
+            end
+          end
+          locE = pauli[Q_at(i,N,d)] .+ 1
+          Λ[nthread][N] = ITensor(H_XXZ[locE...,:,:,:], sites[N], sites[N]', links[N-1])
+        end
+        Ψ[nthread] = noprime(*(Λ[nthread], Ψ[nthread]; method = "naive", maxdim = 6))
+      end
+      
+      # Boundary MPS
+      links = linkinds(ϕ[nthread]) 
+      locE = pauli[Q_at(1,1,d)] .+ 1
+      ϕ[nthread][1] = ITensor(H_XZ[locE...,:,:], sites[1], links[1]) 
+      for j in 2:N-1
+        if isodd(j)
+          locE = pauli[Q_at(1,j,d)] .+ 1
+          ϕ[nthread][j] = ITensor(H_XZZ[locE...,:,:,:], sites[j], links[j-1],links[j])
+        else
+          ϕ[nthread][j] = δ(links[j-1], links[j], sites[j])
+        end
+      end
+      locE = pauli[Q_at(1,N,d)] .+ 1
+      ϕ[nthread][N] = ITensor(H_XZ[locE...,:,:], sites[N], links[N-1])
+
+      coset_logit = inner(Ψ[nthread],ϕ[nthread])
       push!(coset_logits, coset_logit)
     end
-    #@show nthread,coset_probabilities
     ml_coset = argmax(coset_logits)
-    #ml_coset = argmax(coset_probabilities)
     logical_op = logicaloperator(code, cosets[ml_coset])
     recovery = f ⊙ logical_op
     push!(recoveries[nthread], recovery)
@@ -343,7 +355,6 @@ function failure_rate(R::Vector, E::Vector, code::SurfaceCode)
   f_rate = 0.0
   ndata = length(E)
   @assert length(E) == length(R)
-  
   for i in 1:length(E)
     net_pauli = E[i] ⊙ R[i] 
     wX,wZ = Wilsonloops(net_pauli, code)
@@ -355,22 +366,22 @@ end
 
 
 Random.seed!(1234)
-d = 15
+d = 9
 code = SurfaceCode(d)
-pX = 0.00
-pY = 0.00
-pZ = 0.10
-probs = (pX = pX, pY = pY, pZ = pZ)
-nsamples = 100
-#E, S = getsamples(code, nsamples; error_probability = probs)
+#pX = 0.113
+#pY = 0.00
+#pZ = 0.00
+#probs = (pX = pX, pY = pY, pZ = pZ)
+p = 0.19
+probs = (pX = p/3, pY = p/3, pZ = p/3)
+nsamples = 1000
 
 t = @elapsed begin
   E, S = getsamples(code, nsamples; error_probability = probs)
   recoveries = decode(S,code;error_probability = probs)  
 end
-@printf("Total time = %.3f sec",t)
-#@show logical_error_rate
-
+@printf("Total time = %.3f sec\n",t)
+@printf("Logical failure rate: %.3f ",failure_rate(recoveries,E,code))
 
 
 #nsamples = 1000
@@ -383,145 +394,4 @@ end
 #  local logical_error_rate = failure_rate(recoveries,E,code)
 #  @printf("p = %.2f  :  Logical failure rate = %.3f\n",p,logical_error_rate)
 #end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#function configure(d::Int64; error_probability::NamedTuple = (pX = 0.0, pY = 0.0, pZ = 0.0))
-#  #println("Initializing the tensors...")
-#  N = 2*d-1 
-#  s = siteinds("Qubit", N)
-#  l = [[Index(2; tags="Link, l=$l") for l in 1:N-1] for _ in 1:N]
-#  
-#  # left MPS boundary
-#  left = []
-#  push!(left, htensor(l[1][1], s[1]; error_probability = error_probability))
-#  for n in 2:N-1
-#    if iseven(n)
-#      push!(left, δ(l[1][n-1], l[1][n], s[n]))
-#    else
-#      #q = Q_at(1,y,d)
-#      push!(left, htensor(l[1][n-1], l[1][n], s[n]; error_probability = error_probability))
-#    end
-#  end
-#  push!(left, htensor(l[1][N-1], s[N]; error_probability = error_probability))
-#  
-#  bulk = []
-#  for i in 2:N-1
-#    layer = []
-#    if iseven(i)
-#      push!(layer, δ(s[1],s[1]',l[i][1]))
-#      for n in 2:N-1
-#        if iseven(n)
-#          push!(layer, vtensor(s[n], s[n]', l[i][n-1], l[i][n]; error_probability = error_probability))
-#        else
-#          push!(layer, δ(s[n],s[n]',l[i][n-1], l[i][n]))
-#        end
-#      end
-#      push!(layer, δ(s[N],s[N]',l[i][N-1]))
-#    else
-#      push!(layer, htensor(l[i][1], s[1], s[1]'; error_probability = error_probability))
-#      for n in 2:N-1
-#        if iseven(n)
-#          push!(layer, δ(l[i][n-1], l[i][n], s[n], s[n]'))
-#        else
-#          push!(layer, htensor(l[i][n-1], l[i][n], s[n], s[n]'; error_probability = error_probability))
-#        end
-#      end
-#      push!(layer, htensor(l[i][N-1], s[N], s[N]'; error_probability = error_probability))
-#    end
-#    push!(bulk, layer)
-#  end
-#  
-#  right = []
-#  push!(right, htensor(l[N][1], s[1]; error_probability = error_probability))
-#  for n in 2:N-1
-#    if iseven(n)
-#      push!(right, δ(l[N][n-1], l[N][n], s[n]))
-#    else
-#      push!(right, htensor(l[N][n-1], l[N][n], s[n]; error_probability = error_probability))
-#    end
-#  end
-#  push!(right, htensor(l[N][N-1], s[N]; error_probability = error_probability))
-#  return left, bulk, right
-#end
-#
-#
-#function gettensors(f::Vector{<:Array}, L::Vector, B::Vector, R::Vector)
-#  #println("Setting up tensor given the reference pauli...")
-#  N = length(L)
-#  d = (N+1)÷2 
-#  # Select the tensor elements
-#  M = ITensor[]
-#  for j in 1:N
-#    if isodd(j)
-#      y = 2*d-1-(j-1)
-#      localerror = f[Q_at(1,y,d)] .+ 1
-#      push!(M, L[j][localerror...])
-#    else
-#      push!(M, L[j])
-#    end
-#  end
-#  ΨL = MPS(M) 
-#  Λ = []
-#  for i in 2:N-1
-#    M = ITensor[]
-#    if iseven(i)
-#      for j in 1:N
-#        if iseven(j)
-#          y = 2*d-1-(j-1)
-#          localerror = f[Q_at(i,y,d)] .+ 1
-#          push!(M, B[i-1][j][localerror...])
-#        else
-#          push!(M, B[i-1][j])
-#        end
-#      end
-#    else
-#      for j in 1:N
-#        if isodd(j)
-#          y = 2*d-1-(j-1)
-#          localerror = f[Q_at(i,y,d)] .+ 1
-#          push!(M, B[i-1][j][localerror...])
-#        else
-#          push!(M, B[i-1][j])
-#        end
-#      end
-#    end
-#    push!(Λ, MPO(M))
-#  end
-#  
-#  M = ITensor[]
-#  for j in 1:N
-#    if isodd(j)
-#      y = 2*d-1-(j-1)
-#      localerror = f[Q_at(N,y,d)] .+ 1
-#      push!(M, R[j][localerror...])
-#    else
-#      push!(M, R[j])
-#    end
-#  end
-#  ΨR = MPS(M) 
-#  return ΨL, Λ, ΨR
-#end
-#
 
