@@ -175,8 +175,7 @@ function printlattice!(p::Plots.Plot, code::SurfaceCode, kwargs...)
 end
 
 printlattice(code::SurfaceCode; title::String = "") =
-  printlattice!(plot([0],[0],color=:black, legend=false, aspect_ratio=:equal,
-    background_color=:transparent, ticks=false, axis=false,foreground_color=:black,title=title), code)
+  printlattice!(plot([0],[0],color=:black, legend=false, aspect_ratio=:equal,ticks=false, axis=false,title=title), code)
 
 
 function printTN(code::SurfaceCode; title::String = "") 

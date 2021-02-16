@@ -5,8 +5,20 @@ using LinearAlgebra
 import StatsBase
 using Printf
 import ITensors: ⊙
+
 """
-Generate error chains
+Addition mod 2
+"""
+function ⊙(A::Vector{<:Array{Int64}{1}},B::Vector{<:Array{Int64}{1}}) 
+  length(A) ≠ length(B) && error("pauli have different lengths")
+  return [A[j] .⊻ B[j] for j in 1:length(A)]
+end
+
+⊙(A::Vector{Int64}, B::Vector{Int64}) = A .⊻ B
+⊙(A::Int, B::Int) = A ⊻ B
+
+"""
+Generage a `N`-qubit Pauli error with probabilities `pX`, `pY` and `pZ`.
 """
 function errorchain(nqubits::Int64; error_probability::NamedTuple = (pX = 0.0, pY = 0.0, pZ = 0.0)) 
   pX, pY, pZ = error_probability[:pX], error_probability[:pY], error_probability[:pZ]
@@ -63,24 +75,14 @@ function logicaloperator(code::SurfaceCode, logical::String)
   error("Logical Pauli operator not recognized")
 end
 
-"""
-Measure the wilson loops
-"""
-function Wilsonloops(pauli::Vector{<:Array}, code::SurfaceCode)
-  wX = sum(first.(pauli)[[2*code.d-1+x for x in 1:code.d]]) % 2
-  wZ = sum(last.(pauli)[[y*(2*code.d-1)+2 for y in 0:code.d-1]]) % 2
-  return [wX,wZ]
+function logicaloperator(code::SurfaceCode, logical::Array{Int64})
+  logical == [0,0] && return logicaloperator(code,"I")
+  logical == [1,0] && return logicaloperator(code,"X")
+  logical == [0,1] && return logicaloperator(code,"Z")
+  logical == [1,1] && return logicaloperator(code,"Y")
+  error("logical operator not recognized")
 end
 
-"""
-Combine two pauli operators
-"""
-function ⊙(A::Vector{<:Array{Int64}{1}},B::Vector{<:Array{Int64}{1}}) 
-  length(A) ≠ length(B) && error("pauli have different lengths")
-  return [A[j] .⊻ B[j] for j in 1:length(A)]
-end
-
-⊙(A::Vector{Int64}, B::Vector{Int64}) = A .⊻ B
 
 """
 Extract syndrome
@@ -94,10 +96,10 @@ function syndrome(error::Vector{<:Array{Int64}{1}}, code::SurfaceCode)
   
   # trigger the stabilizers
   for q in Zerrored_qubits
-    Xsyndrome .⊻= [n in code.SonQ[q][:X] ? 1 : 0 for n in 1:length(Xsyndrome)] 
+    Xsyndrome = Xsyndrome ⊙ [n in code.SonQ[q][:X] ? 1 : 0 for n in 1:length(Xsyndrome)] 
   end
   for q in Xerrored_qubits
-    Zsyndrome .⊻= [n in code.SonQ[q][:Z] ? 1 : 0 for n in 1:length(Zsyndrome)] 
+    Zsyndrome = Zsyndrome ⊙ [n in code.SonQ[q][:Z] ? 1 : 0 for n in 1:length(Zsyndrome)] 
   end
   return (X = Xsyndrome, Z = Zsyndrome)
 end
@@ -116,16 +118,23 @@ function getsamples(code::SurfaceCode, nsamples::Int64; kwargs...)
 end
 
 """
+Measure the wilson loops
+"""
+function Wilsonloops(pauli::Vector{<:Array}, code::SurfaceCode)
+  wX = sum(first.(pauli)[[2*code.d-1+x for x in 1:code.d]]) % 2
+  wZ = sum(last.(pauli)[[y*(2*code.d-1)+2 for y in 0:code.d-1]]) % 2
+  return [wX,wZ]
+end
+
+"""
 Return the Pauli operator that moves a charge at a given location to the 
 closest smooth boundary
 """
 function movecharge(index::Int, code::SurfaceCode)
-  pauli = zeros(Int,nqubits(code))
   x0,y0 = code.Xcoord[index]
-  chargeline = (x0 > code.d-1 ? Q_at([(x+1,y0,code.d) for x in x0:2:2*(code.d-1)]) :
+  chargepath = (x0 > code.d-1 ? Q_at([(x+1,y0,code.d) for x in x0:2:2*(code.d-1)]) :
                                 Q_at([(x-1,y0,code.d) for x in x0:-2:2]))
-  pauli[chargeline] .=1
-  return pauli
+  return topauli(nqubits(code), chargepath)
 end
 
 """
@@ -133,12 +142,10 @@ Return the Pauli operator that moves a flux at a given location to the
 closest rough boundary
 """
 function moveflux(index::Int, code::SurfaceCode)
-  pauli = zeros(Int,nqubits(code))
   x0,y0 = code.Zcoord[index]
-  fluxline = (y0 > code.d-1 ?  Q_at([(x0,y+1,code.d) for y in y0:2:2*(code.d-1)]) : 
+  fluxpath = (y0 > code.d-1 ?  Q_at([(x0,y+1,code.d) for y in y0:2:2*(code.d-1)]) : 
                                Q_at([(x0,y-1,code.d) for y in y0:-2:2]))
-  pauli[fluxline] .=1
-  return pauli
+  return topauli(nqubits(code), fluxpath)
 end
 
 """
@@ -170,19 +177,14 @@ function vtensor(error_probability::NamedTuple)
   for pauli in paulis
     for i in 0:1<<4-1
       bits = digits(i, base=2, pad=4) |> reverse
+      stabs = [bits[1] ⊙ bits[2], bits[3] ⊙ bits[4]]
+      
       x = vcat(pauli,bits)
-      stabs = [bits[1] ⊻ bits[2], bits[3] ⊻ bits[4]]
-      if pauli .⊻ stabs == [0,0]
-        T[(x.+1)...] = pI
-      elseif pauli .⊻ stabs == [0,1] 
-        T[(x.+1)...] = pZ
-      elseif pauli .⊻ stabs == [1,0]
-        T[(x.+1)...] = pX
-      elseif pauli .⊻ stabs == [1,1]
-        T[(x.+1)...] = pY
-      else
-        error("something went wrong...")
-      end
+      T[(x.+1)...] = (pauli ⊙ stabs == [0,0] ? pI : 
+                      pauli ⊙ stabs == [0,1] ? pZ :
+                      pauli ⊙ stabs == [1,0] ? pX :
+                      pauli ⊙ stabs == [1,1] ? pY :
+                      error("something went wrong..."))
     end
   end
   return T
@@ -197,29 +199,19 @@ function htensor(nlegsX::Int64, nlegsZ::Int64, error_probability::NamedTuple)
   for pauli in paulis
     for i in 0:1<<numlegs-1
       bits = digits(i, base=2, pad=numlegs) |> reverse
+      
+      stabs = ((nlegsX,nlegsZ) == (1,1) ? bits :
+               (nlegsX,nlegsZ) == (2,1) ? [bits[1] ⊙ bits[2],  bits[3]] : 
+               (nlegsX,nlegsZ) == (1,2) ? [bits[1],  bits[2] ⊙ bits[3]] :
+               (nlegsX,nlegsZ) == (2,2) ? [bits[1] ⊙ bits[2],  bits[3] ⊙ bits[4]] :
+               error("something went wrong..."))
+      
       x = vcat(pauli,bits)
-      if nlegsX == 1 && nlegsZ == 1
-        stabs = bits
-      elseif (nlegsX == 2) && (nlegsZ == 1)
-        stabs = [bits[1] ⊻ bits[2], bits[3]]
-      elseif nlegsX == 1 && nlegsZ == 2
-        stabs = [bits[1], bits[2] ⊻ bits[3]]
-      elseif nlegsX == 2 && nlegsZ == 2
-        stabs = [bits[1] ⊻ bits[2], bits[3] ⊻ bits[4]]
-      else
-        error("something went wrong...")
-      end
-      if pauli .⊻ stabs == [0,0]
-        T[(x.+1)...] = pI
-      elseif pauli .⊻ stabs == [0,1] 
-        T[(x.+1)...] = pZ
-      elseif pauli .⊻ stabs == [1,0]
-        T[(x.+1)...] = pX
-      elseif pauli .⊻ stabs == [1,1]
-        T[(x.+1)...] = pY
-      else
-        error("something went wrong...")
-      end
+      T[(x.+1)...] = (pauli ⊙ stabs == [0,0] ? pI : 
+                      pauli ⊙ stabs == [0,1] ? pZ :
+                      pauli ⊙ stabs == [1,0] ? pX :
+                      pauli ⊙ stabs == [1,1] ? pY :
+                      error("something went wrong..."))
     end
   end
   return T
@@ -233,7 +225,6 @@ function decode(S::Vector, code::SurfaceCode; error_probability::NamedTuple)
   recoveries = [[] for _ in 1:nthreads] 
   # Pre-compute each dense tensor
   # TODO: precompute itensors for all 20 configurations of the 5 tensors (4x5) 
-  # Pre-allocate memory of two MPS and 1 MPO
   # only change boundary tensors when switching coset
   V      = vtensor(error_probability)
   H_XZ   = htensor(1,1,error_probability)
@@ -262,7 +253,6 @@ function decode(S::Vector, code::SurfaceCode; error_probability::NamedTuple)
     push!(Ψ, MPS(M))
     push!(Λ, MPO(U))
   end
-  
   # loop over syndromes
   Threads.@threads for k in 1:length(S)
     s = S[k]
@@ -272,14 +262,15 @@ function decode(S::Vector, code::SurfaceCode; error_probability::NamedTuple)
     # reference pauli
     f = referencepauli(s, code)
     coset_logits = [] 
-    # loop over cosets
-    for coset in cosets 
-      pauli = f ⊙ logicaloperator(code, coset) 
+    
+    # loop over the Z logical operator
+    for cosetZ in [0,1] 
+      pauli = f ⊙ logicaloperator(code, [0,cosetZ]) 
       
+      #build right boundary
       links = linkinds(ϕ[nthread])
       locE = pauli[Q_at(N,1,d)] .+ 1
       ϕ[nthread][1] = ITensor(H_XZ[locE...,:,:], sites[1], links[1])
-      
       for j in 2:N-1
         if isodd(j)
           locE = pauli[Q_at(N,j,d)] .+ 1
@@ -292,6 +283,8 @@ function decode(S::Vector, code::SurfaceCode; error_probability::NamedTuple)
       ϕ[nthread][N] = ITensor(H_XZ[locE...,:,:], sites[N], links[N-1])
       
       Ψ[nthread] = copy(ϕ[nthread])
+      
+      # contract the bulk
       for i in reverse(2:N-1)
         links = linkinds(Λ[nthread])
         if iseven(i)
@@ -323,24 +316,28 @@ function decode(S::Vector, code::SurfaceCode; error_probability::NamedTuple)
         Ψ[nthread] = noprime(*(Λ[nthread], Ψ[nthread]; method = "naive", maxdim = 6))
       end
       
-      # Boundary MPS
-      links = linkinds(ϕ[nthread]) 
-      locE = pauli[Q_at(1,1,d)] .+ 1
-      ϕ[nthread][1] = ITensor(H_XZ[locE...,:,:], sites[1], links[1]) 
-      for j in 2:N-1
-        if isodd(j)
-          locE = pauli[Q_at(1,j,d)] .+ 1
-          ϕ[nthread][j] = ITensor(H_XZZ[locE...,:,:,:], sites[j], links[j-1],links[j])
-        else
-          ϕ[nthread][j] = δ(links[j-1], links[j], sites[j])
+      for cosetX in [0,1]
+        pauliL = pauli ⊙ logicaloperator(code, [cosetX,0])
+        # Boundary MPS
+        links = linkinds(ϕ[nthread]) 
+        locE = pauliL[Q_at(1,1,d)] .+ 1
+        ϕ[nthread][1] = ITensor(H_XZ[locE...,:,:], sites[1], links[1]) 
+        for j in 2:N-1
+          if isodd(j)
+            locE = pauliL[Q_at(1,j,d)] .+ 1
+            ϕ[nthread][j] = ITensor(H_XZZ[locE...,:,:,:], sites[j], links[j-1],links[j])
+          else
+            ϕ[nthread][j] = δ(links[j-1], links[j], sites[j])
+          end
         end
-      end
-      locE = pauli[Q_at(1,N,d)] .+ 1
-      ϕ[nthread][N] = ITensor(H_XZ[locE...,:,:], sites[N], links[N-1])
+        locE = pauliL[Q_at(1,N,d)] .+ 1
+        ϕ[nthread][N] = ITensor(H_XZ[locE...,:,:], sites[N], links[N-1])
 
-      coset_logit = inner(Ψ[nthread],ϕ[nthread])
-      push!(coset_logits, coset_logit)
+        coset_logit = inner(Ψ[nthread],ϕ[nthread])
+        push!(coset_logits, coset_logit)
+      end
     end
+    
     ml_coset = argmax(coset_logits)
     logical_op = logicaloperator(code, cosets[ml_coset])
     recovery = f ⊙ logical_op
@@ -373,7 +370,7 @@ code = SurfaceCode(d)
 #probs = (pX = pX, pY = pY, pZ = pZ)
 p = 0.19
 probs = (pX = p/3, pY = p/3, pZ = p/3)
-nsamples = 1000
+nsamples = 100
 
 t = @elapsed begin
   E, S = getsamples(code, nsamples; error_probability = probs)
