@@ -191,95 +191,84 @@ include("decoder.jl")
 #
 #end
 
-#@testset "v tensors" begin
-#  d = 15
-#  code = SurfaceCode(d)
-#  pX = 0.05
-#  pY = 0.01
-#  pZ = 0.15
-#  pI = 1 - pX - pY - pZ
-#  probs = (pX = pX, pY = pY, pZ = pZ)  
-#  x = Index(2, tags = "PauliX")
-#  z = Index(2, tags = "PauliZ")
-#  q = Index(2, tags = "Qubit")
-#  l1 = Index(2, tags = "Link,l=1")
-#  l2 = Index(2, tags = "Link,l=2")
-#  
-#  #t = array(vtensor(x,z,q,q',l1,l2; error_probability = probs))
-#  V = vtensor(q,q',l1,l2;  error_probability = probs)
-#  for (xU, xD, zL, zR) in Iterators.product(0:1,0:1,0:1,0:1)
-#    for (X,Z) in Iterators.product(0:1,0:1)
-#      el = ((xU⊻xD⊻X == 0) && (zL⊻zR⊻Z == 0) ? pI :
-#            (xU⊻xD⊻X == 1) && (zL⊻zR⊻Z == 0) ? pX :
-#            (xU⊻xD⊻X == 0) && (zL⊻zR⊻Z == 1) ? pZ :
-#                                       pY)
-#      @test array(V[X+1,Z+1])[xU+1,xD+1,zL+1,zR+1] ≈ el
-#    end
-#  end
-#end
-#@testset "h tensors" begin
-#  d = 15
-#  code = SurfaceCode(d)
-#  pX = 0.05
-#  pY = 0.01
-#  pZ = 0.15
-#  pI = 1 - pX - pY - pZ
-#  probs = (pX = pX, pY = pY, pZ = pZ)  
-#  x = Index(2, tags = "PauliX")
-#  z = Index(2, tags = "PauliZ")
-#  q = Index(2, tags = "Qubit")
-#  l1 = Index(2, tags = "Link,l=1")
-#  l2 = Index(2, tags = "Link,l=2")
-#  
-#  #t = array(vtensor(x,z,q,q',l1,l2; error_probability = probs))
-#  # 2 legs (X / Z)
-#  H = htensor(q,l1;  error_probability = probs)
-#  for (x,z) in Iterators.product(0:1,0:1)
-#    for (X,Z) in Iterators.product(0:1,0:1)
-#      el = ((x⊻X == 0) && (z⊻Z == 0) ? pI :
-#            (x⊻X == 1) && (z⊻Z == 0) ? pX :
-#            (x⊻X == 0) && (z⊻Z == 1) ? pZ :
-#                                       pY)
-#      @test array(H[X+1,Z+1])[x+1,z+1] ≈ el
-#    end
-#  end
-#  
-#  # 3 legs (X / X / Z)
-#  H = htensor(q,q',l1;  error_probability = probs)
-#  for (x1,x2,z) in Iterators.product(0:1,0:1,0:1)
-#    for (X,Z) in Iterators.product(0:1,0:1)
-#      el = ((x1⊻x2⊻X == 0) && (z⊻Z == 0) ? pI :
-#            (x1⊻x2⊻X == 1) && (z⊻Z == 0) ? pX :
-#            (x1⊻x2⊻X == 0) && (z⊻Z == 1) ? pZ :
-#                                       pY)
-#      @test array(H[X+1,Z+1])[x1+1,x2+1,z+1] ≈ el
-#    end
-#  end
-#
-#  # 3 legs (X / Z / Z)
-#  H = htensor(q,l1,l2;  error_probability = probs)
-#  for (x,z1,z2) in Iterators.product(0:1,0:1,0:1)
-#    for (X,Z) in Iterators.product(0:1,0:1)
-#      el = ((x⊻X == 0) && (z1⊻z2⊻Z == 0) ? pI :
-#            (x⊻X == 1) && (z1⊻z2⊻Z == 0) ? pX :
-#            (x⊻X == 0) && (z1⊻z2⊻Z == 1) ? pZ :
-#                                       pY)
-#      @test array(H[X+1,Z+1])[x+1,z1+1,z2+1] ≈ el
-#    end
-#  end
-#  # 4 legs (X / X / Z / Z)
-#  H = htensor(q,q',l1,l2;  error_probability = probs)
-#  for (x1,x2,z1,z2) in Iterators.product(0:1,0:1,0:1,0:1)
-#    for (X,Z) in Iterators.product(0:1,0:1)
-#      el = ((x1⊻x2⊻X== 0) && (z1⊻z2⊻Z == 0) ? pI :
-#            (x1⊻x2⊻X== 1) && (z1⊻z2⊻Z == 0) ? pX :
-#            (x1⊻x2⊻X== 0) && (z1⊻z2⊻Z == 1) ? pZ :
-#                                       pY)
-#      @test array(H[X+1,Z+1])[x1+1,x2+1,z1+1,z2+1] ≈ el
-#    end
-#  end
-#end
-#
+@testset "v tensors" begin
+  d = 15
+  code = SurfaceCode(d)
+  pX = 0.05
+  pY = 0.01
+  pZ = 0.15
+  pI = 1 - pX - pY - pZ
+  probs = (pX = pX, pY = pY, pZ = pZ)  
+  
+  #t = array(vtensor(x,z,q,q',l1,l2; error_probability = probs))
+  V = vtensor(probs)
+  for (xU, xD, zL, zR) in Iterators.product(0:1,0:1,0:1,0:1)
+    for (X,Z) in Iterators.product(0:1,0:1)
+      el = ((xU⊻xD⊻X == 0) && (zL⊻zR⊻Z == 0) ? pI :
+            (xU⊻xD⊻X == 1) && (zL⊻zR⊻Z == 0) ? pX :
+            (xU⊻xD⊻X == 0) && (zL⊻zR⊻Z == 1) ? pZ :
+                                       pY)
+      @test V[X+1,Z+1,xU+1,xD+1,zL+1,zR+1] ≈ el
+    end
+  end
+end
+@testset "h tensors" begin
+  d = 15
+  code = SurfaceCode(d)
+  pX = 0.05
+  pY = 0.01
+  pZ = 0.15
+  pI = 1 - pX - pY - pZ
+  probs = (pX = pX, pY = pY, pZ = pZ)  
+  
+  ## 2 legs (X / Z)
+  H = htensor(1,1,probs)
+  for (x,z) in Iterators.product(0:1,0:1)
+    for (X,Z) in Iterators.product(0:1,0:1)
+      el = ((x⊻X == 0) && (z⊻Z == 0) ? pI :
+            (x⊻X == 1) && (z⊻Z == 0) ? pX :
+            (x⊻X == 0) && (z⊻Z == 1) ? pZ :
+                                       pY)
+      @test H[X+1,Z+1,x+1,z+1] ≈ el
+    end
+  end
+  
+  # 3 legs (X / X / Z)
+  H = htensor(2,1,probs)
+  for (x1,x2,z) in Iterators.product(0:1,0:1,0:1)
+    for (X,Z) in Iterators.product(0:1,0:1)
+      el = ((x1⊻x2⊻X == 0) && (z⊻Z == 0) ? pI :
+            (x1⊻x2⊻X == 1) && (z⊻Z == 0) ? pX :
+            (x1⊻x2⊻X == 0) && (z⊻Z == 1) ? pZ :
+                                       pY)
+      @test H[X+1,Z+1,x1+1,x2+1,z+1] ≈ el
+    end
+  end
+
+  # 3 legs (X / Z / Z)
+  H = htensor(1,2,probs)
+  for (x,z1,z2) in Iterators.product(0:1,0:1,0:1)
+    for (X,Z) in Iterators.product(0:1,0:1)
+      el = ((x⊻X == 0) && (z1⊻z2⊻Z == 0) ? pI :
+            (x⊻X == 1) && (z1⊻z2⊻Z == 0) ? pX :
+            (x⊻X == 0) && (z1⊻z2⊻Z == 1) ? pZ :
+                                       pY)
+      @test H[X+1,Z+1,x+1,z1+1,z2+1] ≈ el
+    end
+  end
+  # 4 legs (X / X / Z / Z)
+  H = htensor(2,2,probs)
+  for (x1,x2,z1,z2) in Iterators.product(0:1,0:1,0:1,0:1)
+    for (X,Z) in Iterators.product(0:1,0:1)
+      el = ((x1⊻x2⊻X== 0) && (z1⊻z2⊻Z == 0) ? pI :
+            (x1⊻x2⊻X== 1) && (z1⊻z2⊻Z == 0) ? pX :
+            (x1⊻x2⊻X== 0) && (z1⊻z2⊻Z == 1) ? pZ :
+                                       pY)
+      @test H[X+1,Z+1,x1+1,x2+1,z1+1,z2+1] ≈ el
+    end
+  end
+end
+
 
 #@testset "configure" begin
 #
