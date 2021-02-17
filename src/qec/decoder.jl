@@ -1,171 +1,139 @@
-using PastaQ
-using ITensors
-using Random
-using LinearAlgebra
-import StatsBase
-using Printf
-import ITensors: ⊙
+"""
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+-                               NOISE MODELS                                   -
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+"""
 
 """
-Addition mod 2
-"""
-function ⊙(A::Vector{<:Array{Int64}{1}},B::Vector{<:Array{Int64}{1}}) 
-  length(A) ≠ length(B) && error("pauli have different lengths")
-  return [A[j] .⊻ B[j] for j in 1:length(A)]
-end
+    paulierror(nqubits::Int64; 
+               error_probability::NamedTuple = (pX = 0.0, pY = 0.0, pZ = 0.0))
 
-⊙(A::Vector{Int64}, B::Vector{Int64}) = A .⊻ B
-⊙(A::Int, B::Int) = A ⊻ B
 
-"""
 Generage a `N`-qubit Pauli error with probabilities `pX`, `pY` and `pZ`.
 """
-function errorchain(nqubits::Int64; error_probability::NamedTuple = (pX = 0.0, pY = 0.0, pZ = 0.0)) 
+function paulierror(nqubits::Int64; 
+                    error_probability::NamedTuple = (pX = 0.0, pY = 0.0, pZ = 0.0))
+
   pX, pY, pZ = error_probability[:pX], error_probability[:pY], error_probability[:pZ]
   pX+pY+pZ > 1.0 && error("total error rates greater than 1")
-  return StatsBase.sample([[0,0], [1,0], [0,1], [1,1]], StatsBase.Weights([1-pX-pY-pZ, pX, pZ, pY]), nqubits)
+  return StatsBase.sample([(0,0), (1,0), (0,1), (1,1)], StatsBase.Weights([1-pX-pY-pZ, pX, pZ, pY]), nqubits)
 end
 
-errorchain(code::SurfaceCode; kwargs...) = 
-  errorchain(nqubits(code); kwargs...)
+paulierror(nqubits::Int64, nsamples::Int64; kwargs...) = 
+  [paulierror(nqubits; kwargs...) for j in 1:nsamples] 
 
-errorchains(nqubits::Int64, nchains::Int64; kwargs...) = 
-  [errorchain(nqubits; kwargs...) for j in 1:nchains] 
+paulierror(code::QuantumCode; kwargs...) = 
+  paulierror(nqubits(code); kwargs...)
 
-errorchains(code::SurfaceCode, nchains::Int; kwargs...) = 
-  errorchains(nqubits(code), nchains; kwargs...)
-
-"""
-Generate a pauli chain from a qubit support:
-[1,3,5] -> [1,0,1,0,1,...]
-"""
-topauli(nqubits::Int64, support::Vector{Int64}) = 
-  [n in support ? 1 : 0 for n in 1:nqubits]
-
-topauli(code::SurfaceCode, support::Vector{Int64}; kwargs...) = 
-  topauli(nqubits(code), support; kwargs...)
+paulierror(code::QuantumCode, nsamples::Int; kwargs...) = 
+  paulierror(nqubits(code), nsamples; kwargs...)
 
 """
-Generate a pauli XZ from X and Z supports
-"""
-function combine_pauliXZ(pauliX::Vector{Int64}, pauliZ::Vector{Int64}) 
-  length(pauliX) ≠ length(pauliZ) && error("pauli have different lengths")
-  return [[pauliX[j],pauliZ[j]] for j in 1:length(pauliX)]
-end
+    bitfliperror(nqubits::Int64; p::Float64) = 
 
-combine_pauliXZ(code::SurfaceCode; kwargs...) = 
-  combineXZ(nqubits(code); kwargs...)
+Generate a `N`-qubit pauli X error with probability `p`.
+"""
+bitfliperror(nqubits::Int64; p::Float64) = 
+  paulierror(nqubits; error_probability = (pX = p, pY = 0.0, pZ = 0.0))
+
+bitfliperror(nqubits::Int64, nsamples::Int64; kwargs...) = 
+  [bitfliperror(nqubits; kwargs...) for j in 1:nsamples]
+
+bitfliperror(code::QuantumCode; kwargs...) = 
+  bitfliperror(nqubits(code); kwargs...)
+
+bitfliperror(code::QuantumCode, nsamples::Int64; kwargs...) = 
+  bitfliperror(nqubits(code), nsamples; kwargs...)
 
 """
-Generate a logical operator for the Surface code
+    phasefliperror(nqubits::Int64; p::Float64) = 
+
+Generate a `N`-qubit pauli Z error with probability `p`.
 """
-function logicaloperator(code::SurfaceCode, logical::String)
-  logical == "I" && return [[0,0] for _ in 1:nqubits(code)] 
+phasefliperror(nqubits::Int64; p::Float64) = 
+  paulierror(nqubits; error_probability = (pX = 0.0, pY = 0.0, pZ = p))
+
+phasefliperror(nqubits::Int64, nsamples::Int64; kwargs...) = 
+  [phasefliperror(nqubits; kwargs...) for j in 1:nsamples]
+
+phasefliperror(code::QuantumCode; kwargs...) = 
+  phasefliperror(nqubits(code); kwargs...)
+
+phasefliperror(code::QuantumCode, nsamples::Int64; kwargs...) = 
+  phasefliperror(nqubits(code), nsamples; kwargs...)
+
+
+"""
+    depolarizingerror(nqubits::Int64; p::Float64) = 
+
+Generate a `N`-qubit error with each Pauli having equal
+probability `p/3`.
+"""
+depolarizingerror(nqubits::Int64; p::Float64) = 
+  paulierror(nqubits; error_probability = (pX = p/3, pY = p/3, pZ = p/3))
+
+depolarizingerror(nqubits::Int64, nsamples::Int64; kwargs...) = 
+  [depolarizingerror(nqubits; kwargs...) for j in 1:nsamples]
+
+depolarizingerror(code::QuantumCode; kwargs...) = 
+  depolarizingerror(nqubits(code); kwargs...)
+
+depolarizingerror(code::QuantumCode, nsamples::Int64; kwargs...) = 
+  depolarizingerror(nqubits(code), nsamples; kwargs...)
+
+"""
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+-                            TENSOR NETWORK DECODER                            -
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+"""
+
+"""
+    syndrome(code::QuantumCode, error::Vector{<:Vector{Tuple{Int64,Int64}}})
+
+Return the syndromes of a set of errors for a given input code.
+Each error is provided as a Vector of tuples:
+
+E = [(X₁,Z₁),(X₂,X₂),...,]
+"""
+function syndrome(error::Vector{<:Vector{Tuple{Int64,Int64}}}, code::QuantumCode)
   
-  #Lx = topauli(nqubits(code), [y*(2*code.d-1)+2 for y in 0:code.d-1])
-  Lx = topauli(nqubits(code), [y*(2*code.d-1)+1 for y in 0:code.d-1])
-  logical == "X" && return combine_pauliXZ(Lx,zeros(Int64,nqubits(code)))
+  syndromes = Vector{NamedTuple}()
   
-  #Lz = topauli(nqubits(code), [2*code.d-1+x for x in 1:code.d])
-  Lz = topauli(nqubits(code), 1:code.d|>collect)
-  logical == "Z" && return combine_pauliXZ(zeros(Int64,nqubits(code)), Lz)
+  # get all the stabilizers connected to each qubit
+  stabZ_at = stabZ_atQubit(code)
+  stabX_at = stabX_atQubit(code)
   
-  logical == "Y" && return combine_pauliXZ(Lx,Lz)
-  
-  error("Logical Pauli operator not recognized")
-end
-
-function logicaloperator(code::SurfaceCode, logical::Array{Int64})
-  logical == [0,0] && return logicaloperator(code,"I")
-  logical == [1,0] && return logicaloperator(code,"X")
-  logical == [0,1] && return logicaloperator(code,"Z")
-  logical == [1,1] && return logicaloperator(code,"Y")
-  error("logical operator not recognized")
-end
-
-
-"""
-Extract syndrome
-"""
-function syndrome(error::Vector{<:Array{Int64}{1}}, code::SurfaceCode)
-  Xsyndrome = zeros(Int64,length(code.Xcoord))
-  Zsyndrome = zeros(Int64,length(code.Zcoord))
-  
-  Xerrored_qubits = findall(x -> x==1, first.(error))
-  Zerrored_qubits = findall(x -> x==1, last.(error))
-  
-  # trigger the stabilizers
-  for q in Zerrored_qubits
-    Xsyndrome = Xsyndrome ⊙ [n in code.SonQ[q][:X] ? 1 : 0 for n in 1:length(Xsyndrome)] 
+  # loop over each error
+  for e in error
+    # find the location of Z and X errors
+    Zerrored_qubits = findall(x -> x==1, last.(e))
+    Xerrored_qubits = findall(x -> x==1, first.(e))
+    
+    # initialize empty syndrome vectors
+    Zsyndrome = zeros(Int64,length(coordinates_ofStabZ(code)))
+    Xsyndrome = zeros(Int64,length(coordinates_ofStabX(code)))
+    
+    # trigger the X stabilizers with Z errors
+    for qubit in Xerrored_qubits
+      Zsyndrome = Zsyndrome ⊙ [n in stabZ_at[qubit] ? 1 : 0 for n in 1:length(Zsyndrome)] 
+    end
+    # trigger the Z  stabilizers with X errors
+    for qubit in Zerrored_qubits
+      Xsyndrome = Xsyndrome ⊙ [n in stabX_at[qubit] ? 1 : 0 for n in 1:length(Xsyndrome)] 
+    end
+    
+    push!(syndromes, (X = Xsyndrome, Z = Zsyndrome))
   end
-  for q in Xerrored_qubits
-    Zsyndrome = Zsyndrome ⊙ [n in code.SonQ[q][:Z] ? 1 : 0 for n in 1:length(Zsyndrome)] 
-  end
-  return (X = Xsyndrome, Z = Zsyndrome)
+  return syndromes 
 end
 
-"""
-Generate error/syndrome data
-"""
-function getsamples(code::SurfaceCode, nsamples::Int64; kwargs...)
-  errors = errorchains(code, nsamples; kwargs...)
-  syndromes = []
-  for n in 1:nsamples
-    s = syndrome(errors[n], code)
-    push!(syndromes, s) 
-  end
-  return errors, syndromes
-end
+syndrome(error::Vector{Tuple{Int64,Int64}}, code::QuantumCode) = 
+  syndrome([error], code)[1]
 
-"""
-Measure the wilson loops
-"""
-function Wilsonloops(pauli::Vector{<:Array}, code::SurfaceCode)
-  wX = sum(first.(pauli)[[2*code.d-1+x for x in 1:code.d]]) % 2
-  wZ = sum(last.(pauli)[[y*(2*code.d-1)+2 for y in 0:code.d-1]]) % 2
-  return [wX,wZ]
-end
-
-"""
-Return the Pauli operator that moves a charge at a given location to the 
-closest smooth boundary
-"""
-function movecharge(index::Int, code::SurfaceCode)
-  x0,y0 = code.Xcoord[index]
-  chargepath = (x0 > code.d-1 ? Q_at([(x+1,y0,code.d) for x in x0:2:2*(code.d-1)]) :
-                                Q_at([(x-1,y0,code.d) for x in x0:-2:2]))
-  return topauli(nqubits(code), chargepath)
-end
-
-"""
-Return the Pauli operator that moves a flux at a given location to the 
-closest rough boundary
-"""
-function moveflux(index::Int, code::SurfaceCode)
-  x0,y0 = code.Zcoord[index]
-  fluxpath = (y0 > code.d-1 ?  Q_at([(x0,y+1,code.d) for y in y0:2:2*(code.d-1)]) : 
-                               Q_at([(x0,y-1,code.d) for y in y0:-2:2]))
-  return topauli(nqubits(code), fluxpath)
-end
-
-"""
-Generate a Pauli operator consistent with a given syndrome
-"""
-function referencepauli(s::NamedTuple, code::SurfaceCode)
-  N = nqubits(code)
-  pauliX= zeros(Int64,N) 
-  pauliZ = zeros(Int64,N) 
-  
-  charges = findall(x -> x == 1, s[:X])
-  fluxes  = findall(x -> x == 1, s[:Z])
-  for charge in charges
-    pauliZ = pauliZ ⊙ movecharge(charge, code)
-  end
-  for flux in fluxes
-    pauliX = pauliX ⊙ moveflux(flux, code)
-  end
-  return combine_pauliXZ(pauliX, pauliZ)
-end
 
 
 function vtensor(error_probability::NamedTuple) 
@@ -225,7 +193,7 @@ function decode(S::Vector, code::SurfaceCode; error_probability::NamedTuple)
   recoveries = [[] for _ in 1:nthreads] 
   # Pre-compute each dense tensor
   # TODO: precompute itensors for all 20 configurations of the 5 tensors (4x5) 
-  # only change boundary tensors when switching coset
+  
   V      = vtensor(error_probability)
   H_XZ   = htensor(1,1,error_probability)
   H_XXZ  = htensor(2,1,error_probability)
@@ -260,26 +228,26 @@ function decode(S::Vector, code::SurfaceCode; error_probability::NamedTuple)
     #println(k)
     
     # reference pauli
-    f = referencepauli(s, code)
-    coset_logits = [] 
+    f = purepaulierror(s, code)
+    coset_probabilities = [] 
     
     # loop over the Z logical operator
     for cosetZ in [0,1] 
-      pauli = f ⊙ logicaloperator(code, [0,cosetZ]) 
+      pauli = f ⊙ logicaloperator([0,cosetZ], code) 
       
       #build right boundary
       links = linkinds(ϕ[nthread])
-      locE = pauli[Q_at(N,1,d)] .+ 1
+      locE = pauli[qubit_at(N,1,d)] .+ 1
       ϕ[nthread][1] = ITensor(H_XZ[locE...,:,:], sites[1], links[1])
       for j in 2:N-1
         if isodd(j)
-          locE = pauli[Q_at(N,j,d)] .+ 1
+          locE = pauli[qubit_at(N,j,d)] .+ 1
           ϕ[nthread][j] = ITensor(H_XZZ[locE...,:,:,:], sites[j], links[j-1],links[j])
         else
           ϕ[nthread][j] = δ(links[j-1], links[j], sites[j])
         end
       end
-      locE = pauli[Q_at(N,N,d)] .+ 1
+      locE = pauli[qubit_at(N,N,d)] .+ 1
       ϕ[nthread][N] = ITensor(H_XZ[locE...,:,:], sites[N], links[N-1])
       
       Ψ[nthread] = copy(ϕ[nthread])
@@ -291,7 +259,7 @@ function decode(S::Vector, code::SurfaceCode; error_probability::NamedTuple)
           Λ[nthread][1] = δ(links[1],sites[1],sites[1]')
           for j in 2:N-1
             if iseven(j)
-              locE = pauli[Q_at(i,j,d)] .+ 1
+              locE = pauli[qubit_at(i,j,d)] .+ 1
               Λ[nthread][j] = ITensor(V[locE...,:,:,:,:], links[j-1],links[j],sites[j],sites[j]')
             else
               Λ[nthread][j] = δ(links[j-1], links[j], sites[j], sites[j]')
@@ -299,47 +267,47 @@ function decode(S::Vector, code::SurfaceCode; error_probability::NamedTuple)
           end
           Λ[nthread][N] = δ(links[N-1],sites[N],sites[N]')
         else
-          locE = pauli[Q_at(i,1,d)] .+ 1
+          locE = pauli[qubit_at(i,1,d)] .+ 1
           Λ[nthread][1] = ITensor(H_XXZ[locE...,:,:,:], sites[1], sites[1]', links[1])
           for j in 2:N-1
             if isodd(j)
               #y = 2*d-1-(j-1)
-              locE = pauli[Q_at(i,j,d)] .+ 1
+              locE = pauli[qubit_at(i,j,d)] .+ 1
               Λ[nthread][j] = ITensor(H_XXZZ[locE...,:,:,:,:],sites[j], sites[j]', links[j-1], links[j])
             else
               Λ[nthread][j] = δ(links[j-1], links[j], sites[j], sites[j]')
             end
           end
-          locE = pauli[Q_at(i,N,d)] .+ 1
+          locE = pauli[qubit_at(i,N,d)] .+ 1
           Λ[nthread][N] = ITensor(H_XXZ[locE...,:,:,:], sites[N], sites[N]', links[N-1])
         end
         Ψ[nthread] = noprime(*(Λ[nthread], Ψ[nthread]; method = "naive", maxdim = 6))
       end
       
       for cosetX in [0,1]
-        pauliL = pauli ⊙ logicaloperator(code, [cosetX,0])
+        pauliL = pauli ⊙ logicaloperator([cosetX,0], code)
         # Boundary MPS
         links = linkinds(ϕ[nthread]) 
-        locE = pauliL[Q_at(1,1,d)] .+ 1
+        locE = pauliL[qubit_at(1,1,d)] .+ 1
         ϕ[nthread][1] = ITensor(H_XZ[locE...,:,:], sites[1], links[1]) 
         for j in 2:N-1
           if isodd(j)
-            locE = pauliL[Q_at(1,j,d)] .+ 1
+            locE = pauliL[qubit_at(1,j,d)] .+ 1
             ϕ[nthread][j] = ITensor(H_XZZ[locE...,:,:,:], sites[j], links[j-1],links[j])
           else
             ϕ[nthread][j] = δ(links[j-1], links[j], sites[j])
           end
         end
-        locE = pauliL[Q_at(1,N,d)] .+ 1
+        locE = pauliL[qubit_at(1,N,d)] .+ 1
         ϕ[nthread][N] = ITensor(H_XZ[locE...,:,:], sites[N], links[N-1])
 
-        coset_logit = inner(Ψ[nthread],ϕ[nthread])
-        push!(coset_logits, coset_logit)
+        coset_probability = inner(Ψ[nthread],ϕ[nthread])
+        push!(coset_probabilities, coset_probability)
       end
     end
     
-    ml_coset = argmax(coset_logits)
-    logical_op = logicaloperator(code, cosets[ml_coset])
+    ml_coset = argmax(coset_probabilities)
+    logical_op = logicaloperator(cosets[ml_coset], code)
     recovery = f ⊙ logical_op
     push!(recoveries[nthread], recovery)
   end
@@ -360,34 +328,55 @@ end
 
 
 
-Random.seed!(1234)
-d = 5
+"""
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+-                                  UTILITIES                                   -
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+"""
 
-code = SurfaceCode(d)
-#pX = 0.113
-#pY = 0.00
-#pZ = 0.00
-#probs = (pX = pX, pY = pY, pZ = pZ)
-p = 0.19
-probs = (pX = p/3, pY = p/3, pZ = p/3)
-nsamples = 100
+"""
+Addition mod 2
+"""
+⊙(A::Int, B::Int) = A ⊻ B
 
-t = @elapsed begin
-  E, S = getsamples(code, nsamples; error_probability = probs)
-  recoveries = decode(S,code;error_probability = probs)  
+⊙(A::Vector{Int64}, B::Vector{Int64}) = A .⊻ B
+⊙(A::Tuple{Int64,Int64}, B::Tuple{Int64,Int64}) = A .⊻ B
+
+function ⊙(A::Vector{<:Vector{Int64}},B::Vector{<:Vector{Int64}}) 
+  length(A) ≠ length(B) && error("pauli have different lengths")
+  return [A[j] ⊙ B[j] for j in 1:length(A)]
 end
-@printf("Total time = %.3f sec\n",t)
-@printf("Logical failure rate: %.3f ",failure_rate(recoveries,E,code))
+function ⊙(A::Vector{Tuple{Int64,Int64}},B::Vector{Tuple{Int64,Int64}}) 
+  length(A) ≠ length(B) && error("pauli have different lengths")
+  return [A[j] ⊙ B[j] for j in 1:length(A)]
+end
 
+"""
+Generate a pauli chain from a qubit support:
+[1,3,5] -> [1,0,1,0,1,...]
+"""
+support_to_pauli(nqubits::Int64, support::Vector{Int64}) = 
+  [n in support ? 1 : 0 for n in 1:nqubits]
 
-#nsamples = 1000
-#p_list = [0.02,0.04,0.06,0.08,0.10,0.12,0.14]
+support_to_pauli(code::SurfaceCode, support::Vector{Int64}; kwargs...) = 
+  support_to_pauli(nqubits(code), support; kwargs...)
+
+#support_to_pauli(nqubits::Int64, support::Tuple) =
+#  support_to_pauli(nqubits, [support...])
 #
-#for p in p_list
-#  local probs = (pX = 0.0, pY = 0.0, pZ = p)
-#  local E, S = getsamples(code, nsamples; error_probability = probs)
-#  local recoveries = decode(S,code;error_probability = probs)
-#  local logical_error_rate = failure_rate(recoveries,E,code)
-#  @printf("p = %.2f  :  Logical failure rate = %.3f\n",p,logical_error_rate)
+#support_to_topauli(code::SurfaceCode, support::Tuple; kwargs...) = 
+#  support_to_pauli(code, [support...])
+#"""
+#Generate a pauli XZ from X and Z supports
+#"""
+#function combine_pauliXZ(pauliX::Vector{Int64}, pauliZ::Vector{Int64}) 
+#  length(pauliX) ≠ length(pauliZ) && error("pauli have different lengths")
+#  return [[pauliX[j],pauliZ[j]] for j in 1:length(pauliX)]
 #end
+#
+#combine_pauliXZ(code::SurfaceCode; kwargs...) = 
+#  combineXZ(nqubits(code); kwargs...)
+
 

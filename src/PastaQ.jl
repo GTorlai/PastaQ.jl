@@ -32,6 +32,9 @@ include("tomography/statetomography.jl")
 include("tomography/processtomography.jl")
 include("tomography/tomographyutils.jl")
 
+include("qec/surfacecode.jl")
+include("qec/decoder.jl")
+
 include("inputoutput.jl")
 include("utils.jl")
 include("deprecated.jl")

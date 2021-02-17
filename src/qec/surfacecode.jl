@@ -1,11 +1,11 @@
-using PastaQ
-using ITensors
-using Random
-using LinearAlgebra
-import StatsBase
-using Plots
+abstract type QuantumCode end
 
-struct SurfaceCode
+"""
+    SurfaceCode(d::Int64)
+
+Generate data structure for distance-`d` surface code
+"""
+struct SurfaceCode <: QuantumCode
   d::Int64
   Qcoord::Vector
   Xcoord::Vector
@@ -14,45 +14,8 @@ struct SurfaceCode
   SonQ::Vector
 end
 
-"""
-Get the qubit index from coordinates
-"""
-function Q_at(x::Int64, y::Int64, d::Int64)
-  (x < 1 || x > 2*d-1) && error("x out of bounds")
-  (y < 1 || y > 2*(d)-1) && error("y out of bounds")
-  (isodd(x) && isodd(y)) && return (2*d-1)*(y-1)÷2 +(x+1)÷2
-  (iseven(x) && iseven(y)) && return (2*d-1)*(y-2)÷2 + x÷2 + d 
-  error("No data qubit at localtion (",x,",",y,")")
-end
-
-Q_at(coords::Vector) = 
-  [Q_at(coord...) for coord in coords] 
- 
-"""
-Get the X stabilizer index from plaquette coordinate
-"""
-function X_at(x::Int64, y::Int64, d::Int64)
-  (x < 2 || x > 2*(d-1)) && error("x out of bounds")
-  (y < 1 || y > 2*d-1) && error("y out of bounds")
-  (iseven(x) && isodd(y)) && return (d-1)*(y-1)÷2+x÷2 
-  error("No X stabilizer at  localtion (",x,",",y,")")
-end
-
-"""
-Get the Z stabilizer index from vertex coordinate
-"""
-function Z_at(x::Int64, y::Int64, d::Int64)
-  (x < 1 || x > 2*d-1) && error("x out of bounds")
-  (y < 1 || y > 2*(d-1)) && error("y out of bounds")
-  (isodd(x) && iseven(y)) && return d*(y-2)÷2+x÷2+1 
-  error("No X stabilizer at  localtion (",x,",",y,")")
-end
-
-"""
-Constructor
-"""
 function SurfaceCode(d::Int64)
-  @assert isodd(d)
+  #@assert isodd(d)
   Qcoord = []
   Xcoord = []
   Zcoord = []
@@ -61,50 +24,51 @@ function SurfaceCode(d::Int64)
   for y in 1:2*d-1
     if isodd(y)
       for x in 1:2:2*d 
-        push!(Qcoord,[x,y])
+        push!(Qcoord,(x,y))
       end
     else
       for x in 2:2:2*d-1
-        push!(Qcoord,[x,y])
+        push!(Qcoord,(x,y))
       end
     end
   end
-  
-  # build coordinates of X stabilizers
+
+  # build coordinates of stabilizers
   Zcoord = vec(Iterators.product(1:2:2*d-1, 2:2:2*d-1)|>collect) 
   Xcoord = vec(Iterators.product(2:2:2*d-1, 1:2:2*d-1)|>collect)
 
+
+  # build list of qubits connected to each stabilizer
   stabX = []
   stabZ = []
-
-  # build the X stabilizers
+  # X stabilizers
   for y in 1:2:2*d-1
     for x in 2:2:2*(d-1)
       if y == 1
         # lower smooth boundary
-        push!(stabX,[Q_at(x-1,y,d), Q_at(x,y+1,d), Q_at(x+1,y,d)]) 
+        push!(stabX,[qubit_at(x-1,y,d), qubit_at(x,y+1,d), qubit_at(x+1,y,d)]) 
       elseif y == 2*d-1
         # upper smooth boundary
-        push!(stabX,[Q_at(x-1,y,d), Q_at(x,y-1,d), Q_at(x+1,y,d)])
+        push!(stabX,[qubit_at(x-1,y,d), qubit_at(x,y-1,d), qubit_at(x+1,y,d)])
       else
         # bulk stabilizers
-        push!(stabX,[Q_at(x-1,y,d), Q_at(x,y+1,d), Q_at(x+1,y,d),Q_at(x,y-1,d)])
+        push!(stabX,[qubit_at(x-1,y,d), qubit_at(x,y+1,d), qubit_at(x+1,y,d),qubit_at(x,y-1,d)])
       end
     end
   end
 
-  # build the Z stabilizers
+  # Z stabilizers
   for y in 2:2:2*d-1
     for x in 1:2:2*d-1
       if x == 1
         # left rough boundary
-        push!(stabZ,[Q_at(x,y-1,d), Q_at(x+1,y,d), Q_at(x,y+1,d)])
+        push!(stabZ,[qubit_at(x,y-1,d), qubit_at(x+1,y,d), qubit_at(x,y+1,d)])
       elseif x == 2*d-1
         # right rough boundary
-        push!(stabZ,[Q_at(x,y-1,d), Q_at(x-1,y,d), Q_at(x,y+1,d)])
+        push!(stabZ,[qubit_at(x,y-1,d), qubit_at(x-1,y,d), qubit_at(x,y+1,d)])
       else
         # bulk stabilizers
-        push!(stabZ,[Q_at(x,y-1,d), Q_at(x-1,y,d), Q_at(x,y+1,d), Q_at(x+1,y,d)])
+        push!(stabZ,[qubit_at(x,y-1,d), qubit_at(x-1,y,d), qubit_at(x,y+1,d), qubit_at(x+1,y,d)])
       end
     end
   end
@@ -117,222 +81,279 @@ function SurfaceCode(d::Int64)
   push!(SonQ, (X = [1], Z = [1]))
   # bottom row
   for x in 3:2:2*(d-1)-1
-    push!(SonQ, (X = [X_at(x-1,1,d),X_at(x+1,1,d)], Z = [Z_at(x,2,d)]))
+    push!(SonQ, (X = [stabX_at(x-1,1,d),stabX_at(x+1,1,d)], Z = [stabZ_at(x,2,d)]))
   end
   # right-bottom corner
-  push!(SonQ, (X = [X_at(2*d-2,1,d)], Z = [Z_at(2*d-1,2,d)]))
+  push!(SonQ, (X = [stabX_at(2*d-2,1,d)], Z = [stabZ_at(2*d-1,2,d)]))
   
   # loop over
   for i in 1:d-2
     y = 2*i
     for x in 2:2:2*d-1
-      push!(SonQ, (X = [X_at(x,y-1,d), X_at(x,y+1,d)] , Z = [Z_at(x-1,y,d),Z_at(x+1,y,d)]))
+      push!(SonQ, (X = [stabX_at(x,y-1,d), stabX_at(x,y+1,d)] , Z = [stabZ_at(x-1,y,d),stabZ_at(x+1,y,d)]))
     end
     y = 2*i +1
-    push!(SonQ, (X = [X_at(2,y,d)], Z = [Z_at(1,y+1,d),Z_at(1,y-1,d)]))
+    push!(SonQ, (X = [stabX_at(2,y,d)], Z = [stabZ_at(1,y+1,d),stabZ_at(1,y-1,d)]))
     for x in 3:2:2*(d-1)-1
-      push!(SonQ, (X = [X_at(x-1,y,d),X_at(x+1,y,d)], Z = [Z_at(x,y+1,d),Z_at(x,y-1,d)]))
+      push!(SonQ, (X = [stabX_at(x-1,y,d),stabX_at(x+1,y,d)], Z = [stabZ_at(x,y+1,d),stabZ_at(x,y-1,d)]))
     end
-    push!(SonQ, (X = [X_at(2*d-2,y,d)], Z = [Z_at(2*d-1,y+1,d),Z_at(2*d-1,y-1,d)]))
+    push!(SonQ, (X = [stabX_at(2*d-2,y,d)], Z = [stabZ_at(2*d-1,y+1,d),stabZ_at(2*d-1,y-1,d)]))
   end
   y = 2*(d-1)
   for x in 2:2:2*d-1
-    push!(SonQ, (X = [X_at(x,y-1,d), X_at(x,y+1,d)] , Z = [Z_at(x-1,y,d),Z_at(x+1,y,d)]))
+    push!(SonQ, (X = [stabX_at(x,y-1,d), stabX_at(x,y+1,d)] , Z = [stabZ_at(x-1,y,d),stabZ_at(x+1,y,d)]))
   end
   
   y = 2*d-1
-  push!(SonQ, (X = [X_at(2,y,d)], Z = [Z_at(1,y-1,d)]))
+  push!(SonQ, (X = [stabX_at(2,y,d)], Z = [stabZ_at(1,y-1,d)]))
   for x in 3:2:2*(d-1)-1
-    push!(SonQ, (X = [X_at(x-1,y,d),X_at(x+1,y,d)], Z = [Z_at(x,y-1,d)]))
+    push!(SonQ, (X = [stabX_at(x-1,y,d),stabX_at(x+1,y,d)], Z = [stabZ_at(x,y-1,d)]))
   end
-  push!(SonQ, (X = [X_at(2*d-2,y,d)], Z = [Z_at(2*d-1,y-1,d)]))
+  push!(SonQ, (X = [stabX_at(2*d-2,y,d)], Z = [stabZ_at(2*d-1,y-1,d)]))
   
   return SurfaceCode(d,Qcoord,Xcoord,Zcoord,QonS,SonQ)
 end
 
-
+"""
+Return code distance
+"""
 distance(code::SurfaceCode) = code.d
-nqubits(code::SurfaceCode) = code.d^2+(code.d-1)^2
 
 """
---------------------------------------------------------------------------------
---------------------------------------------------------------------------------
--                               PRINTING FUNCTIONS                             -
---------------------------------------------------------------------------------
---------------------------------------------------------------------------------
+Return number of qubits
 """
+nqubits(code::SurfaceCode) = distance(code)^2+(distance(code)-1)^2
 
-function printlattice!(p::Plots.Plot, code::SurfaceCode, kwargs...)
-  markersize = 12/sqrt(code.d)
-  p = scatter!(first.(code.Qcoord),last.(code.Qcoord),markersize=markersize,color=:black)
-  for y in 1:2:2*code.d-1
-    p = plot!([1,2*code.d-1],[y,y],color=:black, kwargs...)
+"""
+Return coordinates of qubits
+"""
+coordinates_ofQubits(code::SurfaceCode) = code.Qcoord 
+coordinates_ofQubits(code::SurfaceCode, qubit::Int) = code.Qcoord[qubit] 
+
+"""
+Return coordinates of stabilizers
+"""
+coordinates_ofStabX(code::SurfaceCode) = code.Xcoord 
+coordinates_ofStabZ(code::SurfaceCode) = code.Zcoord
+
+coordinates_ofStabX(code::SurfaceCode,stab::Int) = code.Xcoord[stab] 
+coordinates_ofStabZ(code::SurfaceCode,stab::Int) = code.Zcoord[stab]
+
+"""
+Return qubits appearing in the stabilizer
+"""
+qubits_atStab(code::SurfaceCode) = code.QonS
+qubits_atStabX(code::SurfaceCode) = code.QonS[:X]
+qubits_atStabZ(code::SurfaceCode) = code.QonS[:Z]
+
+qubits_atStab(code::SurfaceCode, stab::Int)  = code.QonS[stab]
+qubits_atStabX(code::SurfaceCode, stab::Int) = code.QonS[:X][stab] 
+qubits_atStabZ(code::SurfaceCode, stab::Int) = code.QonS[:Z][stab]
+
+"""
+Return the stabilizers connected to the qubits
+"""
+stab_atQubit(code::SurfaceCode)  = code.SonQ
+stabX_atQubit(code::SurfaceCode) = first.(code.SonQ)
+stabZ_atQubit(code::SurfaceCode) = last.(code.SonQ)
+
+stab_atQubit(code::SurfaceCode, qubit::Int)  = code.SonQ[qubit]
+stabX_atQubit(code::SurfaceCode, qubit::Int) = code.SonQ[qubit][:X]
+stabZ_atQubit(code::SurfaceCode, qubit::Int) = code.SonQ[qubit][:Z]
+
+"""
+    qubit_at(code::SurfaceCode, x::Int64, y::Int64)
+
+Return the index of qubit with coordinates `(x,y)`.
+
+Example:
+
+     d = 3 Surface Code
+ y    
+ ↑      ............ 
+ |
+ |   6̂       7̂       8̂
+ |  1,3     1,5     1,7  
+ |       4̂       5̂    
+ |      2,2     2,4
+ |   1̂       2̂       3̂     
+ |  1,1     3,1     5,1  
+  - - - - - - - - - - - - - → x
+
+"""
+function qubit_at(x::Int64, y::Int64, d::Int64)
+  (x < 1 || x > 2*d-1) && error("x out of bounds")
+  (y < 1 || y > 2*(d)-1) && error("y out of bounds")
+  (isodd(x) && isodd(y)) && return (2*d-1)*(y-1)÷2 +(x+1)÷2
+  (iseven(x) && iseven(y)) && return (2*d-1)*(y-2)÷2 + x÷2 + d 
+  error("No data qubit at localtion (",x,",",y,")")
+end
+
+qubit_at(code::SurfaceCode, x::Int64, y::Int64) = 
+  qubit_at(x, y, distance(code))
+
+qubit_at(code::SurfaceCode, coordinates_list::Vector{Tuple{Int64, Int64}}) = 
+  [qubit_at(code, coordinates...) for coordinates in coordinates_list]
+
+"""
+    stabX_at(code::SurfaceCode,x::Int64, y::Int64)
+
+Returns the index of a X stabilizer located at the vertex
+with coordinates `(x,y)`.
+
+Example:
+
+     d = 3 Surface Code
+ y    
+ ↑      ............ 
+ |
+ |   o   3   o   4    o
+ |     (2,3)   (4,3) 
+ |       o       o    
+ |   
+ |   o   1   o   2   o    
+ |     (2,1)   (4,1)
+  - - - - - - - - - - - - - → x
+"""
+function stabX_at(x::Int64, y::Int64, d::Int64)
+  (x < 2 || x > 2*(d-1)) && error("x out of bounds")
+  (y < 1 || y > 2*d-1) && error("y out of bounds")
+  (iseven(x) && isodd(y)) && return (d-1)*(y-1)÷2+x÷2 
+  error("No X stabilizer at  localtion (",x,",",y,")")
+end
+
+stabX_at(code::SurfaceCode, x::Int64, y::Int64) =
+  stabX_at(x, y, distance(code))
+"""
+    stabZ_at(code::SurfaceCode,x::Int64, y::Int64)
+
+Returns the index of a Z stabilizer located at the plaquette
+with coordinates `(x,y)`.
+
+Example:
+
+     d = 3 Surface Code
+ y    
+ ↑      ............ 
+ |
+ |   1    o  2    o   3   
+ | (1,2)   (1,3)    (1,5) 
+ |   o       o       o    
+  - - - - - - - - - - - - - → x
+"""
+function stabZ_at(x::Int64, y::Int64, d::Int64)
+  (x < 1 || x > 2*d-1) && error("x out of bounds")
+  (y < 1 || y > 2*(d-1)) && error("y out of bounds")
+  (isodd(x) && iseven(y)) && return d*(y-2)÷2+x÷2+1 
+  error("No X stabilizer at  localtion (",x,",",y,")")
+end
+
+stabZ_at(code::SurfaceCode, x::Int64, y::Int64) =
+  stabZ_at(x, y, distance(code))
+
+
+"""
+    logicaloperator(code::SurfaceCode, coset::String)
+    logicaloperator(code::SurfaceCode, coset::Tuple{Int64,Int64})
+    logicaloperator(code::SurfaceCode, coset::Vector{Int64})
+
+Return a logical operator correpsonding to a given `coset` of the
+surface code. The output consists of a pauli vector (built out of X
+and Z bits on each qubits). Input can be either the string  or the binary
+encoding of the logical operator. For the surface code:
+- `I` ≡ (0,0)
+- `Z` ≡ (0,1)
+- `X` ≡ (1,0)
+- `Y` ≡ (1,1)
+"""
+function logicaloperator(coset::String, code::SurfaceCode)
+  n = nqubits(code)
+  ## trivial
+  coset == "I" && return [(0,0) for _ in 1:n] 
+  
+  # logical X
+  Lx = support_to_pauli(nqubits(code), [y*(2*code.d-1)+1 for y in 0:code.d-1])
+  coset == "X" && return [(Lx[j],0) for j in 1:n]
+  
+  # logical Z
+  Lz = support_to_pauli(nqubits(code), 1:code.d|>collect)
+  coset == "Z" && return [(0,Lz[j]) for j in 1:n] 
+  
+  # logical Y
+  coset == "Y" && return [(Lx[j],Lz[j]) for j in 1:n] 
+ 
+  error("Coset not recognized. Surface code cosets are: \n`I` , [0,0]\n`Z` , [0,1]\n`X` , [1,0]\n`Y` , [1,1]\n")
+end
+
+function logicaloperator(coset::Tuple{Int64,Int64}, code::SurfaceCode)
+  coset == (0,0) && return logicaloperator("I", code) 
+  coset == (1,0) && return logicaloperator("X", code)
+  coset == (0,1) && return logicaloperator("Z", code)
+  coset == (1,1) && return logicaloperator("Y", code)
+  error("logical operator not recognized")
+end
+
+logicaloperator(coset::Vector{Int64}, code::SurfaceCode) = 
+  logicaloperator(Tuple(coset), code)
+
+
+"""
+    Wilsonloops(pauli::Vector{<:Array}, code::SurfaceCode)
+
+Return the measurement of the Wilson loops
+"""
+function Wilsonloops(pauli::Vector{Tuple{Int64,Int64}}, code::SurfaceCode)
+  wX = sum(first.(pauli)[[2*code.d-1+x for x in 1:code.d]]) % 2
+  wZ = sum(last.(pauli)[[y*(2*code.d-1)+2 for y in 0:code.d-1]]) % 2
+  return (wX,wZ)
+end
+
+
+"""
+Return the Pauli operator that moves a charge at a given location to the 
+closest smooth boundary
+"""
+function movecharge(vertex::Int, code::SurfaceCode)
+  d = distance(code)
+  x0,y0 = code.Xcoord[vertex]
+  
+  chargepath = (x0 > distance(code)-1 ? 
+                       qubit_at(code,[(x+1,y0) for x in x0:2:2*(distance(code)-1)]) :
+                       qubit_at(code,[(x-1,y0) for x in x0:-2:2]))
+  
+  return support_to_pauli(nqubits(code), chargepath)
+end
+
+"""
+Return the Pauli operator that moves a flux at a given location to the 
+closest rough boundary
+"""
+function moveflux(plaquette::Int, code::SurfaceCode)
+  d = distance(code)
+  x0,y0 = code.Zcoord[plaquette]
+  fluxpath = (y0 > code.d-1 ?  qubit_at(code,[(x0, y+1) for y in y0:2:2*(d-1)]) : 
+                               qubit_at(code,[(x0, y-1) for y in y0:-2:2]))
+  return support_to_pauli(nqubits(code), fluxpath)
+end
+
+"""
+Generate a Pauli operator consistent with a given syndrome
+"""
+function purepaulierror(s::NamedTuple, code::SurfaceCode)
+  N = nqubits(code)
+  pauliX = zeros(Int64,N) 
+  pauliZ = zeros(Int64,N) 
+  
+  charges = findall(x -> x == 1, s[:X])
+  fluxes  = findall(x -> x == 1, s[:Z])
+  for charge in charges
+    pauliZ = pauliZ ⊙ movecharge(charge, code)
   end
-  for x in 1:2:2*code.d-2
-    p = plot!([x+1,x+1],[2*code.d-1,1],color=:black, kwargs...)
+  for flux in fluxes
+    pauliX = pauliX ⊙ moveflux(flux, code)
   end
-  return p
-end
-
-printlattice(code::SurfaceCode; title::String = "") =
-  printlattice!(plot([0],[0],color=:black, legend=false, aspect_ratio=:equal,ticks=false, axis=false,title=title), code)
-
-
-function printTN(code::SurfaceCode; title::String = "") 
-  markersize = 12/sqrt(code.d)
-  p = scatter(first.(code.Qcoord),last.(code.Qcoord),markersize=markersize,color=:black,
-  background_color=:transparent, ticks=false, axis=false,foreground_color=:black, title=title,legend=false, aspect_ratio=:equal)
-  for y in 1:2*code.d-1
-    p = plot!([1,2*code.d-1],[y,y],color=:black)
-  end
-  for x in 0:2*code.d-2
-    p = plot!([x+1,x+1],[2*code.d-1,1],color=:black)
-  end
-  p = scatter!(first.(code.Xcoord),last.(code.Xcoord),markersize=5,color=:red,markershape=:square)
-  p = scatter!(first.(code.Zcoord),last.(code.Zcoord),markersize=5,color=:blue,markershape=:square)
-  return p
-end
-function printXstabilizers!(p::Plots.Plot, code::SurfaceCode; a::Float64 = 1.0, markersize=4, ϵ::Float64=0.02)
-  #p = scatter!(first.(code.Xcoord),last.(code.Xcoord),markersize=10,color=:red,markershape=:star5)
-  for (x,y) in code.Xcoord
-    if y == 1
-      p = plot!(Shape([x-1+ϵ,x,x+1-ϵ],[1,2-ϵ,1]), color=:red, opacity=.5)
-    elseif y == 2*code.d-1
-      p = plot!(Shape([x-1+ϵ,x,x+1-ϵ],[y,y-1+ϵ,y]), color=:red, opacity=.5)
-    else
-      p = plot!(Shape([x-1+ϵ,x,(x+1)-ϵ,x],[y,y+1-ϵ,y,y-1+ϵ]), color=:red, opacity=.5)
-    end
-  end
- return p
-end
-
-function printXstabilizers(code::SurfaceCode; kwargs...)
-  p = printlattice(code)
-  p = printXstabilizers!(p, code; kwargs...)
-  return p
-end
-
-function printZstabilizers!(p::Plots.Plot, code::SurfaceCode; a::Float64 = 1.0, markersize=4, ϵ::Float64=0.02)
-  #p = scatter!(first.(code.Zcoord),last.(code.Zcoord),markersize=10,color=:blue,markershape=:star5)
-  for (x,y) in code.Zcoord
-    if x == 1
-      p = plot!(Shape([x,x+1-ϵ,x],[y-1+ϵ,y,y+1-ϵ]), color=:blue, opacity=.5)
-    elseif x == 2*code.d-1
-      p = plot!(Shape([x,x-1-ϵ,x],[y-1+ϵ,y,y+1-ϵ]), color=:blue, opacity=.5)
-    else
-      p = plot!(Shape([x-1+ϵ,x,(x+1)-ϵ,x],[y,y+1-ϵ,y,y-1+ϵ]), color=:blue, opacity=.5)
-    end
-  end
- return p
-end
-
-function printZstabilizers(code::SurfaceCode; kwargs...)
-  p = printlattice(code)
-  p = printZstabilizers!(p, code; kwargs...)
-  return p
-end
-
-function printstabilizers(code::SurfaceCode; kwargs...)
-  p = printlattice(code)
-  p = printXstabilizers!(p, code; kwargs...)
-  p = printZstabilizers!(p, code; kwargs...)
-  return p
+  return [(pauliX[j], pauliZ[j]) for j in 1:N] 
 end
 
 
-function printsyndrome!(p::Plots.Plot, s::NamedTuple, code::SurfaceCode; kwargs...)
-  markersize = 8/sqrt(code.d)
-  sX = s[:X]
-  sZ = s[:Z]
-  charges = findall(x -> x == 1, sX)
-  fluxes = findall(x -> x == 1, sZ)
-  for e in charges
-    p = plot!([code.Xcoord[e][1]],[code.Xcoord[e][2]],markersize=3*markersize,color=:red,marker=:star5, opacity=.75, kwargs...)
-  end
-  for f in fluxes
-    p = plot!([code.Zcoord[f][1]],[code.Zcoord[f][2]],markersize=3*markersize,color=:blue,marker=:star5, opacity=.75)
-  end
-  return p
-end
 
-function printsyndrome(s::NamedTuple, code::SurfaceCode; kwargs...)
-  p = printlattice(code; kwargs...)
-  p = printsyndrome!(p, s, code)
-  return p
-end
-
-function printpauli!(p::Plots.Plot, e::Vector{<:Array}, code::SurfaceCode; kwargs...)
-  markersize = 6/sqrt(code.d)
-  Xerrors = findall(x -> x == 1, first.(e))
-  Zerrors = findall(x -> x == 1, last.(e))
-  for i in 1:nqubits(code)
-    if i in Zerrors && !(i in Xerrors)
-      if iseven(code.Qcoord[i][1])
-        p = plot!([code.Qcoord[i][1],code.Qcoord[i][1]],[code.Qcoord[i][2]-1,code.Qcoord[i][2]+1], color=:blue, linewidth=2, kwargs...)
-      else
-        if code.Qcoord[i][1] == 1
-          p = plot!([code.Qcoord[i][1],code.Qcoord[i][1]+1],[code.Qcoord[i][2],code.Qcoord[i][2]], color=:blue, linewidth=2)
-        elseif code.Qcoord[i][1] == 2*code.d-1
-          p = plot!([code.Qcoord[i][1]-1,code.Qcoord[i][1]],[code.Qcoord[i][2],code.Qcoord[i][2]], color=:blue, linewidth=2)
-        else
-          p = plot!([code.Qcoord[i][1]-1,code.Qcoord[i][1]+1],[code.Qcoord[i][2],code.Qcoord[i][2]], color=:blue, linewidth=2)
-        end
-      end
-      p = plot!([code.Qcoord[i][1]],[code.Qcoord[i][2]], color=:blue, marker=:circle,markersize=2*markersize)
-    end
-    if i in Xerrors && !(i in Zerrors)
-      if iseven(code.Qcoord[i][1])
-        p = plot!([code.Qcoord[i][1]-1,code.Qcoord[i][1]+1],[code.Qcoord[i][2],code.Qcoord[i][2]], color=:red, linewidth=2)
-      else
-        if code.Qcoord[i][2] == 1
-          p = plot!([code.Qcoord[i][1],code.Qcoord[i][1]],[code.Qcoord[i][2],code.Qcoord[i][2]+1], color=:red, linewidth=2)
-        elseif code.Qcoord[i][2] == 2*code.d-1
-          p = plot!([code.Qcoord[i][1],code.Qcoord[i][1]],[code.Qcoord[i][2],code.Qcoord[i][2]-1], color=:red, linewidth=2)
-        else
-          p = plot!([code.Qcoord[i][1],code.Qcoord[i][1]],[code.Qcoord[i][2]-1,code.Qcoord[i][2]+1], color=:red, linewidth=2)
-        end
-      end
-      p = plot!([code.Qcoord[i][1]],[code.Qcoord[i][2]], color=:red, marker=:circle,markersize=2*markersize)
-    end
-    if (i in Xerrors) && (i in Zerrors)
-      if iseven(code.Qcoord[i][1])
-        p = plot!([code.Qcoord[i][1],code.Qcoord[i][1]],[code.Qcoord[i][2]-1,code.Qcoord[i][2]+1], color=:blue, linewidth=2)
-      else
-        if code.Qcoord[i][1] == 1
-          p = plot!([code.Qcoord[i][1],code.Qcoord[i][1]+1],[code.Qcoord[i][2],code.Qcoord[i][2]], color=:blue, linewidth=2)
-        elseif code.Qcoord[i][1] == 2*code.d-1
-          p = plot!([code.Qcoord[i][1]-1,code.Qcoord[i][1]],[code.Qcoord[i][2],code.Qcoord[i][2]], color=:blue, linewidth=2)
-        else
-          p = plot!([code.Qcoord[i][1]-1,code.Qcoord[i][1]+1],[code.Qcoord[i][2],code.Qcoord[i][2]], color=:blue, linewidth=2)
-        end
-      end
-      if iseven(code.Qcoord[i][1])
-        p = plot!([code.Qcoord[i][1]-1,code.Qcoord[i][1]+1],[code.Qcoord[i][2],code.Qcoord[i][2]], color=:red, linewidth=2)
-      else
-        if code.Qcoord[i][2] == 1
-          p = plot!([code.Qcoord[i][1],code.Qcoord[i][1]],[code.Qcoord[i][2],code.Qcoord[i][2]+1], color=:red, linewidth=2)
-        elseif code.Qcoord[i][2] == 2*code.d-1
-          p = plot!([code.Qcoord[i][1],code.Qcoord[i][1]],[code.Qcoord[i][2],code.Qcoord[i][2]-1], color=:red, linewidth=2)
-        else
-          p = plot!([code.Qcoord[i][1],code.Qcoord[i][1]],[code.Qcoord[i][2]-1,code.Qcoord[i][2]+1], color=:red, linewidth=2)
-        end
-      end
-      p = plot!([code.Qcoord[i][1]],[code.Qcoord[i][2]], color=:red, marker=:circle,markersize=2*markersize)
-      p = plot!([code.Qcoord[i][1]+0.05],[code.Qcoord[i][2]+0.05], color=:red, marker=:circle,markersize=2*markersize)
-      p = plot!([code.Qcoord[i][1]-0.05],[code.Qcoord[i][2]-0.05], color=:blue, marker=:circle,markersize=2*markersize)
-    end
-  end
-  return p
-end
-function printpauli(e::Vector{<:Array}, code::SurfaceCode; kwargs...)
-  p = printlattice(code; kwargs...)
-  p = printpauli!(p, e, code)
-  return p
-end
-
-function printcode(e::Vector{<:Array}, s::NamedTuple, code::SurfaceCode; kwargs...)
-  p = printlattice(code; kwargs...)
-  p = printpauli!(p, e, code)
-  p = printsyndrome!(p, s, code)
-  return p
-end

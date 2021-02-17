@@ -44,6 +44,16 @@ export
 # tomography/statetomography.jl
 #           /processtomography.jl
   tomography,
+# qec/surfacecode.jl
+  SurfaceCode,
+  distance,
+
+  # decoder.jl
+  paulierror,
+  bitfliperror,
+  phasefliperror,
+  depolarizingerror,
+  syndrome,
 
 # measurements.jl
   measure,
