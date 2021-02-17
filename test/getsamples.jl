@@ -67,7 +67,7 @@ end
 @testset "measurements" begin
   N = 4
   depth = 10
-  ψ0 = trivialstate(N)
+  ψ0 = productstate(N)
   gates = randomcircuit(N,depth)
   ψ = runcircuit(ψ0,gates)
   ψ_vec = PastaQ.array(ψ)
@@ -95,7 +95,7 @@ end
 @testset "measurement projections" begin
   N = 8
   nshots = 20
-  ψ0 = trivialstate(N)
+  ψ0 = productstate(N)
   bases = randombases(N,nshots)
   
   depth = 8
@@ -214,7 +214,7 @@ end
   
   for n in 1:ntrial
     mgates = PastaQ.measurementgates(bases[n,:])
-    ψ_in  = trivialstate(N, preps[n,:])
+    ψ_in  = productstate(N, preps[n,:])
     ψ_out = runcircuit(ψ_in,gates)
     
     Ψ_out = PastaQ.projectunitary(U,preps[n,:])
@@ -240,7 +240,7 @@ end
   preps = PastaQ.randompreparations(N,ntrial)
   for n in 1:ntrial
     mgates = PastaQ.measurementgates(bases[n,:])
-    ψ_in  = trivialstate(N, preps[n,:])
+    ψ_in  = productstate(N, preps[n,:])
     ρ_out = runcircuit(ψ_in, gates; noise = ("amplitude_damping", (γ = 0.1,)))
     
     Λ_out = PastaQ.projectchoi(Λ,preps[n,:])

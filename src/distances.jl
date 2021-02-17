@@ -55,7 +55,7 @@ function fidelity(ψ::MPS, ρ::MPO)
   # TODO: replace with:
   # log_F̃ = loginner(ψ, ρ, ψ)
   # log_K = 2 * lognorm(ψ) + logtr(ρ) 
-  log_F̃ = log(abs(inner(ψ, ρ, ψ)))
+  log_F̃ = log(abs(inner(ψ', ρ, ψ)))
   
   # TODO Check if trace is real
   #@assert imag(tr(ρ)) ≈ 0.0 atol=1e-5
@@ -79,30 +79,29 @@ function fidelity(Ψ::MPS, ϱ::LPDO{MPO})
 end
 
 """
-Quantum state fidelity between two MPO density matrices.
+Quantum state/process fidelity between two MPO density matrices.
 
 F = (tr[√(√A B √A)])² 
 
 If `process = true`, get process fidelities:
 1. Quantum process fidelity between two MPO unitary operators.
    F = |⟨⟨A|B⟩⟩|²
-2. Quantum process fidelity bewteen a MPO unitary and MPO Choi matrix
+2. Quantum process fidelity between a MPO unitary and MPO Choi matrix
    F = ⟨⟨A|B|A⟩⟩
-3. Quantum process fidelity bewteen two MPO Choi matrices
+3. Quantum process fidelity between two MPO Choi matrices
    F = (Tr[√(√A B √A)])² 
 """
 function fidelity(A::MPO, B::MPO; process::Bool = false)
+  ischoiA = ischoi(A)
+  ischoiB = ischoi(B)
   # if quantum state fidelity:
-  if process
-    # check whether a MPO is Choi or not (from number of site indices)
-    # 1: unitary   -   unitary
-    (!ischoi(A) && !ischoi(B)) && return fidelity(unitary_mpo_to_choi_mps(A), unitary_mpo_to_choi_mps(B))
-    # 2: unitary   -   Choi MPO
-    (!ischoi(A) && ischoi(B)) && return _choifidelity(unitary_mpo_to_choi_mps(A),B) 
-    # 2reverse: Choi MPO  -   unitary
-    (ischoi(A) && !ischoi(B)) && return _choifidelity(A,unitary_mpo_to_choi_mps(B)) 
+  if process && (!ischoiA || !ischoiB)
+    A = ischoiA ? A : unitary_mpo_to_choi_mps(A)
+    B = ischoiB ? B : unitary_mpo_to_choi_mps(B)
+    return fidelity(A, B)
   end
-  # quantum state/process fidelity bewtee two MPOs density matrices 
+  # quantum state/process fidelity between two MPO density matrices 
+  # or two Choi matrices
   return fidelity(prod(A), prod(B))
 end
 
@@ -125,16 +124,6 @@ Quantum fidelity between two LPDO density matrices.
 F = (tr[√(√A B √A)])² 
 """
 fidelity(A::LPDO{MPO}, B::LPDO{MPO}; kwargs...) = fidelity(MPO(A), MPO(B); kwargs...)
-
-function _choifidelity(U::MPS, Λ::MPO)
-  K = abs2(norm(U)) * real(tr(Λ))
-  O = noprime(Λ * U)
-  fidelity = inner(U,O) / K
-  return real(fidelity)
-end
-
-_choifidelity(Λ::MPO, U::MPS) = _choifidelity(U,Λ)
-
 
 """
     frobenius_distance(ρ::Union{MPO, LPDO}, σ::Union{MPO, LPDO})

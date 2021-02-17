@@ -305,10 +305,10 @@ function getsamples(hilbert0::Vector{<:Index},
   # Generate preparation/measurement gates
   meas_gates = measurementgates(basis)
   # Prepare quantum state
-  M_in = trivialstate(hilbert0, prep)
+  M_in = productstate(hilbert0, prep)
 
   # TODO: delete
-  #M0 = trivialstate(hilbert0)
+  #M0 = productstate(hilbert0)
   #prep_gates = preparationgates(prep)
   #M_in  = runcircuit(M0, prep_gates)
 
@@ -459,7 +459,7 @@ function getsamples(gates::Array,preps::Array, bases::Array ;
   N = size(preps)[2]
   nshots = size(preps)[1]
   
-  ψ0 = trivialstate(N)
+  ψ0 = productstate(N)
   hilbert = hilbertspace(ψ0) 
   # Pre-compile quantum channel
   gate_tensors = buildcircuit(ψ0, gates; noise=noise, kwargs...)
