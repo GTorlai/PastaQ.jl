@@ -144,30 +144,33 @@ function codetensor(error_probability::NamedTuple;
                     Xrank::Int64 = 1, Zrank::Int64 = 1)
   # single-qubit pauli error rates
   pX, pY, pZ = error_probability[:pX], error_probability[:pY], error_probability[:pZ]
+  pI = 1.0 - pX - pY - pZ
   
   rank = Xrank + Zrank
-  pI = 1.0 - pX - pY - pZ
   paulis = [[0,0],[1,0],[0,1],[1,1]]
-  T = zeros(Float64, repeat([2], rank + 2)...)
+  
+  M = Matrix{AbstractArray}(undef,2,2)
+
   for pauli in paulis
+    T = zeros(Float64, repeat([2], rank)...)
     for i in 0:1 << rank-1
       bits = digits(i, base = 2, pad = rank) |> reverse
       
-      stabs = ((Xrank, Zrank) == (1,1) ? bits :
+      stabs = ((Xrank, Zrank) == (1,1) ?  bits :
                (Xrank, Zrank) == (2,1) ? [bits[1] ⊙ bits[2],  bits[3]] : 
                (Xrank, Zrank) == (1,2) ? [bits[1],  bits[2] ⊙ bits[3]] :
                (Xrank, Zrank) == (2,2) ? [bits[1] ⊙ bits[2],  bits[3] ⊙ bits[4]] :
                error("something went wrong..."))
       
-      tensor_el = vcat(pauli,bits)
-      T[(tensor_el .+ 1)...] = (pauli ⊙ stabs == [0,0] ? pI : 
-                                pauli ⊙ stabs == [0,1] ? pZ :
-                                pauli ⊙ stabs == [1,0] ? pX :
-                                pauli ⊙ stabs == [1,1] ? pY :
-                                error("something went wrong..."))
+      T[(bits .+ 1)...] = (pauli ⊙ stabs == [0,0] ? pI : 
+                           pauli ⊙ stabs == [0,1] ? pZ :
+                           pauli ⊙ stabs == [1,0] ? pX :
+                           pauli ⊙ stabs == [1,1] ? pY :
+                           error("something went wrong..."))
     end
+    M[(pauli.+1)...] = T
   end
-  return T
+  return M
 end
 
 """
@@ -200,6 +203,38 @@ function decode(S::Vector, code::SurfaceCode;
   linksΨ  = [Index(2; tags="Link, l=$i") for i in 1:N-1]
   linksΛ  = [Index(2; tags="Link, l=$i") for i in 1:N-1]
   
+  bulktensors_even = [[] for _ in 1:nthreads]
+  bulktensors_odd  = [[] for _ in 1:nthreads]
+  boundarytensors  = [[] for _ in 1:nthreads]
+  
+  for nthread in 1:nthreads    
+    push!(bulktensors_even[nthread], δ(linksΛ[1],sites[1],sites[1]'))
+    push!(bulktensors_odd[nthread], [ITensor(H_XXZ[(μ,ν)...], sites[1], sites[1]', linksΛ[1])
+                                     for (μ,ν) in Iterators.product(1:2,1:2)])
+    for j in 2:N-1
+      iseven(j) && push!(bulktensors_even[nthread], [ITensor(V[(μ,ν)...], linksΛ[j-1], linksΛ[j], sites[j],sites[j]') 
+                                                     for (μ,ν) in Iterators.product(1:2,1:2)])
+      isodd(j)  && push!(bulktensors_even[nthread], δ(linksΛ[j-1], linksΛ[j], sites[j], sites[j]'))  
+    
+      isodd(j) && push!(bulktensors_odd[nthread], [ITensor(H_XXZZ[(μ,ν)...], sites[j], sites[j]', linksΛ[j-1], linksΛ[j])
+                                                    for (μ,ν) in Iterators.product(1:2,1:2)])
+      iseven(j)  && push!(bulktensors_odd[nthread], δ(linksΛ[j-1], linksΛ[j], sites[j], sites[j]')) 
+    end
+    push!(bulktensors_even[nthread], δ(linksΛ[N-1],sites[N],sites[N]'))
+    push!(bulktensors_odd[nthread], [ITensor(H_XXZ[(μ,ν)...], sites[N], sites[N]', linksΛ[N-1])
+                                             for (μ,ν) in Iterators.product(1:2,1:2)]) 
+    
+    push!(boundarytensors[nthread], [ITensor(H_XZ[(μ,ν)...],sites[1], linksΨ[1]) 
+                                  for (μ,ν) in Iterators.product(1:2,1:2)])
+    for j in 2:N-1
+      isodd(j) && push!(boundarytensors[nthread], [ITensor(H_XZZ[(μ,ν)...],sites[j], linksΨ[j-1], linksΨ[j])
+                                                for (μ,ν) in Iterators.product(1:2,1:2)])
+      iseven(j) && push!(boundarytensors[nthread], δ(linksΨ[j-1], linksΨ[j], sites[j]))
+    end
+    push!(boundarytensors[nthread], [ITensor(H_XZ[(μ,ν)...],sites[N], linksΨ[N-1])
+                                  for (μ,ν) in Iterators.product(1:2,1:2)])
+  end
+  
   # pre-allocate memory
   ϕ = Vector{MPS}()
   Ψ = Vector{MPS}()
@@ -219,6 +254,17 @@ function decode(S::Vector, code::SurfaceCode;
     push!(Λ, MPO(U))
   end
   
+  # Tensor network for coset probability calculation
+  #
+  #            o-  -□-  -□-       -□-  -□-  -o
+  #            |    |    |         |    |    |
+  #            o-  -□-  -□-       -□-  -□-  -o
+  # P(e ⊙ L) = |    |    |   ...   |    |    |
+  #            o-  -□-  -□-       -□-  -□-  -o
+  #            |    |    |         |    |    |
+  #            o-  -□-  -□-       -□-  -□-  -o
+  #           ⟨ϕ|   Λ₁   Λ₂       Λⱼ₋₁  Λⱼ  |Ψ⟩
+  
   # hyper-thread the syndrome loop
   Threads.@threads for k in 1:length(S)
     s = S[k]
@@ -228,91 +274,60 @@ function decode(S::Vector, code::SurfaceCode;
     f = purepaulierror(s, code)
     
     coset_probabilities = [] 
+    
     # loop over the Z logical operator
     for cosetZ in [0,1] 
+      # compose the pure error with/without a logical Z  
       pauli = f ⊙ logicaloperator([0,cosetZ], code) 
-      
-      # build right boundary MPS
-      links = linkinds(ϕ[nthread])
-      
-      ϕ[nthread][1] = ITensor(H_XZ[(pauli[qubit_at(N, 1, d)].+1)...,:,:], 
-                              sites[1], links[1])
-      for j in 2:N-1
-        isodd(j) &&  (ϕ[nthread][j] = ITensor(H_XZZ[(pauli[qubit_at(N,j,d)].+1)...,:,:,:],
-                                              sites[j], links[j-1], links[j]))
-        iseven(j) && (ϕ[nthread][j] = δ(links[j-1], links[j], sites[j]))
+      for j in 1:N
+        isodd(j)  && (Ψ[nthread][j] = boundarytensors[nthread][j][(pauli[qubit_at(N, j, d)].+1)...])
+        iseven(j) && (Ψ[nthread][j] = boundarytensors[nthread][j])
       end
-      ϕ[nthread][N] = ITensor(H_XZ[(pauli[qubit_at(N,N,d)].+1)...,:,:], 
-                              sites[N], links[N-1])
       
-      Ψ[nthread] = copy(ϕ[nthread])
-      
-      # contract the bulk
+      # sweep over the bulk
       for i in reverse(2:N-1)
         
-        # build intermediate MPO
-        links = linkinds(Λ[nthread])
+        # build intermedite MPO
         if iseven(i)
-          Λ[nthread][1] = δ(links[1],sites[1],sites[1]')
-          for j in 2:N-1
-            if iseven(j)
-              locE = pauli[qubit_at(i,j,d)] .+ 1
-              Λ[nthread][j] = ITensor(V[(pauli[qubit_at(i,j,d)].+1)...,:,:,:,:], 
-                                      links[j-1],links[j],sites[j],sites[j]')
-            else
-              Λ[nthread][j] = δ(links[j-1], links[j], sites[j], sites[j]')
-            end
+          for j in 1:N
+            iseven(j) && (Λ[nthread][j] = bulktensors_even[nthread][j][(pauli[qubit_at(i,j,d)].+1)...])
+            isodd(j)  && (Λ[nthread][j] = bulktensors_even[nthread][j])
           end
-          Λ[nthread][N] = δ(links[N-1],sites[N],sites[N]')
         else
-          locE = pauli[qubit_at(i,1,d)] .+ 1
-          Λ[nthread][1] = ITensor(H_XXZ[(pauli[qubit_at(i,1,d)].+1)...,:,:,:], 
-                                  sites[1], sites[1]', links[1])
-          for j in 2:N-1
-            if isodd(j)
-              locE = pauli[qubit_at(i,j,d)] .+ 1
-              Λ[nthread][j] = ITensor(H_XXZZ[(pauli[qubit_at(i,j,d)].+1)...,:,:,:,:],
-                                      sites[j], sites[j]', links[j-1], links[j])
-            else
-              Λ[nthread][j] = δ(links[j-1], links[j], sites[j], sites[j]')
-            end
+          for j in 1:N
+            isodd(j)  && (Λ[nthread][j] = bulktensors_odd[nthread][j][(pauli[qubit_at(i,j,d)].+1)...])
+            iseven(j) && (Λ[nthread][j] = bulktensors_odd[nthread][j])
           end
-          locE = pauli[qubit_at(i,N,d)] .+ 1
-          Λ[nthread][N] = ITensor(H_XXZ[(pauli[qubit_at(i,N,d)].+1)...,:,:,:], 
-                                  sites[N], sites[N]', links[N-1])
         end
-        
-        # contract with previous MPS state
+
+        # contract MPO with right-boundary MPS
         Ψ[nthread] = noprime(*(Λ[nthread], Ψ[nthread]; method = contract_method, maxdim = maxdim))
       end
       
       # evaluate the coset probability
       for cosetX in [0,1]
-        # combine pure error with logical operator
+        # compose current pauli error with/without a logical X, leading to
+        # cosetX,cosetZ = (0,0) ⟶   f(s) ⊗  Ī 
+        # cosetX,cosetZ = (0,1) ⟶   f(s) ⊗  X̄
+        # cosetX,cosetZ = (1,0) ⟶   f(s) ⊗  Ȳ
+        # cosetX,cosetZ = (1,0) ⟶   f(s) ⊗  Z̄
+        #
+        # where f(s) is the representative pure error for the syndrome `s`
         pauliL = pauli ⊙ logicaloperator([cosetX,0], code)
         
-        # build boundary MPS encoding logical (or lack thereof) operation
-        links = linkinds(ϕ[nthread]) 
-        locE = pauliL[qubit_at(1,1,d)] .+ 1
-        ϕ[nthread][1] = ITensor(H_XZ[locE...,:,:], sites[1], links[1]) 
-        for j in 2:N-1
-          if isodd(j)
-            locE = pauliL[qubit_at(1,j,d)] .+ 1
-            ϕ[nthread][j] = ITensor(H_XZZ[locE...,:,:,:], sites[j], links[j-1],links[j])
-          else
-            ϕ[nthread][j] = δ(links[j-1], links[j], sites[j])
-          end
+        # build left-boundary MPS
+        for j in 1:N
+          isodd(j)  && (ϕ[nthread][j] = boundarytensors[nthread][j][(pauliL[qubit_at(1, j, d)].+1)...])
+          iseven(j) && (ϕ[nthread][j] = boundarytensors[nthread][j])
         end
-        locE = pauliL[qubit_at(1,N,d)] .+ 1
-        ϕ[nthread][N] = ITensor(H_XZ[locE...,:,:], sites[N], links[N-1])
-
-        # the coset probability is simply the inner product of the two MPSs
+        
+        # compute coset probability
         coset_probability = inner(Ψ[nthread],ϕ[nthread])
         push!(coset_probabilities, coset_probability)
       end
     end
     
-    # selecte the coset with maximum likelihood
+    ## selecte the coset with maximum likelihood
     ml_coset = argmax(coset_probabilities)
     # generate the most likely logical error
     logical_op = logicaloperator(cosets[ml_coset], code)
@@ -320,6 +335,7 @@ function decode(S::Vector, code::SurfaceCode;
     recovery = f ⊙ logical_op
     push!(recoveries[nthread], recovery)
   end
+  
   return vcat(recoveries...) 
 end
 """
@@ -382,7 +398,6 @@ support_to_pauli(code::SurfaceCode, support::Vector{Int64}; kwargs...) =
   support_to_pauli(nqubits(code), support; kwargs...)
 
 
-
 #support_to_pauli(nqubits::Int64, support::Tuple) =
 #  support_to_pauli(nqubits, [support...])
 #
@@ -398,5 +413,3 @@ support_to_pauli(code::SurfaceCode, support::Vector{Int64}; kwargs...) =
 #
 #combine_pauliXZ(code::SurfaceCode; kwargs...) = 
 #  combineXZ(nqubits(code); kwargs...)
-
-
