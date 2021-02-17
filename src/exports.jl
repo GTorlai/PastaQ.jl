@@ -54,6 +54,7 @@ export
   phasefliperror,
   depolarizingerror,
   syndrome,
+  decode,
 
 # measurements.jl
   measure,

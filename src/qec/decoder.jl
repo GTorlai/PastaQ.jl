@@ -135,75 +135,72 @@ syndrome(error::Vector{Tuple{Int64,Int64}}, code::QuantumCode) =
   syndrome([error], code)[1]
 
 
+"""
+    codetensor(nlegX::Int64, nlegsZ::Int64, error_probability::NamedTuple)
 
-function vtensor(error_probability::NamedTuple) 
+Generate a tensor in the TN for the QEC code.
+"""
+function codetensor(error_probability::NamedTuple;
+                    Xrank::Int64 = 1, Zrank::Int64 = 1)
+  # single-qubit pauli error rates
   pX, pY, pZ = error_probability[:pX], error_probability[:pY], error_probability[:pZ]
-  pI = 1.0 - pX - pY - pZ
-  paulis = [[0,0],[1,0],[0,1],[1,1]]
   
-  T = zeros(Float64,(2,2,2,2,2,2)) 
-  for pauli in paulis
-    for i in 0:1<<4-1
-      bits = digits(i, base=2, pad=4) |> reverse
-      stabs = [bits[1] ⊙ bits[2], bits[3] ⊙ bits[4]]
-      
-      x = vcat(pauli,bits)
-      T[(x.+1)...] = (pauli ⊙ stabs == [0,0] ? pI : 
-                      pauli ⊙ stabs == [0,1] ? pZ :
-                      pauli ⊙ stabs == [1,0] ? pX :
-                      pauli ⊙ stabs == [1,1] ? pY :
-                      error("something went wrong..."))
-    end
-  end
-  return T
-end
-
-function htensor(nlegsX::Int64, nlegsZ::Int64, error_probability::NamedTuple)
-  pX, pY, pZ = error_probability[:pX], error_probability[:pY], error_probability[:pZ]
-  numlegs = nlegsX+nlegsZ
+  rank = Xrank + Zrank
   pI = 1.0 - pX - pY - pZ
   paulis = [[0,0],[1,0],[0,1],[1,1]]
-  T = zeros(Float64, repeat([2],numlegs+2)...)
+  T = zeros(Float64, repeat([2], rank + 2)...)
   for pauli in paulis
-    for i in 0:1<<numlegs-1
-      bits = digits(i, base=2, pad=numlegs) |> reverse
+    for i in 0:1 << rank-1
+      bits = digits(i, base = 2, pad = rank) |> reverse
       
-      stabs = ((nlegsX,nlegsZ) == (1,1) ? bits :
-               (nlegsX,nlegsZ) == (2,1) ? [bits[1] ⊙ bits[2],  bits[3]] : 
-               (nlegsX,nlegsZ) == (1,2) ? [bits[1],  bits[2] ⊙ bits[3]] :
-               (nlegsX,nlegsZ) == (2,2) ? [bits[1] ⊙ bits[2],  bits[3] ⊙ bits[4]] :
+      stabs = ((Xrank, Zrank) == (1,1) ? bits :
+               (Xrank, Zrank) == (2,1) ? [bits[1] ⊙ bits[2],  bits[3]] : 
+               (Xrank, Zrank) == (1,2) ? [bits[1],  bits[2] ⊙ bits[3]] :
+               (Xrank, Zrank) == (2,2) ? [bits[1] ⊙ bits[2],  bits[3] ⊙ bits[4]] :
                error("something went wrong..."))
       
-      x = vcat(pauli,bits)
-      T[(x.+1)...] = (pauli ⊙ stabs == [0,0] ? pI : 
-                      pauli ⊙ stabs == [0,1] ? pZ :
-                      pauli ⊙ stabs == [1,0] ? pX :
-                      pauli ⊙ stabs == [1,1] ? pY :
-                      error("something went wrong..."))
+      tensor_el = vcat(pauli,bits)
+      T[(tensor_el .+ 1)...] = (pauli ⊙ stabs == [0,0] ? pI : 
+                                pauli ⊙ stabs == [0,1] ? pZ :
+                                pauli ⊙ stabs == [1,0] ? pX :
+                                pauli ⊙ stabs == [1,1] ? pY :
+                                error("something went wrong..."))
     end
   end
   return T
 end
 
-function decode(S::Vector, code::SurfaceCode; error_probability::NamedTuple)
+"""
+    decode(S::Vector, code::SurfaceCode; error_probability::NamedTuple)
+
+Determine the most likely errors corresponding to a set of input syndromes,
+and returns the appropriate recovery operation.
+"""
+function decode(S::Vector, code::SurfaceCode; 
+                error_probability::NamedTuple,
+                maxdim::Int64 = 10_000,
+                contract_method::String = "naive")
+
   nthreads = Threads.nthreads()
-  d = code.d
+  d = distance(code)
   N = 2*d-1
   cosets = ["I","X","Z","Y"]
   recoveries = [[] for _ in 1:nthreads] 
+  
   # Pre-compute each dense tensor
   # TODO: precompute itensors for all 20 configurations of the 5 tensors (4x5) 
+  V      = codetensor(error_probability; Xrank = 2, Zrank = 2)
+  H_XZ   = codetensor(error_probability; Xrank = 1, Zrank = 1)
+  H_XXZ  = codetensor(error_probability; Xrank = 2, Zrank = 1)
+  H_XZZ  = codetensor(error_probability; Xrank = 1, Zrank = 2)
+  H_XXZZ = codetensor(error_probability; Xrank = 2, Zrank = 2)
   
-  V      = vtensor(error_probability)
-  H_XZ   = htensor(1,1,error_probability)
-  H_XXZ  = htensor(2,1,error_probability)
-  H_XZZ  = htensor(1,2,error_probability)
-  H_XXZZ = htensor(2,2,error_probability)
-  
-  nthreads = Threads.nthreads()
-  sites = siteinds("Qubit", N)
-  linksΨ = [Index(2; tags="Link, l=$i") for i in 1:N-1]
+  # generate set of tensor indices
+  sites   = siteinds("Qubit", N)
+  linksΨ  = [Index(2; tags="Link, l=$i") for i in 1:N-1]
   linksΛ  = [Index(2; tags="Link, l=$i") for i in 1:N-1]
+  
+  # pre-allocate memory
   ϕ = Vector{MPS}()
   Ψ = Vector{MPS}()
   Λ = Vector{MPO}()
@@ -221,46 +218,47 @@ function decode(S::Vector, code::SurfaceCode; error_probability::NamedTuple)
     push!(Ψ, MPS(M))
     push!(Λ, MPO(U))
   end
-  # loop over syndromes
+  
+  # hyper-thread the syndrome loop
   Threads.@threads for k in 1:length(S)
     s = S[k]
     nthread = Threads.threadid()
-    #println(k)
     
-    # reference pauli
+    # generate a pure pauli error 
     f = purepaulierror(s, code)
-    coset_probabilities = [] 
     
+    coset_probabilities = [] 
     # loop over the Z logical operator
     for cosetZ in [0,1] 
       pauli = f ⊙ logicaloperator([0,cosetZ], code) 
       
-      #build right boundary
+      # build right boundary MPS
       links = linkinds(ϕ[nthread])
-      locE = pauli[qubit_at(N,1,d)] .+ 1
-      ϕ[nthread][1] = ITensor(H_XZ[locE...,:,:], sites[1], links[1])
+      
+      ϕ[nthread][1] = ITensor(H_XZ[(pauli[qubit_at(N, 1, d)].+1)...,:,:], 
+                              sites[1], links[1])
       for j in 2:N-1
-        if isodd(j)
-          locE = pauli[qubit_at(N,j,d)] .+ 1
-          ϕ[nthread][j] = ITensor(H_XZZ[locE...,:,:,:], sites[j], links[j-1],links[j])
-        else
-          ϕ[nthread][j] = δ(links[j-1], links[j], sites[j])
-        end
+        isodd(j) &&  (ϕ[nthread][j] = ITensor(H_XZZ[(pauli[qubit_at(N,j,d)].+1)...,:,:,:],
+                                              sites[j], links[j-1], links[j]))
+        iseven(j) && (ϕ[nthread][j] = δ(links[j-1], links[j], sites[j]))
       end
-      locE = pauli[qubit_at(N,N,d)] .+ 1
-      ϕ[nthread][N] = ITensor(H_XZ[locE...,:,:], sites[N], links[N-1])
+      ϕ[nthread][N] = ITensor(H_XZ[(pauli[qubit_at(N,N,d)].+1)...,:,:], 
+                              sites[N], links[N-1])
       
       Ψ[nthread] = copy(ϕ[nthread])
       
       # contract the bulk
       for i in reverse(2:N-1)
+        
+        # build intermediate MPO
         links = linkinds(Λ[nthread])
         if iseven(i)
           Λ[nthread][1] = δ(links[1],sites[1],sites[1]')
           for j in 2:N-1
             if iseven(j)
               locE = pauli[qubit_at(i,j,d)] .+ 1
-              Λ[nthread][j] = ITensor(V[locE...,:,:,:,:], links[j-1],links[j],sites[j],sites[j]')
+              Λ[nthread][j] = ITensor(V[(pauli[qubit_at(i,j,d)].+1)...,:,:,:,:], 
+                                      links[j-1],links[j],sites[j],sites[j]')
             else
               Λ[nthread][j] = δ(links[j-1], links[j], sites[j], sites[j]')
             end
@@ -268,25 +266,32 @@ function decode(S::Vector, code::SurfaceCode; error_probability::NamedTuple)
           Λ[nthread][N] = δ(links[N-1],sites[N],sites[N]')
         else
           locE = pauli[qubit_at(i,1,d)] .+ 1
-          Λ[nthread][1] = ITensor(H_XXZ[locE...,:,:,:], sites[1], sites[1]', links[1])
+          Λ[nthread][1] = ITensor(H_XXZ[(pauli[qubit_at(i,1,d)].+1)...,:,:,:], 
+                                  sites[1], sites[1]', links[1])
           for j in 2:N-1
             if isodd(j)
-              #y = 2*d-1-(j-1)
               locE = pauli[qubit_at(i,j,d)] .+ 1
-              Λ[nthread][j] = ITensor(H_XXZZ[locE...,:,:,:,:],sites[j], sites[j]', links[j-1], links[j])
+              Λ[nthread][j] = ITensor(H_XXZZ[(pauli[qubit_at(i,j,d)].+1)...,:,:,:,:],
+                                      sites[j], sites[j]', links[j-1], links[j])
             else
               Λ[nthread][j] = δ(links[j-1], links[j], sites[j], sites[j]')
             end
           end
           locE = pauli[qubit_at(i,N,d)] .+ 1
-          Λ[nthread][N] = ITensor(H_XXZ[locE...,:,:,:], sites[N], sites[N]', links[N-1])
+          Λ[nthread][N] = ITensor(H_XXZ[(pauli[qubit_at(i,N,d)].+1)...,:,:,:], 
+                                  sites[N], sites[N]', links[N-1])
         end
-        Ψ[nthread] = noprime(*(Λ[nthread], Ψ[nthread]; method = "naive", maxdim = 6))
+        
+        # contract with previous MPS state
+        Ψ[nthread] = noprime(*(Λ[nthread], Ψ[nthread]; method = contract_method, maxdim = maxdim))
       end
       
+      # evaluate the coset probability
       for cosetX in [0,1]
+        # combine pure error with logical operator
         pauliL = pauli ⊙ logicaloperator([cosetX,0], code)
-        # Boundary MPS
+        
+        # build boundary MPS encoding logical (or lack thereof) operation
         links = linkinds(ϕ[nthread]) 
         locE = pauliL[qubit_at(1,1,d)] .+ 1
         ϕ[nthread][1] = ITensor(H_XZ[locE...,:,:], sites[1], links[1]) 
@@ -301,29 +306,42 @@ function decode(S::Vector, code::SurfaceCode; error_probability::NamedTuple)
         locE = pauliL[qubit_at(1,N,d)] .+ 1
         ϕ[nthread][N] = ITensor(H_XZ[locE...,:,:], sites[N], links[N-1])
 
+        # the coset probability is simply the inner product of the two MPSs
         coset_probability = inner(Ψ[nthread],ϕ[nthread])
         push!(coset_probabilities, coset_probability)
       end
     end
     
+    # selecte the coset with maximum likelihood
     ml_coset = argmax(coset_probabilities)
+    # generate the most likely logical error
     logical_op = logicaloperator(cosets[ml_coset], code)
+    # generate the recovery operation
     recovery = f ⊙ logical_op
     push!(recoveries[nthread], recovery)
   end
   return vcat(recoveries...) 
 end
+"""
+    failure_rate(R::Vector, E::Vector, code::SurfaceCode)
 
+Calculate the logical failure rate of a set of recovery operation
+given a set of errors.
+"""
 function failure_rate(R::Vector, E::Vector, code::SurfaceCode)
-  f_rate = 0.0
+  logical_failure_rate = 0.0
   ndata = length(E)
   @assert length(E) == length(R)
+  # loop over errors
   for i in 1:length(E)
+    # perform recovery
     net_pauli = E[i] ⊙ R[i] 
+    # compute wilson loops
     wX,wZ = Wilsonloops(net_pauli, code)
-    (wX == 1 || wZ == 1) && (f_rate += 1/ndata) 
+    # check logical error
+    (wX == 1 || wZ == 1) && (logical_failure_rate += 1/ndata) 
   end
-  return f_rate
+  return logical_failure_rate
 end
 
 
@@ -362,6 +380,8 @@ support_to_pauli(nqubits::Int64, support::Vector{Int64}) =
 
 support_to_pauli(code::SurfaceCode, support::Vector{Int64}; kwargs...) = 
   support_to_pauli(nqubits(code), support; kwargs...)
+
+
 
 #support_to_pauli(nqubits::Int64, support::Tuple) =
 #  support_to_pauli(nqubits, [support...])
