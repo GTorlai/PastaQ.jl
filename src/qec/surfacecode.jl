@@ -296,6 +296,8 @@ end
 logicaloperator(coset::Vector{Int64}, code::SurfaceCode) = 
   logicaloperator(Tuple(coset), code)
 
+logicaloperators(code::SurfaceCode) = 
+  [logicaloperator((i,j), code) for (i,j) in Iterators.product(0:1,0:1)]
 
 """
     Wilsonloops(pauli::Vector{<:Array}, code::SurfaceCode)

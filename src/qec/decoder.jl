@@ -178,8 +178,10 @@ end
 
 Determine the most likely errors corresponding to a set of input syndromes,
 and returns the appropriate recovery operation.
+
+NOTE: THIS IS CURRENTLY SPECIALIZED FOR SURFACE CODE
 """
-function decode(S::Vector, code::SurfaceCode; 
+function decode(S::Vector, code::QuantumCode; 
                 error_probability::NamedTuple,
                 maxdim::Int64 = 10_000,
                 contract_method::String = "naive")
@@ -190,23 +192,22 @@ function decode(S::Vector, code::SurfaceCode;
   cosets = ["I","X","Z","Y"]
   recoveries = [[] for _ in 1:nthreads] 
   
-  # Pre-compute each dense tensor
-  # TODO: precompute itensors for all 20 configurations of the 5 tensors (4x5) 
+  # generate set of tensor indices
+  sites   = siteinds("Qubit", N)
+  linksΨ  = [Index(2; tags="Link, l=$i") for i in 1:N-1]
+  linksΛ  = [Index(2; tags="Link, l=$i") for i in 1:N-1]
+  
+  # pre-compute each dense tensor
   V      = codetensor(error_probability; Xrank = 2, Zrank = 2)
   H_XZ   = codetensor(error_probability; Xrank = 1, Zrank = 1)
   H_XXZ  = codetensor(error_probability; Xrank = 2, Zrank = 1)
   H_XZZ  = codetensor(error_probability; Xrank = 1, Zrank = 2)
   H_XXZZ = codetensor(error_probability; Xrank = 2, Zrank = 2)
   
-  # generate set of tensor indices
-  sites   = siteinds("Qubit", N)
-  linksΨ  = [Index(2; tags="Link, l=$i") for i in 1:N-1]
-  linksΛ  = [Index(2; tags="Link, l=$i") for i in 1:N-1]
-  
+  # pre-allocate tensor elements
   bulktensors_even = [[] for _ in 1:nthreads]
   bulktensors_odd  = [[] for _ in 1:nthreads]
   boundarytensors  = [[] for _ in 1:nthreads]
-  
   for nthread in 1:nthreads    
     push!(bulktensors_even[nthread], δ(linksΛ[1],sites[1],sites[1]'))
     push!(bulktensors_odd[nthread], [ITensor(H_XXZ[(μ,ν)...], sites[1], sites[1]', linksΛ[1])
@@ -235,7 +236,7 @@ function decode(S::Vector, code::SurfaceCode;
                                   for (μ,ν) in Iterators.product(1:2,1:2)])
   end
   
-  # pre-allocate memory
+  # pre-allocate MPS and MPO
   ϕ = Vector{MPS}()
   Ψ = Vector{MPS}()
   Λ = Vector{MPO}()
@@ -286,7 +287,6 @@ function decode(S::Vector, code::SurfaceCode;
       
       # sweep over the bulk
       for i in reverse(2:N-1)
-        
         # build intermedite MPO
         if iseven(i)
           for j in 1:N
@@ -299,7 +299,6 @@ function decode(S::Vector, code::SurfaceCode;
             iseven(j) && (Λ[nthread][j] = bulktensors_odd[nthread][j])
           end
         end
-
         # contract MPO with right-boundary MPS
         Ψ[nthread] = noprime(*(Λ[nthread], Ψ[nthread]; method = contract_method, maxdim = maxdim))
       end
@@ -344,7 +343,7 @@ end
 Calculate the logical failure rate of a set of recovery operation
 given a set of errors.
 """
-function failure_rate(R::Vector, E::Vector, code::SurfaceCode)
+function failure_rate(R::Vector, E::Vector, code::QuantumCode)
   logical_failure_rate = 0.0
   ndata = length(E)
   @assert length(E) == length(R)
