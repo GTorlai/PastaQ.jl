@@ -14,6 +14,8 @@ using Test
     "optimizers.jl",
     "statetomography.jl",
     "processtomography.jl",
+    "surfacecode.jl",
+    "decoder.jl",
     "utils.jl",
     "examples.jl",
     "observer.jl",
