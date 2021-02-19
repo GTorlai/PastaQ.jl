@@ -86,9 +86,9 @@ end
   @test nqubits(("H",2)) == 2
   @test nqubits(("CX",(2,5))) == 5
 
-  for i in 1:10
+  for i in 1:1000
     depth = 4
-    N = rand(2:50)
+    N = rand(3:50)
     gates = randomcircuit(N, depth; twoqubitgates = "CX", onequbitgates = "Rn")
     n = nqubits(gates)
     @test N == n

@@ -275,20 +275,20 @@ function randomstate(ElT::Type{<: Number}, T::Type,
   alg::String = get(kwargs, :alg, "rand")
   normalize::Bool = get(kwargs, :normalize, false)
 
-  if T == MPS
-    # Build MPS by random parameter initialization
-    if alg == "rand"
-      M =  random_mps(ElT,sites,χ,σ)
-    # Build MPS using a quantum circuit
-    elseif alg=="circuit"
-      M = randomMPS(ElT,sites,χ)
-    end
-  elseif T == MPO
-    error("initialization of random MPO density matrix not yet implemented.")
-  elseif T == LPDO
-    M = random_lpdo(ElT,sites,χ,ξ,σ;purifier_tags=purifier_tags)
+  if ξ > 1
+    M = random_lpdo(ElT, sites, χ, ξ, σ; purifier_tags = purifier_tags)
   else
-    error("ansatz type not recognized")
+    if T == MPS
+      # Build MPS by random parameter initialization
+      alg == "rand" && (M =  random_mps(ElT, sites, χ, σ))
+      alg == "circuit" && (M = randomMPS(ElT, sites, χ))
+    elseif T == MPO
+      error("initialization of random MPO density matrix not yet implemented.")
+    elseif T == LPDO
+      M = random_lpdo(ElT, sites, χ, ξ, σ; purifier_tags = purifier_tags)
+    else
+      error("ansatz type not recognized")
+    end
   end
   normalize && normalize!(M)
   return M
@@ -353,16 +353,22 @@ function randomprocess(ElT::Type{<: Number}, T::Type,
   purifier_tags = get(kwargs, :purifier_tags, default_purifier_tags)
   alg::String = get(kwargs, :alg, "rand")
   processtags = !(any(x -> hastags(x,"Input") , sites))
-  if T == MPO
-    if alg == "rand"
-      M = random_mpo(ElT,sites,χ,σ;processtags=processtags)
-    else
-      error("randomMPO with circuit initialization not implemented yet")
-    end
-  elseif T == LPDO
-    M = random_choi(ElT,sites,χ,ξ,σ;purifier_tags=purifier_tags)
+  
+
+  if ξ > 1
+    return random_choi(ElT, sites, χ, ξ, σ; purifier_tags = purifier_tags)
   else
-    error("ansatz type not recognized")
+    if T == MPO
+      if alg == "rand"
+        M = random_mpo(ElT, sites, χ, σ; processtags = processtags)
+      else
+        error("randomMPO with circuit initialization not implemented yet")
+      end
+    elseif T == LPDO
+      M = random_choi(ElT, sites, χ, ξ, σ; purifier_tags = purifier_tags)
+    else
+      error("ansatz type not recognized")
+    end
   end
   return M
 end
