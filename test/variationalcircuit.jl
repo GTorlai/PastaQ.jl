@@ -100,14 +100,14 @@ end
 
 istrainable(g::Tuple) = length(g) == 3
 
-function VQEenergy(H::MPO, gates::Union{Vector{<:Vector{<:Tuple}},Vector{<:ITensor}})
+function VQEenergy(H::MPO, gates::Union{Vector{<:Vector{<:Any}},Vector{<:ITensor}})
   ψθ = runcircuit(qubits(H), gates)
   E = inner(ψθ, H, ψθ)
   @assert(imag(E)<1e-7)  
   return real(E)
 end
 
-function numgradpars(circuit::Vector{<:Vector{<:Tuple}}, costfunction::MPO; ϵ = 1e-7)
+function numgradpars(circuit::Vector{<:Vector{<:Any}}, costfunction::MPO; ϵ = 1e-7)
   N = length(costfunction)
   depth = length(circuit)
   numgradients = []

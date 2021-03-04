@@ -34,7 +34,7 @@ maximize!(costfunction::MPO, args...; kwargs...)  =
   minimize!(-costfunction,args...; kwargs...)
 
 
-function circuitmap(circuit::Vector{<:Vector{<:Tuple}}) 
+function circuitmap(circuit::Vector{<:Vector{<:Any}}) 
   circuitmap = []
   # loop over the layers
   for layer in circuit# in 1:nlayers(circuit)
@@ -56,7 +56,7 @@ end
 """
 Compute the left and right environments with respect to the bra
 """
-function environments(circuit::Vector{<:Vector{<:Tuple}}, costfunction::MPO; kwargs...)
+function environments(circuit::Vector{<:Vector{<:Any}}, costfunction::MPO; kwargs...)
   # number of qubits
   N = length(costfunction)
   # depth of the vqe circuit
@@ -86,10 +86,10 @@ function environments(circuit::Vector{<:Vector{<:Tuple}}, costfunction::MPO; kwa
   return ΨL,ΨR 
 end
 
-gradients(circuit::Vector{<:Vector{<:Tuple}}, costfunction::MPO; kwargs...) = 
-  gradients(circuit, costfunction, _circuitmap(circuit); kwargs...) 
+gradients(circuit::Vector{<:Vector{<:Any}}, costfunction::MPO; kwargs...) = 
+  gradients(circuit, costfunction, circuitmap(circuit); kwargs...) 
 
-function gradients(circuit::Vector{<:Vector{<:Tuple}}, costfunction::MPO, circuitmap::Vector{<:Any}; kwargs...)
+function gradients(circuit::Vector{<:Vector{<:Any}}, costfunction::MPO, circuitmap::Vector{<:Any}; kwargs...)
   # environments
   ΨL, ΨR = PastaQ.environments(circuit, costfunction; kwargs...)
   
@@ -119,10 +119,10 @@ function gradients(circuit::Vector{<:Vector{<:Tuple}}, costfunction::MPO, circui
   return inner(ΨL[2],ΨR[1]), gradients
 end
 
-_getparameters(circuit::Vector{<:Vector{<:Tuple}}) = 
-  _getparameters(circuit,_circuitmap(circuit)) 
+_getparameters(circuit::Vector{<:Vector{<:Any}}) = 
+  _getparameters(circuit,circuitmap(circuit)) 
 
-function _getparameters(circuit::Vector{<:Vector{<:Tuple}}, circuitmap::Vector{<:Any})
+function _getparameters(circuit::Vector{<:Vector{<:Any}}, circuitmap::Vector{<:Any})
   params = []
   for d in 1:length(circuit)
     parlayer = []
@@ -141,10 +141,10 @@ end
 Update single-qubit rotation gate angle.
 """
 
-_setparameters!(circuit::Vector{<:Vector{<:Tuple}}, newparameters::Array) = 
-  _setparameters!(circuit,newparameters,_circuitmap(circuit)) 
+_setparameters!(circuit::Vector{<:Vector{<:Any}}, newparameters::Array) = 
+  _setparameters!(circuit,newparameters,circuitmap(circuit)) 
 
-function _setparameters!(circuit::Vector{<:Vector{<:Tuple}}, newparameters::Array, circuitmap::Vector{<:Any})
+function _setparameters!(circuit::Vector{<:Vector{<:Any}}, newparameters::Array, circuitmap::Vector{<:Any})
   cnt = 1 
   for d in 1:length(circuit)
     for g in circuitmap[d]
