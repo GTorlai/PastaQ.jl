@@ -387,11 +387,11 @@ gate(::GateName"noisePD"; kwargs...) =
 # Qubit site type
 #
 
-space(::SiteType"Qubit") = 2
+#space(::SiteType"Qubit") = 2
 
-state(::SiteType"Qubit", ::StateName"0") = 1
+#state(::SiteType"Qubit", ::StateName"0") = 1
 
-state(::SiteType"Qubit", ::StateName"1") = 2
+#state(::SiteType"Qubit", ::StateName"1") = 2
 
 #
 # Basis definitions (eigenbases of measurement gates)
