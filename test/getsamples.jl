@@ -65,6 +65,7 @@ end
 
 
 @testset "measurements" begin
+  Random.seed!(1234)
   N = 4
   depth = 10
   ψ0 = productstate(N)
@@ -73,8 +74,14 @@ end
   ψ_vec = PastaQ.array(ψ)
   probs = abs2.(ψ_vec)
   
-  nshots = 100000
+  nshots = 50000
   samples = PastaQ.getsamples!(ψ,nshots)
+  @test size(samples)[1] == nshots
+  @test size(samples)[2] == N
+  data_prob = empiricalprobability(samples)
+  @test probs ≈ data_prob atol=1e-2
+  
+  samples = PastaQ.getsamples!(prod(ψ),nshots)
   @test size(samples)[1] == nshots
   @test size(samples)[2] == N
   data_prob = empiricalprobability(samples)
@@ -83,8 +90,13 @@ end
   ρ = runcircuit(N, gates, noise = ("amplitude_damping", (γ = 0.01,)))
   ρ_mat = PastaQ.array(ρ)
   probs = real(diag(ρ_mat))
-
   samples = PastaQ.getsamples!(ρ,nshots)
+  @test size(samples)[1] == nshots
+  @test size(samples)[2] == N
+  data_prob = empiricalprobability(samples)
+  @test probs ≈ data_prob atol=1e-2
+
+  samples = PastaQ.getsamples!(prod(ρ),nshots)
   @test size(samples)[1] == nshots
   @test size(samples)[2] == N
   data_prob = empiricalprobability(samples)
