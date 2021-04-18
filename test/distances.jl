@@ -49,29 +49,31 @@ end
   U2 = randomprocess(U1)
   
   # MPO Choi matrix 
-  ρ1 = PastaQ.choimatrix(PastaQ.hilbertspace(U1), circuit1; noise = ("DEP",(p=0.01,)))
-  ρ2 = PastaQ.choimatrix(PastaQ.hilbertspace(U1), circuit2; noise = ("DEP",(p=0.01,)))
+  #ρ1 = PastaQ.choimatrix(PastaQ.hilbertspace(U1), circuit1; noise = ("AD",(γ=0.1,)))
+  #ρ2 = PastaQ.choimatrix(PastaQ.hilbertspace(U1), circuit2; noise = ("AD",(γ=0.1,)))
+  ρ1 = PastaQ.choimatrix(PastaQ.hilbertspace(U1), circuit1; noise = ("DEP",(p=0.5,)))
+  ρ2 = PastaQ.choimatrix(PastaQ.hilbertspace(U1), circuit2; noise = ("DEP",(p=0.5,)))
   # LPDO Choi matrix
   ϱ1 = normalize!(randomprocess(U1; mixed = true))
   ϱ2 = normalize!(randomprocess(U1; mixed = true))
-
+  @show tr(ρ1),tr(ρ2)
   @disable_warn_order begin
     ϕ1 = PastaQ.unitary_mpo_to_choi_mps(U1)
     normalize!(ϕ1)
     ϕ1vec = PastaQ.array(ϕ1)
     ρ1mat = PastaQ.array(ρ1)
-    ρ1mat = ρ1mat / tr(ρ1mat) 
+    ρ1mat = ρ1mat ./ tr(ρ1mat) 
     ϱ1mat = PastaQ.array(ϱ1)
-    ϱ1mat = ϱ1mat / tr(ϱ1mat) 
+    ϱ1mat = ϱ1mat ./ tr(ϱ1mat) 
 
     
     ϕ2 = PastaQ.unitary_mpo_to_choi_mps(U2)
     normalize!(ϕ2)
     ϕ2vec = PastaQ.array(ϕ2)
     ρ2mat = PastaQ.array(ρ2)
-    ρ2mat = ρ2mat / tr(ρ2mat) 
+    ρ2mat = ρ2mat ./ tr(ρ2mat) 
     ϱ2mat = PastaQ.array(ϱ2)
-    ϱ2mat = ϱ2mat / tr(ϱ2mat) 
+    ϱ2mat = ϱ2mat ./ tr(ϱ2mat) 
     @test fidelity(U1,U2; process = true) ≈ abs2(ϕ1vec' * ϕ2vec)
     @test fidelity(U1,ρ2; process = true) ≈ ϕ1vec' * ρ2mat * ϕ1vec
     @test fidelity(U1,ϱ2; process = true) ≈ (ϕ1vec' * ϱ2mat * ϕ1vec) 

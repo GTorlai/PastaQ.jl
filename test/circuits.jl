@@ -49,7 +49,7 @@ end
   @test haskey(pars,:ϕ)
   @test haskey(pars,:λ)
   
-  pars = PastaQ.randomparams("RandomUnitary",4)
+  pars = PastaQ.randomparams("RandomUnitary",2)
   @test haskey(pars,:random_matrix)
   @test size(pars[:random_matrix]) == (4,4)
   @test pars[:random_matrix] isa Matrix{ComplexF64}

@@ -1,23 +1,3 @@
-#function buildcircuit(M::Union{MPS,MPO}, circuit::Union{Tuple,Vector{<:Any}}, noise) 
-#  isnothing(noise) && return buildcircuit(M, circuit) 
-#  circuit = (circuit isa Tuple ? [circuit] : circuit)
-#  error1Q = noise[:error1Q]
-#  error2Q = noise[:error2Q]
-#  circuit_tensors = ITensor[]
-#  for g in circuit
-#    # compile tensor for the gate
-#    push!(circuit_tensors, gate(M, g))
-#    ns = g[2]
-#    # Add Noise
-#    for n in ns
-#      ns isa Tuple && (noisegate = (error2Q[1], n, error2Q[2]))
-#      ns isa Int   && (noisegate = (error1Q[1], n, error1Q[2]))
-#      push!(circuit_tensors, gate(M, noisegate))
-#    end
-#  end
-#  return circuit_tensors
-#end
-
 """
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
@@ -38,24 +18,16 @@ If noise is nontrivial, the corresponding Kraus operators are
 added to each gate as a tensor with an extra (Kraus) index.
 """
 function buildcircuit(M::Union{MPS,MPO}, circuit::Union{Tuple,Vector{<:Any}}; 
-                      noise::Union{Nothing, String, Tuple{String, NamedTuple}} = nothing)
+                      noise::Union{Nothing, Tuple, NamedTuple} = nothing)
   circuit_tensors = ITensor[]
   if circuit isa Tuple
     circuit = [circuit]
   end
+  if !isnothing(noise)
+    circuit = applynoise(circuit, noise)
+  end
   for g in circuit
     push!(circuit_tensors, gate(M, g))
-    ns = g[2]
-    if !isnothing(noise)
-      for n in ns
-        if noise isa String
-          noisegate = (noise, n)
-        elseif noise isa Tuple{String, NamedTuple}
-          noisegate = (noise[1], n, noise[2])
-        end
-        push!(circuit_tensors, gate(M, noisegate))
-      end
-    end
   end
   return circuit_tensors
 end

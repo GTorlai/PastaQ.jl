@@ -462,7 +462,7 @@ function getsamples(gates::Array,preps::Array, bases::Array ;
   ψ0 = productstate(N)
   hilbert = hilbertspace(ψ0) 
   # Pre-compile quantum channel
-  gate_tensors = buildcircuit(ψ0, gates; noise=noise, kwargs...)
+  gate_tensors = buildcircuit(ψ0, gates; noise = noise, kwargs...)
   
   nthreads = Threads.nthreads()
   data = [Vector{Vector{Pair{String, Int}}}(undef, 0) for _ in 1:nthreads]
