@@ -302,21 +302,22 @@ gate(::GateName"CCCNOT") =
 # Random Haard unitary:
 # 
 # Reference: http://math.mit.edu/~edelman/publications/random_matrix_theory.pdf
-function gate(::GateName"randU", N::Int = 2;
+function gate(::GateName"randU", N::Int = 1;
               eltype = ComplexF64,
-              random_matrix = randn(eltype, N, N))
+              random_matrix = randn(eltype, 1<<N, 1<<N))
   Q, _ = NDTensors.qr_positive(random_matrix)
   return Q
 end
 
-gate(::GateName"RandomUnitary", N::Int = 2; kwargs...) = 
+
+gate(::GateName"RandomUnitary", N::Int = 1; kwargs...) = 
   gate("randU", N; kwargs...)
 
 
   #
 # Noise model gate definitions
-#
-function gate(::GateName"pauli_error"; pX::Number = 0.0, pY::Number = 0.0, pZ::Number = 0.0)
+
+function gate(::GateName"1qubit-pauli_error"; pX::Number = 0.0, pY::Number = 0.0, pZ::Number = 0.0)
   kraus = zeros(Complex{Float64},2,2,4)
   kraus[:,:,1] = √(1-pX-pY-pZ) * gate("Id")
   kraus[:,:,2] = √pX * gate("X")
@@ -324,6 +325,21 @@ function gate(::GateName"pauli_error"; pX::Number = 0.0, pY::Number = 0.0, pZ::N
   kraus[:,:,4] = √pZ * gate("Z")
   return kraus 
 end
+
+function gate(::GateName"2qubit-pauli_error"; probs = prepend!(zeros(15),1))
+  kraus = zeros(Complex{Float64},4,4,16)
+  basis = vec(reverse.(Iterators.product(fill(["Id","X","Y","Z"],2)...)|>collect))
+  for (k,ops) in enumerate(basis)
+    kraus[:,:,k] = √probs[k] * kron(gate(ops[1]), gate(ops[2]))
+  end
+  return kraus 
+end
+
+function gate(::GateName"pauli_error", N::Int = 1; kwargs...) 
+  N == 1 && return gate("1qubit-pauli_error"; kwargs...)
+  N == 2 && return gate("2qubit-pauli_error"; kwargs...)
+end
+
 
 gate(::GateName"pauli_channel"; kwargs...) = gate("pauli_error"; kwargs...)
 
@@ -367,31 +383,22 @@ gate(::GateName"phase_damping"; kwargs...) = gate("PD"; kwargs...)
 # To accept the gate name "dephasing"
 gate(::GateName"dephasing"; kwargs...) = gate("PD"; kwargs...)
 
-gate(::GateName"DEP"; p::Number) = 
+
+gate(::GateName"1qDEP"; p::Number) = 
   gate("pauli_error"; pX = p/3.0, pY = p/3.0, pZ = p/3.0)
 
+gate(::GateName"2qDEP"; p::Number) = 
+  gate("pauli_error",2; probs = prepend!(√p/15 * ones(15), 1-√p))
+
+function gate(::GateName"DEP", N::Int = 1; kwargs...)
+  N == 1 && return gate("1qDEP"; kwargs...)
+  N == 2 && return gate("2qDEP"; kwargs...)
+end
 
 # To accept the gate name "depolarizing"
-gate(::GateName"depolarizing"; kwargs...) = gate("DEP"; kwargs...)
+gate(::GateName"depolarizing", N::Int = 1; kwargs...) = 
+  gate("DEP", N; kwargs...)
 
-gate(::GateName"noiseDEP"; kwargs...) =
-  gate("DEP";kwargs...)
-
-gate(::GateName"noiseAD"; kwargs...) =
-  gate("AD";kwargs...)
-
-gate(::GateName"noisePD"; kwargs...) =
-  gate("PD";kwargs...)
-
-#
-# Qubit site type
-#
-
-#space(::SiteType"Qubit") = 2
-
-#state(::SiteType"Qubit", ::StateName"0") = 1
-
-#state(::SiteType"Qubit", ::StateName"1") = 2
 
 #
 # Basis definitions (eigenbases of measurement gates)
@@ -449,7 +456,7 @@ gate(gn::GateName, N::Int; kwargs...) =
 function gate(gn::GateName, s1::Index, ss::Index...; kwargs...)
   s = tuple(s1, ss...)
   rs = reverse(s)
-  g = gate(gn, dim(s); kwargs...) 
+  g = gate(gn, length(s); kwargs...) 
   if ndims(g) == 1
     # TODO:
     #error("gate must have more than one dimension, use state(...) for state vectors.")
@@ -537,8 +544,8 @@ randomparams(::GateName"CRn", args...;rng = Random.GLOBAL_RNG) =
 
 randomparams(::GateName,args...; kwargs...) = NamedTuple()
 
-randomparams(::GateName"RandomUnitary", N::Int = 2; eltype = ComplexF64, rng = Random.GLOBAL_RNG) = 
-  (random_matrix = randn(rng, eltype, N, N),)
+randomparams(::GateName"RandomUnitary", N::Int = 1; eltype = ComplexF64, rng = Random.GLOBAL_RNG) = 
+  (random_matrix = randn(rng, eltype, 1<<N, 1<<N),)
 
 randomparams(s::AbstractString; kwargs...) = 
   randomparams(GateName(s); kwargs...)

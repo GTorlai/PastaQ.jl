@@ -1,3 +1,23 @@
+#function buildcircuit(M::Union{MPS,MPO}, circuit::Union{Tuple,Vector{<:Any}}, noise) 
+#  isnothing(noise) && return buildcircuit(M, circuit) 
+#  circuit = (circuit isa Tuple ? [circuit] : circuit)
+#  error1Q = noise[:error1Q]
+#  error2Q = noise[:error2Q]
+#  circuit_tensors = ITensor[]
+#  for g in circuit
+#    # compile tensor for the gate
+#    push!(circuit_tensors, gate(M, g))
+#    ns = g[2]
+#    # Add Noise
+#    for n in ns
+#      ns isa Tuple && (noisegate = (error2Q[1], n, error2Q[2]))
+#      ns isa Int   && (noisegate = (error1Q[1], n, error1Q[2]))
+#      push!(circuit_tensors, gate(M, noisegate))
+#    end
+#  end
+#  return circuit_tensors
+#end
+
 """
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
