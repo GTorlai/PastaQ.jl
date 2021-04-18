@@ -62,47 +62,29 @@ end
   @test PastaQ.array(ρ2) ≈ exact_mat
 end
 
-#@testset "reset productstate" begin
-#  N = 5
-#  depth = 5
-#  gates = randomcircuit(N,depth)
-#  ψ0 = productstate(N)
-#  ψ = runcircuit(ψ0,gates)
-#  
-#  resetproductstate!(ψ)
-#  psi_vec = PastaQ.array(ψ)
-#
-#  exact_vec = zeros(1<<N)
-#  exact_vec[1] = 1.0
-#  @test psi_vec ≈ exact_vec
-#
-#  
-#  ρ0 = MPO(productstate(N))
-#  ρ = runcircuit(ρ0,gates)
-#  
-#  resetproductstate!(ρ)
-#  ρ_mat = PastaQ.array(ρ)
-#
-#  exact_mat = zeros(1<<N,1<<N)
-#  exact_mat[1,1] = 1.0
-#  @test exact_mat ≈ ρ_mat
-#end
-
 @testset "runcircuit: unitary quantum circuit" begin
   N = 3
   depth = 4
-  gates = randomcircuit(N,depth; layered = false)
+  circuit = randomcircuit(N,depth; layered = false)
   #Pure state, noiseless circuit
-  ψ0 = productstate(N)
-  ψ = runcircuit(ψ0,gates)
-  @test prod(ψ) ≈ runcircuit(prod(ψ0),buildcircuit(ψ0,gates))
-  @test PastaQ.array(prod(ψ)) ≈ PastaQ.array(prod(runcircuit(N,gates)))
-  @test PastaQ.array(prod(ψ)) ≈ PastaQ.array(prod(runcircuit(gates)))
+  ψ₀ = productstate(N)
+  ψ₀dense = prod(ψ₀)
+
+  ψdense = runcircuit(ψ₀dense,circuit)
+  @test ψdense ≈ runcircuit(siteinds(ψ₀), circuit; exact = true) 
+  
+  ψ = runcircuit(siteinds(ψ₀),circuit)
+  @test prod(ψ) ≈ ψdense
+  ψ = runcircuit(ψ₀,circuit)
+  @test prod(ψ) ≈ ψdense
   
   # Mixed state, noiseless circuit
-  ρ0 = MPO(productstate(N))
-  ρ = runcircuit(ρ0,gates)
-  @test prod(ρ) ≈ runcircuit(prod(ρ0),buildcircuit(ρ0,gates); apply_dag=true)
+  ρ₀ = MPO(productstate(N))
+  ρ₀dense = prod(ρ₀)
+
+  ρdense = runcircuit(ρ₀dense, circuit)
+  ρ = runcircuit(ρ₀, circuit)
+  @test prod(ρ) ≈ ρdense
   
 end
 
@@ -111,40 +93,36 @@ end
   depth = 2
   gates = randomcircuit(N,depth; layered = false)
 
-  # Pure state, noisy circuit
   ψ0 = productstate(N)
   ρ = runcircuit(ψ0, gates; noise = ("depolarizing", (p = 0.1,)))
-  ρ0 = MPO(ψ0)
-  U = buildcircuit(ρ0, gates; noise = ("depolarizing", (p = 0.1,)))
-  @disable_warn_order begin
-    #@show X
-    @test prod(ρ) ≈ runcircuit(prod(ρ0), U; apply_dag=true)
-    
-    ## Mixed state, noisy circuit
-    ρ0 = MPO(productstate(N))
-    ρ = runcircuit(ρ0, gates; noise = ("depolarizing", (p = 0.1,)))
-    U = buildcircuit(ρ0, gates, noise = ("depolarizing", (p = 0.1,)))
-    @test prod(ρ) ≈ runcircuit(prod(ρ0), U; apply_dag=true)
-  end
+  
+  ρdense = runcircuit(siteinds(ψ0), gates; noise = ("depolarizing", (p = 0.1,)), exact = true)
+  @test ρdense ≈ prod(ρ)
+  
+  ρ = runcircuit(MPO(ψ0), gates;  noise = ("depolarizing", (p = 0.1,)))
+  @test ρdense ≈ prod(ρ)
+  
+  ρdense = runcircuit(prod(MPO(ψ0)), gates;  noise = ("depolarizing", (p = 0.1,)))
+  @test ρdense ≈ prod(ρ)
   
 end
-
-@testset "alternative noise definition" begin
-  N = 5
-  depth = 4
-  circuit0 = randomcircuit(N,depth; twoqubitgates = "CX", onequbitgates = "Rn", layered = false)
-  ρ0 = runcircuit(circuit0; noise = ("DEP", (p=0.01,)))
-
-  ψ = productstate(ρ0)
-  circuit = []
-  for g in circuit0
-    push!(circuit,g)
-    ns = g[2]
-    push!(circuit,("DEP",ns,(p=0.01,)))
-  end
-  ρ = runcircuit(ψ, circuit)
-  @test PastaQ.array(ρ0) ≈ PastaQ.array(ρ)
-end
+#
+#@testset "alternative noise definition" begin
+#  N = 5
+#  depth = 4
+#  circuit0 = randomcircuit(N,depth; twoqubitgates = "CX", onequbitgates = "Rn", layered = false)
+#  ρ0 = runcircuit(circuit0; noise = ("DEP", (p=0.01,)))
+#
+#  ψ = productstate(ρ0)
+#  circuit = []
+#  for g in circuit0
+#    push!(circuit,g)
+#    ns = g[2]
+#    push!(circuit,("DEP",ns,(p=0.01,)))
+#  end
+#  ρ = runcircuit(ψ, circuit)
+#  @test PastaQ.array(ρ0) ≈ PastaQ.array(ρ)
+#end
 
 @testset "runcircuit: inverted gate order" begin
   N = 8
@@ -157,8 +135,7 @@ end
   end
   ψ0 = productstate(N)
   ψ = runcircuit(ψ0, gates)
-  @test prod(ψ) ≈ runcircuit(prod(ψ0),buildcircuit(ψ0,gates))
-
+  @test prod(ψ) ≈ runcircuit(siteinds(ψ0), gates; exact = true)
 end
 
 @testset "runcircuit: long range gates" begin
@@ -175,7 +152,7 @@ end
   end
   ψ0 = productstate(N)
   ψ = runcircuit(ψ0,gates)
-  @test prod(ψ) ≈ runcircuit(prod(ψ0),buildcircuit(ψ0,gates)) 
+  @test prod(ψ) ≈ runcircuit(siteinds(ψ0), gates; exact = true)
   
 end
 
