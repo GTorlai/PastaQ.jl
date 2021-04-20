@@ -82,11 +82,11 @@ gate(::GateName"depolarizing", N::Int = 1; kwargs...) =
   gate("DEP", N; kwargs...)
 
 
-function applynoise(circuit::Vector, noise::Tuple) 
-  applynoise(circuit, (noise1Q = noise, noise2Q = noise))
+function applynoise(circuit::Vector, noise::Tuple; kwargs...) 
+  applynoise(circuit, (noise1Q = noise, noise2Q = noise); kwargs...)
 end 
 
-function applynoise(circuit::Vector, noise::NamedTuple; idle_noise = false) 
+function applynoise(circuit::Vector, noise::NamedTuple; idle = false, productnoise = false) 
   noise1Q = noise[:noise1Q]
   noise2Q = noise[:noise2Q]
 
@@ -101,25 +101,39 @@ function applynoise(circuit::Vector, noise::NamedTuple; idle_noise = false)
       nq = g[2]
       # n-qubit gate
       if nq isa Tuple
-        noisegate = gate(first(noise2Q), length(nq); last(noise2Q)...)
-        if size(noisegate,1) < 1<<length(nq)
-          println("WARNING: $(length(nq))-qubit Kraus operators for the $(first(noise2Q)) noise not defined.\nApplying instead the tensor-product of single-qubit noise")
+        # apply noise channel as product of local channels
+        if productnoise
+          noisegate = gate(noise2Q[1],1; noise2Q[2]...)
           for n in nq
-            push!(noisycircuit,(first(noise2Q), n, last(noise2Q)))
+            push!(noisycircuit,(noise2Q[1], n, noise2Q[2]))
           end
         else
-          push!(noisycircuit,(first(noise2Q), nq, last(noise2Q))) 
+          # n -qubit Kraus operator
+          noisegate = gate(noise2Q[1], length(nq); noise2Q[2]...)
+          # if the single-qubit copy is return, use productnoise, and throw a warning
+          if size(noisegate,1) < 1<<length(nq)
+            println("WARNING: $(length(nq))-qubit Kraus operators for the $(noise2Q[1]) noise not defined.\nApplying instead the tensor-product of single-qubit noise")
+            for n in nq
+              push!(noisycircuit,(noise2Q[1], n, noise2Q[2]))
+            end
+          # correlated n-qubit noise
+          else
+            #for n in nq
+            #  push!(noisycircuit,(noise2Q[1], n, noise2Q[2]))
+            #end
+            push!(noisycircuit,(noise2Q[1], nq, noise2Q[2])) 
+          end
         end
       # 1-qubit gate
       else
-        push!(noisycircuit,(first(noise1Q), nq, last(noise1Q)))  
+        push!(noisycircuit,(noise1Q[1], nq, noise1Q[2]))  
       end
     end
-    if idle_noise
+    if idle
       busy_qubits = vcat([collect(g[2]) for g in layer]...)
       idle_qubits = filter(y -> y ∉ busy_qubits, 1:nqubits(circuit))
       for n in idle_qubits
-        push!(noisycircuit, (first(noise1Q), n, last(noise1Q)))
+        push!(noisycircuit, (noise1Q[1], n, noise1Q[2]))
       end
     end
   end

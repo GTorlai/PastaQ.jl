@@ -146,7 +146,7 @@ function getsamples!(T::ITensor, nshots::Int;
   # Get a dense array which can be
   # - Vector with dim 2^N for a wavefunction |ψ⟩
   # - Matrix with dim (2^N,2^N) for a density matrix ρ
-  A = toarray(T)
+  A = array(T)
   
   # Compute the full probability distribution 
   # P(σ) = |⟨σ|ψ⟩|² (Tr[ρ|σ⟩⟨σ|] 

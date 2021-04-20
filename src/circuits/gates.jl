@@ -448,7 +448,7 @@ function gate(T::ITensor, gatename::String, site::Union{Int, Tuple}; kwargs...)
   X = [string.(tensor_tags[j]) for j in 1:length(tensor_tags)]
   sitenumber_position = findfirst(y -> y[1:2] == "n=", X[1])
   isnothing(sitenumber_position) && error("Qubit numbering not found")
-  Y = [parse(Int,X[j][sitenumber_position][3]) for j in 1:length(X)]
+  Y = [parse(Int,X[j][sitenumber_position][3:end]) for j in 1:length(X)]
   gateindices = [findfirst(x-> x == s, Y) for s in site] 
   site_inds = [tensor_indices[gateindex] for gateindex in gateindices]
   return gate(gatename, site_inds...; kwargs...)

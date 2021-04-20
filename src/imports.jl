@@ -12,7 +12,6 @@ import ITensors:
   # circuits/gates.jl
   space,
   state,
-  array,
   noise
 
 import LinearAlgebra:
