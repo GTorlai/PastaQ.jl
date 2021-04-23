@@ -281,13 +281,13 @@ end
   @test norm(Λ.X)^2 ≈ 2^N
   alg_grad,_ = PastaQ.gradlogZ(Λ; sqrt_localnorms = sqrt_localnorms)
   
-  alg_gradient = permutedims(PastaQ.array(alg_grad[1]),[1,3,2])
+  alg_gradient = permutedims(ITensors.array(alg_grad[1]),[1,3,2])
   @test alg_gradient ≈ num_grad[1] rtol=1e-3
   for j in 2:N-1
-    alg_gradient = permutedims(PastaQ.array(alg_grad[j]),[2,1,3,4])
+    alg_gradient = permutedims(ITensors.array(alg_grad[j]),[2,1,3,4])
     @test alg_gradient ≈ num_grad[j] rtol=1e-3
   end
-  alg_gradient = permutedims(PastaQ.array(alg_grad[N]),[2,1,3])
+  alg_gradient = permutedims(ITensors.array(alg_grad[N]),[2,1,3])
   @test alg_gradient ≈ num_grad[N] rtol=1e-3
 end
 
@@ -308,7 +308,7 @@ end
   
   alg_grad,_ = PastaQ.gradnll(Λ,data; sqrt_localnorms = sqrt_localnorms) 
   for j in 1:N
-    @test PastaQ.array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
+    @test ITensors.array(alg_grad[j]) ≈ num_grad[j] rtol=1e-3
   end
 end
 
@@ -331,13 +331,13 @@ end
   alg_grad,Γ = PastaQ.gradTP(Λ,alg_grad_logZ,logZ; sqrt_localnorms = sqrt_localnorms)
    
   @test Γ ≈ Γ_test
-  alg_gradient = permutedims(PastaQ.array(alg_grad[1]),[1,3,2])
+  alg_gradient = permutedims(ITensors.array(alg_grad[1]),[1,3,2])
   @test alg_gradient ≈ num_grad[1] rtol=1e-5
   for j in 2:N-1
-    alg_gradient = permutedims(PastaQ.array(alg_grad[j]),[1,3,2,4])
+    alg_gradient = permutedims(ITensors.array(alg_grad[j]),[1,3,2,4])
     @test alg_gradient ≈ num_grad[j] rtol=1e-5
   end
-  alg_gradient = permutedims(PastaQ.array(alg_grad[N]),[1,3,2])
+  alg_gradient = permutedims(ITensors.array(alg_grad[N]),[1,3,2])
   @test alg_gradient ≈ num_grad[N] rtol=1e-5
 end
 
@@ -369,13 +369,13 @@ end
   ex_loss = PastaQ.nll(Λ,data) + 2*lognorm(Λ.X)
   alg_grads,loss = PastaQ.gradients(Λ,data; sqrt_localnorms = sqrt_localnorms, trace_preserving_regularizer = trace_preserving_regularizer)
   @test ex_loss ≈ loss
-  alg_gradient = permutedims(PastaQ.array(alg_grads[1]),[1,3,2])
+  alg_gradient = permutedims(ITensors.array(alg_grads[1]),[1,3,2])
   @test alg_gradient ≈ num_grads[1] rtol=1e-3
   for j in 2:N-1
-    alg_gradient = permutedims(PastaQ.array(alg_grads[j]),[2,1,3,4])
+    alg_gradient = permutedims(ITensors.array(alg_grads[j]),[2,1,3,4])
     @test alg_gradient ≈ num_grads[j] rtol=1e-3
   end
-  alg_gradient = permutedims(PastaQ.array(alg_grads[N]),[2,1,3])
+  alg_gradient = permutedims(ITensors.array(alg_grads[N]),[2,1,3])
   @test alg_gradient ≈ num_grads[N] rtol=1e-3
 end
 
@@ -407,12 +407,12 @@ end
   @test tr(Λ) ≈ 2^N
   alg_grad,_ = PastaQ.gradlogZ(Λ; sqrt_localnorms = sqrt_localnorms)
   
-  alg_gradient = permutedims(PastaQ.array(alg_grad[1]),[1,2,4,3])
+  alg_gradient = permutedims(ITensors.array(alg_grad[1]),[1,2,4,3])
   for j in 2:N-1
-    alg_gradient = permutedims(PastaQ.array(alg_grad[j]),[2,3,1,4,5])
+    alg_gradient = permutedims(ITensors.array(alg_grad[j]),[2,3,1,4,5])
     @test alg_gradient ≈ num_grad[j] rtol=1e-3
   end
-  alg_gradient = permutedims(PastaQ.array(alg_grad[N]),[2,3,1,4])
+  alg_gradient = permutedims(ITensors.array(alg_grad[N]),[2,3,1,4])
   @test alg_gradient ≈ num_grad[N] rtol=1e-3
 
 end
@@ -436,13 +436,13 @@ end
   alg_grad,loss = PastaQ.gradnll(Λ,data; sqrt_localnorms = sqrt_localnorms)
   @test loss ≈ PastaQ.nll(Λ,data)
   
-  alg_gradient = permutedims(PastaQ.array(alg_grad[1]),[3,4,1,2])
+  alg_gradient = permutedims(ITensors.array(alg_grad[1]),[3,4,1,2])
   @test alg_gradient ≈ num_grad[1] rtol=1e-3
   for j in 2:N-1
-    alg_gradient = permutedims(PastaQ.array(alg_grad[j]),[4,5,2,3,1])
+    alg_gradient = permutedims(ITensors.array(alg_grad[j]),[4,5,2,3,1])
     @test alg_gradient ≈ num_grad[j] rtol=1e-3
   end
-  alg_gradient = permutedims(PastaQ.array(alg_grad[N]),[3,4,1,2])
+  alg_gradient = permutedims(ITensors.array(alg_grad[N]),[3,4,1,2])
   @test alg_gradient ≈ num_grad[N] rtol=1e-3
 end
 
@@ -464,13 +464,13 @@ end
   alg_grad,Γ = PastaQ.gradTP(Λ,alg_grad_logZ,logZ; sqrt_localnorms = sqrt_localnorms)
   
   @test Γ ≈ Γ_test
-  alg_gradient = permutedims(PastaQ.array(alg_grad[1]),[3,1,4,2])
+  alg_gradient = permutedims(ITensors.array(alg_grad[1]),[3,1,4,2])
   @test alg_gradient ≈ num_grad[1] rtol=1e-3
   for j in 2:N-1
-    alg_gradient = permutedims(PastaQ.array(alg_grad[j]),[3,1,4,2,5])
+    alg_gradient = permutedims(ITensors.array(alg_grad[j]),[3,1,4,2,5])
     @test alg_gradient ≈ num_grad[j] rtol=1e-3
   end
-  alg_gradient = permutedims(PastaQ.array(alg_grad[N]),[3,1,4,2])
+  alg_gradient = permutedims(ITensors.array(alg_grad[N]),[3,1,4,2])
   @test alg_gradient ≈ num_grad[N] rtol=1e-3
 end
 

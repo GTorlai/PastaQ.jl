@@ -23,7 +23,7 @@ function array(M::MPS; reverse::Bool = true)
   end
   C = combiner(s...)
   Mvec = prod(M) * dag(C)
-  return array(Mvec)
+  return ITensors.array(Mvec)
 end
 
 """
@@ -48,11 +48,12 @@ function array(M::MPO; reverse::Bool = true)
   C = combiner(s...)
   Mmat = prod(M) * dag(C) * C'
   c = combinedind(C)
-  return array(permute(Mmat, c', c))
+  return ITensors.array(permute(Mmat, c', c))
+ 
 end
 
 function array(L::LPDO{MPO}; reverse::Bool = true) 
-  !ischoi(L) && return array(MPO(L); reverse = reverse)
+  !ischoi(L) && return PastaQ.array(MPO(L); reverse = reverse)
   M = MPO(L) 
   s = []
   for j in 1:length(M)
@@ -65,7 +66,7 @@ function array(L::LPDO{MPO}; reverse::Bool = true)
   C = combiner(s...)
   Mmat = prod(M) * dag(C) * C'
   c = combinedind(C)
-  return array(permute(Mmat, c', c))
+  return ITensors.array(permute(Mmat, c', c))
 end
 
 
@@ -78,6 +79,7 @@ function tovector(M::ITensor)
   if length(inds(M,tags="n=1")) > 1
     error("Cannot transform a density matrix into a vector")
   end
+  length(inds(M)) == 1 && return ITensors.array(M)
   s = []
   for j in 1:length(inds(M,plev=0))
     push!(s,firstind(M,tags="n=$(j)",plev=0))
@@ -91,6 +93,7 @@ function tomatrix(M::ITensor)
   if length(inds(M,tags="n=1")) == 1
     error("Cannot transform a wavefunctionm into a matrix")
   end
+  length(inds(M)) == 2 && return ITensors.array(M)
   s = []
   for j in 1:length(inds(M,plev=0))
     push!(s,firstind(M,tags="n=$(j)",plev=0))

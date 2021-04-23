@@ -1,91 +1,73 @@
-# Noise model gate definitions
-function gate(::GateName"1qubit-pauli_error"; pX::Number = 0.0, pY::Number = 0.0, pZ::Number = 0.0)
-  kraus = zeros(Complex{Float64},2,2,4)
-  kraus[:,:,1] = √(1-pX-pY-pZ) * gate("Id")
-  kraus[:,:,2] = √pX * gate("X")
-  kraus[:,:,3] = √pY * gate("Y")
-  kraus[:,:,4] = √pZ * gate("Z")
-  return kraus 
-end
 
-function gate(::GateName"2qubit-pauli_error"; probs = prepend!(zeros(15),1))
-  kraus = zeros(Complex{Float64},4,4,16)
-  basis = vec(reverse.(Iterators.product(fill(["Id","X","Y","Z"],2)...)|>collect))
+function gate(::GateName"pauli_channel", N::Int = 1; 
+              error_probabilities = prepend!(zeros(4^N-1),1),
+              pauli_ops = ["Id","X","Y","Z"]) 
+  length(error_probabilities) > (1 << 10) && error("Hilbert space too large")
+  error_probabilities ./= sum(error_probabilities)
+  kraus = zeros(Complex{Float64},1<<N,1<<N,4^N)
+  basis = vec(reverse.(Iterators.product(fill(pauli_ops,N)...)|>collect))
   for (k,ops) in enumerate(basis)
-    kraus[:,:,k] = √probs[k] * kron(gate(ops[1]), gate(ops[2]))
+    kraus[:,:,k] = √error_probabilities[k] * reduce(kron,gate.(ops)) 
   end
-  return kraus 
+  return kraus
 end
 
-function gate(::GateName"pauli_error", N::Int = 1; kwargs...) 
-  N == 1 && return gate("1qubit-pauli_error"; kwargs...)
-  N == 2 && return gate("2qubit-pauli_error"; kwargs...)
-end
+gate(::GateName"bit_flip", N::Int = 1; p::Number) = 
+  gate("pauli_channel", N; error_probabilities = prepend!(p/(4^N-1) * ones(4^N-1), 1-p), pauli_ops = ["Id","X"])
 
+gate(::GateName"phase_flip", N::Int = 1; p::Number) = 
+  gate("pauli_channel", N; error_probabilities = prepend!(p/(4^N-1) * ones(4^N-1), 1-p), pauli_ops = ["Id","Z"])
 
-gate(::GateName"pauli_channel"; kwargs...) = gate("pauli_error"; kwargs...)
-
-
-gate(::GateName"bit_flip"; p::Number) = 
-  gate("pauli_error"; pX = p)[:,:,1:2]
-  
-gate(::GateName"phase_flip"; p::Number) = 
-  gate("pauli_error"; pZ = p)[:,:,[1,4]]
-
-gate(::GateName"bit_phase_flip"; p::Number) = 
-  gate("pauli_error"; pY = p)[:,:,[1,3]]
-
-gate(::GateName"phase_bit_flip"; kwargs...) = 
-  gate("bit_phase_flip"; kwargs...)
-
-function gate(::GateName"AD"; γ::Number)
+function gate(::GateName"AD", N::Int = 1; γ::Number)
+  K = zeros(Complex{Float64},1<<N,1<<N,2^N)
   kraus = zeros(2,2,2)
   kraus[:,:,1] = [1 0
                   0 sqrt(1-γ)]
   kraus[:,:,2] = [0 sqrt(γ)
                   0 0]
-  return kraus 
+  N == 1 && return kraus 
+  k1 = kraus[:,:,1]
+  k2 = kraus[:,:,2]
+  T = vec(Iterators.product(fill([k1,k2],N)...)|>collect)
+  X = zeros(Complex{Float64},1<<N,1<<N,1<<N)
+  for x in 1:1<<N
+    X[:,:,x] = reduce(kron,T[x]) 
+  end
+  return X
 end
-
+#
 # To accept the gate name "amplitude_damping"
-gate(::GateName"amplitude_damping"; kwargs...) = gate("AD"; kwargs...)
+gate(::GateName"amplitude_damping", N::Int=1; kwargs...) = gate("AD", N; kwargs...)
 
-function gate(::GateName"PD"; γ::Number)
-  kraus = zeros(2,2,2)
-  kraus[:,:,1] = [1 0
-                  0 sqrt(1-γ)]
-  kraus[:,:,2] = [0 0
-                  0 sqrt(γ)]
-  return kraus 
-end
+#function gate(::GateName"PD"; γ::Number)
+#  kraus = zeros(2,2,2)
+#  kraus[:,:,1] = [1 0
+#                  0 sqrt(1-γ)]
+#  kraus[:,:,2] = [0 0
+#                  0 sqrt(γ)]
+#  return kraus 
+#end
 
-# To accept the gate name "phase_damping"
-gate(::GateName"phase_damping"; kwargs...) = gate("PD"; kwargs...)
+## To accept the gate name "phase_damping"
+#gate(::GateName"phase_damping"; kwargs...) = gate("PD"; kwargs...)
+#
+## To accept the gate name "dephasing"
+#gate(::GateName"dephasing"; kwargs...) = gate("PD"; kwargs...)
+#
 
-# To accept the gate name "dephasing"
-gate(::GateName"dephasing"; kwargs...) = gate("PD"; kwargs...)
-
-
-gate(::GateName"1qDEP"; p::Number) = 
-  gate("pauli_error"; pX = p/3.0, pY = p/3.0, pZ = p/3.0)
-
-gate(::GateName"2qDEP"; p::Number) = 
-  gate("pauli_error",2; probs = prepend!((p/15) * ones(15), 1-p))
-
-function gate(::GateName"DEP", N::Int = 1; kwargs...)
-  N == 1 && return gate("1qDEP"; kwargs...)
-  N == 2 && return gate("2qDEP"; kwargs...)
-end
+# make general n-qubit
+gate(::GateName"DEP", N::Int = 1; p::Number) =
+  gate("pauli_channel", N; error_probabilities = prepend!(p/(4^N-1) * ones(4^N-1), 1-p), pauli_ops = ["Id","X","Y","Z"])
 
 # To accept the gate name "depolarizing"
 gate(::GateName"depolarizing", N::Int = 1; kwargs...) = 
   gate("DEP", N; kwargs...)
 
-
 function applynoise(circuit::Vector, noise::Tuple; kwargs...) 
   applynoise(circuit, (noise1Q = noise, noise2Q = noise); kwargs...)
 end 
 
+# TODO: add insert!
 function applynoise(circuit::Vector, noise::NamedTuple; idle = false, productnoise = false) 
   noise1Q = noise[:noise1Q]
   noise2Q = noise[:noise2Q]
@@ -111,18 +93,9 @@ function applynoise(circuit::Vector, noise::NamedTuple; idle = false, productnoi
           # n -qubit Kraus operator
           noisegate = gate(noise2Q[1], length(nq); noise2Q[2]...)
           # if the single-qubit copy is return, use productnoise, and throw a warning
-          if size(noisegate,1) < 1<<length(nq)
-            println("WARNING: $(length(nq))-qubit Kraus operators for the $(noise2Q[1]) noise not defined.\nApplying instead the tensor-product of single-qubit noise")
-            for n in nq
-              push!(noisycircuit,(noise2Q[1], n, noise2Q[2]))
-            end
+          size(noisegate,1) < 1<<length(nq) && error("$(length(nq))-qubit Kraus operators for the $(noise2Q[1]) noise not defined.\n")
           # correlated n-qubit noise
-          else
-            #for n in nq
-            #  push!(noisycircuit,(noise2Q[1], n, noise2Q[2]))
-            #end
-            push!(noisycircuit,(noise2Q[1], nq, noise2Q[2])) 
-          end
+          push!(noisycircuit,(noise2Q[1], nq, noise2Q[2])) 
         end
       # 1-qubit gate
       else

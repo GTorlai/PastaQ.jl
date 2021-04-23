@@ -41,7 +41,7 @@ end
 
 @testset "quantum process fidelity" begin
   N = 3
-  
+  Random.seed!(1234) 
   circuit1 = randomcircuit(N,3)
   circuit2 = randomcircuit(N,3)
   # MPO unitary 
@@ -49,14 +49,14 @@ end
   U2 = randomprocess(U1)
   
   # MPO Choi matrix 
-  #ρ1 = PastaQ.choimatrix(PastaQ.hilbertspace(U1), circuit1; noise = ("AD",(γ=0.1,)))
-  #ρ2 = PastaQ.choimatrix(PastaQ.hilbertspace(U1), circuit2; noise = ("AD",(γ=0.1,)))
-  ρ1 = PastaQ.choimatrix(PastaQ.hilbertspace(U1), circuit1; noise = ("DEP",(p=0.5,)))
-  ρ2 = PastaQ.choimatrix(PastaQ.hilbertspace(U1), circuit2; noise = ("DEP",(p=0.5,)))
+  ρ1 = PastaQ.choimatrix(PastaQ.hilbertspace(U1), circuit1; noise = ("AD",(γ=0.1,)))
+  ρ2 = PastaQ.choimatrix(PastaQ.hilbertspace(U1), circuit2; noise = ("AD",(γ=0.1,)))
+  #ρ1 = PastaQ.choimatrix(PastaQ.hilbertspace(U1), circuit1; noise = ("DEP",(p=0.5,)))
+  #ρ2 = PastaQ.choimatrix(PastaQ.hilbertspace(U1), circuit2; noise = ("DEP",(p=0.5,)))
   # LPDO Choi matrix
   ϱ1 = normalize!(randomprocess(U1; mixed = true))
   ϱ2 = normalize!(randomprocess(U1; mixed = true))
-  @show tr(ρ1),tr(ρ2)
+  @test PastaQ.array(ρ1) ≈ PastaQ.array(ρ1)'
   @disable_warn_order begin
     ϕ1 = PastaQ.unitary_mpo_to_choi_mps(U1)
     normalize!(ϕ1)
@@ -78,9 +78,11 @@ end
     @test fidelity(U1,ρ2; process = true) ≈ ϕ1vec' * ρ2mat * ϕ1vec
     @test fidelity(U1,ϱ2; process = true) ≈ (ϕ1vec' * ϱ2mat * ϕ1vec) 
     
-    @test fidelity(ρ1,ρ2; process = true) ≈ real(tr(sqrt(sqrt(ρ1mat)*ρ2mat*sqrt(ρ1mat))))^2 atol=1e-8 
-    @test fidelity(ρ1,ϱ2; process = true) ≈ real(tr(sqrt(sqrt(ρ1mat)*ϱ2mat*sqrt(ρ1mat))))^2 atol=1e-8
-    @test fidelity(ϱ1,ϱ2; process = true) ≈ real(tr(sqrt(sqrt(ϱ1mat)*ϱ2mat*sqrt(ϱ1mat))))^2 atol=1e-8
+    @test fidelity(ρ1,ρ1; process = true) ≈ 1.0 atol = 1e-5 
+    @test fidelity(ρ2,ρ2; process = true) ≈ 1.0 atol = 1e-5
+    @test fidelity(ρ1,ρ2; process = true) ≈ real(tr(sqrt(sqrt(ρ1mat)*ρ2mat*sqrt(ρ1mat))))^2 atol=1e-5 
+    @test fidelity(ρ1,ϱ2; process = true) ≈ real(tr(sqrt(sqrt(ρ1mat)*ϱ2mat*sqrt(ρ1mat))))^2 atol=1e-5
+    @test fidelity(ϱ1,ϱ2; process = true) ≈ real(tr(sqrt(sqrt(ϱ1mat)*ϱ2mat*sqrt(ϱ1mat))))^2 atol=1e-5
   end
 end
 
