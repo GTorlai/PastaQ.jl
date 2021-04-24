@@ -25,8 +25,9 @@ export
 
 # circuits/runcircuit.jl
   # Methods
+  productstate,
+  productoperator,
   qubits,
-  resetqubits!,
   buildcircuit,
   runcircuit,
 

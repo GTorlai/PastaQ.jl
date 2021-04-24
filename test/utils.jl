@@ -6,11 +6,11 @@ using Random
 
 @testset "array" begin
   N = 5
-  ψ = qubits(N)
+  ψ = productstate(N)
   ψvec = array(ψ)
   @test size(ψvec) == (1<<N,)
   
-  ρ = qubits(N; mixed = true)
+  ρ = MPO(productstate(N))
   ρmat = array(ρ)
   @test size(ρmat) == (1<<N,1<<N)
   
@@ -28,8 +28,8 @@ end
 
 @testset "hilbertspace" begin
   N = 5
-  ψ = qubits(N)
-  ρ = qubits(ψ; mixed = true)
+  ψ = productstate(N)
+  ρ = MPO(productstate(ψ))
   Λ = randomstate(ψ; mixed = true)
 
   @test PastaQ.hilbertspace(ψ) == siteinds(ψ)
@@ -86,9 +86,9 @@ end
   @test nqubits(("H",2)) == 2
   @test nqubits(("CX",(2,5))) == 5
 
-  for i in 1:10
+  for i in 1:1000
     depth = 4
-    N = rand(2:50)
+    N = rand(3:50)
     gates = randomcircuit(N, depth; twoqubitgates = "CX", onequbitgates = "Rn")
     n = nqubits(gates)
     @test N == n

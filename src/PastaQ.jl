@@ -15,6 +15,7 @@ include("itensor.jl")
 include("lpdo.jl")
 
 include("circuits/gates.jl")
+include("circuits/productstates.jl")
 include("circuits/qubitarrays.jl")
 include("circuits/circuits.jl")
 include("circuits/runcircuit.jl")
@@ -35,5 +36,6 @@ include("tomography/tomographyutils.jl")
 
 include("inputoutput.jl")
 include("utils.jl")
+include("deprecated.jl")
 
 end # module

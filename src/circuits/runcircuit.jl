@@ -1,142 +1,6 @@
 """
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
--                                QUANTUM STATES                                -
---------------------------------------------------------------------------------
---------------------------------------------------------------------------------
-"""
-
-
-
-"""
-    qubits(N::Int; mixed::Bool=false)
-    
-    qubits(sites::Vector{<:Index}; mixed::Bool=false)
-
-
-Initialize qubits to:
-- An MPS wavefunction `|ψ⟩` if `mixed = false`
-- An MPO density matrix `ρ` if `mixed = true`
-"""
-qubits(N::Int; mixed::Bool = false) =
-  qubits(siteinds("Qubit", N); mixed = mixed)
-
-function qubits(sites::Vector{<:Index}; mixed::Bool = false)
-  ψ = productMPS(sites, "0")
-  mixed && return MPO(ψ)
-  return ψ
-end
-
-"""
-    qubits(M::Union{MPS,MPO,LPDO}; mixed::Bool=false)
-
-Initialize qubits on the Hilbert space of a reference state,
-given as `MPS`, `MPO` or `LPDO`.
-"""
-qubits(M::Union{MPS,MPO,LPDO}; mixed::Bool = false) =
-  qubits(hilbertspace(M); mixed = mixed)
-
-"""
-    qubits(N::Int, states::Vector{String}; mixed::Bool=false)
-
-    qubits(sites::Vector{<:Index}, states::Vector{String};mixed::Bool = false)
-
-Initialize the qubits to a given single-qubit product state.
-"""
-qubits(N::Int, states::Vector{String}; mixed::Bool = false) =
-  qubits(siteinds("Qubit", N), states; mixed = mixed)
-
-function qubits(sites::Vector{<:Index}, states::Vector{String};
-                mixed::Bool = false)
-  N = length(sites)
-  @assert N == length(states)
-
-  ψ = productMPS(sites, "0")
-
-  if N == 1
-    s1 = sites[1]
-    state1 = state(states[1])
-    if eltype(state1) <: Complex
-      ψ[1] = complex(ψ[1])
-    end
-    for j in 1:dim(s1)
-      ψ[1][s1 => j] = state1[j]
-    end
-    mixed && return MPO(ψ)
-    return ψ
-  end
-
-  # Set first site
-  s1 = sites[1]
-  l1 = linkind(ψ, 1)
-  state1 = state(states[1])
-  if eltype(state1) <: Complex
-    ψ[1] = complex(ψ[1])
-  end
-  for j in 1:dim(s1)
-    ψ[1][s1 => j, l1 => 1] = state1[j]
-  end
-
-  # Set sites 2:N-1
-  for n in 2:N-1
-    sn = sites[n]
-    ln_1 = linkind(ψ, n-1)
-    ln = linkind(ψ, n)
-    state_n = state(states[n])
-    if eltype(state_n) <: Complex
-      ψ[n] = complex(ψ[n])
-    end
-    for j in 1:dim(sn)
-      ψ[n][sn => j, ln_1 => 1, ln => 1] = state_n[j]
-    end
-  end
-  
-  # Set last site N
-  sN = sites[N]
-  lN_1 = linkind(ψ, N-1)
-  state_N = state(states[N])
-  if eltype(state_N) <: Complex
-    ψ[N] = complex(ψ[N])
-  end
-  for j in 1:dim(sN)
-    ψ[N][sN => j, lN_1 => 1] = state_N[j]
-  end
-  
-  mixed && return MPO(ψ)
-  return ψ
-end
-
-""" 
-    resetqubits!(M::Union{MPS,MPO})
-
-Reset qubits to the initial state:
-- `|ψ⟩=|0,0,…,0⟩` if `M = MPS`
-- `ρ = |0,0,…,0⟩⟨0,0,…,0|` if `M = MPO`
-"""
-function resetqubits!(M::Union{MPS,MPO})
-  indices = [firstind(M[j], tags = "Site", plev = 0) for j in 1:length(M)]
-  M_new = qubits(indices, mixed = !(M isa MPS))
-  M[:] = M_new
-  return M
-end
-
-"""
-    circuit(sites::Vector{<:Index}) = MPO(sites, "Id")
-
-    circuit(N::Int) = circuit(siteinds("Qubit", N))
-
-Initialize a circuit MPO
-"""
-identity_mpo(sites::Vector{<:Index}) = MPO(sites, "Id")
-
-identity_mpo(N::Int) = identity_mpo(siteinds("Qubit", N))
-
-identity_mpo(M::Union{MPS, MPO,LPDO}) =
-  identity_mpo(hilbertspace(M))
-
-"""
---------------------------------------------------------------------------------
---------------------------------------------------------------------------------
 -                              QUANTUM CIRCUITS                                -
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
@@ -261,59 +125,32 @@ Compute the Choi matrix `Λ  = ε ⊗ 1̂(|ξ⟩⟨ξ|)`, where `|ξ⟩= ⨂ⱼ 
 and `ε`` is a quantum channel built out of a set of quantum gates and 
 a local noise model. Returns a MPO with `N` tensor having 4 sites indices. 
 """
-choimatrix(gates::Vector{<:Any}; kwargs...) = 
-  choimatrix(numberofqubits(gates), gates; kwargs...)
+choimatrix(circuit::Vector{<:Any}; kwargs...) = 
+  choimatrix(nqubits(circuit), gates; kwargs...)
 
-choimatrix(N::Int, args...; kwargs...) = 
-  choimatrix(identity_mpo(N), args...; kwargs...) 
+choimatrix(sites::Union{Int, Vector{<:Index}}, args...; kwargs...) = 
+  choimatrix(unitary_mpo_to_choi_mpo(productoperator(sites)), args...; kwargs...) 
 
-choimatrix(sites::Vector{<:Index}, args...; kwargs...)  =
-  choimatrix(identity_mpo(sites), args...; kwargs...)
-
-function choimatrix(U::MPO, circuit::Vector{<:Any};
+function choimatrix(Λ0::MPO, circuit::Vector{<:Any};
                     noise = nothing, cutoff = 1e-15, maxdim = 10000,
                     svd_alg = "divide_and_conquer")
-  N = length(U)
+  N = length(Λ0)
   if isnothing(noise)
     error("choi matrix requires noise")
   end
   # if circuit has layer structure, transform to vectorized circuit
   circuit = (circuit isa Vector{<:Vector} ? vcat(circuit...) : circuit)
   
-  # Initialize circuit MPO
-  addtags!(U, "Input", plev = 0, tags = "Qubit")
-  addtags!(U,"Output", plev = 1, tags = "Qubit")
-  prime!(U, tags = "Input")
-  prime!(U, tags = "Link")
-  
-  s = [siteinds(U, tags = "Output")[j][1] for j in 1:length(U)]
-  compiler = identity_mpo(s)
+  # TODO: simplify by building the circuit directly from the Choi MPO.
+  s = [firstind(Λ0[j], tags = "Output") for j in 1:length(Λ0)]
+  compiler = productoperator(s)
   prime!(compiler,-1,tags = "Qubit") 
   circuit_tensors = buildcircuit(compiler, circuit; noise = noise)
-
-  M = ITensor[]
-  push!(M,U[1] * noprime(U[1]))
-  Cdn = combiner(inds(M[1], tags = "Link")[1],inds(M[1], tags = "Link")[2],
-                tags = "Link,l=1")
-  M[1] = M[1] * Cdn
-  for j in 2:N-1
-    push!(M,U[j] * noprime(U[j]))
-    Cup = Cdn
-    Cdn = combiner(inds(M[j], tags = "Link,l=$j")[1], 
-                   inds(M[j], tags = "Link,l=$j")[2], 
-                   tags="Link,l=$j")
-    M[j] = M[j] * Cup * Cdn
-  end
-  push!(M, U[N] * noprime(U[N]))
-  M[N] = M[N] * Cdn
-  ρ = MPO(M)
+  
   # contract to compute the Choi matrix
-  Λ = runcircuit(ρ, circuit_tensors; apply_dag = true, cutoff = cutoff,
-                 maxdim = maxdim, svd_alg = svd_alg)
-  return Λ
+  return runcircuit(Λ0, circuit_tensors; apply_dag = true, cutoff = cutoff,
+                    maxdim = maxdim, svd_alg = svd_alg)
 end
-
-
 
 
 """
@@ -387,10 +224,6 @@ function runcircuit(M::Union{MPS, MPO}, circuit::Vector{<:Vector{<:Any}};
   return M
 end
 
-
-
-
-
 """
     runcircuit(N::Int, gates::Vector{<:Tuple};
                process = false,
@@ -415,29 +248,35 @@ The starting state is generated automatically based on the flags `process`, `noi
    `Λ = ε⊗1̂(|ξ⟩⟨ξ|)`, where `|ξ⟩= ⨂ⱼ |00⟩ⱼ+|11⟩ⱼ`, approximated by a MPO with 4 site indices,
    two for the input and two for the output Hilbert space of the quantum channel.
 """
-function runcircuit(N::Int, circuit::Union{Tuple,Vector{<:Any},Vector{Vector{<:Any}}};
+function runcircuit(sites::Vector{<:Index}, circuit::Union{Tuple,Vector{<:Any},Vector{Vector{<:Any}}};
                     process = false, noise = nothing, kwargs...)
   
-  (process && isnothing(noise)) && return runcircuit(identity_mpo(N), circuit; 
+  (process && isnothing(noise)) && return runcircuit(productoperator(sites), circuit; 
                                                      noise = nothing, 
                                                      apply_dag = false, 
                                                      kwargs...) 
   
-  (process && !isnothing(noise)) && return choimatrix(N, circuit; 
+  (process && !isnothing(noise)) && return choimatrix(sites, circuit; 
                                                       noise = noise, 
                                                       kwargs...)
   
-  return runcircuit(qubits(N), circuit; noise = noise, kwargs...) 
+  return runcircuit(productstate(sites), circuit; noise = noise, kwargs...) 
 end
+
+runcircuit(N::Int, args...; kwargs...) = 
+  runcircuit(siteinds("Qubit", N), args...; kwargs...)
 
 runcircuit(circuit::Any, args...; kwargs...) = 
   runcircuit(nqubits(circuit), circuit,  args...; kwargs...)
 
 
+<<<<<<< HEAD
 
 runcircuit(singlegate::Tuple; kwargs...) =
   runcircuit(maximum(singlegate[2]), Tuple[singlegate])
 
+=======
+>>>>>>> master
 """
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------

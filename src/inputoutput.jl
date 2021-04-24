@@ -10,18 +10,18 @@ function readsamples(input_path::String)
   fin = h5open(input_path, "r")
   # Check if the data is for state tomography or process tomography
   # Process tomography
-  if exists(fin, "inputs")
+  if haskey(fin, "inputs")
     inputs = read(fin, "inputs")
     bases = read(fin, "bases")
     outcomes = read(fin,"outcomes")
     data = inputs .=> (bases .=> outcomes)
   # Measurements in bases
-  elseif exists(fin, "bases") 
+  elseif haskey(fin, "bases") 
     bases = read(fin, "bases")
     outcomes = read(fin,"outcomes")
     data = bases .=> outcomes
   # Measurements in Z basis
-  elseif exists(fin, "outcomes")
+  elseif haskey(fin, "outcomes")
     data = read(fin, "outcomes")
   else
     close(fin)
@@ -29,11 +29,11 @@ function readsamples(input_path::String)
   end
 
   # Check if a model is saved, if so read it and return it
-  if exists(fin, "model")
+  if haskey(fin, "model")
     g = fin["model"]
 
-    if exists(attrs(g), "type")
-      typestring = read(attrs(g)["type"])
+    if haskey(attributes(g), "type")
+      typestring = read(attributes(g)["type"])
       modeltype = eval(Meta.parse(typestring))
       model = read(fin, "model", modeltype)
     else

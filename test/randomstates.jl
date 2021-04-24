@@ -77,6 +77,12 @@ end
   ρ = randomstate(N; χ = χ, normalize = true, mixed = true)
   @test tr(ρ) ≈ 1
   
+  ρ = randomstate(N; χ = χ, ξ = ξ)
+  ρ_mat = PastaQ.array(ρ)
+  @test sum(abs.(imag(diag(ρ_mat)))) ≈ 0.0 atol=1e-10
+  @test all(real(eigvals(ρ_mat)) .≥ 0)
+  @test real(tr(ρ_mat*ρ_mat)) < 1
+  
 end
 
 
@@ -120,6 +126,12 @@ end
   @test maxlinkdim(Λ.X) == χ 
   for j in 1:length(Λ)
     @test eltype(Λ.X[j]) == Complex{Float64}
+  end
+  # Complex-valued with randpars
+  Λ = randomprocess(N; χ = χ, ξ = ξ)
+  @disable_warn_order begin
+    Λmat = PastaQ.array(Λ)
+    @test real(tr(Λmat * Λmat)) < 1
   end
 end
 

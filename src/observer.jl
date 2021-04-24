@@ -105,7 +105,7 @@ _measurement_name(measurement::Pair{<:Function,<:Union{Any,Tuple{<:Any}}}) =
   string(first(measurement))  
 
 _has_customfunctions(observer::Observer) = 
-  any(x -> isa(x,Function), values(observer.measurements))
+  any(x -> isa(x,Function), first.(values(observer.measurements)))
 
 """
     measure!(observer::Observer, M::Union{MPS,MPO,LPDO}, ref_indices::Vector{<:Index})
@@ -132,8 +132,9 @@ function measure!(observer::Observer, M::Union{MPS,MPO,LPDO}, reference_indices:
   end
 end
 
-measure!(observer::Observer, M::Union{MPS,MPO,LPDO}) =  
+function measure!(observer::Observer, M::Union{MPS,MPO,LPDO})
   measure!(observer, M, hilbertspace(M))
+end
 
 
 Base.copy(observer::Observer) = Observer(copy(observer.measurements)) 
