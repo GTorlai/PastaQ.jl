@@ -35,9 +35,9 @@ end
   ψ = productstate(N)
   @test length(ψ) == 5
   ψ_vec = PastaQ.array(ψ)
-  exact_vec = zeros(1<<N)
-  exact_vec[1] = 1.0
-  @test ψ_vec ≈ exact_vec
+  full_representation_vec = zeros(1<<N)
+  full_representation_vec[1] = 1.0
+  @test ψ_vec ≈ full_representation_vec
 end
 
 @testset "circuit MPO initialization" begin
@@ -45,8 +45,8 @@ end
   U = productoperator(N)
   @test length(U) == N
   U_mat = PastaQ.array(U)
-  exact_mat = Matrix{ComplexF64}(I, 1<<N, 1<<N)
-  @test U_mat ≈ exact_mat
+  full_representation_mat = Matrix{ComplexF64}(I, 1<<N, 1<<N)
+  @test U_mat ≈ full_representation_mat
 end
 
 @testset "Density matrix initialization" begin
@@ -57,9 +57,9 @@ end
   ψ = productstate(N)
   ρ2 = MPO(productstate(N))
   @test PastaQ.array(ρ1) ≈ PastaQ.array(ρ2)
-  exact_mat = zeros(1<<N,1<<N)
-  exact_mat[1,1] = 1.0
-  @test PastaQ.array(ρ2) ≈ exact_mat
+  full_representation_mat = zeros(1<<N,1<<N)
+  full_representation_mat[1,1] = 1.0
+  @test PastaQ.array(ρ2) ≈ full_representation_mat
 end
 
 @testset "runcircuit: unitary quantum circuit" begin
@@ -71,7 +71,7 @@ end
   ψ₀dense = prod(ψ₀)
 
   ψdense = runcircuit(ψ₀dense,circuit)
-  @test ψdense ≈ runcircuit(siteinds(ψ₀), circuit; exact = true) 
+  @test ψdense ≈ runcircuit(siteinds(ψ₀), circuit; full_representation = true) 
   
   ψ = runcircuit(siteinds(ψ₀),circuit)
   @test prod(ψ) ≈ ψdense
@@ -96,7 +96,7 @@ end
   ψ0 = productstate(N)
   ρ = runcircuit(ψ0, gates; noise = ("depolarizing", (p = 0.1,)))
   
-  ρdense = runcircuit(siteinds(ψ0), gates; noise = ("depolarizing", (p = 0.1,)), exact = true)
+  ρdense = runcircuit(siteinds(ψ0), gates; noise = ("depolarizing", (p = 0.1,)), full_representation = true)
   @test ρdense ≈ prod(ρ)
   
   ρ = runcircuit(MPO(ψ0), gates;  noise = ("depolarizing", (p = 0.1,)))
@@ -135,7 +135,7 @@ end
   end
   ψ0 = productstate(N)
   ψ = runcircuit(ψ0, gates)
-  @test prod(ψ) ≈ runcircuit(siteinds(ψ0), gates; exact = true)
+  @test prod(ψ) ≈ runcircuit(siteinds(ψ0), gates; full_representation = true)
 end
 
 @testset "runcircuit: long range gates" begin
@@ -152,7 +152,7 @@ end
   end
   ψ0 = productstate(N)
   ψ = runcircuit(ψ0,gates)
-  @test prod(ψ) ≈ runcircuit(siteinds(ψ0), gates; exact = true)
+  @test prod(ψ) ≈ runcircuit(siteinds(ψ0), gates; full_representation = true)
   
 end
 

@@ -16,9 +16,6 @@ export
   @GateName_str,
   randomparams,
 
-# circuits/noise.jl
-  applynoise,
-
 # circuits/getsamples.jl
   # Methods
   getsamples,

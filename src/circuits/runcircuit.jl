@@ -14,7 +14,7 @@ function buildcircuit(M::Union{MPS,MPO,ITensor}, circuit::Union{Tuple,Vector{<:A
     circuit = [circuit]
   end
   if !isnothing(noise)
-    circuit = applynoise(circuit, noise)
+    circuit = insertnoise!(circuit, noise)
   end
   for g in circuit
     push!(circuit_tensors, gate(M, g))
@@ -206,13 +206,13 @@ The starting state is generated automatically based on the flags `process`, `noi
 function runcircuit(sites::Vector{<:Index}, 
                 circuit::Union{Tuple,Vector{<:Any},Vector{Vector{<:Any}}};
                 process::Bool = false, noise = nothing,
-                exact::Bool = false,
+                full_representation::Bool = false,
                 kwargs...)
   
   
   # Unitary operator for the circuit
   if process && isnothing(noise) 
-    U₀ = exact ? prod(productoperator(sites)) : productoperator(sites)
+    U₀ = full_representation ? prod(productoperator(sites)) : productoperator(sites)
     return runcircuit(U₀, circuit; 
                       noise = nothing, 
                       apply_dag = false, 
@@ -220,13 +220,13 @@ function runcircuit(sites::Vector{<:Index},
   end 
   # Choi matrix
   if process && !isnothing(noise)
-    exact && error("Exact Choi matrix not yet implemented")
+    full_representation && error("Exact Choi matrix not yet implemented")
     return choimatrix(sites, circuit; 
                       noise = noise, 
                       kwargs...)
   end
   
-  M₀ = exact ? prod(productstate(sites)) : productstate(sites) 
+  M₀ = full_representation ? prod(productstate(sites)) : productstate(sites) 
   return runcircuit(M₀, circuit; noise = noise, kwargs...) 
 end
 
