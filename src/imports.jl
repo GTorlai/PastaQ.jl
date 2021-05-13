@@ -1,10 +1,4 @@
-import Base:
-  copy,
-  getindex,
-  sqrt,
-  length,
-  push!,
-  setindex!
+import Base: copy, getindex, sqrt, length, push!, setindex!
 
 import ITensors:
   # types
@@ -14,8 +8,4 @@ import ITensors:
   state,
   array
 
-import LinearAlgebra:
-  normalize!,
-  tr,
-  norm
-
+import LinearAlgebra: normalize!, tr, norm

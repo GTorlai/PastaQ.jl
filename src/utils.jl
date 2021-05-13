@@ -7,17 +7,17 @@ const default_purifier_tags = ts"Purifier"
 
 Generate the full dense vector from an MPS
 """
-function array(M::MPS; reverse::Bool = true)
+function array(M::MPS; reverse::Bool=true)
   # check if it is a vectorized MPO
-  if length(siteinds(M,1)) == 2
+  if length(siteinds(M, 1)) == 2
     s = []
     for j in 1:length(M)
-      push!(s, firstind(M[j], tags="Input"))
-      push!(s, firstind(M[j], tags="Output"))
+      push!(s, firstind(M[j]; tags="Input"))
+      push!(s, firstind(M[j]; tags="Output"))
     end
   else
     s = siteinds(M)
-  end 
+  end
   if reverse
     s = Base.reverse(s)
   end
@@ -32,16 +32,16 @@ end
 
 Generate the full dense matrix from an MPO or LPDO.
 """
-function array(M::MPO; reverse::Bool = true)
-  if length(siteinds(M,1)) == 4
+function array(M::MPO; reverse::Bool=true)
+  if length(siteinds(M, 1)) == 4
     s = []
     for j in 1:length(M)
-      push!(s, firstind(M[j], tags="Input", plev =0))
-      push!(s, firstind(M[j], tags="Output", plev = 0))
+      push!(s, firstind(M[j]; tags="Input", plev=0))
+      push!(s, firstind(M[j]; tags="Output", plev=0))
     end
   else
-    s = firstsiteinds(M; plev = 0)
-  end 
+    s = firstsiteinds(M; plev=0)
+  end
   if reverse
     s = Base.reverse(s)
   end
@@ -51,13 +51,13 @@ function array(M::MPO; reverse::Bool = true)
   return array(permute(Mmat, c', c))
 end
 
-function array(L::LPDO{MPO}; reverse::Bool = true) 
-  !ischoi(L) && return array(MPO(L); reverse = reverse)
-  M = MPO(L) 
+function array(L::LPDO{MPO}; reverse::Bool=true)
+  !ischoi(L) && return array(MPO(L); reverse=reverse)
+  M = MPO(L)
   s = []
   for j in 1:length(M)
-    push!(s, firstind(M[j], tags="Input", plev=0))
-    push!(s, firstind(M[j], tags="Output", plev=0))
+    push!(s, firstind(M[j]; tags="Input", plev=0))
+    push!(s, firstind(M[j]; tags="Output", plev=0))
   end
   if reverse
     s = Base.reverse(s)
@@ -71,25 +71,23 @@ end
 # TODO: turn this into an ITensors.jl function `originalsiteinds`
 # that generically returns the site indices that would be used to
 # make an object of the same type with the same indices.
-hilbertspace(M::MPS) = siteinds(first, M; plev = 0)
-hilbertspace(M::MPO) = dag.(siteinds(first, M; plev = 0))
-hilbertspace(L::LPDO) =
-  dag.(siteinds(first, L.X; plev = 0, tags = !purifier_tags(L)))
+hilbertspace(M::MPS) = siteinds(first, M; plev=0)
+hilbertspace(M::MPO) = dag.(siteinds(first, M; plev=0))
+hilbertspace(L::LPDO) = dag.(siteinds(first, L.X; plev=0, tags=!purifier_tags(L)))
 
 """
     convertdatapoint(datapoint::Array,basis::Array;state::Bool=false)
 
 0 1 0 0 1 -> Z+ Z- Z+ Z+ Z-
 """
-function convertdatapoint(datapoint::Array{Int64};
-                          state::Bool=false)
+function convertdatapoint(datapoint::Array{Int64}; state::Bool=false)
   newdata = []
   basis = ["Z" for _ in 1:length(datapoint)]
   for j in 1:length(datapoint)
     if datapoint[j] == 0
-      push!(newdata,"Z+")
+      push!(newdata, "Z+")
     elseif datapoint[j] == 1
-      push!(newdata,"Z-")
+      push!(newdata, "Z-")
     else
       error("non-binary data")
     end
@@ -106,12 +104,12 @@ function convertdatapoint(datapoint::Array{String})
   basis = []
   outcome = []
   for j in 1:length(datapoint)
-    push!(basis,string(datapoint[j][1]))
-    
-    if datapoint[j][2] == Char('+') 
-      push!(outcome,0)
+    push!(basis, string(datapoint[j][1]))
+
+    if datapoint[j][2] == Char('+')
+      push!(outcome, 0)
     elseif datapoint[j][2] == Char('-')
-      push!(outcome,1)
+      push!(outcome, 1)
     else
       error("non-binary data")
     end
@@ -121,10 +119,10 @@ end
 
 function convertdatapoints(datapoints::Array{String})
   nshots = size(datapoints)[1]
-  newdata = Matrix{Pair{String,Int64}}(undef,nshots,size(datapoints)[2])
+  newdata = Matrix{Pair{String,Int64}}(undef, nshots, size(datapoints)[2])
 
   for n in 1:nshots
-    newdata[n,:] = convertdatapoint(datapoints[n,:])
+    newdata[n, :] = convertdatapoint(datapoints[n, :])
   end
   return newdata
 end
@@ -134,15 +132,14 @@ end
 (Z, 0), (X, 1)  / (Z+, X-)
 
 """
-function convertdatapoint(outcome::Array{Int64}, basis::Array{String};
-                          state::Bool=false)
+function convertdatapoint(outcome::Array{Int64}, basis::Array{String}; state::Bool=false)
   @assert length(outcome) == length(basis)
   newdata = []
   if state
     basis = basis
   end
   for j in 1:length(outcome)
-    if outcome[j] == 0 
+    if outcome[j] == 0
       push!(newdata, basis[j] * "+")
     elseif outcome[j] == 1
       push!(newdata, basis[j] * "-")
@@ -153,26 +150,26 @@ function convertdatapoint(outcome::Array{Int64}, basis::Array{String};
   return newdata
 end
 
-convertdatapoint(datapoint::Array{Pair{String,Int64}}; state::Bool=false) = 
-  convertdatapoint(last.(datapoint),first.(datapoint); state = state)
-
+function convertdatapoint(datapoint::Array{Pair{String,Int64}}; state::Bool=false)
+  return convertdatapoint(last.(datapoint), first.(datapoint); state=state)
+end
 
 function convertdatapoints(datapoints::Array{Pair{String,Int64}}; state::Bool=false)
   nshots = size(datapoints)[1]
-  newdata = Matrix{String}(undef,nshots,size(datapoints)[2])
+  newdata = Matrix{String}(undef, nshots, size(datapoints)[2])
 
   for n in 1:nshots
-    newdata[n,:] = convertdatapoint(datapoints[n,:]; state = state)
+    newdata[n, :] = convertdatapoint(datapoints[n, :]; state=state)
   end
   return newdata
 end
 
 function convertdatapoints(outcome::Matrix{Int64}, basis::Matrix{String}; state::Bool=false)
   nshots = size(datapoints)[1]
-  newdata = Matrix{String}(undef,nshots,size(datapoints)[2])
+  newdata = Matrix{String}(undef, nshots, size(datapoints)[2])
 
   for n in 1:nshots
-    newdata[n,:] = convertdatapoint(datapoints[n,:]; state = state)
+    newdata[n, :] = convertdatapoint(datapoints[n, :]; state=state)
   end
   return newdata
 end
@@ -190,16 +187,16 @@ Split a data set into a `train` and `test` sets, given a `train_ratio` (i.e. the
 percentage of data in `train_data`. If `randomize=true` (default), the `data` is 
 randomly shuffled before splitting.
 """
-function split_dataset(data::Matrix; train_ratio::Float64 = 0.9, randomize::Bool = true)
-  ndata = size(data,1)
+function split_dataset(data::Matrix; train_ratio::Float64=0.9, randomize::Bool=true)
+  ndata = size(data, 1)
   ntrain = Int(ndata * train_ratio)
   ntest = ndata - ntrain
   if randomize
-    data = data[shuffle(1:end),:]
+    data = data[shuffle(1:end), :]
   end
-  train_data = data[1:ntrain,:]
-  test_data  = data[ntrain+1:end,:]
-  return train_data,test_data
+  train_data = data[1:ntrain, :]
+  test_data = data[(ntrain + 1):end, :]
+  return train_data, test_data
 end
 
 """
@@ -207,11 +204,9 @@ end
 
 Check whether a given LPDO{MPO}  
 """
-ischoi(M::LPDO{MPO}) =
-  (length(inds(M.X[1],"Site")) == 2 && haschoitags(M)) # hastags(M.X[1], default_purifier_tags))
+ischoi(M::LPDO{MPO}) = (length(inds(M.X[1], "Site")) == 2 && haschoitags(M)) # hastags(M.X[1], default_purifier_tags))
 
-ischoi(M::MPO) = (length(inds(M[1],"Site")) == 4 && haschoitags(M))
-
+ischoi(M::MPO) = (length(inds(M[1], "Site")) == 4 && haschoitags(M))
 
 # TODO: check all indices, not just the first ones
 """
@@ -220,8 +215,10 @@ ischoi(M::MPO) = (length(inds(M[1],"Site")) == 4 && haschoitags(M))
 
 Check whether the TN has input/output Choi tags
 """
-haschoitags(L::LPDO) = (hastags(inds(L.X[1]),"Input") && hastags(inds(L.X[1]),"Output"))
-haschoitags(M::Union{MPS,MPO}) = (hastags(inds(M[1]), "Input") && hastags(inds(M[1]),"Output"))
+haschoitags(L::LPDO) = (hastags(inds(L.X[1]), "Input") && hastags(inds(L.X[1]), "Output"))
+function haschoitags(M::Union{MPS,MPO})
+  return (hastags(inds(M[1]), "Input") && hastags(inds(M[1]), "Output"))
+end
 
 """
     choitags(U::MPO)
@@ -237,8 +234,8 @@ Assign the input/output tags defined for a Choi matrix to an MPO.
 """
 function choitags(U::MPO)
   haschoitags(U) && return U
-  U = addtags(siteinds, U, "Input", plev = 0)
-  U = addtags(siteinds, U, "Output", plev = 1)
+  U = addtags(siteinds, U, "Input"; plev=0)
+  U = addtags(siteinds, U, "Output"; plev=1)
   return noprime(siteinds, U)
 end
 
@@ -248,7 +245,7 @@ end
 Inverse of choitags.
 """
 function mpotags(U::MPO)
-  U = prime(U; tags = "Output")
+  U = prime(U; tags="Output")
   U = removetags(U, "Input")
   U = removetags(U, "Output")
   return U
@@ -294,7 +291,7 @@ Transforms a Choi MPS into an MPO with appropriate tags.
 Inverse of `unitary_mpo_to_choi_mps`.
 """
 choi_mps_to_unitary_mpo(Ψ::MPS) = mpotags(convert(MPO, Ψ))
-choi_mps_to_unitary_mpo(L::LPDO{MPS}) = choi_mps_to_unitary_mpo(L.X) 
+choi_mps_to_unitary_mpo(L::LPDO{MPS}) = choi_mps_to_unitary_mpo(L.X)
 
 function nqubits(g::Tuple)
   s = g[2]
@@ -304,10 +301,8 @@ end
 
 nqubits(gates::Vector{<:Any}) = maximum((nqubits(gate) for gate in gates))
 
-
 nlayers(circuit::Vector{<:Any}) = 1
 nlayers(circuit::Vector{<:Vector{<:Any}}) = length(circuit)
 
 ngates(circuit::Vector{<:Any}) = length(circuit)
 ngates(circuit::Vector{<:Vector{<:Any}}) = length(vcat(circuit...))
-
