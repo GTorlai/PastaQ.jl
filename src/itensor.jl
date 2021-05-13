@@ -20,7 +20,11 @@ function random_tags()
   ntags = length(ts.data)
   tagtype = eltype(ts.data)
   for n in 1:length(ts.data)
-    ts = addtags(ts, rand(tagtype))
+    rand_tag = rand(tagtype)
+    # Before ITensors v0.2, addtags expects a Tag.
+    # Afterward, just needs an integer.
+    rand_tag = ITensors.version() < v"0.2" ? ITensors.Tag(rand_tag) : rand_tag
+    ts = addtags(ts, rand_tag)
   end
   return ts
 end
