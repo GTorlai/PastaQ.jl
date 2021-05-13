@@ -9,11 +9,11 @@ N = 4
 
 # Number to QFT
 number = 10
-number_bin = digits(number, base = 2, pad = N) |> reverse
+number_bin = reverse(digits(number; base=2, pad=N))
 number_bin_st = prod(string.(number_bin))
 
-println("Number of qubits: ",N)
-println("Number for QFT: ",number," -> ",number_bin)
+println("Number of qubits: ", N)
+println("Number for QFT: ", number, " -> ", number_bin)
 println()
 
 #
@@ -57,10 +57,9 @@ println()
 
 println("Running inverse QFT...")
 println()
-circuit⁻¹ = qft(N; inverse = true)
+circuit⁻¹ = qft(N; inverse=true)
 ψ = runcircuit(ψ, circuit⁻¹)
 
 println("Sample from QFT⁻¹QFT|$(number_bin_st)⟩:")
 samples = getsamples(ψ, 5)
 display(samples)
-

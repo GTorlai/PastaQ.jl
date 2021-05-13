@@ -11,7 +11,7 @@ depth = 4 # Depth of the quantum circuit
 # layers of single-qubit random rotations + `CX` 
 # gates, alternating between even and of odd layers.
 println("Random circuit of depth $depth on $N qubits:")
-circuit = randomcircuit(N, depth; twoqubitgates = "CX", onequbitgates = "Rn")
+circuit = randomcircuit(N, depth; twoqubitgates="CX", onequbitgates="Rn")
 display(circuit)
 println()
 
@@ -27,7 +27,7 @@ println()
 # A representation of the unitary operation as a MPO
 # is obtained using the flag `process=true`:
 println("Approximating random circuit as an MPO U...")
-U = runcircuit(circuit; process = true)
+U = runcircuit(circuit; process=true)
 @show maxlinkdim(U)
 println()
 
@@ -39,15 +39,18 @@ println()
 # where `ε` is the quantum channel.
 # Here, the noise is a single-qubit amplitude damping 
 # channel with decay rate `γ=0.01`..
-println("Running the circuit with amplitude damping to compute the state ρ = ε(|0,0,…⟩⟨0,0,…|)...")
-ρ = runcircuit(circuit; noise = ("amplitude_damping", (γ = 0.01,)))
+println(
+  "Running the circuit with amplitude damping to compute the state ρ = ε(|0,0,…⟩⟨0,0,…|)..."
+)
+ρ = runcircuit(circuit; noise=("amplitude_damping", (γ=0.01,)))
 @show maxlinkdim(ρ)
 println()
 
 # A representation of the quantum channel as a MPO
 # is obtained using the flag `process=true`, which 
 # returns the Choi matrix `Λ` of the channel:`:
-println("Running the circuit with amplitude damping to compute the Choi matrix Λ of the quantum channel...")
-Λ = runcircuit(circuit; process = true, noise = ("amplitude_damping", (γ = 0.01,)))
+println(
+  "Running the circuit with amplitude damping to compute the Choi matrix Λ of the quantum channel...",
+)
+Λ = runcircuit(circuit; process=true, noise=("amplitude_damping", (γ=0.01,)))
 @show maxlinkdim(Λ)
-
