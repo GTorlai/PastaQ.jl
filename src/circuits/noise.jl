@@ -110,3 +110,6 @@ function insertnoise!(circuit::Vector, noise::NamedTuple; idle_noise::Bool = fal
   return noisycircuit
 end
 
+insertnoise(circuit::Vector, noise::NamedTuple; kwargs...) = 
+  insertnoise!(copy(circuit), noise; kwargs...)
+
