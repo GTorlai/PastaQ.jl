@@ -124,6 +124,12 @@ gate(::GateName"P") =
 gate(::GateName"S") =
   gate("Phase")
 
+gate(::GateName"S†") =
+  conj(gate("S"))
+
+gate(::GateName"Sdag") =
+  gate("S†")
+
 # Rϕ with ϕ = π/4
 gate(::GateName"π/8") =
   [1  0

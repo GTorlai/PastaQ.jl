@@ -1,3 +1,36 @@
+function measurement_tensors(sites::Array, noise_model::NamedTuple)
+  has_readoutnoise = hasproperty(noise_model,:eR) 
+  has_gatenoise = hasproperty(noise_model,:e1Q)
+  if !has_readoutnoise && !has_gatenoise
+    error("noise model not defined")
+  end
+  mtensors = Dict[] 
+  for j in 1:length(sites)
+    mt = Dict()
+    if has_readoutnoise
+      T = gate(noise_model[:eR][1], sites[j]; noise_model[:eR][2]...)
+    else
+      T = op("Id", sites[j])
+    end
+    mt["Z+"] = state("0",sites[j])' * T
+    mt["Z-"] = state("1",sites[j])' * T
+    
+    mX = replaceprime(prime(T, "Site") * gate("H",sites[j]),2,1)
+    mt["X+"] = state("0",sites[j])' * mX
+    mt["X-"] = state("1",sites[j])' * mX
+    
+    mY = replaceprime(prime(T, "Site") * gate("H",sites[j]),2,1)
+    mY = replaceprime(prime(mY, "Site") * gate("S†",sites[j]),2,1)
+    mt["Y+"] = state("0",sites[j])' * mY
+    mt["Y-"] = state("1",sites[j])' * mY
+    
+    push!(mtensors, mt)
+  end
+  return mtensors
+end
+
+
+
 """
     nll(L::LPDO{MPS}, data::Matrix{Pair{String,Int}})
 
@@ -56,6 +89,27 @@ function nll(L::LPDO{MPO}, data::Matrix{Pair{String,Int}})
     prob = inner(Φdag,Φdag)
     loss -= log(real(prob))/size(data)[1]
   end
+  return loss
+end
+
+function nll(L::LPDO{MPO}, data::Matrix{Pair{String,Int}}, noise_model::NamedTuple{<:Any})
+  data = convertdatapoints(copy(data); state = true)
+  lpdo = L.X
+  N = length(lpdo)
+  loss = 0.0
+  s = firstsiteinds(lpdo)
+  mtensors = measurement_tensors(s, noise_model)
+  for n in 1:size(data)[1]
+    x = data[n,:]
+
+    Φ = copy(lpdo)
+    for j in 1:N
+      Φ[j] = mtensors[j][x[j]] * Φ[j]
+    end
+    prob = inner(Φ,Φ)
+    loss -= log(real(prob))/size(data)[1]
+  end
+
   return loss
 end
 
@@ -403,6 +457,166 @@ function gradnll(L::LPDO{MPO},
 end
 
 
+function gradnll(L::LPDO{MPO},
+                 data::Matrix{Pair{String,Int}}, 
+                 noise_model::NamedTuple{<:Any};
+                 sqrt_localnorms = nothing)
+  data = convertdatapoints(copy(data); state = true)
+  lpdo = L.X
+  N = length(lpdo)
+  s = firstsiteinds(lpdo)
+  bases = first.(data)
+  outcomes = string.(last.(data))
+
+  mtensors = measurement_tensors(s, noise_model)
+
+  links = [linkind(lpdo, n) for n in 1:N-1]
+
+  kraus = Index[]
+  for j in 1:N
+    push!(kraus,firstind(lpdo[j], "Purifier"))
+  end
+
+  noiseindex = Index[]
+  for j in 1:N
+    push!(noiseindex, firstind(mtensors[j]["X+"], tags ="kraus"))
+  end
+  ElT = eltype(lpdo[1])
+
+  nthreads = Threads.nthreads()
+
+  L     = [Vector{ITensor{2}}(undef, N) for _ in 1:nthreads]
+  Llpdo = [Vector{ITensor}(undef, N) for _ in 1:nthreads]
+  Lgrad = [Vector{ITensor}(undef,N) for _ in 1:nthreads]
+
+  R     = [Vector{ITensor{2}}(undef, N) for _ in 1:nthreads]
+  Rlpdo = [Vector{ITensor}(undef, N) for _ in 1:nthreads]
+
+  Agrad = [Vector{ITensor}(undef, N) for _ in 1:nthreads]
+
+  T  = [Vector{ITensor}(undef,N) for _ in 1:nthreads]
+  Tp = [Vector{ITensor}(undef,N) for _ in 1:nthreads]
+
+  grads     = [Vector{ITensor}(undef,N) for _ in 1:nthreads]
+  gradients = [Vector{ITensor}(undef,N) for _ in 1:nthreads]
+
+  for nthread in 1:nthreads
+
+    for n in 1:N-1
+      L[nthread][n] = ITensor(ElT, undef, links[n]',links[n])
+    end
+    for n in 2:N-1
+      Llpdo[nthread][n] = ITensor(ElT, undef, kraus[n],links[n]',links[n-1], noiseindex[n])
+    end
+    for n in 1:N-2
+      Lgrad[nthread][n] = ITensor(ElT,undef,links[n],kraus[n+1],links[n+1]', noiseindex[n+1])
+    end
+    Lgrad[nthread][N-1] = ITensor(ElT,undef,links[N-1],kraus[N],noiseindex[N])
+
+    for n in N:-1:2
+      R[nthread][n] = ITensor(ElT, undef, links[n-1]',links[n-1])
+    end
+    for n in N-1:-1:2
+      Rlpdo[nthread][n] = ITensor(ElT, undef, links[n-1]',kraus[n],links[n],noiseindex[n])
+    end
+
+    Agrad[nthread][1] = ITensor(ElT, undef, kraus[1],links[1]',s[1])
+    for n in 2:N-1
+      Agrad[nthread][n] = ITensor(ElT, undef, links[n-1],kraus[n],links[n]',s[n])
+    end
+
+    T[nthread][1] = ITensor(ElT, undef, kraus[1],links[1],noiseindex[1])
+    Tp[nthread][1] = prime(T[nthread][1],"Link")
+    for n in 2:N-1
+      T[nthread][n] = ITensor(ElT, undef, kraus[n],links[n],links[n-1],noiseindex[n])
+      Tp[nthread][n] = prime(T[nthread][n],"Link")
+    end
+    T[nthread][N] = ITensor(ElT, undef, kraus[N],links[N-1],noiseindex[N])
+    Tp[nthread][N] = prime(T[nthread][N],"Link")
+
+    grads[nthread][1] = ITensor(ElT, undef,links[1],kraus[1],s[1])
+    gradients[nthread][1] = ITensor(ElT,links[1],kraus[1],s[1])
+    for n in 2:N-1
+      grads[nthread][n] = ITensor(ElT, undef,links[n],links[n-1],kraus[n],s[n])
+      gradients[nthread][n] = ITensor(ElT,links[n],links[n-1],kraus[n],s[n])
+    end
+    grads[nthread][N] = ITensor(ElT, undef,links[N-1],kraus[N],s[N])
+    gradients[nthread][N] = ITensor(ElT, links[N-1],kraus[N],s[N])
+  end
+
+  if isnothing(sqrt_localnorms)
+    sqrt_localnorms = ones(N)
+  end
+
+  loss = zeros(nthreads)
+
+  Threads.@threads for n in 1:size(data)[1]
+
+    nthread = Threads.threadid()
+    x = data[n,:]
+    #""" LEFT ENVIRONMENTS """
+    T[nthread][1] .= lpdo[1] .* mtensors[1][x[1]] 
+    L[nthread][1] .= prime(T[nthread][1],"Link") .* dag(T[nthread][1])
+    for j in 2:N-1
+      T[nthread][j] .= lpdo[j] .* mtensors[j][x[j]]
+      Llpdo[nthread][j] .= prime(T[nthread][j],"Link") .* L[nthread][j-1]
+      L[nthread][j] .= Llpdo[nthread][j] .* dag(T[nthread][j])
+    end
+    T[nthread][N] .= lpdo[N] .* mtensors[N][x[N]]
+    prob = L[nthread][N-1] * prime(T[nthread][N],"Link")
+    prob = prob * dag(T[nthread][N])
+    prob = real(prob[])
+    loss[nthread] -= log(prob)/size(data)[1]
+    
+    #""" RIGHT ENVIRONMENTS """
+    R[nthread][N] .= prime(T[nthread][N],"Link") .* dag(T[nthread][N])
+    for j in reverse(2:N-1)
+      Rlpdo[nthread][j] .= prime(T[nthread][j],"Link") .* R[nthread][j+1]
+      R[nthread][j] .= Rlpdo[nthread][j] .* dag(T[nthread][j])
+    end
+
+    #""" GRADIENTS """
+    Tp[nthread][1] .= prime(lpdo[1],"Link") .* mtensors[1][x[1]]
+    Agrad[nthread][1] .=  Tp[nthread][1] .* dag(mtensors[1][x[1]]) 
+    grads[nthread][1] .= R[nthread][2] .* Agrad[nthread][1]
+    gradients[nthread][1] .+= (1 / (sqrt_localnorms[1] * prob)) .* grads[nthread][1]
+    for j in 2:N-1
+      Tp[nthread][j] .= prime(lpdo[j],"Link") .* mtensors[j][x[j]]
+      Lgrad[nthread][j-1] .= L[nthread][j-1] .* Tp[nthread][j]
+      Agrad[nthread][j] .= Lgrad[nthread][j-1] .* dag(mtensors[j][x[j]]) 
+      grads[nthread][j] .= R[nthread][j+1] .* Agrad[nthread][j]
+      gradients[nthread][j] .+= (1 / (sqrt_localnorms[j] * prob)) .* grads[nthread][j]
+    end
+    Tp[nthread][N] .= prime(lpdo[N],"Link") .* mtensors[N][x[N]]
+    Lgrad[nthread][N-1] .= L[nthread][N-1] .* Tp[nthread][N]
+    grads[nthread][N] .= Lgrad[nthread][N-1] .* dag(mtensors[N][x[N]]) 
+    gradients[nthread][N] .+= (1 / (sqrt_localnorms[N] * prob)) .* grads[nthread][N]
+  end
+
+  for nthread in 1:nthreads
+    for g in gradients[nthread]
+      g .= (-2/size(data)[1]) .* g
+    end
+  end
+
+  gradients_tot = Vector{ITensor}(undef,N)
+  gradients_tot[1] = ITensor(ElT,links[1],kraus[1],s[1])
+  for n in 2:N-1
+    gradients_tot[n] = ITensor(ElT,links[n],links[n-1],kraus[n],s[n])
+  end
+  gradients_tot[N] = ITensor(ElT, links[N-1],kraus[N],s[N])
+
+  loss_tot = 0.0
+  for nthread in 1:nthreads
+    gradients_tot .+= gradients[nthread]
+    loss_tot += loss[nthread]
+  end
+
+  return gradients_tot, loss_tot
+end
+
+
+
 """
     PastaQ.gradients(L::LPDO, data::Array; sqrt_localnorms = nothing)
     PastaQ.gradients(ψ::MPS, data::Array; localnorms = nothing)
@@ -412,16 +626,20 @@ Compute the gradients of the cost function:
 """
 function gradients(L::LPDO, 
                    data::Matrix{Pair{String,Int}};
+                   noise_model = nothing,
                    sqrt_localnorms = nothing)
   g_logZ,logZ = gradlogZ(L; sqrt_localnorms = sqrt_localnorms)
-  g_nll, nll  = gradnll(L, data; sqrt_localnorms = sqrt_localnorms)
-  
+  if isnothing(noise_model)
+    g_nll, nll  = gradnll(L, data; sqrt_localnorms = sqrt_localnorms)
+  else
+    g_nll, nll  = gradnll(L, data, noise_model; sqrt_localnorms = sqrt_localnorms)
+  end
   grads = g_logZ + g_nll
   loss = logZ + nll
   return grads,loss
 end
 
-gradients(ψ::MPS,data::Matrix{Pair{String,Int}};localnorms = nothing)=
+gradients(ψ::MPS,data::Matrix{Pair{String,Int}}; localnorms = nothing)=
   gradients(LPDO(ψ), data; sqrt_localnorms = localnorms)
 
 """
@@ -456,7 +674,7 @@ function tomography(train_data::Matrix{Pair{String, Int}}, L::LPDO; observer! = 
   test_data                    = get(kwargs,:test_data, nothing)
   outputpath                   = get(kwargs,:fout, nothing)
   print_metrics                = get(kwargs,:print_metrics, [])
- 
+  noise_model                  = get(kwargs,:noise_model, nothing) 
   
   # configure the observer. if no observer is provided, create an empty one
   observer! = configure!(observer!,optimizer,batchsize,measurement_frequency,train_data,test_data)
@@ -491,7 +709,7 @@ function tomography(train_data::Matrix{Pair{String, Int}}, L::LPDO; observer! = 
       normalized_model = copy(model)
       sqrt_localnorms = []
       normalize!(normalized_model; sqrt_localnorms! = sqrt_localnorms)
-      grads, loss = gradients(normalized_model, batch, sqrt_localnorms = sqrt_localnorms)
+      grads, loss = gradients(normalized_model, batch; noise_model = noise_model, sqrt_localnorms = sqrt_localnorms)
 
       nupdate = ep * num_batches + b
       train_loss += loss/Float64(num_batches)

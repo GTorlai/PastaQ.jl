@@ -171,6 +171,89 @@ end
 numgradsnll(M::MPS, args...; kwargs...) =
   numgradsnll(LPDO(M), args...; kwargs...)
 
+function numgradsnll(L::LPDO,
+                     data::Array,
+                     noise_model::NamedTuple;
+                     accuracy=1e-8)
+  M = L.X
+  N = length(M)
+  grad_r = []
+  grad_i = []
+  for j in 1:N
+    push!(grad_r,zeros(ComplexF64,size(M[j])))
+    push!(grad_i,zeros(ComplexF64,size(M[j])))
+  end
+  
+  epsilon = zeros(ComplexF64,size(M[1]));
+  # Site 1
+  for i in 1:length(epsilon)
+    epsilon[i] = accuracy
+    eps = ITensor(epsilon,inds(M[1]))
+    M[1] += eps
+    loss_p = PastaQ.nll(L,data,noise_model) 
+    M[1] -= eps
+    loss_m = PastaQ.nll(L,data,noise_model) 
+    grad_r[1][i] = (loss_p-loss_m)/(accuracy)
+    
+    epsilon[i] = im*accuracy
+    eps = ITensor(epsilon,inds(M[1]))
+    M[1] += eps
+    loss_p = PastaQ.nll(L,data,noise_model) 
+    M[1] -= eps
+    loss_m = PastaQ.nll(L,data,noise_model) 
+    grad_i[1][i] = (loss_p-loss_m)/(im*accuracy)
+    
+    epsilon[i] = 0.0
+  end
+
+  for j in 2:N-1
+    epsilon = zeros(ComplexF64,size(M[j]));
+    for i in 1:length(epsilon)
+      epsilon[i] = accuracy
+      eps = ITensor(epsilon,inds(M[j]))
+      M[j] += eps
+      loss_p = PastaQ.nll(L,data,noise_model) 
+      M[j] -= eps
+      loss_m = PastaQ.nll(L,data,noise_model) 
+      grad_r[j][i] = (loss_p-loss_m)/(accuracy)
+      
+      epsilon[i] = im*accuracy
+      eps = ITensor(epsilon,inds(M[j]))
+      M[j] += eps
+      loss_p = PastaQ.nll(L,data,noise_model) 
+      M[j] -= eps
+      loss_m = PastaQ.nll(L,data,noise_model) 
+      grad_i[j][i] = (loss_p-loss_m)/(im*accuracy)
+
+      epsilon[i] = 0.0
+    end
+ end
+
+  # Site N
+  epsilon = zeros(ComplexF64,size(M[N]));
+  for i in 1:length(epsilon)
+    epsilon[i] = accuracy
+    eps = ITensor(epsilon,inds(M[N]))
+    M[N] += eps
+    loss_p = PastaQ.nll(L,data,noise_model) 
+    M[N] -= eps
+    loss_m = PastaQ.nll(L,data,noise_model) 
+    grad_r[N][i] = (loss_p-loss_m)/(accuracy)
+
+    epsilon[i] = im*accuracy
+    eps = ITensor(epsilon,inds(M[N]))
+    M[N] += eps
+    loss_p = PastaQ.nll(L,data,noise_model) 
+    M[N] -= eps
+    loss_m = PastaQ.nll(L,data,noise_model) 
+    grad_i[N][i] = (loss_p-loss_m)/(im*accuracy)
+    
+    epsilon[i] = 0.0
+  end
+
+  return grad_r-grad_i
+end
+
 """ MPS TESTS """
 
 @testset "mps-qst: normalization" begin
@@ -441,3 +524,79 @@ end
   @test alg_gradient ≈ num_grad[N] rtol=1e-3
 end
 
+
+
+""" TEST AGAIN NORMAL TOMOGRAPHY"""
+
+@testset "readout: check against normal QST" begin
+  N = 5
+  χ = 4
+  ξ = 3
+
+  nsamples = 100
+  Random.seed!(1234)
+  data = PastaQ.convertdatapoints(randompreparations(N,nsamples))
+  
+  noise = (eR = ("bit_flip",(p=0.0,)),)
+  ρ0 = randomstate(N;mixed=true, χ=χ,ξ=ξ)
+  normalize!(ρ0)
+  NLL = PastaQ.nll(ρ0, data) 
+  NLL_test = PastaQ.nll(ρ0, data, noise)
+  @test NLL ≈ NLL_test
+end
+
+
+@testset "readout: grad nll" begin
+  N = 3
+  χ = 3
+  ξ = 2
+
+  nsamples = 10
+  Random.seed!(1234)
+  data = PastaQ.convertdatapoints(randompreparations(N,nsamples))
+  
+  ρ = randomstate(N;mixed=true, χ=χ,ξ=ξ)
+  
+  noise_model = (eR = ("bit_flip",(p=0.0,)),)
+  num_grad_test = numgradsnll(ρ,data)
+  num_grad = numgradsnll(ρ,data,noise_model)
+  
+  for j in 1:N
+    @test num_grad[j] ≈ num_grad_test[j] atol = 1e-5
+  end
+  sqrt_localnorms = []
+  normalize!(ρ; sqrt_localnorms! = sqrt_localnorms)
+  @test tr(ρ) ≈ 1
+  alg_grad, loss = PastaQ.gradnll(ρ, data, noise_model; sqrt_localnorms = sqrt_localnorms)
+  alg_grad_test, loss_test = PastaQ.gradnll(ρ, data; sqrt_localnorms = sqrt_localnorms)
+  @test loss ≈ loss_test
+  for j in 1:N
+    @test alg_grad[j] ≈ alg_grad_test[j] atol = 1e-5
+  end
+  alg_gradient = permutedims(PastaQ.array(alg_grad[1]),[3,1,2])
+  @test alg_gradient ≈ num_grad[1] rtol=1e-3
+  for j in 2:N-1
+    alg_gradient = permutedims(PastaQ.array(alg_grad[j]),[4,2,3,1])
+    @test alg_gradient ≈ num_grad[j] rtol=1e-3
+  end
+  alg_gradient = permutedims(PastaQ.array(alg_grad[N]),[3,1,2])
+  @test alg_gradient ≈ num_grad[N] rtol=1e-3
+
+
+  noise_model = (eR = ("bit_flip",(p=0.1,)),)
+  num_grad = numgradsnll(ρ,data,noise_model)
+  
+  sqrt_localnorms = []
+  normalize!(ρ; sqrt_localnorms! = sqrt_localnorms)
+  @test tr(ρ) ≈ 1
+  alg_grad, loss = PastaQ.gradnll(ρ, data, noise_model; sqrt_localnorms = sqrt_localnorms)
+  alg_gradient = permutedims(PastaQ.array(alg_grad[1]),[3,1,2])
+  @test alg_gradient ≈ num_grad[1] rtol=1e-3
+  for j in 2:N-1
+    alg_gradient = permutedims(PastaQ.array(alg_grad[j]),[4,2,3,1])
+    @test alg_gradient ≈ num_grad[j] rtol=1e-3
+  end
+  alg_gradient = permutedims(PastaQ.array(alg_grad[N]),[3,1,2])
+  @test alg_gradient ≈ num_grad[N] rtol=1e-3
+
+end
