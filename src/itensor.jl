@@ -3,14 +3,11 @@
 # that may be moved to ITensors.jl
 #
 
-
 #
 # imports.jl
 #
 
-import Base:
-  isapprox,
-  eltype
+import Base: isapprox, eltype
 
 using ITensors: AbstractMPS
 
@@ -23,7 +20,11 @@ function random_tags()
   ntags = length(ts.data)
   tagtype = eltype(ts.data)
   for n in 1:length(ts.data)
-    ts = addtags(ts, ITensors.Tag(rand(tagtype)))
+    rand_tag = rand(tagtype)
+    # Before ITensors v0.2, addtags expects a Tag.
+    # Afterward, just needs an integer.
+    rand_tag = ITensors.version() < v"0.2" ? ITensors.Tag(rand_tag) : rand_tag
+    ts = addtags(ts, rand_tag)
   end
   return ts
 end
@@ -32,8 +33,9 @@ end
 # IndexSet
 #
 
-has_indpairs(is::IndexSet, plevs::Pair{Int, Int}) =
-  any(i -> hasplev(i, first(plevs)) && setprime(i, last(plevs)) in is, is)
+function has_indpairs(is, plevs::Pair{Int,Int})
+  return any(i -> hasplev(i, first(plevs)) && setprime(i, last(plevs)) in is, is)
+end
 
 ######################################################
 # ITensor
@@ -65,13 +67,16 @@ function promote_leaf_eltypes(ψ::AbstractMPS)::Type{<:Number}
   eltypeψ = eltype(ψ[1])
   for n in 2:length(ψ)
     eltypeψ = promote_type(eltypeψ, eltype(ψ[n]))
-  end 
+  end
   return eltypeψ
 end
 
-function isapprox(x::AbstractMPS, y::AbstractMPS;
-                  atol::Real = 0,
-                  rtol::Real = Base.rtoldefault(promote_leaf_eltypes(x), promote_leaf_eltypes(y), atol))
+function isapprox(
+  x::AbstractMPS,
+  y::AbstractMPS;
+  atol::Real=0,
+  rtol::Real=Base.rtoldefault(promote_leaf_eltypes(x), promote_leaf_eltypes(y), atol),
+)
   #d = norm(x - y)
   normx² = inner(x, x)
   normy² = inner(y, y)
@@ -85,4 +90,3 @@ end
 
 isapprox(x::AbstractMPS, y::ITensor; kwargs...) = isapprox(prod(x), y; kwargs...)
 isapprox(x::ITensor, y::AbstractMPS; kwargs...) = isapprox(y, x; kwargs...)
-

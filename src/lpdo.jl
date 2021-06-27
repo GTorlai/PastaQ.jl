@@ -1,13 +1,15 @@
 
 # Locally purified density operator
 # L = prime(X, !purifier_tags(X)) * dag(X)
-struct LPDO{XT <: Union{MPS, MPO}}
+struct LPDO{XT<:Union{MPS,MPO}}
   X::XT
   purifier_tags::TagSet
-  function LPDO(M::Union{MPO, MPS}, purifier_tags)
+  function LPDO(M::Union{MPO,MPS}, purifier_tags)
     sites = siteinds(all, M)
     if any(s -> has_indpairs(s, 0 => 1), sites)
-      error("In `LPDO(X::MPO, purifier_tags)`, `MPO` `X` must not have pairs of primed and unprimed site indices, since the `LPDO` is interpreted as `prime(X; tags = !purifier_tags) * dag(X)`.")
+      error(
+        "In `LPDO(X::MPO, purifier_tags)`, `MPO` `X` must not have pairs of primed and unprimed site indices, since the `LPDO` is interpreted as `prime(X; tags = !purifier_tags) * dag(X)`.",
+      )
     end
     return new{typeof(M)}(M, TagSet(purifier_tags))
   end
@@ -24,11 +26,15 @@ copy(L::LPDO) = LPDO(copy(L.X), L.purifier_tags)
 #Base.lastindex(L::LPDO) = lastindex(L.X)
 
 function getindex(L::LPDO, args...)
-  error("`getindex(L::LPDO, args...)` is purposefully not implemented yet. For the LPDO `L = X X†`, you can get the jth tensor `X[j]` with `L.X[j]`.")
+  return error(
+    "`getindex(L::LPDO, args...)` is purposefully not implemented yet. For the LPDO `L = X X†`, you can get the jth tensor `X[j]` with `L.X[j]`.",
+  )
 end
 
 function setindex!(L::LPDO, args...)
-  error("`setindex!(L::LPDO, args...)` is purposefully not implemented yet. For the LPDO `L = X X†`, you can set the jth tensor `X[j]` with `L.X[j] = A`.")
+  return error(
+    "`setindex!(L::LPDO, args...)` is purposefully not implemented yet. For the LPDO `L = X X†`, you can set the jth tensor `X[j]` with `L.X[j] = A`.",
+  )
 end
 
 purifier_tags(L::LPDO) = L.purifier_tags
@@ -38,15 +44,15 @@ ket(L::LPDO, j::Int) = prime(L.X[j], !purifier_tags(L))
 bra(L::LPDO) = dag(L.X)
 bra(L::LPDO, j::Int) = dag(L.X[j])
 
-function Base.iterate(L::LPDO, state = 1) 
-  if state > 2*length(L)
+function Base.iterate(L::LPDO, state=1)
+  if state > 2 * length(L)
     return nothing
   elseif isodd(state)
-    T = bra(L, (state+1)÷2)
+    T = bra(L, (state + 1) ÷ 2)
   else
-    T = ket(L, state÷2)
+    T = ket(L, state ÷ 2)
   end
-  return T, state+1
+  return T, state + 1
 end
 
 ket(L::LPDO{MPS}) = prime(L.X)
@@ -79,33 +85,30 @@ An LPDO `L = X X†` is normalized by `tr(L) = tr(X X†)`, so each `X` is norma
 
 Passing a vector `v` as the keyword arguments `localnorms!` (`sqrt_localnorms!`) will fill the vector with the (square root) of the normalization factor per site. For an MPS `ψ`, `prod(v) ≈ norm(ψ)`. For an MPO `M`, `prod(v) ≈ tr(M)`. For an LPDO `L`, `prod(v)^2 ≈ tr(L)`.
 """
-function normalize!(M::MPO;
-                    plev = 0 => 1,
-                    tags = ts"" => ts"",
-                    localnorms! = [])
+function normalize!(M::MPO; plev=0 => 1, tags=ts"" => ts"", (localnorms!)=[])
   N = length(M)
   resize!(localnorms!, N)
-  blob = tr(M[1]; plev = plev, tags = tags)
+  blob = tr(M[1]; plev=plev, tags=tags)
   localZ = norm(blob)
   blob /= localZ
   M[1] /= localZ
   localnorms![1] = localZ
-  for j in 2:N-1
+  for j in 2:(N - 1)
     blob *= M[j]
-    blob = tr(blob; plev = plev, tags = tags)
+    blob = tr(blob; plev=plev, tags=tags)
     localZ = norm(blob)
     blob /= localZ
     M[j] /= localZ
     localnorms![j] = localZ
   end
   blob *= M[N]
-  localZ = tr(blob; plev = plev, tags = tags)
+  localZ = tr(blob; plev=plev, tags=tags)
   M[N] /= localZ
   localnorms![N] = localZ
   return M
 end
 
-function normalize!(L::LPDO; sqrt_localnorms! = [], localnorm=1.0)
+function normalize!(L::LPDO; (sqrt_localnorms!)=[], localnorm=1.0)
   N = length(L)
   resize!(sqrt_localnorms!, N)
   # TODO: replace with:
@@ -115,7 +118,7 @@ function normalize!(L::LPDO; sqrt_localnorms! = [], localnorm=1.0)
   blob /= localZ
   L.X[1] /= sqrt(localZ / localnorm)
   sqrt_localnorms![1] = sqrt(localZ / localnorm)
-  for j in 2:length(L)-1
+  for j in 2:(length(L) - 1)
     # TODO: replace with:
     # noprime(ket(L, j), siteind(L, j))
     blob = blob * noprime(ket(L, j), "Site")
@@ -132,12 +135,12 @@ function normalize!(L::LPDO; sqrt_localnorms! = [], localnorm=1.0)
   localZ = norm(blob)
   L.X[N] /= sqrt(localZ / localnorm)
   sqrt_localnorms![N] = sqrt(localZ / localnorm)
-  
+
   return L
 end
 
-function normalize!(ψ::MPS; localnorms! = [])
-  normalize!(LPDO(ψ); sqrt_localnorms! = localnorms!)
+function normalize!(ψ::MPS; (localnorms!)=[])
+  normalize!(LPDO(ψ); (sqrt_localnorms!)=localnorms!)
   return ψ
 end
 
@@ -150,7 +153,7 @@ in the future we will support approximate contraction.
 """
 function MPO(L::LPDO{MPO}; kwargs...)
   X = L.X
-  X′ = prime(X; tags = !purifier_tags(L))
+  X′ = prime(X; tags=!purifier_tags(L))
   return *(X′, dag(X); kwargs...)
 end
 
@@ -159,19 +162,16 @@ end
 # is generic enough.
 ITensors.MPO(L::LPDO{MPS}; kwargs...) = MPO(L.X; kwargs...)
 
-function HDF5.write(parent::Union{HDF5.File,HDF5.Group},
-                    name::AbstractString,
-                    L::LPDO)
+function HDF5.write(parent::Union{HDF5.File,HDF5.Group}, name::AbstractString, L::LPDO)
   g = g_create(parent, name)
   attrs(g)["type"] = String(Symbol(typeof(L)))
-  write(parent, "X", L.X)
+  return write(parent, "X", L.X)
 end
 
-function HDF5.read(parent::Union{HDF5.File, HDF5.Group},
-                   name::AbstractString,
-                   ::Type{LPDO{XT}}) where {XT}
+function HDF5.read(
+  parent::Union{HDF5.File,HDF5.Group}, name::AbstractString, ::Type{LPDO{XT}}
+) where {XT}
   g = g_open(parent, name)
   X = read(g, "X", XT)
   return LPDO(X, ts"Purifier")
 end
-

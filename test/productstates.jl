@@ -34,9 +34,12 @@ using Test
   @test productstate(s, fill("X+", length(s))) ≈ prod(statesXp)
   @test productstate(s, fill("Y-", length(s))) ≈ prod(statesYm)
 
-  @test productstate(s, n -> isodd(n) ? 1 : 0) ≈ states1[1] * states0[2] * states1[3] * states0[4]
-  @test productstate(s, n -> isodd(n) ? "1" : "0") ≈ states1[1] * states0[2] * states1[3] * states0[4]
-  @test productstate(s, n -> isodd(n) ? "Y-" : "X+") ≈ statesYm[1] * statesXp[2] * statesYm[3] * statesXp[4]
+  @test productstate(s, n -> isodd(n) ? 1 : 0) ≈
+        states1[1] * states0[2] * states1[3] * states0[4]
+  @test productstate(s, n -> isodd(n) ? "1" : "0") ≈
+        states1[1] * states0[2] * states1[3] * states0[4]
+  @test productstate(s, n -> isodd(n) ? "Y-" : "X+") ≈
+        statesYm[1] * statesXp[2] * statesYm[3] * statesXp[4]
 end
 
 @testset "productoperator" begin
@@ -49,4 +52,3 @@ end
   @test prod(I) ≈ prod(gatesI)
   @test I ≈ prod(gatesI)
 end
-

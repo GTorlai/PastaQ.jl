@@ -16,7 +16,7 @@ using Test
     "statetomography.jl",
     "processtomography.jl",
     "utils.jl",
-    "examples.jl",
+    #"examples.jl",
     "observer.jl",
   )
     println("Running $filename")

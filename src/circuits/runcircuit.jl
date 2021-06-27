@@ -7,8 +7,11 @@ associated with a list of quantum gates.
 If noise is nontrivial, the corresponding Kraus operators are 
 added to each gate as a tensor with an extra (Kraus) index.
 """
-function buildcircuit(M::Union{MPS,MPO,ITensor}, circuit::Union{Tuple,Vector{<:Any}}; 
-                      noise::Union{Nothing, Tuple, NamedTuple} = nothing)
+function buildcircuit(
+  M::Union{MPS,MPO},
+  circuit::Union{Tuple,Vector{<:Any}};
+  noise::Union{Nothing, Tuple, NamedTuple} = nothing
+)
   circuit_tensors = ITensor[]
   if circuit isa Tuple
     circuit = [circuit]
@@ -22,8 +25,9 @@ function buildcircuit(M::Union{MPS,MPO,ITensor}, circuit::Union{Tuple,Vector{<:A
   return circuit_tensors
 end
 
-buildcircuit(M::Union{MPS,MPO,ITensor}, circuit::Vector{Vector{<:Any}}; kwargs...) = 
-  buildcircuit(M, vcat(circuit...); kwargs...)
+function buildcircuit(M::Union{MPS,MPO}, circuit::Vector{Vector{<:Any}}; kwargs...)
+  return buildcircuit(M, vcat(circuit...); kwargs...)
+end
 
 
 """
@@ -40,23 +44,25 @@ buildcircuit(M::Union{MPS,MPO,ITensor}, circuit::Vector{Vector{<:Any}}; kwargs..
 
 Apply the circuit to a state (wavefunction/densitymatrix) from a list of tensors.
 """
-function runcircuit(M::Union{MPS, MPO},
-                    circuit_tensors::Vector{<:ITensor};
-                    apply_dag = nothing,
-                    cutoff = 1e-15,
-                    maxdim = 10_000,
-                    svd_alg = "divide_and_conquer",
-                    move_sites_back::Bool = true,
-                    kwargs...)
+function runcircuit(
+  M::Union{MPS,MPO},
+  circuit_tensors::Vector{<:ITensor};
+  apply_dag=nothing,
+  cutoff=1e-15,
+  maxdim=10_000,
+  svd_alg="divide_and_conquer",
+  move_sites_back::Bool=true,
+  kwargs...,
+)
 
   # Check if gate_tensors contains Kraus operators
   inds_sizes = [length(inds(g)) for g in circuit_tensors]
-  noiseflag = any(x -> x % 2 == 1 , inds_sizes)
+  noiseflag = any(x -> x % 2 == 1, inds_sizes)
 
   if apply_dag == false && noiseflag == true
     error("noise simulation requires apply_dag=true")
   end
- 
+
   # Default mode (apply_dag = nothing)
   if isnothing(apply_dag)
     # Noisy evolution: MPS/MPO -> MPO
@@ -64,41 +70,66 @@ function runcircuit(M::Union{MPS, MPO},
       # If M is an MPS, |ψ⟩ -> ρ = |ψ⟩⟨ψ| (MPS -> MPO)
       ρ = (typeof(M) == MPS ? MPO(M) : M)
       # ρ -> ε(ρ) (MPO -> MPO, conjugate evolution)
-      return apply(circuit_tensors, ρ; apply_dag = true,
-                   cutoff = cutoff, maxdim = maxdim,
-                   svd_alg = svd_alg,
-                   move_sites_back = move_sites_back)
-      
-    # Pure state evolution
+      return apply(
+        circuit_tensors,
+        ρ;
+        apply_dag=true,
+        cutoff=cutoff,
+        maxdim=maxdim,
+        svd_alg=svd_alg,
+        move_sites_back=move_sites_back,
+      )
+
+      # Pure state evolution
     else
       # |ψ⟩ -> U |ψ⟩ (MPS -> MPS)
       #  ρ  -> U ρ U† (MPO -> MPO, conjugate evolution)
       if M isa MPS
-        return apply(circuit_tensors, M; cutoff = cutoff,
-                     maxdim = maxdim, svd_alg = svd_alg,
-                     move_sites_back = move_sites_back)
+        return apply(
+          circuit_tensors,
+          M;
+          cutoff=cutoff,
+          maxdim=maxdim,
+          svd_alg=svd_alg,
+          move_sites_back=move_sites_back,
+        )
       else
-        return apply(circuit_tensors, M; apply_dag = true,
-                     cutoff = cutoff, maxdim = maxdim,
-                     svd_alg = svd_alg,
-                     move_sites_back = move_sites_back)
+        return apply(
+          circuit_tensors,
+          M;
+          apply_dag=true,
+          cutoff=cutoff,
+          maxdim=maxdim,
+          svd_alg=svd_alg,
+          move_sites_back=move_sites_back,
+        )
       end
     end
-  # Custom mode (apply_dag = true / false)
+    # Custom mode (apply_dag = true / false)
   else
     if M isa MPO
       # apply_dag = true:  ρ -> U ρ U† (MPO -> MPO, conjugate evolution)
       # apply_dag = false: ρ -> U ρ (MPO -> MPO)
-      return apply(circuit_tensors, M; apply_dag = apply_dag,
-                   cutoff = cutoff, maxdim = maxdim,
-                   svd_alg = svd_alg,
-                   move_sites_back = move_sites_back)
+      return apply(
+        circuit_tensors,
+        M;
+        apply_dag=apply_dag,
+        cutoff=cutoff,
+        maxdim=maxdim,
+        svd_alg=svd_alg,
+        move_sites_back=move_sites_back,
+      )
     elseif M isa MPS
       # apply_dag = true:  ψ -> U ψ -> ρ = (U ψ) (ψ† U†) (MPS -> MPO, conjugate)
       # apply_dag = false: ψ -> U ψ (MPS -> MPS)
-      Mc = apply(circuit_tensors, M; cutoff = cutoff, maxdim = maxdim,
-                 svd_alg = svd_alg, apply_dag = apply_dag,
-                 move_sites_back = move_sites_back)
+      Mc = apply(
+        circuit_tensors,
+        M;
+        cutoff=cutoff,
+        maxdim=maxdim,
+        svd_alg=svd_alg,
+        move_sites_back=move_sites_back,
+      )
       if apply_dag
         Mc = MPO(Mc)
       end
@@ -142,21 +173,25 @@ runcircuit(M::Union{MPS, MPO}, circuit::Union{Tuple,Vector{<:Any}};
            noise = nothing, kwargs...) = 
   runcircuit(M, buildcircuit(M, circuit; noise = noise); kwargs...)
 
+function runcircuit(
+  M::Union{MPS,MPO},
+  circuit::Vector{<:Vector{<:Any}};
+  (observer!)=nothing,
+  move_sites_back_before_measurements::Bool=false,
+  noise=nothing,
+  kwargs...,
+)
 
-function runcircuit(M::Union{MPS, MPO}, circuit::Vector{<:Vector{<:Any}};
-                    observer! = nothing, 
-                    move_sites_back_before_measurements::Bool = false,
-                    noise = nothing,
-                    kwargs...)
-                  
   # is the observer is not provided, apply the vectorized circuit
-  isnothing(observer!) && return runcircuit(M, vcat(circuit...); noise = noise, kwargs...)
-  
+  isnothing(observer!) && return runcircuit(M, vcat(circuit...); noise=noise, kwargs...)
+
   # issue warning if there are custom functions and the sites are not being moved back
   if _has_customfunctions(observer!) && move_sites_back_before_measurements == false
     println("--------------")
     println(" WARNING")
-    println("\nA custom function is being measured during the gate evolution,\nbut the MPS sites at depth D are not being restored to their \nlocation at depth D-1. If any custom measurement is dependent \non the specific site ordering of the MPS, it should take the \nre-ordering into account. The MPS can be restored to the \ncanonical index ordering by setting:\n\n `move_sites_back_before_measurements = true`\n")
+    println(
+      "\nA custom function is being measured during the gate evolution,\nbut the MPS sites at depth D are not being restored to their \nlocation at depth D-1. If any custom measurement is dependent \non the specific site ordering of the MPS, it should take the \nre-ordering into account. The MPS can be restored to the \ncanonical index ordering by setting:\n\n `move_sites_back_before_measurements = true`\n",
+    )
     println("--------------\n")
   end
   M0 = copy(M)
@@ -165,11 +200,11 @@ function runcircuit(M::Union{MPS, MPO}, circuit::Vector{<:Vector{<:Any}};
 
   for l in 1:length(circuit)
     layer = circuit[l]
-    M = runcircuit(M, layer; move_sites_back = move_sites_back_before_measurements, kwargs...)
+    M = runcircuit(M, layer; move_sites_back=move_sites_back_before_measurements, kwargs...)
     if !isnothing(observer!)
       measure!(observer!, M, s)
     end
-  end  
+  end
   if move_sites_back_before_measurements == false
     new_s = siteinds(M)
     ns = 1:length(M)
@@ -279,7 +314,7 @@ function runcircuit(T::ITensor, circuit_tensors::Vector{ <: ITensor}; apply_dag 
   # Custom mode (apply_dag = true / false)
   else
     Tc = apply(circuit_tensors, T; apply_dag = apply_dag)
-    is_operator(T) && apply_dag && return prime(Tc, "Site") * dag(Tc)
+    !is_operator(T) && apply_dag && return prime(Tc, "Site") * dag(Tc)
     return Tc
   end
 end

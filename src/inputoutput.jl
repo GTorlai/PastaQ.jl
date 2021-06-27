@@ -13,19 +13,21 @@ function readsamples(input_path::String)
   if haskey(fin, "inputs")
     inputs = read(fin, "inputs")
     bases = read(fin, "bases")
-    outcomes = read(fin,"outcomes")
+    outcomes = read(fin, "outcomes")
     data = inputs .=> (bases .=> outcomes)
-  # Measurements in bases
-  elseif haskey(fin, "bases") 
+    # Measurements in bases
+  elseif haskey(fin, "bases")
     bases = read(fin, "bases")
-    outcomes = read(fin,"outcomes")
+    outcomes = read(fin, "outcomes")
     data = bases .=> outcomes
-  # Measurements in Z basis
+    # Measurements in Z basis
   elseif haskey(fin, "outcomes")
     data = read(fin, "outcomes")
   else
     close(fin)
-    error("File must contain either \"data\" for quantum state tomography data or \"data_first\" and \"data_second\" for quantum process tomography.")
+    error(
+      "File must contain either \"data\" for quantum state tomography data or \"data_first\" and \"data_second\" for quantum process tomography.",
+    )
   end
 
   # Check if a model is saved, if so read it and return it
@@ -52,7 +54,6 @@ function readsamples(input_path::String)
   return data
 end
 
-
 """
     writesamples(data::Matrix{Int},
                  [model::Union{MPS, MPO, LPDO, Nothing},]
@@ -65,9 +66,9 @@ Save data and model on file:
   - `model`: (optional) MPS, MPO, or Choi
   - `output_path`: path to file
 """
-function writesamples(data::Matrix{Int},
-                      model::Union{MPS, MPO, LPDO, Nothing},
-                      output_path::String)
+function writesamples(
+  data::Matrix{Int}, model::Union{MPS,MPO,LPDO,Nothing}, output_path::String
+)
   # Make the path the file will sit in, if it doesn't exist
   mkpath(dirname(output_path))
   h5rewrite(output_path) do fout
@@ -80,8 +81,7 @@ function writesamples(data::Matrix{Int},
   end
 end
 
-function writesamples(data::Matrix{Int},
-                      output_path::String)
+function writesamples(data::Matrix{Int}, output_path::String)
   # Make the path the file will sit in, if it doesn't exist
   mkpath(dirname(output_path))
   h5rewrite(output_path) do fout
@@ -89,9 +89,9 @@ function writesamples(data::Matrix{Int},
   end
 end
 
-function writesamples(data::Matrix{Pair{String, Int}},
-                      model::Union{MPS, MPO, LPDO, Nothing},
-                      output_path::String)
+function writesamples(
+  data::Matrix{Pair{String,Int}}, model::Union{MPS,MPO,LPDO,Nothing}, output_path::String
+)
   # Make the path the file will sit in, if it doesn't exist
   mkpath(dirname(output_path))
   h5rewrite(output_path) do fout
@@ -105,8 +105,7 @@ function writesamples(data::Matrix{Pair{String, Int}},
   end
 end
 
-function writesamples(data::Matrix{Pair{String, Int}},
-                      output_path::String)
+function writesamples(data::Matrix{Pair{String,Int}}, output_path::String)
   # Make the path the file will sit in, if it doesn't exist
   mkpath(dirname(output_path))
   h5rewrite(output_path) do fout
@@ -115,9 +114,11 @@ function writesamples(data::Matrix{Pair{String, Int}},
   end
 end
 
-function writesamples(data::Matrix{Pair{String, Pair{String, Int}}},
-                      model::Union{MPS, MPO, LPDO, Nothing},
-                      output_path::String)
+function writesamples(
+  data::Matrix{Pair{String,Pair{String,Int}}},
+  model::Union{MPS,MPO,LPDO,Nothing},
+  output_path::String,
+)
   # Make the path the file will sit in, if it doesn't exist
   mkpath(dirname(output_path))
   h5rewrite(output_path) do fout
@@ -132,8 +133,7 @@ function writesamples(data::Matrix{Pair{String, Pair{String, Int}}},
   end
 end
 
-function writesamples(data::Matrix{Pair{String, Pair{String, Int}}},
-                      output_path::String)
+function writesamples(data::Matrix{Pair{String,Pair{String,Int}}}, output_path::String)
   # Make the path the file will sit in, if it doesn't exist
   mkpath(dirname(output_path))
   h5rewrite(output_path) do fout
@@ -142,12 +142,9 @@ function writesamples(data::Matrix{Pair{String, Pair{String, Int}}},
     write(fout, "outcomes", last.(last.(data)))
   end
 end
-
-
-
 
 function save_tomographyobserver(observer::Observer, output_path::String)
-    
+
   #h5rewrite(output_path) do file
   #  #g = create_group(file, "mygroup")
   #  #g["dset1"] = 3.2 
@@ -155,4 +152,3 @@ function save_tomographyobserver(observer::Observer, output_path::String)
   #  write(file,"results", 1.0)
   #end
 end
-

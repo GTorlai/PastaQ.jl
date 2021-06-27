@@ -1,28 +1,28 @@
-export 
-# ITensors
+export
+  # ITensors
   maxlinkdim,
 
-# circuits/circuits.jl
+  # circuits/circuits.jl
   randomlayer,
   gatelayer,
   randomcircuit,
   qft,
   ghz,
 
-# circuits/gates.jl
+  # circuits/gates.jl
   # Methods
   gate,
   # Macros
   @GateName_str,
   randomparams,
 
-# circuits/getsamples.jl
+  # circuits/getsamples.jl
   # Methods
   getsamples,
   randombases,
   randompreparations,
 
-# circuits/runcircuit.jl
+  # circuits/runcircuit.jl
   # Methods
   productstate,
   productoperator,
@@ -30,46 +30,46 @@ export
   buildcircuit,
   runcircuit,
 
-# lpdo.jl
+  # lpdo.jl
   LPDO,
   normalize!,
   logtr,
   tr,
 
-# randomstates.jl
+  # randomstates.jl
   # Methods
   randomstate,
   randomprocess,
 
-# tomography/statetomography.jl
-#           /processtomography.jl
+  # tomography/statetomography.jl
+  #           /processtomography.jl
   tomography,
 
-# measurements.jl
+  # measurements.jl
   measure,
   entanglemententropy,
 
-# distances.jl
+  # distances.jl
   fidelity,
   statefidelity,
   processfidelity,
   fidelity_bound,
   frobenius_distance,
 
-# optimizers.jl
+  # optimizers.jl
   Optimizer,
   SGD,
   AdaDelta,
 
-# observer.jl
+  # observer.jl
   Observer,
   save,
   results,
 
-# inputoutput.jl
+  # inputoutput.jl
   writesamples,
   readsamples,
 
-# utils.jl
+  # utils.jl
   split_dataset,
   nqubits

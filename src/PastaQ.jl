@@ -5,7 +5,7 @@ using Random
 using LinearAlgebra
 using HDF5
 using Printf
-import StatsBase
+using StatsBase: StatsBase
 using StatsBase: Weights
 
 include("imports.jl")
