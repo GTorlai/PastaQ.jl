@@ -36,23 +36,25 @@ productstate(M::Union{MPS,MPO,LPDO}) = productstate(hilbertspace(M))
 Initialize the qubits to a given product state, where the state `T` can be specified either
 with a Vector of states specified as Strings or bit values (0 and 1).
 """
-productstate(N::Int, states::Vector) =
-  productstate(siteinds("Qubit", N), states)
+productstate(N::Int, states::Vector) = productstate(siteinds("Qubit", N), states)
 
-productstate(M::Union{MPS,MPO,LPDO}, states::Vector) =
-  productstate(hilbertspace(M), states; mixed = mixed)
+function productstate(M::Union{MPS,MPO,LPDO}, states::Vector)
+  return productstate(hilbertspace(M), states; mixed=mixed)
+end
 
-productstate(sites::Vector{<:Index}, states::Vector) =
-  MPS(state.(states, sites))
+productstate(sites::Vector{<:Index}, states::Vector) = MPS(state.(states, sites))
 
-productstate(sites::Vector{<:Index}, states::Vector{<:Integer}) =
-  MPS(state.(string.(Int.(states)), sites))
+function productstate(sites::Vector{<:Index}, states::Vector{<:Integer})
+  return MPS(state.(string.(Int.(states)), sites))
+end
 
-productstate(sites::Vector{<:Index}, state::Union{String, Integer}) =
-  productstate(sites, fill(state, length(sites)))
+function productstate(sites::Vector{<:Index}, state::Union{String,Integer})
+  return productstate(sites, fill(state, length(sites)))
+end
 
-productstate(sites::Vector{<:Index}, states::Function) =
-  productstate(sites, map(states, 1:length(sites)))
+function productstate(sites::Vector{<:Index}, states::Function)
+  return productstate(sites, map(states, 1:length(sites)))
+end
 
 """
     productoperator(N::Int)
@@ -63,9 +65,6 @@ Initialize an MPO that is a product of identity operators.
 """
 productoperator(N::Int) = productoperator(siteinds("Qubit", N))
 
-productoperator(M::Union{MPS, MPO, LPDO}) = 
-  productoperator(hilbertspace(M))
+productoperator(M::Union{MPS,MPO,LPDO}) = productoperator(hilbertspace(M))
 
-productoperator(sites::Vector{<:Index}) =
-  MPO([op("Id", s) for s in sites])
-
+productoperator(sites::Vector{<:Index}) = MPO([op("Id", s) for s in sites])

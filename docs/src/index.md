@@ -67,6 +67,17 @@ If you use PastaQ.jl in your work, for now please cite the Github page and [ITen
     primaryClass={cs.MS}
 }
 ```
+If you use the process tomography functionality, please cite:
+```
+@misc{torlai2020quantum,
+      title={Quantum process tomography with unsupervised learning and tensor networks}, 
+      author={Giacomo Torlai and Christopher J. Wood and Atithi Acharya and Giuseppe Carleo and Juan Carrasquilla and Leandro Aolita},
+      year={2020},
+      eprint={2006.02424},
+      archivePrefix={arXiv},
+      primaryClass={quant-ph}
+}
+```
 
 ## Code Overview
 The algorithms implemented in PastaQ rely on a tensor-network representation of

@@ -5,7 +5,7 @@ using Random
 using LinearAlgebra
 using HDF5
 using Printf
-import StatsBase
+using StatsBase: StatsBase
 using StatsBase: Weights
 
 include("imports.jl")
@@ -15,6 +15,7 @@ include("itensor.jl")
 include("lpdo.jl")
 
 include("circuits/gates.jl")
+include("circuits/noise.jl")
 include("circuits/productstates.jl")
 include("circuits/qubitarrays.jl")
 include("circuits/circuits.jl")

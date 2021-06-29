@@ -8,7 +8,7 @@ Random.seed!(1234)
 N = 4
 depth = 4
 nshots = 5
-circuit = randomcircuit(N,depth)
+circuit = randomcircuit(N, depth)
 
 # 1. Generation of measurement data on the quantum states
 # at the output of a circuit. Each data-point is a projetive
@@ -17,7 +17,7 @@ circuit = randomcircuit(N,depth)
 # a) Unitary circuit
 # Returns output state as MPS
 println("Generate samples from random projective measurements of the state U|0,0,…>:")
-data, ψ = getsamples(circuit, nshots; local_basis = ["X","Y","Z"])
+data, ψ = getsamples(circuit, nshots; local_basis=["X", "Y", "Z"])
 # Example of writing and reading
 writesamples(data, ψ, "data/qst_circuit.h5")
 data, ψ = readsamples("data/qst_circuit.h5")
@@ -32,9 +32,12 @@ println()
 
 # b) Noisy circuit
 # Returns the mixed density operator as MPO
-println("Generate samples from random projective measurements of the state ρ = ε(|0,0,…⟩⟨0,0,…|) generated from noisy gate evolution:")
-data, ρ = getsamples(circuit, nshots; local_basis = ["X","Y","Z"],
-                     noise = ("amplitude_damping", (γ = 0.01,)))
+println(
+  "Generate samples from random projective measurements of the state ρ = ε(|0,0,…⟩⟨0,0,…|) generated from noisy gate evolution:",
+)
+data, ρ = getsamples(
+  circuit, nshots; local_basis=["X", "Y", "Z"], noise=("amplitude_damping", (γ=0.01,))
+)
 # Example of writing and reading
 writesamples(data, ρ, "data/qst_circuit_noisy.h5")
 data, ρ = readsamples("data/qst_circuit_noisy.h5")
@@ -48,9 +51,10 @@ println()
 # local basis. By default, the single-qubit input states are 
 # the 6 eigenstates of Pauli operators.
 # Return the MPO for the unitary circuit
-println("Generate samples from random input states and random project measurements of the circuit U:")
-data, U = getsamples(circuit, nshots; local_basis = ["X","Y","Z"],
-                     process = true)
+println(
+  "Generate samples from random input states and random project measurements of the circuit U:",
+)
+data, U = getsamples(circuit, nshots; local_basis=["X", "Y", "Z"], process=true)
 # Example of writing and reading
 writesamples(data, U, "data/qpt_circuit.h5")
 data, U = readsamples("data/qpt_circuit.h5")
@@ -60,11 +64,17 @@ end
 display(data)
 println()
 
-println("Generate samples from random input states and random project measurements of the Choi matrix Λ generated from noisy gate evolution:")
+println(
+  "Generate samples from random input states and random project measurements of the Choi matrix Λ generated from noisy gate evolution:",
+)
 # Returns the Choi matrix `Λ` as MPO wiith `2N` sites
-data, Λ = getsamples(circuit, nshots; local_basis = ["X","Y","Z"],
-                     process = true,
-                     noise = ("amplitude_damping", (γ = 0.01,)))
+data, Λ = getsamples(
+  circuit,
+  nshots;
+  local_basis=["X", "Y", "Z"],
+  process=true,
+  noise=("amplitude_damping", (γ=0.01,)),
+)
 # Example of writing and reading
 writesamples(data, Λ, "data/qpt_circuit_noisy.h5")
 data, Λ = readsamples("data/qpt_circuit_noisy.h5")
@@ -73,4 +83,3 @@ if !isnothing(Λ)
 end
 display(data)
 println()
-

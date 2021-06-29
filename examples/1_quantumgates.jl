@@ -10,7 +10,7 @@ Random.seed!(1234)
 ψ = qubits(3)
 
 # Apply the X gate on qubit 2
-g = ("X",2)
+g = ("X", 2)
 ψ = runcircuit(ψ, g)
 
 # Show samples from P(x) = |⟨x|ψ⟩|²
@@ -29,9 +29,10 @@ println()
 # Import gate so it can be overloaded
 import PastaQ: gate
 
-gate(::GateName"iX") = 
-  [ 0 im
-   im  0]
+gate(::GateName"iX") = [
+  0 im
+  im 0
+]
 
 # Set the state back to |0,0,0⟩
 resetqubits!(ψ)
@@ -42,4 +43,3 @@ g = ("iX", 1)
 ψ = runcircuit(ψ, g)
 display(getsamples(ψ, 3))
 println()
-

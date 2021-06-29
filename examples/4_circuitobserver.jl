@@ -31,26 +31,25 @@ obs = Observer([
   "χs" => linkdims,      # bond dimension at each bond
   "χmax" => maxlinkdim,  # maximum bond dimension
   "σˣ(2)" => σx2,        # pauli X on site 2
-  "σᶻ" => σz]            # pauli Z on each site
-)
+  "σᶻ" => σz,
+])
 
 # run the circuit
-ψ = runcircuit(circuit; observer! = obs)
+ψ = runcircuit(circuit; (observer!)=obs)
 
 # collect the measurements
 println("Bond dimensions at each layer:")
-display(results(obs,"χs"))
+display(results(obs, "χs"))
 println()
 
 println("Maximum bond dimension at each layer:")
-display(results(obs,"χmax")')
+display(results(obs, "χmax")')
 println()
 
 println("⟨ψ|σˣ(2)|ψ⟩ at each layer:")
-display(results(obs,"σˣ(2)"))
+display(results(obs, "σˣ(2)"))
 println()
 
 println("⟨ψ|σᶻ(n)|ψ⟩ at each layer:")
-display(results(obs,"σᶻ"))
+display(results(obs, "σᶻ"))
 println()
-

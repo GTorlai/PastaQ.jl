@@ -4,12 +4,14 @@ observer object (<:AbstractObserver) which
 implements custom measurements.
 """
 struct Observer <: AbstractObserver
-  measurements::Dict{String, Pair{<:Union{Nothing,Function, String, Tuple},<:Any}}
+  measurements::Dict{String,Pair{<:Union{Nothing,Function,String,Tuple},<:Any}}
 end
 
-Observer() = Observer(Dict{String, Pair{<:Union{Nothing,Function, String, Tuple},<:Any}}())
+Observer() = Observer(Dict{String,Pair{<:Union{Nothing,Function,String,Tuple},<:Any}}())
 
-measurement(observer::Observer, observable::String) = first(observer.measurements[observable])
+function measurement(observer::Observer, observable::String)
+  return first(observer.measurements[observable])
+end
 results(observer::Observer, observable::String) = last(observer.measurements[observable])
 
 """
@@ -27,21 +29,17 @@ The following measurement are currently allowed:
 - `("X","Y")`     ⟶   `Tr[ρ X̂ᵢ Ŷⱼ] ∀i,j ∈ [1,N]`
 - `f(ρ) = [...]   ⟶   Arbitrary fubction of the state
 """
-Observer(measurements::Vector{<:Pair{String,<:Any}}) =  
-  Observer(Dict(measurements))
+Observer(measurements::Vector{<:Pair{String,<:Any}}) = Observer(Dict(measurements))
 
-Observer(measurement::Pair{String,<:Any}) = 
-  Observer([measurement])
+Observer(measurement::Pair{String,<:Any}) = Observer([measurement])
 
-function Observer(observables::Dict{String, <:Any})
-  measurements = Dict{String, Pair{<:Union{Nothing,Function, String, Tuple},<:Any}}()
+function Observer(observables::Dict{String,<:Any})
+  measurements = Dict{String,Pair{<:Union{Nothing,Function,String,Tuple},<:Any}}()
   for observable in keys(observables)
     measurements[observable] = observables[observable] => []
   end
   return Observer(measurements)
 end
-
-
 
 """
     Observer(observables::Vector{<:Any})
@@ -53,20 +51,16 @@ structure will be assigned automatically as the name of the
 measurement field.
 """
 function Observer(observables::Vector{<:Any})
-  measurements = Dict{String, Pair{<:Union{Nothing,Function, String, Tuple},<:Any}}()
+  measurements = Dict{String,Pair{<:Union{Nothing,Function,String,Tuple},<:Any}}()
   for observable in observables
     name = _measurement_name(observable)
-    measurements[name] = (observable isa Pair{<:String, Any} ? last(observable) : observable) => []
+    measurements[name] =
+      (observable isa Pair{<:String,Any} ? last(observable) : observable) => []
   end
   return Observer(measurements)
 end
 
-Observer(measurement::Union{String,Tuple,Function}) = 
-  Observer([measurement])
-
-
-
-
+Observer(measurement::Union{String,Tuple,Function}) = Observer([measurement])
 
 """
     Base.push!(observer::Observer, observable::Pair{String, <:Any})
@@ -74,38 +68,47 @@ Observer(measurement::Union{String,Tuple,Function}) =
 
 Add a measurement (either named or not) to an existing Observer.
 """
-function Base.push!(observer::Observer, observable::Pair{String, <:Any})
+function Base.push!(observer::Observer, observable::Pair{String,<:Any})
   observer.measurements[first(observable)] = last(observable) => []
   return observer
 end
 
 function Base.push!(observer::Observer, observable::Union{String,Tuple,<:Function})
   name = _measurement_name(observable)
-  observer.measurements[name] = (observable isa Pair{String, <:Any} ? last(observable) : observable) => []
+  observer.measurements[name] =
+    (observable isa Pair{String,<:Any} ? last(observable) : observable) => []
   return observer
 end
-
 
 """
 Assign the name to a measurement.
 """
-_measurement_name(measurement::String) = 
-  measurement
+_measurement_name(measurement::String) = measurement
 
-_measurement_name(measurement::Tuple) = 
-  prod(ntuple(n -> measurement[n] isa AbstractString ? measurement[n] : "("*string(measurement[n])*")", length(measurement)))
+function _measurement_name(measurement::Tuple)
+  return prod(
+    ntuple(
+      n -> if measurement[n] isa AbstractString
+        measurement[n]
+      else
+        "(" * string(measurement[n]) * ")"
+      end,
+      length(measurement),
+    ),
+  )
+end
 
-_measurement_name(measurement::Pair{String, <:Any}) = 
-  first(measurement)
+_measurement_name(measurement::Pair{String,<:Any}) = first(measurement)
 
-_measurement_name(measurement::Function) = 
-  string(measurement)
+_measurement_name(measurement::Function) = string(measurement)
 
-_measurement_name(measurement::Pair{<:Function,<:Union{Any,Tuple{<:Any}}}) = 
-  string(first(measurement))  
+function _measurement_name(measurement::Pair{<:Function,<:Union{Any,Tuple{<:Any}}})
+  return string(first(measurement))
+end
 
-_has_customfunctions(observer::Observer) = 
-  any(x -> isa(x,Function), first.(values(observer.measurements)))
+function _has_customfunctions(observer::Observer)
+  return any(x -> isa(x, Function), first.(values(observer.measurements)))
+end
 
 """
     measure!(observer::Observer, M::Union{MPS,MPO,LPDO}, ref_indices::Vector{<:Index})
@@ -116,7 +119,9 @@ Perform the measurements contained in Observer and collect the results.
 before any eventual permutation to realized long-range gates. These indices can
 be used to correctly perform measurements of specific sub-system of the state.
 """
-function measure!(observer::Observer, M::Union{MPS,MPO,LPDO}, reference_indices::Vector{<:Index})
+function measure!(
+  observer::Observer, M::Union{MPS,MPO,LPDO}, reference_indices::Vector{<:Index}
+)
   # loop over the measurements
   for ID in keys(observer.measurements)
     # get the measurement
@@ -133,9 +138,7 @@ function measure!(observer::Observer, M::Union{MPS,MPO,LPDO}, reference_indices:
 end
 
 function measure!(observer::Observer, M::Union{MPS,MPO,LPDO})
-  measure!(observer, M, hilbertspace(M))
+  return measure!(observer, M, hilbertspace(M))
 end
 
-
-Base.copy(observer::Observer) = Observer(copy(observer.measurements)) 
-
+Base.copy(observer::Observer) = Observer(copy(observer.measurements))
