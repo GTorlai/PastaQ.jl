@@ -51,10 +51,12 @@ function configure!(
 
   params = Dict{String,Any}()
   # grab the optimizer parameters
-  params[string(typeof(optimizer))] = Dict{Symbol,Any}()
+  params["optimizer"] = Dict{Symbol,Any}()
+  params["optimizer"][:name] = string(typeof(optimizer))
+  #params[string(typeof(optimizer))] = Dict{Symbol,Any}()
   for par in fieldnames(typeof(optimizer))
     if !(getfield(optimizer, par) isa Vector{<:ITensor})
-      params[string(typeof(optimizer))][par] = getfield(optimizer, par)
+      params["optimizer"][par] = getfield(optimizer, par)
     end
   end
 
@@ -62,7 +64,7 @@ function configure!(
   params["batchsize"] = batchsize
   # storing this can help to back out simulation time and observables evolution
   params["measurement_frequency"] = measurement_frequency
-  params["dataset_size"] = size(train_data, 1)
+  params["dataset_size"] = size(train_data, 1) + size(test_data, 1)
 
   observer.measurements["parameters"] = (nothing => params)
 
@@ -91,7 +93,7 @@ function update!(
   best_model::LPDO,
   simulation_time::Float64,
   train_loss::Float64,
-  test_loss::Union{Nothing,Float64},
+  test_loss::Union{Nothing,Float64}
 )
   observer.measurements["simulation_time"] = nothing => simulation_time
   push!(observer.measurements["train_loss"][2], train_loss)
@@ -145,3 +147,4 @@ function printobserver(
   end
   return println()
 end
+

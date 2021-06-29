@@ -310,7 +310,7 @@ function runcircuit(N::Int, args...; kwargs...)
   return runcircuit(siteinds("Qubit", N), args...; kwargs...)
 end
 
-function runcircuit(circuit::Any, args...; kwargs...)
+function runcircuit(circuit::AbstractArray, args...; kwargs...)
   return runcircuit(nqubits(circuit), circuit, args...; kwargs...)
 end
 
