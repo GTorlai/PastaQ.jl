@@ -243,11 +243,12 @@ end
   params = results(obs, "parameters")
   @test params["batchsize"] == 10
   @test params["measurement_frequency"] == 3
-  @test params["dataset_size"] == size(data, 1)
-  @test haskey(params, "SGD")
-  @test haskey(params["SGD"], :η)
-  @test haskey(params["SGD"], :γ)
-  @test params["SGD"][:η] == 0.01
+  @test haskey(params, "optimizer")
+  @test haskey(params["optimizer"], :name)
+  @test haskey(params["optimizer"], :η)
+  @test haskey(params["optimizer"], :γ)
+  @test params["optimizer"][:name] == "SGD"
+  @test params["optimizer"][:η] == 0.01
 end
 
 @testset "process tomography observer output" begin
@@ -290,9 +291,10 @@ end
   params = results(obs, "parameters")
   @test params["batchsize"] == 10
   @test params["measurement_frequency"] == 3
-  @test params["dataset_size"] == size(data, 1)
-  @test haskey(params, "SGD")
-  @test haskey(params["SGD"], :η)
-  @test haskey(params["SGD"], :γ)
-  @test params["SGD"][:η] == 0.01
+  @test haskey(params, "optimizer")
+  @test haskey(params["optimizer"], :name)
+  @test haskey(params["optimizer"], :η)
+  @test haskey(params["optimizer"], :γ)
+  @test params["optimizer"][:name] == "SGD"
+  @test params["optimizer"][:η] == 0.01
 end

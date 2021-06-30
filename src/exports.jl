@@ -18,6 +18,7 @@ export
   
   #circuits/noise.jl
   insertnoise,
+  insertnoise!,
 
   # circuits/getsamples.jl
   # Methods

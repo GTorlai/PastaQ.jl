@@ -271,7 +271,6 @@ runcircuit(N::Int, circuit::Any; kwargs...) =
 runcircuit(circuit::Any; kwargs...) = 
   runcircuit(nqubits(circuit), circuit; kwargs...)
 
-
 """
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------

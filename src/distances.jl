@@ -68,7 +68,9 @@ LPDO density operator.
 F = ⟨ψ|ϱ|ψ⟩=|X†|ψ⟩|²
 """
 function fidelity(Ψ::MPS, ϱ::LPDO{MPO})
-  proj = bra(ϱ) * Ψ
+  # TODO: fix exponential scaling
+  #proj = bra(ϱ) * Ψ
+  proj = *(bra(ϱ), Ψ; method = "naive")
   K = abs2(norm(Ψ)) * tr(ϱ)
   return inner(proj, proj) / K
 end

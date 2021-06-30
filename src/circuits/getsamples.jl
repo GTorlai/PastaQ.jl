@@ -136,9 +136,9 @@ function getsamples!(T::ITensor, nshots::Int;
   if !isnothing(p1given0) || !isnothing(p0given1)
     p1given0 = (isnothing(p1given0) ? 0.0 : p1given0)
     p0given1 = (isnothing(p0given1) ? 0.0 : p0given1)
-    for n in 1:nshots
-      readouterror!(measurements[n,:], p1given0, p0given1)
-    end
+    #for n in 1:nshots
+    #  readouterror!(measurements[n,:], p1given0, p0given1)
+    #end
   end
   return measurements
 end
@@ -220,7 +220,7 @@ function getsamples(M0::Union{MPS,MPO,ITensor}, bases::Array; measurement_noise 
     nthread = Threads.threadid()
     meas_gates = measurementgates(bases[n, :])
     M_meas = runcircuit(copy(M), meas_gates)
-    measurement = getsamples!(copy(M_meas); measurement_noise = measurement_noise)
+    measurement = getsamples!(copy(M_meas))
     push!(data[nthread], bases[n, :] .=> measurement)
   end
   return permutedims(hcat(vcat(data...)...))
@@ -249,15 +249,16 @@ function getsamples(
   nshots::Int64;
   local_basis=nothing,
   ndistinctbases=nothing,
+  measurement_noise=nothing
 )
   if isnothing(local_basis)
-    data = getsamples!(copy(M), nshots)
+    data = getsamples!(copy(M), nshots; measurement_noise = measurement_noise)
   else
     N = M isa ITensor ? nqubits(M) : length(M)
     bases = randombases(N, nshots;
                         local_basis = local_basis,
                         ndistinctbases = ndistinctbases)
-    data = getsamples(copy(M), bases)
+    data = getsamples(copy(M), bases; measurement_noise = measurement_noise)
   end
   return data
 end
@@ -394,6 +395,7 @@ function getsamples(
   ndistinctstates=nothing,
   cutoff::Float64=1e-15,
   maxdim::Int64=10000,
+  measurement_noise = nothing,
   kwargs...,
 )
 
@@ -410,8 +412,8 @@ function getsamples(
       nshots;
       local_basis=local_basis,
       ndistinctbases=ndistinctbases,
-      readout_errors=readout_errors,
-    )
+      measurement_noise = measurement_noise 
+   )
     return data, M
 
   else

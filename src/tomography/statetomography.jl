@@ -1,7 +1,6 @@
 function measurement_tensors(sites::Array, noise_model::NamedTuple)
   has_readoutnoise = hasproperty(noise_model,:eR) 
   has_gatenoise = hasproperty(noise_model,:e1Q)
-  
   if !has_readoutnoise && !has_gatenoise
     error("noise model not defined")
   end
@@ -20,11 +19,11 @@ function measurement_tensors(sites::Array, noise_model::NamedTuple)
     if has_gatenoise
       mX = replaceprime(prime(T, "Site") * gate(noise_model[:e1Q][1], sites[j]; noise_model[:e1Q][2]...),2,1)
       mX = replaceprime(prime(mX, "Site") * gate("H",sites[j]),2,1)
+      C = combiner(inds(mX, tags= "kraus"), tags = "kraus")
+      mX = C * mX
     else
       mX = replaceprime(prime(T, "Site") * gate("H",sites[j]),2,1)
     end
-    C = combiner(inds(mX, tags= "kraus"), tags = "kraus")
-    mX = C * mX
     mt["X+"] = state("0",sites[j])' * mX
     mt["X-"] = state("1",sites[j])' * mX
    
@@ -33,12 +32,12 @@ function measurement_tensors(sites::Array, noise_model::NamedTuple)
       mY = replaceprime(prime(mY, "Site") * gate("H",sites[j]),2,1)
       mY = replaceprime(prime(mY, "Site") * gate(noise_model[:e1Q][1], sites[j]; noise_model[:e1Q][2]...),2,1)
       mY = replaceprime(prime(mY, "Site") * gate("S†",sites[j]),2,1)
+      C = combiner(inds(mY, tags= "kraus"), tags = "kraus")
+      mY = C * mY
     else
       mY = replaceprime(prime(T, "Site") * gate("H",sites[j]),2,1)
       mY = replaceprime(prime(mY, "Site") * gate("S†",sites[j]),2,1)
     end
-    C = combiner(inds(mY, tags= "kraus"), tags = "kraus")
-    mY = C * mY
     mt["Y+"] = state("0",sites[j])' * mY
     mt["Y-"] = state("1",sites[j])' * mY
     
@@ -478,7 +477,7 @@ function gradnll(L::LPDO{MPO},
   N = length(lpdo)
   s = firstsiteinds(lpdo)
   mtensors = measurement_tensors(s, noise_model)
-
+  
   links = [linkind(lpdo, n) for n in 1:N-1]
 
   kraus = Index[]
@@ -491,7 +490,6 @@ function gradnll(L::LPDO{MPO},
     push!(noiseindex, firstind(mtensors[j]["X+"], tags ="kraus"))
   end
   ElT = eltype(lpdo[1])
-
   nthreads = Threads.nthreads()
 
   L     = [Vector{ITensor}(undef, N) for _ in 1:nthreads]
@@ -676,15 +674,18 @@ function tomography(
 )
 
   # Read arguments
-  optimizer::Optimizer         = get(kwargs,:optimizer,SGD(η = 0.01))
-  batchsize::Int64             = get(kwargs,:batchsize,100)
-  epochs::Int64                = get(kwargs,:epochs,1000)
-  measurement_frequency::Int64 = get(kwargs,:measurement_frequency, 1)
-  test_data                    = get(kwargs,:test_data, nothing)
-  outputpath                   = get(kwargs,:fout, nothing)
-  print_metrics                = get(kwargs,:print_metrics, [])
-  noise_model                  = get(kwargs,:noise_model, nothing) 
-  
+  optimizer::Optimizer = get(kwargs, :optimizer, SGD(; η=0.01))
+  batchsize::Int64 = get(kwargs, :batchsize, 100)
+  epochs::Int64 = get(kwargs, :epochs, 1000)
+  measurement_frequency::Int64 = get(kwargs, :measurement_frequency, 1)
+  test_data = get(kwargs, :test_data, nothing)
+  outputpath = get(kwargs, :fout, nothing)
+  print_metrics = get(kwargs, :print_metrics, [])
+  outputpath = get(kwargs, :outputpath, nothing)
+  outputlevel = get(kwargs, :outputlevel, 1)
+  noise_model = get(kwargs, :noise_model, nothing)
+  savemodel = get(kwargs, :savemodel, false)
+
   # configure the observer. if no observer is provided, create an empty one
   observer! = configure!(
     observer!, optimizer, batchsize, measurement_frequency, train_data, test_data
@@ -743,10 +744,13 @@ function tomography(
       end
       update!(observer!, normalized_model, best_model, tot_time, train_loss, test_loss)
       # printing
-      printobserver(ep, observer!, print_metrics)
+      if outputlevel ≥ 1
+        printobserver(ep, observer!, print_metrics)
+      end
       # saving
       if !isnothing(outputpath)
-        #saveobserver(observer, outputpath; model = best_model)
+        model_to_be_saved = savemodel ? best_model : nothing
+        savetomographyobserver(observer!, outputpath; model = model_to_be_saved)
       end
     end
   end

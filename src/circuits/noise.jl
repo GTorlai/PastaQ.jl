@@ -73,6 +73,8 @@ gate(::GateName"depolarizing", N::Int = 1; kwargs...) =
 insertnoise(circuit::Vector, noise_model::Tuple; kwargs...) =  
   insertnoise(circuit, (noise1Q = noise_model, noise2Q = noise_model); kwargs...)
 
+# TODO
+insertnoise!(args...;kwargs...) = insertnoise(args...;kwargs...)
 function insertnoise(circuit::Vector, noise_model::NamedTuple; idle_noise::Bool = false) 
   noise1Q = noise_model[:noise1Q]
   noise2Q = noise_model[:noise2Q]
