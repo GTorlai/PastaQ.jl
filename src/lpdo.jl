@@ -165,7 +165,7 @@ ITensors.MPO(L::LPDO{MPS}; kwargs...) = MPO(L.X; kwargs...)
 function HDF5.write(parent::Union{HDF5.File,HDF5.Group}, name::AbstractString, L::LPDO)
   g = g_create(parent, name)
   attrs(g)["type"] = String(Symbol(typeof(L)))
-  return write(parent, "X", L.X)
+  return write(g, "X", L.X)
 end
 
 function HDF5.read(

@@ -745,7 +745,7 @@ function tomography(
       update!(observer!, normalized_model, best_model, tot_time, train_loss, test_loss)
       # printing
       if outputlevel ≥ 1
-        printobserver(ep, observer!, print_metrics)
+        printobserver(ep, observer!, print_metrics, ep_time)
       end
       # saving
       if !isnothing(outputpath)

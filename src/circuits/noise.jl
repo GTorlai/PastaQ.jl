@@ -112,6 +112,11 @@ function insertnoise(circuit::Vector, noise_model::NamedTuple; idle_noise::Bool 
   return noisycircuit
 end
 
-#insertnoise(circuit::Vector, noise::NamedTuple; kwargs...) = 
-#  insertnoise!(copy(circuit), noise; kwargs...)
 
+function globaldepolarizing(ψ::MPS; p::Float64 = 0.0)
+  return globaldepolarizing(MPO(ψ); p)
+end
+
+function globaldepolarizing(ρ::MPO; p::Float64 = 0.0)
+  return (1-p) * ρ + p * productoperator(firstsiteinds(ρ)) * 2.0^(-length(ρ)) 
+end

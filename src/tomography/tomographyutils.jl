@@ -118,14 +118,15 @@ printmetric(name::String, metric::AbstractArray) = @printf("%s = [...]  ", name)
 
 function printmetric(name::String, metric::Complex)
   if imag(metric) < 1e-8
-    @printf("%s = %-4.4f  ", name, real(metric))
+    @printf("%s = %-4.4f  ", name, real(metric)); flush(stdout)
   else
-    @printf("%s = %.4f±i%-4.4f  ", name, real(metric), imag(metric))
+    @printf("%s = %.4f±i%-4.4f  ", name, real(metric), imag(metric)); flush(stdout)
   end
 end
 
 function printobserver(
-  epoch::Int, observer::Observer, print_metrics::Union{Bool,String,AbstractArray}
+  epoch::Int, observer::Observer, print_metrics::Union{Bool,String,AbstractArray},
+  ep_time::Float64
 )
   print_metrics == false && return nothing
 
@@ -145,6 +146,8 @@ function printobserver(
       end
     end
   end
+  @printf("Δt = %.2fs", ep_time)
+  flush(stdout)
   return println()
 end
 

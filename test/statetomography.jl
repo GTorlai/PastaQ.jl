@@ -274,7 +274,7 @@ end
   alg_grad, _ = PastaQ.gradlogZ(ψ)
   num_grad = numgradslogZ(ψ)
   for j in 1:N
-    @test PastaQ.array(alg_grad[j]) ≈ num_grad[j] rtol = 1e-3
+    @test array(alg_grad[j]) ≈ num_grad[j] rtol = 1e-3
   end
 
   # 2. Globally normalized
@@ -284,7 +284,7 @@ end
   alg_grad, _ = PastaQ.gradlogZ(ψ)
   num_grad = numgradslogZ(ψ)
   for j in 1:N
-    @test PastaQ.array(alg_grad[j]) ≈ num_grad[j] rtol = 1e-3
+    @test array(alg_grad[j]) ≈ num_grad[j] rtol = 1e-3
   end
 
   # 3. Locally normalized
@@ -296,7 +296,7 @@ end
   @test norm(ψ) ≈ 1
   alg_grad, _ = PastaQ.gradlogZ(ψ; localnorms=localnorms)
   for j in 1:N
-    @test PastaQ.array(alg_grad[j]) ≈ num_grad[j] rtol = 1e-3
+    @test array(alg_grad[j]) ≈ num_grad[j] rtol = 1e-3
   end
 end
 
@@ -312,7 +312,7 @@ end
   num_grad = numgradsnll(ψ, data)
   alg_grad, loss = PastaQ.gradnll(ψ, data)
   for j in 1:N
-    @test PastaQ.array(alg_grad[j]) ≈ num_grad[j] rtol = 1e-3
+    @test array(alg_grad[j]) ≈ num_grad[j] rtol = 1e-3
   end
 
   # 2. Globally normalized
@@ -321,7 +321,7 @@ end
   num_grad = numgradsnll(ψ, data)
   alg_grad, loss = PastaQ.gradnll(ψ, data)
   for j in 1:N
-    @test PastaQ.array(alg_grad[j]) ≈ num_grad[j] rtol = 1e-3
+    @test array(alg_grad[j]) ≈ num_grad[j] rtol = 1e-3
   end
 
   # 3. Locally normalized
@@ -332,7 +332,7 @@ end
   @test norm(ψ) ≈ 1
   alg_grad_localnorm, loss = PastaQ.gradnll(ψ, data; localnorms=localnorms)
   for j in 1:N
-    @test PastaQ.array(alg_grad_localnorm[j]) ≈ num_grad[j] rtol = 1e-3
+    @test array(alg_grad_localnorm[j]) ≈ num_grad[j] rtol = 1e-3
   end
 end
 
@@ -354,7 +354,7 @@ end
   alg_grads, loss = PastaQ.gradients(ψ, data)
   @test ex_loss ≈ loss
   for j in 1:N
-    @test PastaQ.array(alg_grads[j]) ≈ num_grads[j] rtol = 1e-3
+    @test array(alg_grads[j]) ≈ num_grads[j] rtol = 1e-3
   end
 
   # 2. Globally normalized
@@ -370,7 +370,7 @@ end
   alg_grads, loss = PastaQ.gradients(ψ, data)
   @test ex_loss ≈ loss
   for j in 1:N
-    @test PastaQ.array(alg_grads[j]) ≈ num_grads[j] rtol = 1e-3
+    @test array(alg_grads[j]) ≈ num_grads[j] rtol = 1e-3
   end
 
   # 3. Locally normalized
@@ -388,7 +388,7 @@ end
   alg_grads, loss = PastaQ.gradients(ψ, data; localnorms=localnorms)
   @test ex_loss ≈ loss
   for j in 1:N
-    @test PastaQ.array(alg_grads[j]) ≈ num_grads[j] rtol = 1e-3
+    @test array(alg_grads[j]) ≈ num_grads[j] rtol = 1e-3
   end
 end
 
@@ -417,13 +417,13 @@ end
   alg_grad, logZ = PastaQ.gradlogZ(ρ)
   @test logZ ≈ logtr(ρ)
   num_grad = numgradslogZ(ρ)
-  alg_gradient = permutedims(PastaQ.array(alg_grad[1]), [1, 3, 2])
+  alg_gradient = permutedims(array(alg_grad[1]), [1, 3, 2])
   @test alg_gradient ≈ num_grad[1] rtol = 1e-3
   for j in 2:(N - 1)
-    alg_gradient = permutedims(PastaQ.array(alg_grad[j]), [2, 1, 3, 4])
+    alg_gradient = permutedims(array(alg_grad[j]), [2, 1, 3, 4])
     @test alg_gradient ≈ num_grad[j] rtol = 1e-3
   end
-  alg_gradient = permutedims(PastaQ.array(alg_grad[N]), [2, 1, 3])
+  alg_gradient = permutedims(array(alg_grad[N]), [2, 1, 3])
   @test alg_gradient ≈ num_grad[N] rtol = 1e-3
 
   # 2. Globally normalized
@@ -433,13 +433,13 @@ end
   alg_grad, _ = PastaQ.gradlogZ(ρ)
   num_grad = numgradslogZ(ρ)
 
-  alg_gradient = permutedims(PastaQ.array(alg_grad[1]), [1, 3, 2])
+  alg_gradient = permutedims(array(alg_grad[1]), [1, 3, 2])
   @test alg_gradient ≈ num_grad[1] rtol = 1e-3
   for j in 2:(N - 1)
-    alg_gradient = permutedims(PastaQ.array(alg_grad[j]), [2, 1, 3, 4])
+    alg_gradient = permutedims(array(alg_grad[j]), [2, 1, 3, 4])
     @test alg_gradient ≈ num_grad[j] rtol = 1e-3
   end
-  alg_gradient = permutedims(PastaQ.array(alg_grad[N]), [2, 1, 3])
+  alg_gradient = permutedims(array(alg_grad[N]), [2, 1, 3])
   @test alg_gradient ≈ num_grad[N] rtol = 1e-3
 
   # 3. Locally normalized
@@ -451,13 +451,13 @@ end
   @test tr(ρ) ≈ 1
   alg_grad, _ = PastaQ.gradlogZ(ρ; sqrt_localnorms=sqrt_localnorms)
 
-  alg_gradient = permutedims(PastaQ.array(alg_grad[1]), [1, 3, 2])
+  alg_gradient = permutedims(array(alg_grad[1]), [1, 3, 2])
   @test alg_gradient ≈ num_grad[1] rtol = 1e-3
   for j in 2:(N - 1)
-    alg_gradient = permutedims(PastaQ.array(alg_grad[j]), [2, 1, 3, 4])
+    alg_gradient = permutedims(array(alg_grad[j]), [2, 1, 3, 4])
     @test alg_gradient ≈ num_grad[j] rtol = 1e-3
   end
-  alg_gradient = permutedims(PastaQ.array(alg_grad[N]), [2, 1, 3])
+  alg_gradient = permutedims(array(alg_grad[N]), [2, 1, 3])
   @test alg_gradient ≈ num_grad[N] rtol = 1e-3
 end
 
@@ -476,13 +476,13 @@ end
   alg_grad, loss = PastaQ.gradnll(ρ, data)
   @test loss ≈ PastaQ.nll(ρ, data)
 
-  alg_gradient = permutedims(PastaQ.array(alg_grad[1]), [3, 1, 2])
+  alg_gradient = permutedims(array(alg_grad[1]), [3, 1, 2])
   @test alg_gradient ≈ num_grad[1] rtol = 1e-3
   for j in 2:(N - 1)
-    alg_gradient = permutedims(PastaQ.array(alg_grad[j]), [4, 2, 3, 1])
+    alg_gradient = permutedims(array(alg_grad[j]), [4, 2, 3, 1])
     @test alg_gradient ≈ num_grad[j] rtol = 1e-3
   end
-  alg_gradient = permutedims(PastaQ.array(alg_grad[N]), [3, 1, 2])
+  alg_gradient = permutedims(array(alg_grad[N]), [3, 1, 2])
   @test alg_gradient ≈ num_grad[N] rtol = 1e-3
 
   ## 2. Globally normalized
@@ -491,13 +491,13 @@ end
   num_grad = numgradsnll(ρ, data)
   alg_grad, loss = PastaQ.gradnll(ρ, data)
 
-  alg_gradient = permutedims(PastaQ.array(alg_grad[1]), [3, 1, 2])
+  alg_gradient = permutedims(array(alg_grad[1]), [3, 1, 2])
   @test alg_gradient ≈ num_grad[1] rtol = 1e-3
   for j in 2:(N - 1)
-    alg_gradient = permutedims(PastaQ.array(alg_grad[j]), [4, 2, 3, 1])
+    alg_gradient = permutedims(array(alg_grad[j]), [4, 2, 3, 1])
     @test alg_gradient ≈ num_grad[j] rtol = 1e-3
   end
-  alg_gradient = permutedims(PastaQ.array(alg_grad[N]), [3, 1, 2])
+  alg_gradient = permutedims(array(alg_grad[N]), [3, 1, 2])
   @test alg_gradient ≈ num_grad[N] rtol = 1e-3
 
   # 3. Locally normalized
@@ -507,13 +507,13 @@ end
   normalize!(ρ; (sqrt_localnorms!)=sqrt_localnorms)
   @test tr(ρ) ≈ 1
   alg_grad, loss = PastaQ.gradnll(ρ, data; sqrt_localnorms=sqrt_localnorms)
-  alg_gradient = permutedims(PastaQ.array(alg_grad[1]), [3, 1, 2])
+  alg_gradient = permutedims(array(alg_grad[1]), [3, 1, 2])
   @test alg_gradient ≈ num_grad[1] rtol = 1e-3
   for j in 2:(N - 1)
-    alg_gradient = permutedims(PastaQ.array(alg_grad[j]), [4, 2, 3, 1])
+    alg_gradient = permutedims(array(alg_grad[j]), [4, 2, 3, 1])
     @test alg_gradient ≈ num_grad[j] rtol = 1e-3
   end
-  alg_gradient = permutedims(PastaQ.array(alg_grad[N]), [3, 1, 2])
+  alg_gradient = permutedims(array(alg_grad[N]), [3, 1, 2])
   @test alg_gradient ≈ num_grad[N] rtol = 1e-3
 end
 
@@ -565,13 +565,13 @@ end
   for j in 1:N
     @test alg_grad[j] ≈ alg_grad_test[j] atol = 1e-5
   end
-  alg_gradient = permutedims(PastaQ.array(alg_grad[1]),[3,1,2])
+  alg_gradient = permutedims(array(alg_grad[1]),[3,1,2])
   @test alg_gradient ≈ num_grad[1] rtol=1e-3
   for j in 2:N-1
-    alg_gradient = permutedims(PastaQ.array(alg_grad[j]),[4,2,3,1])
+    alg_gradient = permutedims(array(alg_grad[j]),[4,2,3,1])
     @test alg_gradient ≈ num_grad[j] rtol=1e-3
   end
-  alg_gradient = permutedims(PastaQ.array(alg_grad[N]),[3,1,2])
+  alg_gradient = permutedims(array(alg_grad[N]),[3,1,2])
   @test alg_gradient ≈ num_grad[N] rtol=1e-3
 
   noise_model = (eR = ("bit_flip",(p=0.1,)),)
@@ -581,13 +581,13 @@ end
   normalize!(ρ; sqrt_localnorms! = sqrt_localnorms)
   @test tr(ρ) ≈ 1
   alg_grad, loss = PastaQ.gradnll(ρ, data, noise_model; sqrt_localnorms = sqrt_localnorms)
-  alg_gradient = permutedims(PastaQ.array(alg_grad[1]),[3,1,2])
+  alg_gradient = permutedims(array(alg_grad[1]),[3,1,2])
   @test alg_gradient ≈ num_grad[1] rtol=1e-3
   for j in 2:N-1
-    alg_gradient = permutedims(PastaQ.array(alg_grad[j]),[4,2,3,1])
+    alg_gradient = permutedims(array(alg_grad[j]),[4,2,3,1])
     @test alg_gradient ≈ num_grad[j] rtol=1e-3
   end
-  alg_gradient = permutedims(PastaQ.array(alg_grad[N]),[3,1,2])
+  alg_gradient = permutedims(array(alg_grad[N]),[3,1,2])
   @test alg_gradient ≈ num_grad[N] rtol=1e-3
 
 end

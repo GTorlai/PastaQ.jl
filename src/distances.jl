@@ -21,8 +21,8 @@ Matrix-like ITensors should be Hermitian and non-negative.
 """
 function fidelity(ρ::ITensor, σ::ITensor)
   @assert order(ρ) == order(σ)
-  ρ ./= tr(ρ)
-  σ ./= tr(σ)
+  ρ /= tr(ρ)
+  σ /= tr(σ)
   F = product(product(sqrt(ρ), σ), sqrt(ρ))
   F = real(tr(sqrt(F)))^2
   return F
@@ -67,10 +67,10 @@ LPDO density operator.
 
 F = ⟨ψ|ϱ|ψ⟩=|X†|ψ⟩|²
 """
-function fidelity(Ψ::MPS, ϱ::LPDO{MPO})
+function fidelity(Ψ::MPS, ϱ::LPDO{MPO}; cutoff = 1e-10)
   # TODO: fix exponential scaling
   #proj = bra(ϱ) * Ψ
-  proj = *(bra(ϱ), Ψ; method = "naive")
+  proj = *(bra(ϱ), Ψ; method = "densitymatrix", cutoff = cutoff)
   K = abs2(norm(Ψ)) * tr(ϱ)
   return inner(proj, proj) / K
 end
@@ -107,9 +107,9 @@ end
    F = ⟨ψ|ϱ|ψ⟩=|X†|ψ⟩|²
 2. Quantum process fidelity bewteen a Choi MPO and a Choi LPDO
 """
-function fidelity(A::MPO, B::LPDO{MPO}; process::Bool=false)
+function fidelity(A::MPO, B::LPDO{MPO}; process::Bool=false, cutoff::Float64 = 1e-10)
   #1: Choi MPO   -  Choi LPDO
-  (process && !ischoi(A)) && return fidelity(unitary_mpo_to_choi_mps(A), B)
+  (process && !ischoi(A)) && return fidelity(unitary_mpo_to_choi_mps(A), B; cutoff = cutoff)
   return fidelity(A, MPO(B))
 end
 fidelity(B::LPDO{MPO}, A::MPO; kwargs...) = fidelity(A, B; kwargs...)

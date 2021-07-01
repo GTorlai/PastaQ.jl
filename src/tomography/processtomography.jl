@@ -667,7 +667,7 @@ function tomography(
       end
 
       # printing
-      printobserver(ep, observer!, print_metrics)
+      printobserver(ep, observer!, print_metrics, ep_time)
       # saving
       if !isnothing(outputpath)
         #saveobserver(observer, outputpath; model = best_model)

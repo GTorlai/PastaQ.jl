@@ -179,6 +179,7 @@ function getsamples!(M0::Union{MPS,MPO}, nshots::Int; measurement_noise = nothin
   M = copy(M0)
   
   if !isnothing(measurement_noise) && hasproperty(measurement_noise, :eR)
+    @assert 1 == 0
     noisemodel = measurement_noise[:eR][1]
     rate = measurement_noise[:eR][2]
     readout_circuit = [(noisemodel, j, rate) for j in 1:length(M0)]
@@ -209,7 +210,7 @@ is drawn from the probability distribution:
 - `P(σ) = |⟨σ|Û|ψ⟩|²`    :  if `M = ψ is MPS` 
 - `P(σ) = <σ|Û ρ Û†|σ⟩`  :  if `M = ρ is MPO`   
 """
-function getsamples(M0::Union{MPS,MPO,ITensor}, bases::Array; measurement_noise = nothing)
+function getsamples(M0::Union{MPS,MPO,ITensor}, bases::Array; measurement_noise = nothing, outputlevel::Int = 0)
   @assert length(M0) == size(bases)[2]
   nthreads = Threads.nthreads()
   data = [Vector{Vector{Pair{String,Int}}}(undef, 0) for _ in 1:nthreads]
