@@ -178,13 +178,13 @@ function getsamples!(M0::Union{MPS,MPO}, nshots::Int; measurement_noise = nothin
   data = [Vector{Vector{Int64}}(undef, 0) for _ in 1:nthreads]
   M = copy(M0)
   
-  if !isnothing(measurement_noise) && hasproperty(measurement_noise, :eR)
-    @assert 1 == 0
-    noisemodel = measurement_noise[:eR][1]
-    rate = measurement_noise[:eR][2]
-    readout_circuit = [(noisemodel, j, rate) for j in 1:length(M0)]
-    M = runcircuit(copy(M0), readout_circuit)
-  end
+  #if !isnothing(measurement_noise) && hasproperty(measurement_noise, :eR)
+  #  @assert 1 == 0
+  #  noisemodel = measurement_noise[:eR][1]
+  #  rate = measurement_noise[:eR][2]
+  #  readout_circuit = [(noisemodel, j, rate) for j in 1:length(M0)]
+  #  M = runcircuit(copy(M0), readout_circuit)
+  #end
 
   M = orthogonalize!(M, 1)
      

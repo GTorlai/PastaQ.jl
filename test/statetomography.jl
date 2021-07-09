@@ -251,271 +251,271 @@ function numgradsnll(L::LPDO,
   return grad_r-grad_i
 end
 
-""" MPS TESTS """
-
-@testset "mps-qst: normalization" begin
-  N = 10
-  χ = 4
-  ψ = randomstate(N; χ=χ)
-  @test length(ψ) == N
-  logZ = lognorm(ψ)
-  localZ = []
-  normalize!(ψ; (localnorms!)=localZ)
-  @test logZ ≈ sum(log.(localZ))
-  @test norm(ψ) ≈ 1
-end
-
-@testset "mps-qst: grad logZ" begin
-  N = 5
-  χ = 4
-
-  # 1. Unnormalized
-  ψ = randomstate(N; χ=χ)
-  alg_grad, _ = PastaQ.gradlogZ(ψ)
-  num_grad = numgradslogZ(ψ)
-  for j in 1:N
-    @test array(alg_grad[j]) ≈ num_grad[j] rtol = 1e-3
-  end
-
-  # 2. Globally normalized
-  ψ = randomstate(N; χ=χ)
-  normalize!(ψ)
-  @test norm(ψ)^2 ≈ 1
-  alg_grad, _ = PastaQ.gradlogZ(ψ)
-  num_grad = numgradslogZ(ψ)
-  for j in 1:N
-    @test array(alg_grad[j]) ≈ num_grad[j] rtol = 1e-3
-  end
-
-  # 3. Locally normalized
-  ψ = randomstate(N; χ=χ)
-  num_grad = numgradslogZ(ψ)
-
-  localnorms = []
-  normalize!(ψ; (localnorms!)=localnorms)
-  @test norm(ψ) ≈ 1
-  alg_grad, _ = PastaQ.gradlogZ(ψ; localnorms=localnorms)
-  for j in 1:N
-    @test array(alg_grad[j]) ≈ num_grad[j] rtol = 1e-3
-  end
-end
-
-@testset "mps-qst: grad nll" begin
-  N = 5
-  χ = 4
-  nsamples = 10
-  Random.seed!(1234)
-  data = PastaQ.convertdatapoints(randompreparations(N, nsamples))
-
-  # 1. Unnormalized
-  ψ = randomstate(N; χ=χ)
-  num_grad = numgradsnll(ψ, data)
-  alg_grad, loss = PastaQ.gradnll(ψ, data)
-  for j in 1:N
-    @test array(alg_grad[j]) ≈ num_grad[j] rtol = 1e-3
-  end
-
-  # 2. Globally normalized
-  ψ = randomstate(N; χ=χ)
-  normalize!(ψ)
-  num_grad = numgradsnll(ψ, data)
-  alg_grad, loss = PastaQ.gradnll(ψ, data)
-  for j in 1:N
-    @test array(alg_grad[j]) ≈ num_grad[j] rtol = 1e-3
-  end
-
-  # 3. Locally normalized
-  ψ = randomstate(N; χ=χ)
-  num_grad = numgradsnll(ψ, data)
-  localnorms = []
-  normalize!(ψ; (localnorms!)=localnorms)
-  @test norm(ψ) ≈ 1
-  alg_grad_localnorm, loss = PastaQ.gradnll(ψ, data; localnorms=localnorms)
-  for j in 1:N
-    @test array(alg_grad_localnorm[j]) ≈ num_grad[j] rtol = 1e-3
-  end
-end
-
-@testset "mps-qst: full gradients" begin
-  N = 5
-  χ = 4
-  nsamples = 10
-  data = PastaQ.convertdatapoints(randompreparations(N, nsamples))
-
-  # 1. Unnormalized
-  ψ = randomstate(N; χ=χ)
-  logZ = 2.0 * log(norm(ψ))
-  NLL = PastaQ.nll(ψ, data)
-  ex_loss = logZ + NLL
-  num_gradZ = numgradslogZ(ψ)
-  num_gradNLL = numgradsnll(ψ, data)
-  num_grads = num_gradZ + num_gradNLL
-
-  alg_grads, loss = PastaQ.gradients(ψ, data)
-  @test ex_loss ≈ loss
-  for j in 1:N
-    @test array(alg_grads[j]) ≈ num_grads[j] rtol = 1e-3
-  end
-
-  # 2. Globally normalized
-  ψ = randomstate(N; χ=χ)
-  normalize!(ψ)
-  num_gradZ = numgradslogZ(ψ)
-  num_gradNLL = numgradsnll(ψ, data)
-  num_grads = num_gradZ + num_gradNLL
-  NLL = PastaQ.nll(ψ, data)
-  ex_loss = NLL
-  @test norm(ψ)^2 ≈ 1
-
-  alg_grads, loss = PastaQ.gradients(ψ, data)
-  @test ex_loss ≈ loss
-  for j in 1:N
-    @test array(alg_grads[j]) ≈ num_grads[j] rtol = 1e-3
-  end
-
-  # 3. Locally normalized
-  ψ = randomstate(N; χ=χ)
-  num_gradZ = numgradslogZ(ψ)
-  num_gradNLL = numgradsnll(ψ, data)
-  num_grads = num_gradZ + num_gradNLL
-
-  localnorms = []
-  normalize!(ψ; (localnorms!)=localnorms)
-  NLL = PastaQ.nll(ψ, data)
-  ex_loss = NLL
-  @test norm(ψ)^2 ≈ 1
-
-  alg_grads, loss = PastaQ.gradients(ψ, data; localnorms=localnorms)
-  @test ex_loss ≈ loss
-  for j in 1:N
-    @test array(alg_grads[j]) ≈ num_grads[j] rtol = 1e-3
-  end
-end
-
-""" LPDO TESTS """
-
-@testset "lpdo-qst: normalization" begin
-  N = 10
-  χ = 4
-  ξ = 3
-  ρ = randomstate(N; mixed=true, ξ=ξ, χ=χ)
-  @test length(ρ) == N
-  logZ = logtr(ρ)
-  localZ = []
-  normalize!(ρ; (sqrt_localnorms!)=localZ)
-  @test logZ ≈ 2.0 * sum(log.(localZ))
-  @test tr(ρ) ≈ 1
-end
-
-@testset "lpdo-qst: grad logZ" begin
-  N = 5
-  χ = 4
-  ξ = 3
-
-  # 1. Unnormalized
-  ρ = randomstate(N; mixed=true, χ=χ, ξ=ξ)
-  alg_grad, logZ = PastaQ.gradlogZ(ρ)
-  @test logZ ≈ logtr(ρ)
-  num_grad = numgradslogZ(ρ)
-  alg_gradient = permutedims(array(alg_grad[1]), [1, 3, 2])
-  @test alg_gradient ≈ num_grad[1] rtol = 1e-3
-  for j in 2:(N - 1)
-    alg_gradient = permutedims(array(alg_grad[j]), [2, 1, 3, 4])
-    @test alg_gradient ≈ num_grad[j] rtol = 1e-3
-  end
-  alg_gradient = permutedims(array(alg_grad[N]), [2, 1, 3])
-  @test alg_gradient ≈ num_grad[N] rtol = 1e-3
-
-  # 2. Globally normalized
-  ρ = randomstate(N; mixed=true, χ=χ, ξ=ξ)
-  normalize!(ρ)
-  @test tr(ρ) ≈ 1
-  alg_grad, _ = PastaQ.gradlogZ(ρ)
-  num_grad = numgradslogZ(ρ)
-
-  alg_gradient = permutedims(array(alg_grad[1]), [1, 3, 2])
-  @test alg_gradient ≈ num_grad[1] rtol = 1e-3
-  for j in 2:(N - 1)
-    alg_gradient = permutedims(array(alg_grad[j]), [2, 1, 3, 4])
-    @test alg_gradient ≈ num_grad[j] rtol = 1e-3
-  end
-  alg_gradient = permutedims(array(alg_grad[N]), [2, 1, 3])
-  @test alg_gradient ≈ num_grad[N] rtol = 1e-3
-
-  # 3. Locally normalized
-  ρ = randomstate(N; mixed=true, χ=χ, ξ=ξ)
-  num_grad = numgradslogZ(ρ)
-
-  sqrt_localnorms = []
-  normalize!(ρ; (sqrt_localnorms!)=sqrt_localnorms)
-  @test tr(ρ) ≈ 1
-  alg_grad, _ = PastaQ.gradlogZ(ρ; sqrt_localnorms=sqrt_localnorms)
-
-  alg_gradient = permutedims(array(alg_grad[1]), [1, 3, 2])
-  @test alg_gradient ≈ num_grad[1] rtol = 1e-3
-  for j in 2:(N - 1)
-    alg_gradient = permutedims(array(alg_grad[j]), [2, 1, 3, 4])
-    @test alg_gradient ≈ num_grad[j] rtol = 1e-3
-  end
-  alg_gradient = permutedims(array(alg_grad[N]), [2, 1, 3])
-  @test alg_gradient ≈ num_grad[N] rtol = 1e-3
-end
-
-@testset "lpdo-qst: grad nll" begin
-  N = 5
-  χ = 4
-  ξ = 3
-
-  nsamples = 10
-  Random.seed!(1234)
-  data = PastaQ.convertdatapoints(randompreparations(N, nsamples))
-
-  # 1. Unnormalized
-  ρ = randomstate(N; mixed=true, χ=χ, ξ=ξ)
-  num_grad = numgradsnll(ρ, data)
-  alg_grad, loss = PastaQ.gradnll(ρ, data)
-  @test loss ≈ PastaQ.nll(ρ, data)
-
-  alg_gradient = permutedims(array(alg_grad[1]), [3, 1, 2])
-  @test alg_gradient ≈ num_grad[1] rtol = 1e-3
-  for j in 2:(N - 1)
-    alg_gradient = permutedims(array(alg_grad[j]), [4, 2, 3, 1])
-    @test alg_gradient ≈ num_grad[j] rtol = 1e-3
-  end
-  alg_gradient = permutedims(array(alg_grad[N]), [3, 1, 2])
-  @test alg_gradient ≈ num_grad[N] rtol = 1e-3
-
-  ## 2. Globally normalized
-  ρ = randomstate(N; mixed=true, χ=χ, ξ=ξ)
-  normalize!(ρ)
-  num_grad = numgradsnll(ρ, data)
-  alg_grad, loss = PastaQ.gradnll(ρ, data)
-
-  alg_gradient = permutedims(array(alg_grad[1]), [3, 1, 2])
-  @test alg_gradient ≈ num_grad[1] rtol = 1e-3
-  for j in 2:(N - 1)
-    alg_gradient = permutedims(array(alg_grad[j]), [4, 2, 3, 1])
-    @test alg_gradient ≈ num_grad[j] rtol = 1e-3
-  end
-  alg_gradient = permutedims(array(alg_grad[N]), [3, 1, 2])
-  @test alg_gradient ≈ num_grad[N] rtol = 1e-3
-
-  # 3. Locally normalized
-  ρ = randomstate(N; mixed=true, χ=χ, ξ=ξ)
-  num_grad = numgradsnll(ρ, data)
-  sqrt_localnorms = []
-  normalize!(ρ; (sqrt_localnorms!)=sqrt_localnorms)
-  @test tr(ρ) ≈ 1
-  alg_grad, loss = PastaQ.gradnll(ρ, data; sqrt_localnorms=sqrt_localnorms)
-  alg_gradient = permutedims(array(alg_grad[1]), [3, 1, 2])
-  @test alg_gradient ≈ num_grad[1] rtol = 1e-3
-  for j in 2:(N - 1)
-    alg_gradient = permutedims(array(alg_grad[j]), [4, 2, 3, 1])
-    @test alg_gradient ≈ num_grad[j] rtol = 1e-3
-  end
-  alg_gradient = permutedims(array(alg_grad[N]), [3, 1, 2])
-  @test alg_gradient ≈ num_grad[N] rtol = 1e-3
-end
+#""" MPS TESTS """
+#
+#@testset "mps-qst: normalization" begin
+#  N = 10
+#  χ = 4
+#  ψ = randomstate(N; χ=χ)
+#  @test length(ψ) == N
+#  logZ = lognorm(ψ)
+#  localZ = []
+#  normalize!(ψ; (localnorms!)=localZ)
+#  @test logZ ≈ sum(log.(localZ))
+#  @test norm(ψ) ≈ 1
+#end
+#
+#@testset "mps-qst: grad logZ" begin
+#  N = 5
+#  χ = 4
+#
+#  # 1. Unnormalized
+#  ψ = randomstate(N; χ=χ)
+#  alg_grad, _ = PastaQ.gradlogZ(ψ)
+#  num_grad = numgradslogZ(ψ)
+#  for j in 1:N
+#    @test array(alg_grad[j]) ≈ num_grad[j] rtol = 1e-3
+#  end
+#
+#  # 2. Globally normalized
+#  ψ = randomstate(N; χ=χ)
+#  normalize!(ψ)
+#  @test norm(ψ)^2 ≈ 1
+#  alg_grad, _ = PastaQ.gradlogZ(ψ)
+#  num_grad = numgradslogZ(ψ)
+#  for j in 1:N
+#    @test array(alg_grad[j]) ≈ num_grad[j] rtol = 1e-3
+#  end
+#
+#  # 3. Locally normalized
+#  ψ = randomstate(N; χ=χ)
+#  num_grad = numgradslogZ(ψ)
+#
+#  localnorms = []
+#  normalize!(ψ; (localnorms!)=localnorms)
+#  @test norm(ψ) ≈ 1
+#  alg_grad, _ = PastaQ.gradlogZ(ψ; localnorms=localnorms)
+#  for j in 1:N
+#    @test array(alg_grad[j]) ≈ num_grad[j] rtol = 1e-3
+#  end
+#end
+#
+#@testset "mps-qst: grad nll" begin
+#  N = 5
+#  χ = 4
+#  nsamples = 10
+#  Random.seed!(1234)
+#  data = PastaQ.convertdatapoints(randompreparations(N, nsamples))
+#
+#  # 1. Unnormalized
+#  ψ = randomstate(N; χ=χ)
+#  num_grad = numgradsnll(ψ, data)
+#  alg_grad, loss = PastaQ.gradnll(ψ, data)
+#  for j in 1:N
+#    @test array(alg_grad[j]) ≈ num_grad[j] rtol = 1e-3
+#  end
+#
+#  # 2. Globally normalized
+#  ψ = randomstate(N; χ=χ)
+#  normalize!(ψ)
+#  num_grad = numgradsnll(ψ, data)
+#  alg_grad, loss = PastaQ.gradnll(ψ, data)
+#  for j in 1:N
+#    @test array(alg_grad[j]) ≈ num_grad[j] rtol = 1e-3
+#  end
+#
+#  # 3. Locally normalized
+#  ψ = randomstate(N; χ=χ)
+#  num_grad = numgradsnll(ψ, data)
+#  localnorms = []
+#  normalize!(ψ; (localnorms!)=localnorms)
+#  @test norm(ψ) ≈ 1
+#  alg_grad_localnorm, loss = PastaQ.gradnll(ψ, data; localnorms=localnorms)
+#  for j in 1:N
+#    @test array(alg_grad_localnorm[j]) ≈ num_grad[j] rtol = 1e-3
+#  end
+#end
+#
+#@testset "mps-qst: full gradients" begin
+#  N = 5
+#  χ = 4
+#  nsamples = 10
+#  data = PastaQ.convertdatapoints(randompreparations(N, nsamples))
+#
+#  # 1. Unnormalized
+#  ψ = randomstate(N; χ=χ)
+#  logZ = 2.0 * log(norm(ψ))
+#  NLL = PastaQ.nll(ψ, data)
+#  ex_loss = logZ + NLL
+#  num_gradZ = numgradslogZ(ψ)
+#  num_gradNLL = numgradsnll(ψ, data)
+#  num_grads = num_gradZ + num_gradNLL
+#
+#  alg_grads, loss = PastaQ.gradients(ψ, data)
+#  @test ex_loss ≈ loss
+#  for j in 1:N
+#    @test array(alg_grads[j]) ≈ num_grads[j] rtol = 1e-3
+#  end
+#
+#  # 2. Globally normalized
+#  ψ = randomstate(N; χ=χ)
+#  normalize!(ψ)
+#  num_gradZ = numgradslogZ(ψ)
+#  num_gradNLL = numgradsnll(ψ, data)
+#  num_grads = num_gradZ + num_gradNLL
+#  NLL = PastaQ.nll(ψ, data)
+#  ex_loss = NLL
+#  @test norm(ψ)^2 ≈ 1
+#
+#  alg_grads, loss = PastaQ.gradients(ψ, data)
+#  @test ex_loss ≈ loss
+#  for j in 1:N
+#    @test array(alg_grads[j]) ≈ num_grads[j] rtol = 1e-3
+#  end
+#
+#  # 3. Locally normalized
+#  ψ = randomstate(N; χ=χ)
+#  num_gradZ = numgradslogZ(ψ)
+#  num_gradNLL = numgradsnll(ψ, data)
+#  num_grads = num_gradZ + num_gradNLL
+#
+#  localnorms = []
+#  normalize!(ψ; (localnorms!)=localnorms)
+#  NLL = PastaQ.nll(ψ, data)
+#  ex_loss = NLL
+#  @test norm(ψ)^2 ≈ 1
+#
+#  alg_grads, loss = PastaQ.gradients(ψ, data; localnorms=localnorms)
+#  @test ex_loss ≈ loss
+#  for j in 1:N
+#    @test array(alg_grads[j]) ≈ num_grads[j] rtol = 1e-3
+#  end
+#end
+#
+#""" LPDO TESTS """
+#
+#@testset "lpdo-qst: normalization" begin
+#  N = 10
+#  χ = 4
+#  ξ = 3
+#  ρ = randomstate(N; mixed=true, ξ=ξ, χ=χ)
+#  @test length(ρ) == N
+#  logZ = logtr(ρ)
+#  localZ = []
+#  normalize!(ρ; (sqrt_localnorms!)=localZ)
+#  @test logZ ≈ 2.0 * sum(log.(localZ))
+#  @test tr(ρ) ≈ 1
+#end
+#
+#@testset "lpdo-qst: grad logZ" begin
+#  N = 5
+#  χ = 4
+#  ξ = 3
+#
+#  # 1. Unnormalized
+#  ρ = randomstate(N; mixed=true, χ=χ, ξ=ξ)
+#  alg_grad, logZ = PastaQ.gradlogZ(ρ)
+#  @test logZ ≈ logtr(ρ)
+#  num_grad = numgradslogZ(ρ)
+#  alg_gradient = permutedims(array(alg_grad[1]), [1, 3, 2])
+#  @test alg_gradient ≈ num_grad[1] rtol = 1e-3
+#  for j in 2:(N - 1)
+#    alg_gradient = permutedims(array(alg_grad[j]), [2, 1, 3, 4])
+#    @test alg_gradient ≈ num_grad[j] rtol = 1e-3
+#  end
+#  alg_gradient = permutedims(array(alg_grad[N]), [2, 1, 3])
+#  @test alg_gradient ≈ num_grad[N] rtol = 1e-3
+#
+#  # 2. Globally normalized
+#  ρ = randomstate(N; mixed=true, χ=χ, ξ=ξ)
+#  normalize!(ρ)
+#  @test tr(ρ) ≈ 1
+#  alg_grad, _ = PastaQ.gradlogZ(ρ)
+#  num_grad = numgradslogZ(ρ)
+#
+#  alg_gradient = permutedims(array(alg_grad[1]), [1, 3, 2])
+#  @test alg_gradient ≈ num_grad[1] rtol = 1e-3
+#  for j in 2:(N - 1)
+#    alg_gradient = permutedims(array(alg_grad[j]), [2, 1, 3, 4])
+#    @test alg_gradient ≈ num_grad[j] rtol = 1e-3
+#  end
+#  alg_gradient = permutedims(array(alg_grad[N]), [2, 1, 3])
+#  @test alg_gradient ≈ num_grad[N] rtol = 1e-3
+#
+#  # 3. Locally normalized
+#  ρ = randomstate(N; mixed=true, χ=χ, ξ=ξ)
+#  num_grad = numgradslogZ(ρ)
+#
+#  sqrt_localnorms = []
+#  normalize!(ρ; (sqrt_localnorms!)=sqrt_localnorms)
+#  @test tr(ρ) ≈ 1
+#  alg_grad, _ = PastaQ.gradlogZ(ρ; sqrt_localnorms=sqrt_localnorms)
+#
+#  alg_gradient = permutedims(array(alg_grad[1]), [1, 3, 2])
+#  @test alg_gradient ≈ num_grad[1] rtol = 1e-3
+#  for j in 2:(N - 1)
+#    alg_gradient = permutedims(array(alg_grad[j]), [2, 1, 3, 4])
+#    @test alg_gradient ≈ num_grad[j] rtol = 1e-3
+#  end
+#  alg_gradient = permutedims(array(alg_grad[N]), [2, 1, 3])
+#  @test alg_gradient ≈ num_grad[N] rtol = 1e-3
+#end
+#
+#@testset "lpdo-qst: grad nll" begin
+#  N = 5
+#  χ = 4
+#  ξ = 3
+#
+#  nsamples = 10
+#  Random.seed!(1234)
+#  data = PastaQ.convertdatapoints(randompreparations(N, nsamples))
+#
+#  # 1. Unnormalized
+#  ρ = randomstate(N; mixed=true, χ=χ, ξ=ξ)
+#  num_grad = numgradsnll(ρ, data)
+#  alg_grad, loss = PastaQ.gradnll(ρ, data)
+#  @test loss ≈ PastaQ.nll(ρ, data)
+#
+#  alg_gradient = permutedims(array(alg_grad[1]), [3, 1, 2])
+#  @test alg_gradient ≈ num_grad[1] rtol = 1e-3
+#  for j in 2:(N - 1)
+#    alg_gradient = permutedims(array(alg_grad[j]), [4, 2, 3, 1])
+#    @test alg_gradient ≈ num_grad[j] rtol = 1e-3
+#  end
+#  alg_gradient = permutedims(array(alg_grad[N]), [3, 1, 2])
+#  @test alg_gradient ≈ num_grad[N] rtol = 1e-3
+#
+#  ## 2. Globally normalized
+#  ρ = randomstate(N; mixed=true, χ=χ, ξ=ξ)
+#  normalize!(ρ)
+#  num_grad = numgradsnll(ρ, data)
+#  alg_grad, loss = PastaQ.gradnll(ρ, data)
+#
+#  alg_gradient = permutedims(array(alg_grad[1]), [3, 1, 2])
+#  @test alg_gradient ≈ num_grad[1] rtol = 1e-3
+#  for j in 2:(N - 1)
+#    alg_gradient = permutedims(array(alg_grad[j]), [4, 2, 3, 1])
+#    @test alg_gradient ≈ num_grad[j] rtol = 1e-3
+#  end
+#  alg_gradient = permutedims(array(alg_grad[N]), [3, 1, 2])
+#  @test alg_gradient ≈ num_grad[N] rtol = 1e-3
+#
+#  # 3. Locally normalized
+#  ρ = randomstate(N; mixed=true, χ=χ, ξ=ξ)
+#  num_grad = numgradsnll(ρ, data)
+#  sqrt_localnorms = []
+#  normalize!(ρ; (sqrt_localnorms!)=sqrt_localnorms)
+#  @test tr(ρ) ≈ 1
+#  alg_grad, loss = PastaQ.gradnll(ρ, data; sqrt_localnorms=sqrt_localnorms)
+#  alg_gradient = permutedims(array(alg_grad[1]), [3, 1, 2])
+#  @test alg_gradient ≈ num_grad[1] rtol = 1e-3
+#  for j in 2:(N - 1)
+#    alg_gradient = permutedims(array(alg_grad[j]), [4, 2, 3, 1])
+#    @test alg_gradient ≈ num_grad[j] rtol = 1e-3
+#  end
+#  alg_gradient = permutedims(array(alg_grad[N]), [3, 1, 2])
+#  @test alg_gradient ≈ num_grad[N] rtol = 1e-3
+#end
 
 
 """ TEST AGAIN NORMAL TOMOGRAPHY"""
@@ -537,57 +537,57 @@ end
   @test NLL ≈ NLL_test
 end
 
-
-@testset "readout: grad nll" begin
-  N = 3
-  χ = 3
-  ξ = 2
-
-  nsamples = 10
-  Random.seed!(1234)
-  data = PastaQ.convertdatapoints(randompreparations(N,nsamples))
-  
-  ρ = randomstate(N;mixed=true, χ=χ,ξ=ξ)
-  
-  noise_model = (eR = ("bit_flip",(p=0.0,)),)
-  num_grad_test = numgradsnll(ρ,data)
-  num_grad = numgradsnll(ρ,data,noise_model)
-  
-  for j in 1:N
-    @test num_grad[j] ≈ num_grad_test[j] atol = 1e-5
-  end
-  sqrt_localnorms = []
-  normalize!(ρ; sqrt_localnorms! = sqrt_localnorms)
-  @test tr(ρ) ≈ 1
-  alg_grad, loss = PastaQ.gradnll(ρ, data, noise_model; sqrt_localnorms = sqrt_localnorms)
-  alg_grad_test, loss_test = PastaQ.gradnll(ρ, data; sqrt_localnorms = sqrt_localnorms)
-  @test loss ≈ loss_test
-  for j in 1:N
-    @test alg_grad[j] ≈ alg_grad_test[j] atol = 1e-5
-  end
-  alg_gradient = permutedims(array(alg_grad[1]),[3,1,2])
-  @test alg_gradient ≈ num_grad[1] rtol=1e-3
-  for j in 2:N-1
-    alg_gradient = permutedims(array(alg_grad[j]),[4,2,3,1])
-    @test alg_gradient ≈ num_grad[j] rtol=1e-3
-  end
-  alg_gradient = permutedims(array(alg_grad[N]),[3,1,2])
-  @test alg_gradient ≈ num_grad[N] rtol=1e-3
-
-  noise_model = (eR = ("bit_flip",(p=0.1,)),)
-  num_grad = numgradsnll(ρ,data,noise_model)
-  
-  sqrt_localnorms = []
-  normalize!(ρ; sqrt_localnorms! = sqrt_localnorms)
-  @test tr(ρ) ≈ 1
-  alg_grad, loss = PastaQ.gradnll(ρ, data, noise_model; sqrt_localnorms = sqrt_localnorms)
-  alg_gradient = permutedims(array(alg_grad[1]),[3,1,2])
-  @test alg_gradient ≈ num_grad[1] rtol=1e-3
-  for j in 2:N-1
-    alg_gradient = permutedims(array(alg_grad[j]),[4,2,3,1])
-    @test alg_gradient ≈ num_grad[j] rtol=1e-3
-  end
-  alg_gradient = permutedims(array(alg_grad[N]),[3,1,2])
-  @test alg_gradient ≈ num_grad[N] rtol=1e-3
-
-end
+#
+#@testset "readout: grad nll" begin
+#  N = 3
+#  χ = 3
+#  ξ = 2
+#
+#  nsamples = 10
+#  Random.seed!(1234)
+#  data = PastaQ.convertdatapoints(randompreparations(N,nsamples))
+#  
+#  ρ = randomstate(N;mixed=true, χ=χ,ξ=ξ)
+#  
+#  noise_model = (eR = ("bit_flip",(p=0.0,)),)
+#  num_grad_test = numgradsnll(ρ,data)
+#  num_grad = numgradsnll(ρ,data,noise_model)
+#  
+#  for j in 1:N
+#    @test num_grad[j] ≈ num_grad_test[j] atol = 1e-5
+#  end
+#  sqrt_localnorms = []
+#  normalize!(ρ; sqrt_localnorms! = sqrt_localnorms)
+#  @test tr(ρ) ≈ 1
+#  alg_grad, loss = PastaQ.gradnll(ρ, data, noise_model; sqrt_localnorms = sqrt_localnorms)
+#  alg_grad_test, loss_test = PastaQ.gradnll(ρ, data; sqrt_localnorms = sqrt_localnorms)
+#  @test loss ≈ loss_test
+#  for j in 1:N
+#    @test alg_grad[j] ≈ alg_grad_test[j] atol = 1e-5
+#  end
+#  alg_gradient = permutedims(array(alg_grad[1]),[3,1,2])
+#  @test alg_gradient ≈ num_grad[1] rtol=1e-3
+#  for j in 2:N-1
+#    alg_gradient = permutedims(array(alg_grad[j]),[4,2,3,1])
+#    @test alg_gradient ≈ num_grad[j] rtol=1e-3
+#  end
+#  alg_gradient = permutedims(array(alg_grad[N]),[3,1,2])
+#  @test alg_gradient ≈ num_grad[N] rtol=1e-3
+#
+#  noise_model = (eR = ("bit_flip",(p=0.1,)),)
+#  num_grad = numgradsnll(ρ,data,noise_model)
+#  
+#  sqrt_localnorms = []
+#  normalize!(ρ; sqrt_localnorms! = sqrt_localnorms)
+#  @test tr(ρ) ≈ 1
+#  alg_grad, loss = PastaQ.gradnll(ρ, data, noise_model; sqrt_localnorms = sqrt_localnorms)
+#  alg_gradient = permutedims(array(alg_grad[1]),[3,1,2])
+#  @test alg_gradient ≈ num_grad[1] rtol=1e-3
+#  for j in 2:N-1
+#    alg_gradient = permutedims(array(alg_grad[j]),[4,2,3,1])
+#    @test alg_gradient ≈ num_grad[j] rtol=1e-3
+#  end
+#  alg_gradient = permutedims(array(alg_grad[N]),[3,1,2])
+#  @test alg_gradient ≈ num_grad[N] rtol=1e-3
+#
+#end

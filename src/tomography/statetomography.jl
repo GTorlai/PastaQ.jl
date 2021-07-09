@@ -1,10 +1,12 @@
 function measurement_tensors(sites::Array, noise_model::NamedTuple)
   has_readoutnoise = hasproperty(noise_model,:eR) 
-  has_gatenoise = hasproperty(noise_model,:e1Q)
+  has_gatenoise = hasproperty(noise_model,:e1Q) 
+
+  #has_gatenoise = hasproperty(noise_model,:e1Q)
   if !has_readoutnoise && !has_gatenoise
     error("noise model not defined")
   end
-  
+  #
   mtensors = Dict[] 
   for j in 1:length(sites)
     mt = Dict()
@@ -13,33 +15,46 @@ function measurement_tensors(sites::Array, noise_model::NamedTuple)
     else
       T = op("Id", sites[j])
     end
-    mt["Z+"] = state("0",sites[j])' * T
-    mt["Z-"] = state("1",sites[j])' * T
+    #mt["Z+"] = state("0",sites[j])' * T
+    #mt["Z-"] = state("1",sites[j])' * T
+    Tz0 = state("0",sites[j])' * T
+    Tz1 = state("1",sites[j])' * T
+    mt["Z+"] = Tz0 * prime(Tz0, "Qubit")
+    mt["Z-"] = Tz1 * prime(Tz1, "Qubit")
     
     if has_gatenoise
-      mX = replaceprime(prime(T, "Site") * gate(noise_model[:e1Q][1], sites[j]; noise_model[:e1Q][2]...),2,1)
-      mX = replaceprime(prime(mX, "Site") * gate("H",sites[j]),2,1)
-      C = combiner(inds(mX, tags= "kraus"), tags = "kraus")
-      mX = C * mX
+    #  mX = replaceprime(prime(T, "Site") * gate(noise_model[:e1Q][1], sites[j]; noise_model[:e1Q][2]...),2,1)
+    #  mX = replaceprime(prime(mX, "Site") * gate("H",sites[j]),2,1)
+    #  C = combiner(inds(mX, tags= "kraus"), tags = "kraus")
+    #  mX = C * mX
     else
       mX = replaceprime(prime(T, "Site") * gate("H",sites[j]),2,1)
     end
-    mt["X+"] = state("0",sites[j])' * mX
-    mt["X-"] = state("1",sites[j])' * mX
+    Tx0 = state("0",sites[j])' * mX
+    Tx1 = state("1",sites[j])' * mX
+    mt["X+"] = Tx0 * prime(Tx0, "Qubit")
+    mt["X-"] = Tx1 * prime(Tx1, "Qubit")
+
+    #mt["X+"] = state("0",sites[j])' * mX
+    #mt["X-"] = state("1",sites[j])' * mX
    
     if has_gatenoise
-      mY = replaceprime(prime(T,  "Site") * gate(noise_model[:e1Q][1], sites[j]; noise_model[:e1Q][2]...),2,1)
-      mY = replaceprime(prime(mY, "Site") * gate("H",sites[j]),2,1)
-      mY = replaceprime(prime(mY, "Site") * gate(noise_model[:e1Q][1], sites[j]; noise_model[:e1Q][2]...),2,1)
-      mY = replaceprime(prime(mY, "Site") * gate("S†",sites[j]),2,1)
-      C = combiner(inds(mY, tags= "kraus"), tags = "kraus")
-      mY = C * mY
+    #  mY = replaceprime(prime(T,  "Site") * gate(noise_model[:e1Q][1], sites[j]; noise_model[:e1Q][2]...),2,1)
+    #  mY = replaceprime(prime(mY, "Site") * gate("H",sites[j]),2,1)
+    #  mY = replaceprime(prime(mY, "Site") * gate(noise_model[:e1Q][1], sites[j]; noise_model[:e1Q][2]...),2,1)
+    #  mY = replaceprime(prime(mY, "Site") * gate("S†",sites[j]),2,1)
+    #  C = combiner(inds(mY, tags= "kraus"), tags = "kraus")
+    #  mY = C * mY
     else
       mY = replaceprime(prime(T, "Site") * gate("H",sites[j]),2,1)
       mY = replaceprime(prime(mY, "Site") * gate("S†",sites[j]),2,1)
     end
-    mt["Y+"] = state("0",sites[j])' * mY
-    mt["Y-"] = state("1",sites[j])' * mY
+    Ty0 = state("0",sites[j])' * mY
+    Ty1 = state("1",sites[j])' * mY
+    mt["Y+"] = Tx0 * prime(Ty0, "Qubit")
+    mt["Y-"] = Ty1 * prime(Ty1, "Qubit")
+    #mt["Y+"] = state("0",sites[j])' * mY
+    #mt["Y-"] = state("1",sites[j])' * mY
     
     push!(mtensors, mt)
   end
@@ -111,20 +126,54 @@ end
 
 function nll(L::LPDO{MPO}, data::Matrix{Pair{String,Int}}, noise_model::NamedTuple{<:Any})
   data = convertdatapoints(copy(data); state = true)
-  lpdo = L.X
-  N = length(lpdo)
+  X = L.X
+  N = length(X)
   loss = 0.0
-  s = firstsiteinds(lpdo)
+  s = firstsiteinds(X)
   mtensors = measurement_tensors(s, noise_model)
   for n in 1:size(data)[1]
     x = data[n,:]
-
-    Φ = copy(lpdo)
-    for j in 1:N
-      Φ[j] = mtensors[j][x[j]] * Φ[j]
+   
+    lpdo = copy(X)
+    T = lpdo[1] * mtensors[1][x[1]]
+    L = prime(T,"Link") * prime(dag(lpdo[1]),"Qubit")
+    for j in 2:N-1
+      T = lpdo[j] * mtensors[j][x[j]]
+      Llpdo = T * L
+      L = Llpdo * prime(prime(dag(lpdo[j]),"Qubit"),"Link")
     end
-    prob = inner(Φ,Φ)
-    loss -= log(real(prob))/size(data)[1]
+    T = lpdo[N] * mtensors[N][x[N]]
+    prob = L * T
+    ##prob = prob * dag(T[nthread][N])
+    prob = prob * prime(prime(dag(lpdo[N]),"Qubit"),"Link")
+    @show prob
+    prob = real(prob[])
+    loss -= log(prob)/size(data)[1]
+
+
+
+
+
+    #M = ITensor[]
+    #Φ = copy(lpdo)
+    #for j in 1:N
+    #  T = noprime(mtensors[j][x[j]] * Φ[j])
+    #  @show T
+    #  @show dag(Φ[j])
+    #  error()
+    ##Φ = copy(lpdo)
+    ##@show Φ
+    ##for j in 1:N
+    ##  T = mtensors[j][x[j]] * Φ[j]
+    ##  @show inds(T)
+    ###  @show inds(Φ)
+    ###  #Φ[j] = T * prime(dag(Φ[j]),"Site")
+    #end
+    #@show inds.(M)
+    #ψ = MPS(M)
+    #prob = inner(ψ,ψ)
+    ##prob = inner(Φ,Φ)
+    #loss -= log(real(prob))/size(data)[1]
   end
 
   return loss
@@ -489,8 +538,8 @@ function gradnll(L::LPDO{MPO},
   for j in 1:N
     push!(noiseindex, firstind(mtensors[j]["X+"], tags ="kraus"))
   end
-  ElT = eltype(lpdo[1])
-  nthreads = Threads.nthreads()
+  #ElT = eltype(lpdo[1])
+  #nthreads = Threads.nthreads()
 
   L     = [Vector{ITensor}(undef, N) for _ in 1:nthreads]
   Llpdo = [Vector{ITensor}(undef, N) for _ in 1:nthreads]
@@ -513,18 +562,22 @@ function gradnll(L::LPDO{MPO},
       L[nthread][n] = ITensor(ElT, undef, links[n]',links[n])
     end
     for n in 2:N-1
-      Llpdo[nthread][n] = ITensor(ElT, undef, kraus[n],links[n]',links[n-1], noiseindex[n])
+      #Llpdo[nthread][n] = ITensor(ElT, undef, kraus[n],links[n]',links[n-1], noiseindex[n])
+      Llpdo[nthread][n] = ITensor(ElT, undef, kraus[n],links[n]',links[n-1])
     end
     for n in 1:N-2
-      Lgrad[nthread][n] = ITensor(ElT,undef,links[n],kraus[n+1],links[n+1]', noiseindex[n+1])
+      #Lgrad[nthread][n] = ITensor(ElT,undef,links[n],kraus[n+1],links[n+1]', noiseindex[n+1])
+      Lgrad[nthread][n] = ITensor(ElT,undef,links[n],kraus[n+1],links[n+1]')
     end
-    Lgrad[nthread][N-1] = ITensor(ElT,undef,links[N-1],kraus[N],noiseindex[N])
+    Lgrad[nthread][N-1] = ITensor(ElT,undef,links[N-1],kraus[N])
+    #Lgrad[nthread][N-1] = ITensor(ElT,undef,links[N-1],kraus[N],noiseindex[N])
 
     for n in N:-1:2
       R[nthread][n] = ITensor(ElT, undef, links[n-1]',links[n-1])
     end
     for n in N-1:-1:2
-      Rlpdo[nthread][n] = ITensor(ElT, undef, links[n-1]',kraus[n],links[n],noiseindex[n])
+      #Rlpdo[nthread][n] = ITensor(ElT, undef, links[n-1]',kraus[n],links[n],noiseindex[n])
+      Rlpdo[nthread][n] = ITensor(ElT, undef, links[n-1]',kraus[n],links[n])
     end
 
     Agrad[nthread][1] = ITensor(ElT, undef, kraus[1],links[1]',s[1])
@@ -532,13 +585,16 @@ function gradnll(L::LPDO{MPO},
       Agrad[nthread][n] = ITensor(ElT, undef, links[n-1],kraus[n],links[n]',s[n])
     end
 
-    T[nthread][1] = ITensor(ElT, undef, kraus[1],links[1],noiseindex[1])
+    #T[nthread][1] = ITensor(ElT, undef, kraus[1],links[1],noiseindex[1])
+    T[nthread][1] = ITensor(ElT, undef, kraus[1],links[1])
     Tp[nthread][1] = prime(T[nthread][1],"Link")
     for n in 2:N-1
-      T[nthread][n] = ITensor(ElT, undef, kraus[n],links[n],links[n-1],noiseindex[n])
+      #T[nthread][n] = ITensor(ElT, undef, kraus[n],links[n],links[n-1],noiseindex[n])
+      T[nthread][n] = ITensor(ElT, undef, kraus[n],links[n],links[n-1])
       Tp[nthread][n] = prime(T[nthread][n],"Link")
     end
-    T[nthread][N] = ITensor(ElT, undef, kraus[N],links[N-1],noiseindex[N])
+    #T[nthread][N] = ITensor(ElT, undef, kraus[N],links[N-1],noiseindex[N])
+    T[nthread][N] = ITensor(ElT, undef, kraus[N],links[N-1])
     Tp[nthread][N] = prime(T[nthread][N],"Link")
 
     grads[nthread][1] = ITensor(ElT, undef,links[1],kraus[1],s[1])
@@ -562,41 +618,44 @@ function gradnll(L::LPDO{MPO},
     x = data[n,:]
     #""" LEFT ENVIRONMENTS """
     T[nthread][1] .= lpdo[1] .* mtensors[1][x[1]] 
-    L[nthread][1] .= prime(T[nthread][1],"Link") .* dag(T[nthread][1])
+    L[nthread][1] .= prime(T[nthread][1],"Link") .* prime(dag(lpdo[1]),"Qubit")
+    #L[nthread][1] .= prime(T[nthread][1],"Link") .* dag(T[nthread][1])
     for j in 2:N-1
       T[nthread][j] .= lpdo[j] .* mtensors[j][x[j]]
       Llpdo[nthread][j] .= prime(T[nthread][j],"Link") .* L[nthread][j-1]
-      L[nthread][j] .= Llpdo[nthread][j] .* dag(T[nthread][j])
+      #L[nthread][j] .= Llpdo[nthread][j] .* dag(T[nthread][j])
+      L[nthread][j] .= prime(T[nthread][j],"Link") .* prime(dag(lpdo[j]),"Qubit")
     end
     T[nthread][N] .= lpdo[N] .* mtensors[N][x[N]]
     prob = L[nthread][N-1] * prime(T[nthread][N],"Link")
-    prob = prob * dag(T[nthread][N])
+    #prob = prob * dag(T[nthread][N])
+    prob = prob * prime(dag(lpdo[N]),"Qubit")
     prob = real(prob[])
     loss[nthread] -= log(prob)/size(data)[1]
-    
-    #""" RIGHT ENVIRONMENTS """
-    R[nthread][N] .= prime(T[nthread][N],"Link") .* dag(T[nthread][N])
-    for j in reverse(2:N-1)
-      Rlpdo[nthread][j] .= prime(T[nthread][j],"Link") .* R[nthread][j+1]
-      R[nthread][j] .= Rlpdo[nthread][j] .* dag(T[nthread][j])
-    end
+    #
+    ##""" RIGHT ENVIRONMENTS """
+    #R[nthread][N] .= prime(T[nthread][N],"Link") .* dag(T[nthread][N])
+    #for j in reverse(2:N-1)
+    #  Rlpdo[nthread][j] .= prime(T[nthread][j],"Link") .* R[nthread][j+1]
+    #  R[nthread][j] .= Rlpdo[nthread][j] .* dag(T[nthread][j])
+    #end
 
-    #""" GRADIENTS """
-    Tp[nthread][1] .= prime(lpdo[1],"Link") .* mtensors[1][x[1]]
-    Agrad[nthread][1] .=  Tp[nthread][1] .* dag(mtensors[1][x[1]]) 
-    grads[nthread][1] .= R[nthread][2] .* Agrad[nthread][1]
-    gradients[nthread][1] .+= (1 / (sqrt_localnorms[1] * prob)) .* grads[nthread][1]
-    for j in 2:N-1
-      Tp[nthread][j] .= prime(lpdo[j],"Link") .* mtensors[j][x[j]]
-      Lgrad[nthread][j-1] .= L[nthread][j-1] .* Tp[nthread][j]
-      Agrad[nthread][j] .= Lgrad[nthread][j-1] .* dag(mtensors[j][x[j]]) 
-      grads[nthread][j] .= R[nthread][j+1] .* Agrad[nthread][j]
-      gradients[nthread][j] .+= (1 / (sqrt_localnorms[j] * prob)) .* grads[nthread][j]
-    end
-    Tp[nthread][N] .= prime(lpdo[N],"Link") .* mtensors[N][x[N]]
-    Lgrad[nthread][N-1] .= L[nthread][N-1] .* Tp[nthread][N]
-    grads[nthread][N] .= Lgrad[nthread][N-1] .* dag(mtensors[N][x[N]]) 
-    gradients[nthread][N] .+= (1 / (sqrt_localnorms[N] * prob)) .* grads[nthread][N]
+    ##""" GRADIENTS """
+    #Tp[nthread][1] .= prime(lpdo[1],"Link") .* mtensors[1][x[1]]
+    #Agrad[nthread][1] .=  Tp[nthread][1] .* dag(mtensors[1][x[1]]) 
+    #grads[nthread][1] .= R[nthread][2] .* Agrad[nthread][1]
+    #gradients[nthread][1] .+= (1 / (sqrt_localnorms[1] * prob)) .* grads[nthread][1]
+    #for j in 2:N-1
+    #  Tp[nthread][j] .= prime(lpdo[j],"Link") .* mtensors[j][x[j]]
+    #  Lgrad[nthread][j-1] .= L[nthread][j-1] .* Tp[nthread][j]
+    #  Agrad[nthread][j] .= Lgrad[nthread][j-1] .* dag(mtensors[j][x[j]]) 
+    #  grads[nthread][j] .= R[nthread][j+1] .* Agrad[nthread][j]
+    #  gradients[nthread][j] .+= (1 / (sqrt_localnorms[j] * prob)) .* grads[nthread][j]
+    #end
+    #Tp[nthread][N] .= prime(lpdo[N],"Link") .* mtensors[N][x[N]]
+    #Lgrad[nthread][N-1] .= L[nthread][N-1] .* Tp[nthread][N]
+    #grads[nthread][N] .= Lgrad[nthread][N-1] .* dag(mtensors[N][x[N]]) 
+    #gradients[nthread][N] .+= (1 / (sqrt_localnorms[N] * prob)) .* grads[nthread][N]
   end
 
   for nthread in 1:nthreads
