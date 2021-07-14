@@ -41,15 +41,11 @@ end
 # ITensor
 #
 
-function sqrt(ρ::ITensor)
-  D, U = eigen(ρ)
-  sqrtD = D
-  sqrtD .= sqrt.(D)
-  return U' * sqrtD * dag(U)
-end
-
-function sqrt_hermitian(ρ::ITensor)
-  D, U = eigen(ρ; ishermitian = true, cutoff = 1e-15)
+function sqrt_hermitian(ρ::ITensor; cutoff::Float64 = 1e-15)
+  if !isapprox(swapprime(dag(ρ), 0 => 1), ρ)
+    error("matrix is not hermitian")
+  end
+  D, U = eigen(ρ; ishermitian = true, cutoff = cutoff)
   sqrtD = D
   sqrtD .= sqrt.(D)
   return U' * sqrtD * dag(U)

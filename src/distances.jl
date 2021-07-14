@@ -24,7 +24,7 @@ function fidelity(ρ::ITensor, σ::ITensor)
   ρ ./= tr(ρ)
   σ ./= tr(σ)
   F = product(product(sqrt_hermitian(ρ), σ), sqrt_hermitian(ρ))
-  F = real(tr(sqrt(F)))^2
+  F = real(tr(sqrt_hermitian(F)))^2
   return F
 end
 

@@ -30,9 +30,9 @@ using Random
   @test fidelity(ψ1, ρ2) ≈ ψ1vec' * ρ2mat * ψ1vec
   @test fidelity(ψ1, ϱ2) ≈ real((ψ1vec' * ϱ2mat * ψ1vec))
 
-  @test fidelity(ρ1, ρ2) ≈ real(tr(sqrt(sqrt(ρ1mat) * ρ2mat * sqrt(ρ1mat))))^2 atol = 1e-8
-  @test fidelity(ρ1, ϱ2) ≈ real(tr(sqrt(sqrt(ρ1mat) * ϱ2mat * sqrt(ρ1mat))))^2 atol = 1e-8
-  @test fidelity(ϱ1, ϱ2) ≈ real(tr(sqrt(sqrt(ϱ1mat) * ϱ2mat * sqrt(ϱ1mat))))^2 atol = 1e-8
+  @test fidelity(ρ1, ρ2) ≈ real(tr(sqrt(sqrt(ρ1mat) * ρ2mat * sqrt(ρ1mat))))^2 atol = 1e-7
+  @test fidelity(ρ1, ϱ2) ≈ real(tr(sqrt(sqrt(ρ1mat) * ϱ2mat * sqrt(ρ1mat))))^2 atol = 1e-7
+  @test fidelity(ϱ1, ϱ2) ≈ real(tr(sqrt(sqrt(ϱ1mat) * ϱ2mat * sqrt(ϱ1mat))))^2 atol = 1e-7
 end
 
 @testset "quantum process fidelity" begin
@@ -44,7 +44,6 @@ end
   U1 = runcircuit(circuit1; process=true)
   U2 = randomprocess(U1)
 
-  # TODO: fix distance bug, only happens with depolarizing channel
   # MPO Choi matrix 
   ρ1 = PastaQ.choimatrix(PastaQ.hilbertspace(U1), circuit1; noise=("depolarizing", (p=0.01,)))
   ρ2 = PastaQ.choimatrix(PastaQ.hilbertspace(U1), circuit2; noise=("depolarizing", (p=0.01,)))
@@ -73,11 +72,11 @@ end
     @test fidelity(U1, ϱ2; process=true) ≈ (ϕ1vec' * ϱ2mat * ϕ1vec)
 
     @test fidelity(ρ1, ρ2; process=true) ≈
-          real(tr(sqrt(sqrt(ρ1mat) * ρ2mat * sqrt(ρ1mat))))^2 atol = 1e-8
+          real(tr(sqrt(sqrt(ρ1mat) * ρ2mat * sqrt(ρ1mat))))^2 atol = 1e-7
     @test fidelity(ρ1, ϱ2; process=true) ≈
-          real(tr(sqrt(sqrt(ρ1mat) * ϱ2mat * sqrt(ρ1mat))))^2 atol = 1e-8
+          real(tr(sqrt(sqrt(ρ1mat) * ϱ2mat * sqrt(ρ1mat))))^2 atol = 1e-7
     @test fidelity(ϱ1, ϱ2; process=true) ≈
-          real(tr(sqrt(sqrt(ϱ1mat) * ϱ2mat * sqrt(ϱ1mat))))^2 atol = 1e-8
+          real(tr(sqrt(sqrt(ϱ1mat) * ϱ2mat * sqrt(ϱ1mat))))^2 atol = 1e-7
   end
 end
 
