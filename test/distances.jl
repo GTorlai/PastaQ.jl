@@ -28,7 +28,7 @@ using Random
 
   @test fidelity(ψ1, ψ2) ≈ abs2(ψ1vec' * ψ2vec)
   @test fidelity(ψ1, ρ2) ≈ ψ1vec' * ρ2mat * ψ1vec
-  @test fidelity(ψ1, ϱ2) ≈ (ψ1vec' * ϱ2mat * ψ1vec)
+  @test fidelity(ψ1, ϱ2) ≈ real((ψ1vec' * ϱ2mat * ψ1vec))
 
   @test fidelity(ρ1, ρ2) ≈ real(tr(sqrt(sqrt(ρ1mat) * ρ2mat * sqrt(ρ1mat))))^2 atol = 1e-8
   @test fidelity(ρ1, ϱ2) ≈ real(tr(sqrt(sqrt(ρ1mat) * ϱ2mat * sqrt(ρ1mat))))^2 atol = 1e-8

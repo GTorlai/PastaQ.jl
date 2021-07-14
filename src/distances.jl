@@ -23,7 +23,7 @@ function fidelity(ρ::ITensor, σ::ITensor)
   @assert order(ρ) == order(σ)
   ρ ./= tr(ρ)
   σ ./= tr(σ)
-  F = product(product(sqrt(ρ), σ), sqrt(ρ))
+  F = product(product(sqrt_hermitian(ρ), σ), sqrt_hermitian(ρ))
   F = real(tr(sqrt(F)))^2
   return F
 end

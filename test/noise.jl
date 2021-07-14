@@ -12,7 +12,9 @@ using Random
   @test size(E,3) == 4
   @test sum([E[:,:,k]' * E[:,:,k] for k in 1:size(E,3)]) ≈ Matrix{Float64}(I,2,2)
   for N in 2:5
-    E = gate("pauli_channel", N; error_probabilities = rand(4^N))
+    probs = rand(4^N)
+    probs = probs ./ sum(probs)
+    E = gate("pauli_channel", N; error_probabilities = probs)
     @test size(E,3) == 4^N
     @test sum([E[:,:,k]' * E[:,:,k] for k in 1:size(E,3)]) ≈ Matrix{Float64}(I,1<<N,1<<N)
   end

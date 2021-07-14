@@ -2,6 +2,7 @@
 function gate(::GateName"pauli_channel", N::Int = 1; 
               pauli_ops = ["Id","X","Y","Z"],
               error_probabilities = prepend!(zeros(length(pauli_ops)^N-1),1))
+  @assert sum(error_probabilities) ≈ 1
   length(error_probabilities) > (1 << 10) && error("Hilbert space too large")
   error_probabilities ./= sum(error_probabilities)
   kraus = zeros(Complex{Float64},1<<N,1<<N,length(pauli_ops)^N)

@@ -48,6 +48,13 @@ function sqrt(ρ::ITensor)
   return U' * sqrtD * dag(U)
 end
 
+function sqrt_hermitian(ρ::ITensor)
+  D, U = eigen(ρ; ishermitian = true, cutoff = 1e-15)
+  sqrtD = D
+  sqrtD .= sqrt.(D)
+  return U' * sqrtD * dag(U)
+end
+
 ######################################################
 # MPS
 #
