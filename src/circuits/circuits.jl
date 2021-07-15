@@ -110,14 +110,8 @@ function randomlayer(
 )
   layer = []
   for n in support
-    pars = randomparams(gatename, 2^length(n); rng=rng) # the 2^n is for the Haar dimension
-    gatepars = (
-      if isempty(pars)
-        (isempty(kwargs) ? nothing : values(kwargs))
-      else
-        merge(pars, values(kwargs))
-      end
-    )
+    pars = randomparams(gatename, length(n); rng = rng) # the 2^n is for the Haar dimension
+    gatepars = (isempty(pars) ? (isempty(kwargs) ? nothing : values(kwargs)) : merge(pars,values(kwargs)))
     g = (isnothing(gatepars) ? (gatename, n) : (gatename, n, gatepars))
     push!(layer, g)
   end
@@ -147,15 +141,9 @@ function randomlayer(
 )
   gate_id = StatsBase.sample(gatenames, StatsBase.Weights(weights), length(support))
   layer = []
-  for (i, n) in enumerate(support)
-    pars = randomparams(gate_id[i], 2^length(n); rng=rng)
-    gatepars = (
-      if isempty(pars)
-        (isempty(kwargs) ? nothing : values(kwargs))
-      else
-        merge(pars, values(kwargs))
-      end
-    )
+  for (i,n) in enumerate(support)
+    pars = randomparams(gate_id[i], length(n); rng = rng)
+    gatepars = (isempty(pars) ? (isempty(kwargs) ? nothing : values(kwargs)) : merge(pars,values(kwargs)))
     g = (isnothing(gatepars) ? (gate_id[i], n) : (gate_id[i], n, gatepars))
     push!(layer, g)
   end

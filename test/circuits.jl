@@ -45,13 +45,13 @@ end
   pars = PastaQ.randomparams("Rz")
   @test haskey(pars, :ϕ)
   pars = PastaQ.randomparams("Rn")
-  @test haskey(pars, :θ)
-  @test haskey(pars, :ϕ)
-  @test haskey(pars, :λ)
-
-  pars = PastaQ.randomparams("RandomUnitary", 4)
-  @test haskey(pars, :random_matrix)
-  @test size(pars[:random_matrix]) == (4, 4)
+  @test haskey(pars,:θ)
+  @test haskey(pars,:ϕ)
+  @test haskey(pars,:λ)
+  
+  pars = PastaQ.randomparams("RandomUnitary",2)
+  @test haskey(pars,:random_matrix)
+  @test size(pars[:random_matrix]) == (4,4)
   @test pars[:random_matrix] isa Matrix{ComplexF64}
 end
 

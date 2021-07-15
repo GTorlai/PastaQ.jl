@@ -6,6 +6,7 @@ import ITensors:
   # circuits/gates.jl
   space,
   state,
-  array
+  array,
+  noise
 
 import LinearAlgebra: normalize!, tr, norm

@@ -61,32 +61,6 @@ end
   @test PastaQ.array(ρ2) ≈ exact_mat
 end
 
-#@testset "reset productstate" begin
-#  N = 5
-#  depth = 5
-#  gates = randomcircuit(N,depth)
-#  ψ0 = productstate(N)
-#  ψ = runcircuit(ψ0,gates)
-#  
-#  resetproductstate!(ψ)
-#  psi_vec = PastaQ.array(ψ)
-#
-#  exact_vec = zeros(1<<N)
-#  exact_vec[1] = 1.0
-#  @test psi_vec ≈ exact_vec
-#
-#  
-#  ρ0 = MPO(productstate(N))
-#  ρ = runcircuit(ρ0,gates)
-#  
-#  resetproductstate!(ρ)
-#  ρ_mat = PastaQ.array(ρ)
-#
-#  exact_mat = zeros(1<<N,1<<N)
-#  exact_mat[1,1] = 1.0
-#  @test exact_mat ≈ ρ_mat
-#end
-
 @testset "runcircuit: unitary quantum circuit" begin
   N = 3
   depth = 4
@@ -101,6 +75,7 @@ end
   # Mixed state, noiseless circuit
   ρ0 = MPO(productstate(N))
   ρ = runcircuit(ρ0, gates)
+  X = runcircuit(prod(ρ0), buildcircuit(ρ0, gates); apply_dag=true)
   @test prod(ρ) ≈ runcircuit(prod(ρ0), buildcircuit(ρ0, gates); apply_dag=true)
 end
 
@@ -108,8 +83,7 @@ end
   N = 5
   depth = 4
   gates = randomcircuit(N, depth; layered=false)
-
-  # Pure state, noisy circuit
+  
   ψ0 = productstate(N)
   ρ = runcircuit(ψ0, gates; noise=("depolarizing", (p=0.1,)))
   ρ0 = MPO(ψ0)
@@ -136,9 +110,7 @@ end
   for g in circuit0
     push!(circuit, g)
     ns = g[2]
-    for n in ns
-      push!(circuit, ("DEP", n, (p=0.01,)))
-    end
+    push!(circuit, ("DEP", ns, (p=0.01,)))
   end
   ρ = runcircuit(ψ, circuit)
   @test PastaQ.array(ρ0) ≈ PastaQ.array(ρ)
