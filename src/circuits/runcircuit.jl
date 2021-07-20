@@ -8,7 +8,7 @@ If noise is nontrivial, the corresponding Kraus operators are
 added to each gate as a tensor with an extra (Kraus) index.
 """
 function buildcircuit(
-  M::Union{MPS,MPO},
+  M::Union{MPS,MPO,ITensor},
   circuit::Union{Tuple,Vector{<:Any}};
   noise::Union{Nothing, Tuple, NamedTuple} = nothing
 )
@@ -25,7 +25,7 @@ function buildcircuit(
   return circuit_tensors
 end
 
-function buildcircuit(M::Union{MPS,MPO}, circuit::Vector{Vector{<:Any}}; kwargs...)
+function buildcircuit(M::Union{MPS,MPO,ITensor}, circuit::Vector{Vector{<:Any}}; kwargs...)
   return buildcircuit(M, vcat(circuit...); kwargs...)
 end
 
@@ -169,7 +169,7 @@ If an `Observer` is provided as input, and `circuit` is made out of a sequence
 of layers of gates, performs a measurement of the observables contained in
 Observer, after the application of each layer.
 """
-runcircuit(M::Union{MPS, MPO}, circuit::Union{Tuple,Vector{<:Any}};
+runcircuit(M::Union{MPS, MPO,ITensor}, circuit::Union{Tuple,Vector{<:Any}};
            noise = nothing, kwargs...) = 
   runcircuit(M, buildcircuit(M, circuit; noise = noise); kwargs...)
 
@@ -239,10 +239,10 @@ The starting state is generated automatically based on the flags `process`, `noi
    two for the input and two for the output Hilbert space of the quantum channel.
 """
 function runcircuit(sites::Vector{<:Index}, 
-                circuit::Union{Tuple,Vector{<:Any},Vector{Vector{<:Any}}};
-                process::Bool = false, noise = nothing,
-                full_representation::Bool = false,
-                kwargs...)
+                    circuit::Union{Tuple,Vector{<:Any},Vector{Vector{<:Any}}};
+                    process::Bool = false, noise = nothing,
+                    full_representation::Bool = false,
+                    kwargs...)
   
   
   # Unitary operator for the circuit
@@ -286,7 +286,7 @@ runcircuit(circuit::Any; kwargs...) =
 Apply the circuit to a ITensor from a list of tensors.
 """
 
-function runcircuit(T::ITensor, circuit_tensors::Vector{ <: ITensor}; apply_dag = nothing, kwargs...)
+function runcircuit(T::ITensor, circuit_tensors::Vector{<:ITensor}; apply_dag = nothing, kwargs...)
   # Check if gate_tensors contains Kraus operators
   inds_sizes = [length(inds(g)) for g in circuit_tensors]
   noiseflag = any(x -> x % 2 == 1 , inds_sizes)
@@ -318,18 +318,6 @@ function runcircuit(T::ITensor, circuit_tensors::Vector{ <: ITensor}; apply_dag 
     return Tc
   end
 end
-
-"""
-    runcircuit(M::ITensor, gates::Vector{<:Tuple})
-
-Apply the circuit to an ITensor from a list of gates.
-"""
-
-runcircuit(T::ITensor, circuit::Union{Tuple,Vector{<:Any}}; noise = nothing, kwargs...) =
-  runcircuit(T, buildcircuit(T, circuit; noise = noise); kwargs...)
-
-runcircuit(T::ITensor, circuit::Vector{<:Vector{<:Any}}; kwargs...) = 
-  runcircuit(T, circuit...; kwargs...)
 
 
 """

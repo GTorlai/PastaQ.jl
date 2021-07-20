@@ -440,7 +440,7 @@ function gate(M::Union{MPS,MPO}, gatename::String, site::Tuple; kwargs...)
   return gate(gatename, site_inds...; kwargs...)
 end
 
-gate(M::Union{MPS,MPO}, gatedata::Tuple) = gate(M, gatedata...)
+#gate(M::Union{MPS,MPO}, gatedata::Tuple) = gate(M, gatedata...)
 
 gate(M::Union{MPS,MPO,ITensor}, gatedata::Tuple) =
   gate(M,gatedata...)

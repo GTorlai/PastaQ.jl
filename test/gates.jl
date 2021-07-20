@@ -140,7 +140,7 @@ using LinearAlgebra
     if (n, m) == (n′, m′)
       @test Id[n, m, n′, m′] ≈ 1
     else
-      @test Id[n, m, n′, m′] ≈ 0 atol = 1e-15
+      @test Id[n, m, n′, m′] ≈ 0 atol = 1e-14
     end
   end
 

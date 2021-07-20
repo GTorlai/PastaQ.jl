@@ -71,12 +71,14 @@ end
   @test prod(ψ) ≈ runcircuit(prod(ψ0), buildcircuit(ψ0, gates))
   @test PastaQ.array(prod(ψ)) ≈ PastaQ.array(prod(runcircuit(N, gates)))
   @test PastaQ.array(prod(ψ)) ≈ PastaQ.array(prod(runcircuit(gates)))
+  @test PastaQ.array(ψ) ≈ PastaQ.tovector(runcircuit(gates; full_representation = true))
 
   # Mixed state, noiseless circuit
   ρ0 = MPO(productstate(N))
   ρ = runcircuit(ρ0, gates)
   X = runcircuit(prod(ρ0), buildcircuit(ρ0, gates); apply_dag=true)
   @test prod(ρ) ≈ runcircuit(prod(ρ0), buildcircuit(ρ0, gates); apply_dag=true)
+  @test PastaQ.array(ρ) ≈ PastaQ.tomatrix(runcircuit(prod(ρ0),gates; full_representation = true, apply_dag = true))
 end
 
 
@@ -115,6 +117,7 @@ end
     ρ = runcircuit(ρ0, gates; noise=("depolarizing", (p=0.1,)))
     U = buildcircuit(ρ0, gates; noise=("depolarizing", (p=0.1,)))
     @test prod(ρ) ≈ runcircuit(prod(ρ0), U; apply_dag=true)
+    @test PastaQ.array(ρ) ≈ PastaQ.tomatrix(runcircuit(gates; noise = ("depolarizing", (p=0.1,)), full_representation = true))
   end
 end
 
@@ -177,6 +180,7 @@ end
   Random.seed!(1234)
   circuit = randomcircuit(N, depth)
   @test prod(ψ) ≈ prod(runcircuit(ψ0, circuit))
+  @test PastaQ.array(ψ) ≈ PastaQ.tovector(runcircuit(circuit; full_representation = true))
 
   Random.seed!(1234)
   circuit = randomcircuit(N, depth)
