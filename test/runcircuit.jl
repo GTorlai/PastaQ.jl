@@ -79,6 +79,25 @@ end
   @test prod(ρ) ≈ runcircuit(prod(ρ0), buildcircuit(ρ0, gates); apply_dag=true)
 end
 
+
+@testset "runcircuit: (n>2)-qubit gates" begin
+  N = 3
+  depth = 4
+  gates = randomcircuit(N, depth; layered=false)
+  push!(gates, ("Toffoli",(1,2,3)))
+  #Pure state, noiseless circuit
+  ψ0 = productstate(N)
+  ψ = runcircuit(ψ0, gates)
+  @test prod(ψ) ≈ runcircuit(prod(ψ0), buildcircuit(ψ0, gates))
+  @test PastaQ.array(prod(ψ)) ≈ PastaQ.array(prod(runcircuit(N, gates)))
+  @test PastaQ.array(prod(ψ)) ≈ PastaQ.array(prod(runcircuit(gates)))
+
+  # Mixed state, noiseless circuit
+  ρ0 = MPO(productstate(N))
+  ρ = runcircuit(ρ0, gates)
+  @test prod(ρ) ≈ runcircuit(prod(ρ0), buildcircuit(ρ0, gates); apply_dag=true)
+end
+
 @testset "runcircuit: noisy quantum circuit" begin
   N = 5
   depth = 4
