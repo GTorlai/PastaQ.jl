@@ -7,19 +7,19 @@ using Random
 @testset "array" begin
   N = 5
   ψ = productstate(N)
-  ψvec = array(ψ)
+  ψvec = PastaQ.array(ψ)
   @test size(ψvec) == (1 << N,)
 
   ρ = MPO(productstate(N))
-  ρmat = array(ρ)
+  ρmat = PastaQ.array(ρ)
   @test size(ρmat) == (1 << N, 1 << N)
 
   ρ = randomstate(N; mixed=true)
-  ρmat = array(ρ)
+  ρmat = PastaQ.array(ρ)
   @test size(ρmat) == (1 << N, 1 << N)
 
   U = randomprocess(N)
-  Umat = array(U)
+  Umat = PastaQ.array(U)
   @test size(Umat) == (1 << N, 1 << N)
 
   N = 3

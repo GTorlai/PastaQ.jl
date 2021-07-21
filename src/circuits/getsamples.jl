@@ -125,6 +125,52 @@ end
 """
 
 """
+    getsamples(T::ITensor, nshots::Int)
+
+Generate `nshots` projective measurements for an input quantum state `T`,
+which can either be a wavefunction or density matrix (dense).
+"""
+# BREAKING JULIA CONVENTION HERE
+function getsamples!(T::ITensor, nshots::Int; 
+    readout_errors = (p1given0 = nothing, p0given1 = nothing))
+  
+  p1given0 = readout_errors[:p1given0]
+  p0given1 = readout_errors[:p0given1]
+ 
+  # Get the number of qubits
+  N = nqubits(T)
+  
+  # Get a dense array which can be
+  # - Vector with dim 2^N for a wavefunction |ψ⟩
+  # - Matrix with dim (2^N,2^N) for a density matrix ρ
+  A = array(T)
+  
+  # Compute the full probability distribution 
+  # P(σ) = |⟨σ|ψ⟩|² (Tr[ρ|σ⟩⟨σ|] 
+  probs = (A isa Vector ? abs2.(A) : real(diag(A)))
+  @assert sum(probs) ≈ 1
+  
+  # Sample the distribution exactly
+  index = StatsBase.sample(0:1<<N-1, StatsBase.Weights(probs), nshots)
+  
+  # Map integer to binary vectors and massage the structure
+  M = hcat(digits.(index,base=2,pad=N)...)'
+  measurements = reverse(M,dims=2)
+  if !isnothing(p1given0) || !isnothing(p0given1)
+    p1given0 = (isnothing(p1given0) ? 0.0 : p1given0)
+    p0given1 = (isnothing(p0given1) ? 0.0 : p0given1)
+    for n in 1:nshots
+      readouterror!(measurements[n,:], p1given0, p0given1)
+    end
+  end
+  return measurements
+end
+
+getsamples(T::ITensor; kwargs...) = 
+  getsamples(T,1; kwargs...)
+
+
+"""
     getsamples!(M::Union{MPS,MPO};
                 readout_errors = (p1given0 = nothing,
                                   p0given1 = nothing))
@@ -190,7 +236,7 @@ is drawn from the probability distribution:
 - `P(σ) = |⟨σ|Û|ψ⟩|²`    :  if `M = ψ is MPS` 
 - `P(σ) = <σ|Û ρ Û†|σ⟩`  :  if `M = ρ is MPO`   
 """
-function getsamples(M0::Union{MPS,MPO}, bases::Array; kwargs...)
+function getsamples(M0::Union{MPS,MPO,ITensor}, bases::Array; kwargs...)
   @assert length(M0) == size(bases)[2]
   nthreads = Threads.nthreads()
   data = [Vector{Vector{Pair{String,Int}}}(undef, 0) for _ in 1:nthreads]
@@ -239,7 +285,7 @@ keyword argument (i.e. if `"X"` is chosen out of `["X", "Y", "Z"]`,
 the rotation is the eigenbasis of `"X"`).
 """
 function getsamples(
-  M::Union{MPS,MPO},
+  M::Union{MPS,MPO,ITensor},
   nshots::Int64;
   local_basis=nothing,
   ndistinctbases=nothing,
@@ -248,10 +294,11 @@ function getsamples(
   if isnothing(local_basis)
     data = getsamples!(copy(M), nshots; readout_errors=readout_errors)
   else
-    bases = randombases(
-      length(M), nshots; local_basis=local_basis, ndistinctbases=ndistinctbases
-    )
-    data = getsamples(copy(M), bases; readout_errors=readout_errors)
+    N = M isa ITensor ? nqubits(M) : length(M)
+    bases = randombases(N, nshots;
+                        local_basis = local_basis,
+                        ndistinctbases = ndistinctbases)
+    data = getsamples(copy(M), bases; readout_errors = readout_errors)
   end
   return data
 end
@@ -473,8 +520,8 @@ function getsamples(
   ψ0 = productstate(N)
   hilbert = hilbertspace(ψ0)
   # Pre-compile quantum channel
-  gate_tensors = buildcircuit(ψ0, gates; noise=noise, kwargs...)
-
+  gate_tensors = buildcircuit(ψ0, gates; noise = noise, kwargs...)
+  
   nthreads = Threads.nthreads()
   data = [Vector{Vector{Pair{String,Int}}}(undef, 0) for _ in 1:nthreads]
   Threads.@threads for n in 1:size(bases, 1)

@@ -21,6 +21,9 @@ export
   getsamples,
   randombases,
   randompreparations,
+  
+  # noise.jl
+  insertnoise,
 
   # circuits/runcircuit.jl
   # Methods

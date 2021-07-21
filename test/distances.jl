@@ -28,11 +28,11 @@ using Random
 
   @test fidelity(ψ1, ψ2) ≈ abs2(ψ1vec' * ψ2vec)
   @test fidelity(ψ1, ρ2) ≈ ψ1vec' * ρ2mat * ψ1vec
-  @test fidelity(ψ1, ϱ2) ≈ (ψ1vec' * ϱ2mat * ψ1vec)
+  @test fidelity(ψ1, ϱ2) ≈ real((ψ1vec' * ϱ2mat * ψ1vec))
 
-  @test fidelity(ρ1, ρ2) ≈ real(tr(sqrt(sqrt(ρ1mat) * ρ2mat * sqrt(ρ1mat))))^2 atol = 1e-8
-  @test fidelity(ρ1, ϱ2) ≈ real(tr(sqrt(sqrt(ρ1mat) * ϱ2mat * sqrt(ρ1mat))))^2 atol = 1e-8
-  @test fidelity(ϱ1, ϱ2) ≈ real(tr(sqrt(sqrt(ϱ1mat) * ϱ2mat * sqrt(ϱ1mat))))^2 atol = 1e-8
+  @test fidelity(ρ1, ρ2) ≈ real(tr(sqrt(sqrt(ρ1mat) * ρ2mat * sqrt(ρ1mat))))^2 atol = 1e-7
+  @test fidelity(ρ1, ϱ2) ≈ real(tr(sqrt(sqrt(ρ1mat) * ϱ2mat * sqrt(ρ1mat))))^2 atol = 1e-7
+  @test fidelity(ϱ1, ϱ2) ≈ real(tr(sqrt(sqrt(ϱ1mat) * ϱ2mat * sqrt(ϱ1mat))))^2 atol = 1e-7
 end
 
 @testset "quantum process fidelity" begin
@@ -60,7 +60,6 @@ end
     ρ1mat = ρ1mat / tr(ρ1mat)
     ϱ1mat = PastaQ.array(ϱ1)
     ϱ1mat = ϱ1mat / tr(ϱ1mat)
-
     ϕ2 = PastaQ.unitary_mpo_to_choi_mps(U2)
     normalize!(ϕ2)
     ϕ2vec = PastaQ.array(ϕ2)
@@ -73,11 +72,11 @@ end
     @test fidelity(U1, ϱ2; process=true) ≈ (ϕ1vec' * ϱ2mat * ϕ1vec)
 
     @test fidelity(ρ1, ρ2; process=true) ≈
-          real(tr(sqrt(sqrt(ρ1mat) * ρ2mat * sqrt(ρ1mat))))^2 atol = 1e-8
+          real(tr(sqrt(sqrt(ρ1mat) * ρ2mat * sqrt(ρ1mat))))^2 atol = 1e-7
     @test fidelity(ρ1, ϱ2; process=true) ≈
-          real(tr(sqrt(sqrt(ρ1mat) * ϱ2mat * sqrt(ρ1mat))))^2 atol = 1e-8
+          real(tr(sqrt(sqrt(ρ1mat) * ϱ2mat * sqrt(ρ1mat))))^2 atol = 1e-7
     @test fidelity(ϱ1, ϱ2; process=true) ≈
-          real(tr(sqrt(sqrt(ϱ1mat) * ϱ2mat * sqrt(ϱ1mat))))^2 atol = 1e-8
+          real(tr(sqrt(sqrt(ϱ1mat) * ϱ2mat * sqrt(ϱ1mat))))^2 atol = 1e-7
   end
 end
 

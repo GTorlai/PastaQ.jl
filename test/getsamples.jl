@@ -64,6 +64,7 @@ end
 end
 
 @testset "measurements" begin
+  Random.seed!(1234)
   N = 4
   depth = 10
   ψ0 = productstate(N)
@@ -78,7 +79,7 @@ end
   @test size(samples)[2] == N
   data_prob = empiricalprobability(samples)
   @test probs ≈ data_prob atol = 1e-2
-
+  
   ρ = runcircuit(N, gates; noise=("amplitude_damping", (γ=0.01,)))
   ρ_mat = PastaQ.array(ρ)
   probs = real(diag(ρ_mat))
