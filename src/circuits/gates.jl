@@ -319,92 +319,15 @@ end
 # Random Haard unitary:
 # 
 # Reference: http://math.mit.edu/~edelman/publications/random_matrix_theory.pdf
-function gate(
-  ::GateName"randU", N::Int=2; eltype=ComplexF64, random_matrix=randn(eltype, N, N)
-)
+function gate(::GateName"randU", N::Int = 1;
+              eltype = ComplexF64,
+              random_matrix = randn(eltype, 1<<N, 1<<N))
   Q, _ = NDTensors.qr_positive(random_matrix)
   return Q
 end
 
-gate(::GateName"RandomUnitary", N::Int=2; kwargs...) = gate("randU", N; kwargs...)
-
-#
-# Noise model gate definitions
-#
-function gate(::GateName"pauli_error"; pX::Number=0.0, pY::Number=0.0, pZ::Number=0.0)
-  kraus = zeros(Complex{Float64}, 2, 2, 4)
-  kraus[:, :, 1] = √(1 - pX - pY - pZ) * gate("Id")
-  kraus[:, :, 2] = √pX * gate("X")
-  kraus[:, :, 3] = √pY * gate("Y")
-  kraus[:, :, 4] = √pZ * gate("Z")
-  return kraus
-end
-
-gate(::GateName"pauli_channel"; kwargs...) = gate("pauli_error"; kwargs...)
-
-gate(::GateName"bit_flip"; p::Number) = gate("pauli_error"; pX=p)[:, :, 1:2]
-
-gate(::GateName"phase_flip"; p::Number) = gate("pauli_error"; pZ=p)[:, :, [1, 4]]
-
-gate(::GateName"bit_phase_flip"; p::Number) = gate("pauli_error"; pY=p)[:, :, [1, 3]]
-
-gate(::GateName"phase_bit_flip"; kwargs...) = gate("bit_phase_flip"; kwargs...)
-
-function gate(::GateName"AD"; γ::Number)
-  kraus = zeros(2, 2, 2)
-  kraus[:, :, 1] = [
-    1 0
-    0 sqrt(1 - γ)
-  ]
-  kraus[:, :, 2] = [
-    0 sqrt(γ)
-    0 0
-  ]
-  return kraus
-end
-
-# To accept the gate name "amplitude_damping"
-gate(::GateName"amplitude_damping"; kwargs...) = gate("AD"; kwargs...)
-
-function gate(::GateName"PD"; γ::Number)
-  kraus = zeros(2, 2, 2)
-  kraus[:, :, 1] = [
-    1 0
-    0 sqrt(1 - γ)
-  ]
-  kraus[:, :, 2] = [
-    0 0
-    0 sqrt(γ)
-  ]
-  return kraus
-end
-
-# To accept the gate name "phase_damping"
-gate(::GateName"phase_damping"; kwargs...) = gate("PD"; kwargs...)
-
-# To accept the gate name "dephasing"
-gate(::GateName"dephasing"; kwargs...) = gate("PD"; kwargs...)
-
-gate(::GateName"DEP"; p::Number) = gate("pauli_error"; pX=p / 3.0, pY=p / 3.0, pZ=p / 3.0)
-
-# To accept the gate name "depolarizing"
-gate(::GateName"depolarizing"; kwargs...) = gate("DEP"; kwargs...)
-
-gate(::GateName"noiseDEP"; kwargs...) = gate("DEP"; kwargs...)
-
-gate(::GateName"noiseAD"; kwargs...) = gate("AD"; kwargs...)
-
-gate(::GateName"noisePD"; kwargs...) = gate("PD"; kwargs...)
-
-#
-# Qubit site type
-#
-
-#space(::SiteType"Qubit") = 2
-
-#state(::SiteType"Qubit", ::StateName"0") = 1
-
-#state(::SiteType"Qubit", ::StateName"1") = 2
+gate(::GateName"RandomUnitary", N::Int = 1; kwargs...) = 
+  gate("randU", N; kwargs...)
 
 #
 # Basis definitions (eigenbases of measurement gates)
@@ -459,11 +382,12 @@ gate(s::String, args...; kwargs...) = gate(GateName(s), args...; kwargs...)
 # Version that accepts a dimension for the gate,
 # for n-qubit gates
 gate(gn::GateName, N::Int; kwargs...) = gate(gn; kwargs...)
+gate(gn::GateName, dims::Tuple; kwargs...) = gate(gn, length(dims); kwargs...)
 
 function gate(gn::GateName, s1::Index, ss::Index...; kwargs...)
   s = tuple(s1, ss...)
   rs = reverse(s)
-  g = gate(gn, dim(s); kwargs...)
+  g = gate(gn, dim.(s); kwargs...) 
   if ndims(g) == 1
     # TODO:
     #error("gate must have more than one dimension, use state(...) for state vectors.")
@@ -517,12 +441,28 @@ function gate(M::Union{MPS,MPO}, gatename::String, site::Tuple; kwargs...)
   return gate(gatename, site_inds...; kwargs...)
 end
 
-gate(M::Union{MPS,MPO}, gatedata::Tuple) = gate(M, gatedata...)
+#gate(M::Union{MPS,MPO}, gatedata::Tuple) = gate(M, gatedata...)
 
-function gate(
-  M::Union{MPS,MPO}, gatename::String, sites::Union{Int,Tuple}, params::NamedTuple
-)
-  return gate(M, gatename, sites; params...)
+gate(M::Union{MPS,MPO,ITensor}, gatedata::Tuple) =
+  gate(M,gatedata...)
+
+gate(M::Union{MPS,MPO,ITensor},
+     gatename::String,
+     sites::Union{Int, Tuple},
+     params::NamedTuple) =
+  gate(M, gatename, sites; params...)
+
+
+function gate(T::ITensor, gatename::String, site::Union{Int, Tuple}; kwargs...)
+  tensor_indices = vcat(inds(T, plev = 0)...)
+  tensor_tags = tags.(tensor_indices)
+  X = [string.(tensor_tags[j]) for j in 1:length(tensor_tags)]
+  sitenumber_position = findfirst(y -> y[1:2] == "n=", X[1])
+  isnothing(sitenumber_position) && error("Qubit numbering not found")
+  Y = [parse(Int,X[j][sitenumber_position][3:end]) for j in 1:length(X)]
+  gateindices = [findfirst(x-> x == s, Y) for s in site] 
+  site_inds = [tensor_indices[gateindex] for gateindex in gateindices]
+  return gate(gatename, site_inds...; kwargs...)
 end
 
 """
@@ -542,11 +482,8 @@ end
 
 randomparams(::GateName, args...; kwargs...) = NamedTuple()
 
-function randomparams(
-  ::GateName"RandomUnitary", N::Int=2; eltype=ComplexF64, rng=Random.GLOBAL_RNG
-)
-  return (random_matrix=randn(rng, eltype, N, N),)
-end
+randomparams(::GateName"RandomUnitary", N::Int = 1; eltype = ComplexF64, rng = Random.GLOBAL_RNG) = 
+  (random_matrix = randn(rng, eltype, 1<<N, 1<<N),)
 
 randomparams(s::AbstractString; kwargs...) = randomparams(GateName(s); kwargs...)
 

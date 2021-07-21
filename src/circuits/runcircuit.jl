@@ -1,12 +1,4 @@
 """
---------------------------------------------------------------------------------
---------------------------------------------------------------------------------
--                              QUANTUM CIRCUITS                                -
---------------------------------------------------------------------------------
---------------------------------------------------------------------------------
-"""
-
-"""
     buildcircuit(M::Union{MPS,MPO}, gates::Vector{<:Tuple};
                  noise = nothing)
 
@@ -16,34 +8,35 @@ If noise is nontrivial, the corresponding Kraus operators are
 added to each gate as a tensor with an extra (Kraus) index.
 """
 function buildcircuit(
-  M::Union{MPS,MPO},
+  M::Union{MPS,MPO,ITensor},
   circuit::Union{Tuple,Vector{<:Any}};
-  noise::Union{Nothing,String,Tuple{String,NamedTuple}}=nothing,
+  noise::Union{Nothing, Tuple, NamedTuple} = nothing
 )
   circuit_tensors = ITensor[]
   if circuit isa Tuple
     circuit = [circuit]
   end
+  if !isnothing(noise)
+    circuit = insertnoise(circuit, noise)
+  end
   for g in circuit
     push!(circuit_tensors, gate(M, g))
-    ns = g[2]
-    if !isnothing(noise)
-      for n in ns
-        if noise isa String
-          noisegate = (noise, n)
-        elseif noise isa Tuple{String,NamedTuple}
-          noisegate = (noise[1], n, noise[2])
-        end
-        push!(circuit_tensors, gate(M, noisegate))
-      end
-    end
   end
   return circuit_tensors
 end
 
-function buildcircuit(M::Union{MPS,MPO}, circuit::Vector{Vector{<:Any}}; kwargs...)
+function buildcircuit(M::Union{MPS,MPO,ITensor}, circuit::Vector{Vector{<:Any}}; kwargs...)
   return buildcircuit(M, vcat(circuit...); kwargs...)
 end
+
+
+"""
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+                            TENSOR NETWORK SIMULATOR                                   
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+"""
 
 """
     runcircuit(M::Union{MPS,MPO}, gate_tensors::Vector{<:ITensor};
@@ -148,47 +141,6 @@ function runcircuit(
 end
 
 """
-
-Compute the Choi matrix `Λ  = ε ⊗ 1̂(|ξ⟩⟨ξ|)`, where `|ξ⟩= ⨂ⱼ |00⟩ⱼ+|11⟩ⱼ`, 
-and `ε`` is a quantum channel built out of a set of quantum gates and 
-a local noise model. Returns a MPO with `N` tensor having 4 sites indices. 
-"""
-function choimatrix(circuit::Vector{<:Any}; kwargs...)
-  return choimatrix(nqubits(circuit), gates; kwargs...)
-end
-
-function choimatrix(sites::Union{Int,Vector{<:Index}}, args...; kwargs...)
-  return choimatrix(unitary_mpo_to_choi_mpo(productoperator(sites)), args...; kwargs...)
-end
-
-function choimatrix(
-  Λ0::MPO,
-  circuit::Vector{<:Any};
-  noise=nothing,
-  cutoff=1e-15,
-  maxdim=10000,
-  svd_alg="divide_and_conquer",
-)
-  N = length(Λ0)
-  if isnothing(noise)
-    error("choi matrix requires noise")
-  end
-  # if circuit has layer structure, transform to vectorized circuit
-  circuit = (circuit isa Vector{<:Vector} ? vcat(circuit...) : circuit)
-
-  # TODO: simplify by building the circuit directly from the Choi MPO.
-  s = [firstind(Λ0[j]; tags="Output") for j in 1:length(Λ0)]
-  compiler = productoperator(s)
-  prime!(compiler, -1; tags="Qubit")
-  circuit_tensors = buildcircuit(compiler, circuit; noise=noise)
-
-  # contract to compute the Choi matrix
-  return runcircuit(
-    Λ0, circuit_tensors; apply_dag=true, cutoff=cutoff, maxdim=maxdim, svd_alg=svd_alg
-  )
-end
-
-"""
      runcircuit(M::Union{MPS, MPO}, gates::Union{Tuple,Vector{<:Any}};
                 noise = nothing, kwargs...)
 
@@ -217,12 +169,9 @@ If an `Observer` is provided as input, and `circuit` is made out of a sequence
 of layers of gates, performs a measurement of the observables contained in
 Observer, after the application of each layer.
 """
-function runcircuit(
-  M::Union{MPS,MPO}, circuit::Union{Tuple,Vector{<:Any}}; noise=nothing, kwargs...
-)
-  circuit_tensors = buildcircuit(M, circuit; noise=noise)
-  return runcircuit(M, circuit_tensors; kwargs...)
-end
+runcircuit(M::Union{MPS, MPO,ITensor}, circuit::Union{Tuple,Vector{<:Any}};
+           noise = nothing, kwargs...) = 
+  runcircuit(M, buildcircuit(M, circuit; noise = noise); kwargs...)
 
 function runcircuit(
   M::Union{MPS,MPO},
@@ -289,35 +238,44 @@ The starting state is generated automatically based on the flags `process`, `noi
    `Λ = ε⊗1̂(|ξ⟩⟨ξ|)`, where `|ξ⟩= ⨂ⱼ |00⟩ⱼ+|11⟩ⱼ`, approximated by a MPO with 4 site indices,
    two for the input and two for the output Hilbert space of the quantum channel.
 """
-function runcircuit(
-  sites::Vector{<:Index},
-  circuit::Union{Tuple,Vector{<:Any},Vector{Vector{<:Any}}};
-  process=false,
-  noise=nothing,
-  kwargs...,
-)
-  (process && isnothing(noise)) && return runcircuit(
-    productoperator(sites), circuit; noise=nothing, apply_dag=false, kwargs...
-  )
-
-  (process && !isnothing(noise)) &&
-    return choimatrix(sites, circuit; noise=noise, kwargs...)
-
-  return runcircuit(productstate(sites), circuit; noise=noise, kwargs...)
+function runcircuit(sites::Vector{<:Index}, 
+                    circuit::Union{Tuple,Vector{<:Any},Vector{Vector{<:Any}}};
+                    process::Bool = false, noise = nothing,
+                    full_representation::Bool = false,
+                    kwargs...)
+  
+  
+  # Unitary operator for the circuit
+  if process && isnothing(noise) 
+    U₀ = full_representation ? prod(productoperator(sites)) : productoperator(sites)
+    return runcircuit(U₀, circuit; 
+                      noise = nothing, 
+                      apply_dag = false, 
+                      kwargs...) 
+  end 
+  # Choi matrix
+  if process && !isnothing(noise)
+    full_representation && error("Exact Choi matrix not yet implemented")
+    return choimatrix(sites, circuit; 
+                      noise = noise, 
+                      kwargs...)
+  end
+  
+  M₀ = full_representation ? prod(productstate(sites)) : productstate(sites) 
+  return runcircuit(M₀, circuit; noise = noise, kwargs...) 
 end
 
-function runcircuit(N::Int, args...; kwargs...)
-  return runcircuit(siteinds("Qubit", N), args...; kwargs...)
-end
+runcircuit(N::Int, circuit::Any; kwargs...) = 
+  runcircuit(siteinds("Qubit", N), circuit; kwargs...)
 
-function runcircuit(circuit::Any, args...; kwargs...)
-  return runcircuit(nqubits(circuit), circuit, args...; kwargs...)
-end
+runcircuit(circuit::Any; kwargs...) = 
+  runcircuit(nqubits(circuit), circuit; kwargs...)
+
 
 """
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
--                                  UTILITIES                                   -
+                               EXACT SIMULATOR                                   
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 """
@@ -328,16 +286,78 @@ end
 Apply the circuit to a ITensor from a list of tensors.
 """
 
-function runcircuit(M::ITensor, circuit_tensors::Vector{<:ITensor}; kwargs...)
-  return apply(circuit_tensors, M; kwargs...)
+function runcircuit(T::ITensor, circuit_tensors::Vector{<:ITensor}; apply_dag = nothing, kwargs...)
+  # Check if gate_tensors contains Kraus operators
+  inds_sizes = [length(inds(g)) for g in circuit_tensors]
+  noiseflag = any(x -> x % 2 == 1 , inds_sizes)
+
+  if apply_dag == false && noiseflag == true
+    error("noise simulation requires apply_dag=true")
+  end
+  # Default mode (apply_dag = nothing)
+  if isnothing(apply_dag)
+    # Noisy evolution: MPS/MPO -> MPO
+    if noiseflag
+      T = is_operator(T) ? T : prime(T, "Site") * dag(T)
+      # ρ -> ε(ρ) (MPO -> MPO, conjugate evolution)
+      return apply(circuit_tensors, T; apply_dag = true)
+    # Pure state evolution
+    else
+      # |ψ⟩ -> U |ψ⟩ (MPS -> MPS)
+      #  ρ  -> U ρ U† (MPO -> MPO, conjugate evolution)
+      if !is_operator(T)
+        return apply(circuit_tensors, T)
+      else
+        return apply(circuit_tensors, T; apply_dag = true)
+      end
+    end
+  # Custom mode (apply_dag = true / false)
+  else
+    Tc = apply(circuit_tensors, T; apply_dag = apply_dag)
+    !is_operator(T) && apply_dag && return prime(Tc, "Site") * dag(Tc)
+    return Tc
+  end
 end
 
-"""
-    runcircuit(M::ITensor, gates::Vector{<:Tuple})
 
-Apply the circuit to an ITensor from a list of gates.
+"""
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+                                  CHOI MATRIX                                   
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 """
 
-function runcircuit(M::ITensor, circuit::Vector{<:Any}; noise=nothing, kwargs...)
-  return runcircuit(M, buildcircuit(M, circuit; noise=noise); kwargs...)
+"""
+
+Compute the Choi matrix `Λ  = ε ⊗ 1̂(|ξ⟩⟨ξ|)`, where `|ξ⟩= ⨂ⱼ |00⟩ⱼ+|11⟩ⱼ`, 
+and `ε`` is a quantum channel built out of a set of quantum gates and 
+a local noise model. Returns a MPO with `N` tensor having 4 sites indices. 
+"""
+choimatrix(circuit::Vector{<:Any}; kwargs...) = 
+  choimatrix(nqubits(circuit), gates; kwargs...)
+
+choimatrix(sites::Union{Int, Vector{<:Index}}, args...; kwargs...) = 
+  choimatrix(unitary_mpo_to_choi_mpo(productoperator(sites)), args...; kwargs...) 
+
+function choimatrix(Λ0::MPO, circuit::Vector{<:Any};
+                    noise = nothing, cutoff = 1e-15, maxdim = 10000,
+                    svd_alg = "divide_and_conquer")
+  N = length(Λ0)
+  if isnothing(noise)
+    error("choi matrix requires noise")
+  end
+  # if circuit has layer structure, transform to vectorized circuit
+  circuit = (circuit isa Vector{<:Vector} ? vcat(circuit...) : circuit)
+  
+  # TODO: simplify by building the circuit directly from the Choi MPO.
+  s = [firstind(Λ0[j], tags = "Output") for j in 1:length(Λ0)]
+  compiler = productoperator(s)
+  prime!(compiler,-1,tags = "Qubit") 
+  circuit_tensors = buildcircuit(compiler, circuit; noise = noise)
+
+  # contract to compute the Choi matrix
+  return runcircuit(Λ0, circuit_tensors; apply_dag = true, cutoff = cutoff,
+                    maxdim = maxdim, svd_alg = svd_alg)
 end
+
