@@ -17,7 +17,7 @@ function buildcircuit(
     circuit = [circuit]
   end
   if !isnothing(noise)
-    circuit = insertnoise!(circuit, noise)
+    circuit = insertnoise(circuit, noise)
   end
   for g in circuit
     push!(circuit_tensors, gate(M, g))

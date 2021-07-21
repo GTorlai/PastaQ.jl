@@ -1,7 +1,7 @@
 name = "PastaQ"
 uuid = "30b07047-aa8b-4c78-a4e8-24d720215c19"
 authors = ["Giacomo Torlai <torlaigiacomo@gmail.com>", "Matthew Fishman <mfishman@flatironinstitute.org>"]
-version = "0.0.9"
+version = "0.0.10"
 
 [deps]
 HDF5 = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"

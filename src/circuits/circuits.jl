@@ -134,7 +134,7 @@ are provided, each gate is sampled accordingly.
 
 function randomlayer(
   gatenames::Vector{<:AbstractString},
-  support::Union{Vector{<:Int},AbstractRange};
+  support::Union{Vector{<:Int},AbstractRange,Vector{<:Tuple}};
   rng=Random.GLOBAL_RNG,
   weights::Union{Nothing,Vector{Float64}}=ones(length(gatenames)) / length(gatenames),
   kwargs...,

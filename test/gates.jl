@@ -1,5 +1,5 @@
 using PastaQ
-using PastaQ.ITensors
+using ITensors
 using Test
 using LinearAlgebra
 
@@ -11,43 +11,43 @@ using LinearAlgebra
   @test plev(inds(g)[1]) == 1
   @test plev(inds(g)[2]) == 0
   ggdag = g * prime(dag(g), 1; plev=1)
-  @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
+  @test ITensors.array(ggdag) ≈ Matrix{Int}(I, 2, 2)
 
   g = gate("X", i)
   @test plev(inds(g)[1]) == 1
   @test plev(inds(g)[2]) == 0
   ggdag = g * prime(dag(g), 1; plev=1)
-  @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
+  @test ITensors.array(ggdag) ≈ Matrix{Int}(I, 2, 2)
 
   g = gate("Y", i)
   @test plev(inds(g)[1]) == 1
   @test plev(inds(g)[2]) == 0
   ggdag = g * prime(dag(g), 1; plev=1)
-  @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
+  @test ITensors.array(ggdag) ≈ Matrix{Int}(I, 2, 2)
 
   g = gate("Z", i)
   @test plev(inds(g)[1]) == 1
   @test plev(inds(g)[2]) == 0
   ggdag = g * prime(dag(g), 1; plev=1)
-  @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
+  @test ITensors.array(ggdag) ≈ Matrix{Int}(I, 2, 2)
 
   g = gate("H", i)
   @test plev(inds(g)[1]) == 1
   @test plev(inds(g)[2]) == 0
   ggdag = g * prime(dag(g), 1; plev=1)
-  @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
+  @test ITensors.array(ggdag) ≈ Matrix{Int}(I, 2, 2)
 
   g = gate("S", i)
   @test plev(inds(g)[1]) == 1
   @test plev(inds(g)[2]) == 0
   ggdag = g * prime(dag(g), 1; plev=1)
-  @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
+  @test ITensors.array(ggdag) ≈ Matrix{Int}(I, 2, 2)
 
   g = gate("T", i)
   @test plev(inds(g)[1]) == 1
   @test plev(inds(g)[2]) == 0
   ggdag = g * prime(dag(g), 1; plev=1)
-  @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
+  @test ITensors.array(ggdag) ≈ Matrix{Int}(I, 2, 2)
 
   g = state("X+", i)
   @test plev(ind(g, 1)) == 0
@@ -72,21 +72,21 @@ using LinearAlgebra
   @test plev(inds(g)[1]) == 1
   @test plev(inds(g)[2]) == 0
   ggdag = g * prime(dag(g), 1; plev=1)
-  @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
+  @test ITensors.array(ggdag) ≈ Matrix{Int}(I, 2, 2)
 
   θ = π * rand()
   g = gate("Ry", i; θ=θ)
   @test plev(inds(g)[1]) == 1
   @test plev(inds(g)[2]) == 0
   ggdag = g * prime(dag(g), 1; plev=1)
-  @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
+  @test ITensors.array(ggdag) ≈ Matrix{Int}(I, 2, 2)
 
   ϕ = 2π * rand()
   g = gate("Rz", i; ϕ=ϕ)
   @test plev(inds(g)[1]) == 1
   @test plev(inds(g)[2]) == 0
   ggdag = g * prime(dag(g), 1; plev=1)
-  @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
+  @test ITensors.array(ggdag) ≈ Matrix{Int}(I, 2, 2)
 
   angles = rand(3)
   θ = π * angles[1]
@@ -96,31 +96,31 @@ using LinearAlgebra
   @test plev(inds(g)[1]) == 1
   @test plev(inds(g)[2]) == 0
   ggdag = g * prime(dag(g), 1; plev=1)
-  @test array(ggdag) ≈ Matrix{Int}(I, 2, 2)
+  @test ITensors.array(ggdag) ≈ Matrix{Int}(I, 2, 2)
 
   g = gate("SWAP", i, j)
   @test plev(inds(g)[1]) == 1 && plev(inds(g)[2]) == 1
   @test plev(inds(g)[3]) == 0 && plev(inds(g)[4]) == 0
   ggdag = g * prime(dag(g), 1; plev=1)
-  @test array(ggdag) ≈ reshape(Matrix{ComplexF64}(I, 4, 4), (2, 2, 2, 2))
+  @test ITensors.array(ggdag) ≈ reshape(Matrix{ComplexF64}(I, 4, 4), (2, 2, 2, 2))
 
   g = gate("CX", i, j)
   @test plev(inds(g)[1]) == 1 && plev(inds(g)[2]) == 1
   @test plev(inds(g)[3]) == 0 && plev(inds(g)[4]) == 0
   ggdag = g * prime(dag(g), 1; plev=1)
-  @test array(ggdag) ≈ reshape(Matrix{ComplexF64}(I, 4, 4), (2, 2, 2, 2))
+  @test ITensors.array(ggdag) ≈ reshape(Matrix{ComplexF64}(I, 4, 4), (2, 2, 2, 2))
 
   g = gate("CY", i, j)
   @test plev(inds(g)[1]) == 1 && plev(inds(g)[2]) == 1
   @test plev(inds(g)[3]) == 0 && plev(inds(g)[4]) == 0
   ggdag = g * prime(dag(g), 1; plev=1)
-  @test array(ggdag) ≈ reshape(Matrix{ComplexF64}(I, 4, 4), (2, 2, 2, 2))
+  @test ITensors.array(ggdag) ≈ reshape(Matrix{ComplexF64}(I, 4, 4), (2, 2, 2, 2))
 
   g = gate("CZ", i, j)
   @test plev(inds(g)[1]) == 1 && plev(inds(g)[2]) == 1
   @test plev(inds(g)[3]) == 0 && plev(inds(g)[4]) == 0
   ggdag = g * prime(dag(g), 1; plev=1)
-  @test array(ggdag) ≈ reshape(Matrix{ComplexF64}(I, 4, 4), (2, 2, 2, 2))
+  @test ITensors.array(ggdag) ≈ reshape(Matrix{ComplexF64}(I, 4, 4), (2, 2, 2, 2))
 
   g = gate("randU", i)
   @test hasinds(g, i', i)

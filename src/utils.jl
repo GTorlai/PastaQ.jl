@@ -72,8 +72,8 @@ end
 
 is_operator(T::ITensor) = !isempty(inds(T,tags="Site,n=1",plev=1))
 
-#array(T::ITensor; reverse::Bool = true) = 
-#  (is_operator(T) ? tomatrix(T) : tovector(T))
+PastaQ.array(T::ITensor; reverse::Bool = true) = 
+  (is_operator(T) ? tomatrix(T) : tovector(T))
 
 function tovector(M::ITensor)
   if length(inds(M,tags="n=1")) > 1
