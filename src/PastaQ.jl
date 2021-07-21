@@ -12,8 +12,8 @@ using DelimitedFiles
 include("imports.jl")
 include("exports.jl")
 
-include("itensor.jl")
 include("lpdo.jl")
+include("itensor.jl")
 
 include("circuits/gates.jl")
 include("circuits/noise.jl")
@@ -33,10 +33,13 @@ include("measurements.jl")
 
 include("tomography/statetomography.jl")
 include("tomography/processtomography.jl")
-include("tomography/tomographyutils.jl")
 
 include("inputoutput.jl")
+
+include("array.jl")
+
 include("utils.jl")
+
 include("deprecated.jl")
 
 end # module

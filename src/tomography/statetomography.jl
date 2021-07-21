@@ -514,7 +514,14 @@ function tomography(
       update!(observer!, normalized_model, best_model, tot_time, train_loss, test_loss)
       # printing
       if outputlevel ≥ 1
-        printobserver(ep, observer!, print_metrics)
+        @printf("%-4d  ", ep)
+        @printf("⟨logP⟩ = %-4.4f  ", results(observer!, "train_loss")[end])
+        if !isnothing(test_data) 
+          @printf("(%.4f)  ", results(observer!, "test_loss")[end])
+        end
+        printobserver(observer!, print_metrics)
+        @printf("elapsed = %-4.3fs", ep_time)
+        println()
       end
       # saving
       if !isnothing(outputpath)

@@ -1,3 +1,5 @@
+# The default purifier tags for LPDOs
+const default_purifier_tags = ts"Purifier"
 
 # Locally purified density operator
 # L = prime(X, !purifier_tags(X)) * dag(X)
@@ -163,6 +165,32 @@ end
 # is generic enough.
 ITensors.MPO(L::LPDO{MPS}; kwargs...) = MPO(L.X; kwargs...)
 
+"""
+    tr(L::LPDO, tag::String)
+
+Trace `"Input"` or `"Output"` qubits.
+"""
+function tr(L::LPDO, tag::String)
+  N = length(L)
+
+  Φ = ITensor[]
+
+  tmp = noprime(ket(L, 1); tags=tag) * bra(L, 1)
+  Cdn = combiner(commonind(tmp, L.X[2]), commonind(tmp, L.X[2]'))
+  push!(Φ, tmp * Cdn)
+
+  for j in 2:(N - 1)
+    tmp = noprime(ket(L, j); tags=tag) * bra(L, j)
+    Cup = Cdn
+    Cdn = combiner(commonind(tmp, L.X[j + 1]), commonind(tmp, L.X[j + 1]'))
+    push!(Φ, tmp * Cup * Cdn)
+  end
+  tmp = noprime(ket(L, N); tags=tag) * bra(L, N)
+  Cup = Cdn
+  push!(Φ, tmp * Cup)
+  return MPO(Φ)
+end
+
 function HDF5.write(parent::Union{HDF5.File,HDF5.Group}, name::AbstractString, L::LPDO)
   g = create_group(parent, name)
   attributes(g)["type"] = String(Symbol(typeof(L)))
@@ -176,3 +204,6 @@ function HDF5.read(
   X = read(g, "X", XT)
   return LPDO(X, ts"Purifier")
 end
+
+
+

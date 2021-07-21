@@ -142,3 +142,90 @@ function measure!(observer::Observer, M::Union{MPS,MPO,LPDO})
 end
 
 Base.copy(observer::Observer) = Observer(copy(observer.measurements))
+
+
+"""
+    configure!(observer::Union{Observer,Nothing},
+               optimizer::Optimizer, 
+               batchsize::Int,
+               measurement_frequency::Int,
+               train_data::Matrix,
+               test_data::Union{Array,Nothing})
+
+Configure the Observer for quantum tomography:
+- Save the Optimizer parameters
+- Save batchsize/measurement_frequency/dataset_size
+- Initialize train_loss (test_loss) measurements
+"""
+function configure!(
+  observer::Union{Observer,Nothing},
+  optimizer::Optimizer,
+  batchsize::Int,
+  measurement_frequency::Int,
+  train_data::Matrix,
+  test_data::Union{Array,Nothing},
+)
+  if isnothing(observer)
+    observer = Observer()
+  end
+
+  params = Dict{String,Any}()
+  # grab the optimizer parameters
+  params["optimizer"] = Dict{Symbol,Any}()
+  params["optimizer"][:name] = string(typeof(optimizer))
+  #params[string(typeof(optimizer))] = Dict{Symbol,Any}()
+  for par in fieldnames(typeof(optimizer))
+    if !(getfield(optimizer, par) isa Vector{<:ITensor})
+      params["optimizer"][par] = getfield(optimizer, par)
+    end
+  end
+
+  # batchsize 
+  params["batchsize"] = batchsize
+  # storing this can help to back out simulation time and observables evolution
+  params["measurement_frequency"] = measurement_frequency
+  
+  params["dataset_size"] = isnothing(test_data) ? size(train_data, 1) : size(train_data, 1) + size(test_data, 1)
+
+  observer.measurements["parameters"] = (nothing => params)
+
+  observer.measurements["train_loss"] = (nothing => [])
+  if !isnothing(test_data)
+    observer.measurements["test_loss"] = (nothing => [])
+  end
+
+  return observer
+end
+
+"""
+    update!(observer::Observer,
+            normalized_model::Union{MPS,MPO,LPDO},
+            best_model::LPDO,
+            simulation_time::Float64,
+            train_loss::Float64,
+            test_loss::Union{Nothing,Float64})
+
+Update the observer for quantum tomography.
+Perform measuremenst and record data.
+"""
+function update!(
+  observer::Observer,
+  normalized_model::Union{MPS,MPO,LPDO},
+  best_model::LPDO,
+  simulation_time::Float64,
+  train_loss::Float64,
+  test_loss::Union{Nothing,Float64}
+)
+  observer.measurements["simulation_time"] = nothing => simulation_time
+  push!(observer.measurements["train_loss"][2], train_loss)
+  if !isnothing(test_loss)
+    push!(observer.measurements["test_loss"][2], test_loss)
+  end
+  if normalized_model isa LPDO{MPS}
+    measure!(observer, normalized_model.X)
+  else
+    measure!(observer, normalized_model)
+  end
+  return observer
+end
+

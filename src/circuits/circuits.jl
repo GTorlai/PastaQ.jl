@@ -1,3 +1,31 @@
+function nqubits(g::Tuple)
+  s = g[2]
+  n = (s isa Number ? s : maximum(s))
+  return n
+end
+
+nqubits(gates::Vector{<:Any}) = maximum((nqubits(gate) for gate in gates))
+
+nlayers(circuit::Vector{<:Any}) = 1
+nlayers(circuit::Vector{<:Vector{<:Any}}) = length(circuit)
+
+ngates(circuit::Vector{<:Any}) = length(circuit)
+ngates(circuit::Vector{<:Vector{<:Any}}) = length(vcat(circuit...))
+
+
+function nqubits(T::ITensor)
+  s1 = inds(T,tags="Site,n=1")
+  # Wavefunction
+  if length(s1) == 1 || length(s1) == 2
+    return length(inds(T,plev=0))
+  # Choi matrix
+  elseif length(s1) == 4
+    return length(inds(T,plev=0)) ÷ 2
+  else
+    error("Indices not recognized")
+  end
+end
+
 """
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
@@ -206,3 +234,8 @@ Generate a 2D random quantum circuit
 function randomcircuit(Lx::Int, Ly::Int, depth::Int; rotated::Bool=false, kwargs...)
   return randomcircuit(Lx * Ly, depth, squarearray(Lx, Ly; rotated=rotated), kwargs...)
 end
+
+
+
+
+
