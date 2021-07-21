@@ -382,11 +382,12 @@ gate(s::String, args...; kwargs...) = gate(GateName(s), args...; kwargs...)
 # Version that accepts a dimension for the gate,
 # for n-qubit gates
 gate(gn::GateName, N::Int; kwargs...) = gate(gn; kwargs...)
+gate(gn::GateName, dims::Tuple; kwargs...) = gate(gn, length(dims); kwargs...)
 
 function gate(gn::GateName, s1::Index, ss::Index...; kwargs...)
   s = tuple(s1, ss...)
   rs = reverse(s)
-  g = gate(gn, length(s); kwargs...) 
+  g = gate(gn, dim.(s); kwargs...) 
   if ndims(g) == 1
     # TODO:
     #error("gate must have more than one dimension, use state(...) for state vectors.")
