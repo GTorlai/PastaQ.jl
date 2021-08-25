@@ -208,20 +208,17 @@ function randomcircuit(Lx::Int, Ly::Int, depth::Int; rotated::Bool=false, kwargs
 end
 
 
-PastaQ.dag(single_gate::Tuple{String,Union{Int,Tuple}}) = 
+ITensors.dag(single_gate::Tuple{String,Union{Int,Tuple}}) = 
   (single_gate[1], single_gate[2], (dag = true,))
 
-PastaQ.dag(single_gate::Tuple{String,Union{Int,Tuple},NamedTuple}) = 
-  (single_gate[1], single_gate[2], (single_gate[3]..., dag = true,))
-
-PastaQ.dag(layer::Vector{<:Any}) = 
-  [dag(g) for g in reverse(layer)]
-
-function PastaQ.dag(circuit::Vector{<:Vector{<:Any}})
-  newcircuit = Vector[] 
-  for d in reverse(1:length(circuit))
-    push!(newcircuit, dag(circuit[d]))
-  end
-  return newcircuit
+function ITensors.dag(single_gate::Tuple{String,Union{Int,Tuple},NamedTuple})
+  haskey(single_gate[3],:dag) && return Base.setindex(single_gate,Base.setindex(single_gate[3],!single_gate[3][:dag],:dag),3)  
+  return (single_gate[1], single_gate[2], (single_gate[3]..., dag = true,))
 end
+
+ITensors.dag(layer::Vector{<:Any}) = 
+  [ITensors.dag(g) for g in reverse(layer)]
+
+ITensors.dag(circuit::Vector{<:Vector{<:Any}}) = 
+  [dag(layer) for layer in reverse(circuit)]
 
