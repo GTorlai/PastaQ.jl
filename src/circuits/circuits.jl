@@ -212,8 +212,9 @@ ITensors.dag(single_gate::Tuple{String,Union{Int,Tuple}}) =
   (single_gate[1], single_gate[2], (dag = true,))
 
 function ITensors.dag(single_gate::Tuple{String,Union{Int,Tuple},NamedTuple})
-  haskey(single_gate[3],:dag) && return Base.setindex(single_gate,Base.setindex(single_gate[3],!single_gate[3][:dag],:dag),3)  
-  return (single_gate[1], single_gate[2], (single_gate[3]..., dag = true,))
+  prev_dag = get(single_gate[3], :dag, false)
+  nt = Base.setindex(single_gate[3], !prev_dag, :dag)
+  return (single_gate[1], single_gate[2], nt)
 end
 
 ITensors.dag(layer::Vector{<:Any}) = 
