@@ -206,3 +206,22 @@ Generate a 2D random quantum circuit
 function randomcircuit(Lx::Int, Ly::Int, depth::Int; rotated::Bool=false, kwargs...)
   return randomcircuit(Lx * Ly, depth, squarearray(Lx, Ly; rotated=rotated), kwargs...)
 end
+
+
+PastaQ.dag(single_gate::Tuple{String,Union{Int,Tuple}}) = 
+  (single_gate[1], single_gate[2], (dag = true,))
+
+PastaQ.dag(single_gate::Tuple{String,Union{Int,Tuple},NamedTuple}) = 
+  (single_gate[1], single_gate[2], (single_gate[3]..., dag = true,))
+
+PastaQ.dag(layer::Vector{<:Any}) = 
+  [dag(g) for g in reverse(layer)]
+
+function PastaQ.dag(circuit::Vector{<:Vector{<:Any}})
+  newcircuit = Vector[] 
+  for d in reverse(1:length(circuit))
+    push!(newcircuit, dag(circuit[d]))
+  end
+  return newcircuit
+end
+
