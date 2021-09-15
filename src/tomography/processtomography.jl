@@ -591,6 +591,17 @@ function tomography(
   outputpath = get(kwargs, :outputpath, nothing)
   outputlevel = get(kwargs, :outputlevel, 1)
   savemodel = get(kwargs, :savemodel, false)
+  earlystop = get(kwargs, :earlystop, nothing) 
+ 
+  function stoprun(earlystop, historyloss)
+    isnothing(earlystop) && return false
+    earlystop isa Function && return earlystop(historyloss)
+    ϵ = 1e-3
+    size = epochs ÷ 10
+    avgloss = StatsBase.mean(historyloss[end-size:end])
+    Δ = StatsBase.sem(historyloss[end-size:end])
+    return Δ/avgloss < ϵ
+  end
 
   # configure the observer. if no observer is provided, create an empty one
   observer! = configure!(
@@ -686,6 +697,8 @@ function tomography(
         savetomographyobserver(observer!, outputpath; model = model_to_be_saved)
       end
     end
+    historyloss = isnothing(test_data) ? results(observer!, "train_loss") : results(observer!, "test_loss")
+    (ep ≥ epochs÷10+1) && stoprun(earlystop, historyloss) && break
   end
   return best_model
 end
