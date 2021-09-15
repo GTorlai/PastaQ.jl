@@ -588,6 +588,20 @@ function tomography(
   test_data = get(kwargs, :test_data, nothing)
   outputpath = get(kwargs, :fout, nothing)
   print_metrics = get(kwargs, :print_metrics, [])
+  outputpath = get(kwargs, :outputpath, nothing)
+  outputlevel = get(kwargs, :outputlevel, 1)
+  savemodel = get(kwargs, :savemodel, false)
+  earlystop = get(kwargs, :earlystop, nothing) 
+ 
+  function stoprun(earlystop, historyloss)
+    isnothing(earlystop) && return false
+    earlystop isa Function && return earlystop(historyloss)
+    ϵ = 1e-3
+    size = epochs ÷ 10
+    avgloss = StatsBase.mean(historyloss[end-size:end])
+    Δ = StatsBase.sem(historyloss[end-size:end])
+    return Δ/avgloss < ϵ
+  end
 
   # configure the observer. if no observer is provided, create an empty one
   observer! = configure!(
@@ -665,14 +679,26 @@ function tomography(
       else
         update!(observer!, normalized_model, best_model, tot_time, train_loss, test_loss)
       end
-
       # printing
-      printobserver(ep, observer!, print_metrics)
+      if outputlevel ≥ 1 
+        @printf("%-4d  ", ep)
+        @printf("⟨logP⟩ = %-4.4f  ", results(observer!, "train_loss")[end])
+        if !isnothing(test_data) 
+          @printf("(%.4f)  ", results(observer!, "test_loss")[end])
+        end
+        printobserver(observer!, print_metrics)
+        @printf("elapsed = %-4.3fs", ep_time)
+        println()
+      end
       # saving
       if !isnothing(outputpath)
-        #saveobserver(observer, outputpath; model = best_model)
+        model_to_be_saved = (!savemodel ? nothing :
+                             model isa LPDO{MPS} ? choi_mps_to_unitary_mpo(best_model) : best_model)
+        savetomographyobserver(observer!, outputpath; model = model_to_be_saved)
       end
     end
+    historyloss = isnothing(test_data) ? results(observer!, "train_loss") : results(observer!, "test_loss")
+    (ep ≥ epochs÷10+1) && stoprun(earlystop, historyloss) && break
   end
   return best_model
 end

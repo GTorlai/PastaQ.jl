@@ -1,6 +1,7 @@
 export
   # ITensors
   maxlinkdim,
+  siteinds,
 
   # circuits/circuits.jl
   randomlayer,

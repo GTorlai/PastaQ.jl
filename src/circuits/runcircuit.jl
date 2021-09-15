@@ -179,6 +179,10 @@ function runcircuit(
   (observer!)=nothing,
   move_sites_back_before_measurements::Bool=false,
   noise=nothing,
+  outputlevel = 1,
+  outputpath = nothing,
+  savemodel = false,
+  print_metrics = [],
   kwargs...,
 )
 
@@ -200,9 +204,23 @@ function runcircuit(
 
   for l in 1:length(circuit)
     layer = circuit[l]
-    M = runcircuit(M, layer; move_sites_back=move_sites_back_before_measurements, kwargs...)
-    if !isnothing(observer!)
-      measure!(observer!, M, s)
+    t = @elapsed begin
+      M = runcircuit(M, layer; move_sites_back=move_sites_back_before_measurements, kwargs...)
+      if !isnothing(observer!)
+        measure!(observer!, M, s)
+      end
+    end
+    if outputlevel ≥ 1
+      @printf("%-4d  ", l)
+      @printf("χ = %-4d  ", maxlinkdim(M))
+      #TODO add the truncation error here
+      printobserver(observer!, print_metrics)
+      @printf("elapsed = %-4.3fs", t)
+      println()
+    end
+    if !isnothing(outputpath)
+      model_to_be_saved = savemodel ? M : nothing
+      savecircuitobserver(observer!, outputpath; model = model_to_be_saved)
     end
   end
   if move_sites_back_before_measurements == false
@@ -270,7 +288,6 @@ runcircuit(N::Int, circuit::Any; kwargs...) =
 
 runcircuit(circuit::Any; kwargs...) = 
   runcircuit(nqubits(circuit), circuit; kwargs...)
-
 
 """
 --------------------------------------------------------------------------------

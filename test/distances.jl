@@ -37,20 +37,20 @@ end
 
 @testset "quantum process fidelity" begin
   N = 3
+  sites = siteinds("Qubit",N)
 
   circuit1 = randomcircuit(N, 3)
   circuit2 = randomcircuit(N, 3)
   # MPO unitary 
-  U1 = runcircuit(circuit1; process=true)
-  U2 = randomprocess(U1)
+  U1 = runcircuit(sites, circuit1; process=true)
+  U2 = randomprocess(sites)
 
   # MPO Choi matrix 
-  ρ1 = PastaQ.choimatrix(PastaQ.hilbertspace(U1), circuit1; noise=("depolarizing", (p=0.01,)))
-  ρ2 = PastaQ.choimatrix(PastaQ.hilbertspace(U1), circuit2; noise=("depolarizing", (p=0.01,)))
-  
+  ρ1 = PastaQ.choimatrix(sites, circuit1; noise=("DEP", (p=0.01,)))
+  ρ2 = PastaQ.choimatrix(sites, circuit2; noise=("DEP", (p=0.01,)))
   # LPDO Choi matrix
-  ϱ1 = normalize!(randomprocess(U1; mixed=true))
-  ϱ2 = normalize!(randomprocess(U1; mixed=true))
+  ϱ1 = normalize!(randomprocess(sites; mixed=true))
+  ϱ2 = normalize!(randomprocess(sites; mixed=true))
 
   @disable_warn_order begin
     ϕ1 = PastaQ.unitary_mpo_to_choi_mps(U1)

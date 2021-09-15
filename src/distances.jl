@@ -33,7 +33,7 @@ Quantum state fidelity between two wavefunctions.
 
 F = |⟨ψ|ϕ⟩|²
 """
-function fidelity(ψ::MPS, ϕ::MPS)
+function fidelity(ψ::MPS, ϕ::MPS; kwargs...)
   log_F̃ = 2.0 * real(loginner(ψ, ϕ))
   log_K = 2.0 * (lognorm(ψ) + lognorm(ϕ))
   fidelity = exp(log_F̃ - log_K)
@@ -46,7 +46,7 @@ density operator.
 
 F = ⟨ψ|ρ|ψ⟩
 """
-function fidelity(ψ::MPS, ρ::MPO)
+function fidelity(ψ::MPS, ρ::MPO; kwargs...)
   # TODO: replace with:
   # log_F̃ = loginner(ψ, ρ, ψ)
   # log_K = 2 * lognorm(ψ) + logtr(ρ) 
@@ -67,8 +67,10 @@ LPDO density operator.
 
 F = ⟨ψ|ϱ|ψ⟩=|X†|ψ⟩|²
 """
-function fidelity(Ψ::MPS, ϱ::LPDO{MPO})
-  proj = bra(ϱ) * Ψ
+function fidelity(Ψ::MPS, ϱ::LPDO{MPO}; cutoff::Float64 = 1e-15)
+  # TODO: fix exponential scaling
+  #proj = bra(ϱ) * Ψ
+  proj = *(bra(ϱ), Ψ; cutoff = cutoff)
   K = abs2(norm(Ψ)) * tr(ϱ)
   return inner(proj, proj) / K
 end
@@ -86,14 +88,14 @@ If `process = true`, get process fidelities:
 3. Quantum process fidelity between two MPO Choi matrices
    F = (Tr[√(√A B √A)])² 
 """
-function fidelity(A::MPO, B::MPO; process::Bool=false)
+function fidelity(A::MPO, B::MPO; process::Bool=false, cutoff::Float64 = 1e-15)
   ischoiA = ischoi(A)
   ischoiB = ischoi(B)
   # if quantum state fidelity:
   if process && (!ischoiA || !ischoiB)
     A = ischoiA ? A : unitary_mpo_to_choi_mps(A)
     B = ischoiB ? B : unitary_mpo_to_choi_mps(B)
-    return fidelity(A, B)
+    return fidelity(A, B; cutoff = cutoff)
   end
   # quantum state/process fidelity between two MPO density matrices 
   # or two Choi matrices
@@ -105,9 +107,9 @@ end
    F = ⟨ψ|ϱ|ψ⟩=|X†|ψ⟩|²
 2. Quantum process fidelity bewteen a Choi MPO and a Choi LPDO
 """
-function fidelity(A::MPO, B::LPDO{MPO}; process::Bool=false)
+function fidelity(A::MPO, B::LPDO{MPO}; process::Bool=false, cutoff::Float64 = 1e-15)
   #1: Choi MPO   -  Choi LPDO
-  (process && !ischoi(A)) && return fidelity(unitary_mpo_to_choi_mps(A), B)
+  (process && !ischoi(A)) && return fidelity(unitary_mpo_to_choi_mps(A), B; cutoff = cutoff)
   return fidelity(A, MPO(B))
 end
 fidelity(B::LPDO{MPO}, A::MPO; kwargs...) = fidelity(A, B; kwargs...)
