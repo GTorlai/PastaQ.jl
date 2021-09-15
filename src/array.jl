@@ -68,10 +68,10 @@ end
 
 is_operator(T::ITensor) = !isempty(inds(T,tags="Site,n=1",plev=1))
 
-array(T::ITensor; reverse::Bool = true) = 
-  (is_operator(T) ? tomatrix(T) : tovector(T))
+PastaQ.array(T::ITensor; kwargs...) = 
+  (is_operator(T) ? tomatrix(T; kwargs...) : tovector(T; kwargs...))
 
-function tovector(M::ITensor)
+function tovector(M::ITensor; reverse::Bool = true)
   if length(inds(M,tags="n=1")) > 1
     error("Cannot transform a density matrix into a vector")
   end
@@ -80,21 +80,32 @@ function tovector(M::ITensor)
   for j in 1:length(inds(M,plev=0))
     push!(s,firstind(M,tags="n=$(j)",plev=0))
   end
-  s = Base.reverse(s)
+  if reverse
+    s = Base.reverse(s)
+  end
   C = combiner(s...)
   return ITensors.array(M * C)
 end
 
-function tomatrix(M::ITensor)
+function tomatrix(M::ITensor; reverse::Bool = true)
   if length(inds(M,tags="n=1")) == 1
     error("Cannot transform a wavefunctionm into a matrix")
   end
   length(inds(M)) == 2 && return ITensors.array(M)
   s = []
-  for j in 1:length(inds(M,plev=0))
-    push!(s,firstind(M,tags="n=$(j)",plev=0))
+  if (hastags(M, "Input")) && (hastags(M, "Output"))
+    for j in 1:length(inds(M,plev=0))÷2
+      push!(s, firstind(M,tags="Input,n=$(j)",plev=0))
+      push!(s, firstind(M,tags="Output,n=$(j)",plev=0))
+    end
+  else
+    for j in 1:length(inds(M,plev=0))
+      push!(s,firstind(M,tags="n=$(j)",plev=0))
+    end
   end
-  s = Base.reverse(s)
+  if reverse
+    s = Base.reverse(s)
+  end
   C = combiner(s...)
   Mmat = M * dag(C) * C'
   c = combinedind(C)
