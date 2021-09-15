@@ -9,6 +9,7 @@ export
   randomcircuit,
   qft,
   ghz,
+  dag,
 
   # circuits/gates.jl
   # Methods

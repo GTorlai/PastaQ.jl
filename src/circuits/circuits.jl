@@ -236,6 +236,18 @@ function randomcircuit(Lx::Int, Ly::Int, depth::Int; rotated::Bool=false, kwargs
 end
 
 
+ITensors.dag(single_gate::Tuple{String,Union{Int,Tuple}}) = 
+  (single_gate[1], single_gate[2], (dag = true,))
 
+function ITensors.dag(single_gate::Tuple{String,Union{Int,Tuple},NamedTuple})
+  prev_dag = get(single_gate[3], :dag, false)
+  nt = Base.setindex(single_gate[3], !prev_dag, :dag)
+  return (single_gate[1], single_gate[2], nt)
+end
 
+ITensors.dag(layer::Vector{<:Any}) = 
+  [ITensors.dag(g) for g in reverse(layer)]
+
+ITensors.dag(circuit::Vector{<:Vector{<:Any}}) = 
+  [dag(layer) for layer in reverse(circuit)]
 

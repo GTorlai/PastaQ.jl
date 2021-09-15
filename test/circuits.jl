@@ -93,3 +93,27 @@ end
   )
   @test size(circuit, 1) == depth
 end
+
+@testset "dag circuit" begin
+
+  N = 2
+  depth = 4
+
+  circuit = randomcircuit(N, depth; twoqubitgates = "CX", onequbitgates = "Rn")
+  U = PastaQ.array(runcircuit(circuit; process = true))
+  dagcircuit = dag(circuit)
+  V = PastaQ.array(runcircuit(dagcircuit; process = true))
+  @test U ≈ V'
+  
+  circuit = randomcircuit(N, depth; twoqubitgates = "RandomUnitary", onequbitgates = "Rn", layered = false)
+  U = PastaQ.array(runcircuit(circuit; process = true))
+  dagcircuit = dag(circuit)
+  V = PastaQ.array(runcircuit(dagcircuit; process = true))
+  @test U ≈ V'
+  
+  dagdagcircuit = dag(dagcircuit)
+  Up = PastaQ.array(runcircuit(dagdagcircuit; process = true))
+  @test U ≈ Up
+
+end
+
