@@ -1,5 +1,5 @@
 using PastaQ
-
+using Random
 using ITensors
 using Test
 using LinearAlgebra
@@ -61,6 +61,10 @@ end
       @test bases[10 * (i - 1) + j] == bases[10 * (i - 1) + 1]
     end
   end
+  
+  bases = paulibases(N)
+  @test bases isa Matrix{String}
+  @test size(bases) == (3^N,N)
 end
 
 @testset "measurements" begin

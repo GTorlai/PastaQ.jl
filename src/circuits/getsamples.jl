@@ -6,6 +6,25 @@
 --------------------------------------------------------------------------------
 """
 
+function paulibases(N::Int)
+  if N >15
+    print("The $(N)-qubit set of Pauli bases contains $(3^N) bases.\n This may take a while...\n\n")
+  end
+  A = Iterators.product(ntuple(i->["X","Y","Z"], N)...) |> collect
+  B = reverse.(reshape(A,length(A),1))
+  return  reduce(hcat, getindex.(B,i) for i in 1:N)
+end
+
+function paulieigenstates(N::Int)
+  if N > 5
+    print("The $(N)-qubit set of Pauli eigenstates contains $(6^N) bases.\n This may take a while...\n\n")
+  end
+  A = Iterators.product(ntuple(i->["X+","X-","Y+","Y-","Z+","Z-"], N)...) |> collect
+  B = reverse.(reshape(A,length(A),1))
+  return  reduce(hcat, getindex.(B,i) for i in 1:N)
+end
+
+
 """
     randombases(N::Int, nshots::Int;
                 local_basis = ["X","Y","Z"],

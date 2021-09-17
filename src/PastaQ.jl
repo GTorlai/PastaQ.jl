@@ -30,6 +30,7 @@ include("randomstates.jl")
 include("distances.jl")
 include("measurements.jl")
 
+include("tomography/fulltomography.jl")
 include("tomography/statetomography.jl")
 include("tomography/processtomography.jl")
 
