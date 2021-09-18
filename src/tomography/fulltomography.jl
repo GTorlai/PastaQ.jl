@@ -53,7 +53,7 @@ Generate a dictionary containing the measurement counts for a set
 of input states and measurement projectors (i.e. QPT).
 """
 function measurement_counts(data::Matrix{Pair{String,Pair{String, Int}}}; fillzeros::Bool = true)
-  if N > 8
+  if size(data,2) > 8
     error("Full QPT restricted to N ≤ 4")
   end
   newdata = []
@@ -110,7 +110,7 @@ probability dictionary.
 If `return_probs=true`, return also the 1d vector of probabilities (i.e. the
 1D flattening of the dictionary).
 """
-function projector_matrix(probs::AbstractDict; process::Bool = false, return_probs::Bool = false)
+function design_matrix(probs::AbstractDict; process::Bool = false, return_probs::Bool = false)
   A = []
   p̂ = []
   
@@ -135,87 +135,6 @@ function projector_matrix(probs::AbstractDict; process::Bool = false, return_pro
   return copy(transpose(hcat(A...)))
 end
 
-
-function linearinversion_tomography(probabilities::AbstractDict;
-                                    positivesemidefinite::Bool = true,
-                                    trρ::Real = 1.0, 
-                                    kwargs...)
-  
-  # Generate the projector matrix corresponding to the probabilities.
-  A, p = projector_matrix(probabilities; return_probs = true)
-  # Invert the Born rule and reshape
-  ρ_vec = pinv(A) * p
-  d = Int(sqrt(size(ρ_vec,1)))
-  ρ = reshape(ρ_vec,(d,d))
-  
-  ρ .= ρ * (trρ / tr(ρ))
-  # Make PSD
-  positivesemidefinite && return make_PSD(ρ)
-  return ρ
-end
-
-function leastsquares_tomography(probabilities::AbstractDict; process::Bool = true, trρ::Number = 1.0, max_iters::Int=10000)
-  # Generate the projector matrix corresponding to the probabilities.
-  A,p = projector_matrix(probabilities; return_probs = true, process = process)
-  d = Int(sqrt(size(A,2)))
-  N = Int(sqrt(d))
-  n = N ÷ 2
-  # Variational density matrix
-  ρ = Convex.ComplexVariable(d,d)
-  
-  # Minimize the cost function C = ||A ρ⃗ - p̂||²
-  cost_function = Convex.norm(A * vec(ρ) - p) 
-  
-  # Contrained the trace and enforce positivity and hermitianity 
-  function tracepreserving(ρ)
-    for j in 1:n
-      subsystem_dims = [2 for _ in 1:(N+1-j)]
-      ρ = Convex.partialtrace(ρ,j+1,subsystem_dims)
-    end
-    return ρ
-  end
-  if process 
-    constraints = [Convex.tr(ρ) == (1<<n)*trρ
-                  Convex.isposdef(ρ)
-                  tracepreserving(ρ) == Matrix{Float64}(I,1<<n,1<<n)
-                  ρ == ρ'
-                 ]
-  else
-    constraints = [Convex.tr(ρ) == trρ 
-                   Convex.isposdef(ρ) 
-                   ρ == ρ']
-  end
-  # Use Convex.jl to solve the optimization
-  problem = Convex.minimize(cost_function,constraints)
-  Convex.solve!(problem, () -> SCS.Optimizer(verbose=false,max_iters=max_iters),verbose=false)
-  ρ̂ = ρ.value
-  
-  return ρ̂
-end
-
-function maximumlikelihood_tomography(probabilities::AbstractDict; process::Bool = true, trρ::Number = 1.0, max_iters::Int=10000)
-  # Generate the projector matrix corresponding to the probabilities. 
-  A,p = projector_matrix(probabilities; return_probs = true)
-  d = Int(sqrt(size(A,2)))
-  N = Int(sqrt(d))
-  n = N ÷ 2
-
-  # Variational density matrix
-  ρ = Convex.ComplexVariable(d,d)
-  
-  # Minimize the negative log likelihood:
-  cost_function = - p' * Convex.log(real(A * vec(ρ)) + 1e-10)
-  
-  # Contrained the trace and enforce positivity and hermitianity
-  constraints = [Convex.tr(ρ) == trρ Convex.isposdef(ρ)]# ρ == ρ']
-  
-  # Use Convex.jl to solve the optimization
-  problem = Convex.minimize(cost_function,constraints)
-  Convex.solve!(problem, () -> SCS.Optimizer(verbose=false,max_iters=max_iters),verbose=false)
-  ρ̂ = ρ.value
-  return ρ̂
-end
-
 function tomography(probabilities::Dict{Tuple,<:Dict}, sites::Vector{<:Index}; 
                     method::String="linear_inversion", 
                     fillzeros::Bool=true, 
@@ -225,7 +144,7 @@ function tomography(probabilities::Dict{Tuple,<:Dict}, sites::Vector{<:Index};
                     kwargs...)
   
   # Generate the projector matrix corresponding to the probabilities.
-  A, p = projector_matrix(probabilities; return_probs = true, process = process)
+  A, p = design_matrix(probabilities; return_probs = true, process = process)
   
   if (method == "LI"  || method == "linear_inversion")
     # Invert the Born rule and reshape

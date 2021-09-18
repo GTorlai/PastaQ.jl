@@ -43,7 +43,7 @@ end
   ρ_vec = vec(ρmat)
 
   probs = PastaQ.empirical_probabilities(samples)
-  A = PastaQ.projector_matrix(probs; return_probs = false)
+  A = PastaQ.design_matrix(probs; return_probs = false)
   real_probs = A * ρ_vec
   ρ̂_vec = pinv(A) * real_probs
   ρ̂ = reshape(ρ̂_vec,(d,d))
@@ -122,7 +122,7 @@ end
   Λvec = vec(Λmat)
   
   probs = PastaQ.empirical_probabilities(data)
-  A = PastaQ.projector_matrix(probs; return_probs = false, process = true)
+  A = PastaQ.design_matrix(probs; return_probs = false, process = true)
   real_probs = A * Λvec
   Λ̂vec = pinv(A) * real_probs
   Λ̂ = reshape(Λ̂vec,(d,d))
