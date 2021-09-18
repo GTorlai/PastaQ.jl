@@ -13,7 +13,6 @@ settings = Dict(
       "Generation of measurement data" => "GetSamples.md",
       "Random states" => "RandomStates.md",
       "Quantum Tomography" => "QuantumTomography.md",
-      "Optimizers" => "Optimizers.md",
     ],
   ],
   :format => Documenter.HTML(; assets=["assets/favicon.ico"], prettyurls=false),
