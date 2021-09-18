@@ -101,9 +101,9 @@ end
   ρ = PastaQ.array(tomography(samples; method = "LI", trρ = 2.0))
   @test tr(ρ) ≈ 2.0
   ρ = PastaQ.array(tomography(samples; method = "LS", trρ = 2.0))
-  @test tr(ρ) ≈ 2.0 atol = 1e-5
+  @test tr(ρ) ≈ 2.0 atol = 1e-4
   ρ = PastaQ.array(tomography(samples; method = "MLE", trρ = 2.0))
-  @test tr(ρ) ≈ 2.0 atol = 1e-5
+  @test tr(ρ) ≈ 2.0 atol = 1e-4
 end
 
 
