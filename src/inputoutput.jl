@@ -172,8 +172,8 @@ function savetomographyobserver(observer::Observer, output_path::String; model =
     g1["batchsize"] = params["batchsize"] 
     g1["nshots"] = params["dataset_size"] 
     g1["measurement_frequency"] = params["measurement_frequency"]
-    g1["optimizer"] = params["optimizer"][:name]
-    g1["learning_rate"] = params["optimizer"][:η]
+    #g1["optimizer"] = params["optimizer"][:name]
+    #g1["learning_rate"] = params["optimizer"][:η]
     attributes(g1)["Description"] = "This group contains the training parameters."
     
     g2 = create_group(fout, "measurements")

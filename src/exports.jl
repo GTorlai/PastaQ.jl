@@ -61,11 +61,6 @@ export
   fidelity_bound,
   frobenius_distance,
 
-  # optimizers.jl
-  Optimizer,
-  SGD,
-  AdaDelta,
-
   # observer.jl
   Observer,
   save,

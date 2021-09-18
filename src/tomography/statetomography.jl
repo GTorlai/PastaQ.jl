@@ -443,7 +443,7 @@ function tomography(
 )
 
   # Read arguments
-  optimizer::Optimizer = get(kwargs, :optimizer, SGD(; η=0.01))
+  optimizer = get(kwargs, :optimizer, Flux.Optimise.Descent(0.01))
   batchsize::Int64 = get(kwargs, :batchsize, 100)
   epochs::Int64 = get(kwargs, :epochs, 1000)
   measurement_frequency::Int64 = get(kwargs, :measurement_frequency, 1)
@@ -467,10 +467,10 @@ function tomography(
 
   # configure the observer. if no observer is provided, create an empty one
   observer! = configure!(
-    observer!, optimizer, batchsize, measurement_frequency, train_data, test_data
+    observer!, optimizer , batchsize, measurement_frequency, train_data, test_data
   )
 
-  optimizer = copy(optimizer)
+  #optimizer = copy(optimizer)
   model = copy(L)
 
   @assert size(train_data, 2) == length(model)
@@ -503,7 +503,7 @@ function tomography(
 
         nupdate = ep * num_batches + b
         train_loss += loss / Float64(num_batches)
-        update!(model, grads, optimizer; step=nupdate)
+        update!(model, grads, optimizer)
       end
     end # end @elapsed
     tot_time += ep_time
@@ -522,15 +522,18 @@ function tomography(
       else
         best_model = copy(model)
       end
+      #TODO fix this in case observe is not passed
       update!(observer!, normalized_model, best_model, tot_time, train_loss, test_loss)
       # printing
       if outputlevel ≥ 1
         @printf("%-4d  ", ep)
-        @printf("⟨logP⟩ = %-4.4f  ", results(observer!, "train_loss")[end])
+        @printf("⟨logP⟩ = %-4.4f  ", train_loss)#results(observer!, "train_loss")[end])
         if !isnothing(test_data) 
-          @printf("(%.4f)  ", results(observer!, "test_loss")[end])
+          @printf("(%.4f)  ", test_loss)#results(observer!, "test_loss")[end])
         end
-        printobserver(observer!, print_metrics)
+        if !isnothing(observer!)
+          printobserver(observer!, print_metrics)
+        end
         @printf("elapsed = %-4.3fs", ep_time)
         println()
       end
