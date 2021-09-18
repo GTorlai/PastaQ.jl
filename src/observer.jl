@@ -159,7 +159,7 @@ Configure the Observer for quantum tomography:
 """
 function configure!(
   observer::Union{Observer,Nothing},
-  optimizer::Optimizer,
+  optimizer,
   batchsize::Int,
   measurement_frequency::Int,
   train_data::Matrix,
@@ -171,14 +171,18 @@ function configure!(
 
   params = Dict{String,Any}()
   # grab the optimizer parameters
-  params["optimizer"] = Dict{Symbol,Any}()
-  params["optimizer"][:name] = string(typeof(optimizer))
-  #params[string(typeof(optimizer))] = Dict{Symbol,Any}()
-  for par in fieldnames(typeof(optimizer))
-    if !(getfield(optimizer, par) isa Vector{<:ITensor})
-      params["optimizer"][par] = getfield(optimizer, par)
-    end
-  end
+  #T = typeof(opt)
+  #for (name, typ) in zip(fieldnames(T), T.types)
+  #    println("type of the fieldname $name is $typ")
+  #end    
+  #params["optimizer"] = optimizerDict{Symbol,Any}()
+  #params["optimizer"][:name] = string(typeof(optimizer))
+  ##params[string(typeof(optimizer))] = Dict{Symbol,Any}()
+  #for par in fieldnames(typeof(optimizer))
+  #  if !(getfield(optimizer, par) isa Vector{<:ITensor})
+  #    params["optimizer"][par] = getfield(optimizer, par)
+  #  end
+  #end
 
   # batchsize 
   params["batchsize"] = batchsize

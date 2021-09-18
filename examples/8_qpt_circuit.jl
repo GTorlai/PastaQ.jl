@@ -1,6 +1,7 @@
 using PastaQ
 using Random
 using ITensors
+import Flux
 
 Random.seed!(1234)
 
@@ -31,6 +32,8 @@ N = length(Û)     # Number of qubits
 # Initialize the unitary MPO
 U0 = randomprocess(Û; χ=χ)
 
+opt = Flux.Optimise.Descent(0.01)
+
 F(U::MPO) = fidelity(U, Û; process=true)
 obs = Observer(F)
 
@@ -43,7 +46,7 @@ U = tomography(
   train_data,
   U0;
   test_data=test_data,
-  optimizer=SGD(; η=0.1),
+  optimizer=opt,
   batchsize=500,
   epochs=5,
   (observer!)=obs,
@@ -79,9 +82,9 @@ N = length(Φ)
 Λ0 = randomprocess(Φ; mixed=true, χ=χ, ξ=ξ)
 
 # Initialize stochastic gradient descent optimizer
-opt = SGD(; η=0.1)
+opt = Flux.Optimise.ADAM()
 
-F(Λ::LPDO) = fidelity(Λ, Φ; process=true, warnings=false)
+F(Λ::LPDO) = fidelity(Λ, Φ; process=true)
 obs = Observer(F)
 
 # Run process tomography

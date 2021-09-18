@@ -580,7 +580,7 @@ function tomography(
 )
 
   # Read arguments
-  optimizer::Optimizer = get(kwargs, :optimizer, SGD(; η=0.01))
+  optimizer = get(kwargs, :optimizer, Flux.Optimise.Descent(0.01))
   batchsize::Int64 = get(kwargs, :batchsize, 100)
   epochs::Int64 = get(kwargs, :epochs, 1000)
   trace_preserving_regularizer = get(kwargs, :trace_preserving_regularizer, 0.0)
@@ -608,7 +608,7 @@ function tomography(
     observer!, optimizer, batchsize, measurement_frequency, train_data, test_data
   )
 
-  optimizer = copy(optimizer)
+  #optimizer = copy(optimizer)
   model = copy(L)
 
   @assert size(train_data, 2) == length(model)
@@ -648,7 +648,7 @@ function tomography(
 
         nupdate = ep * num_batches + b
         train_loss += loss / Float64(num_batches)
-        update!(model, grads, optimizer; step=nupdate)
+        update!(model, grads, optimizer)
       end
     end # end @elapsed
     tot_time += ep_time
@@ -686,7 +686,9 @@ function tomography(
         if !isnothing(test_data) 
           @printf("(%.4f)  ", results(observer!, "test_loss")[end])
         end
-        printobserver(observer!, print_metrics)
+        if !isnothing(observer!)
+          printobserver(observer!, print_metrics)
+        end
         @printf("elapsed = %-4.3fs", ep_time)
         println()
       end

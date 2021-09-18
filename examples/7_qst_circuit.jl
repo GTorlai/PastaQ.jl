@@ -1,6 +1,7 @@
 using PastaQ
 using Random
 using ITensors
+import Flux
 
 Random.seed!(1234)
 
@@ -29,7 +30,7 @@ N = length(Ψ)     # Number of qubits
 ψ0 = randomstate(Ψ; χ=χ)
 
 # Initialize stochastic gradient descent optimizer
-opt = SGD(; η=0.01)
+opt = Flux.Optimise.Descent(0.01)
 
 # Initialize the observer for the fidelity
 F(ψ::MPS) = fidelity(ψ, Ψ)
@@ -49,6 +50,7 @@ println("Running tomography to learn a pure state ψ:")
   (observer!)=obs,
   print_metrics="F",
 )
+
 @show maxlinkdim(ψ)
 println()
 
@@ -76,10 +78,10 @@ N = length(ϱ)     # Number of qubits
 ρ0 = randomstate(ϱ; mixed=true, χ=χ, ξ=ξ)
 
 # Initialize stochastic gradient descent optimizer
-opt = SGD(; η=0.1)
+opt = Flux.Optimise.ADAM()
 
 # Initialize the observer
-F(ρ::LPDO) = fidelity(ρ, ϱ; warnings=false)
+F(ρ::LPDO) = fidelity(ρ, ϱ)
 
 obs = Observer(F)
 

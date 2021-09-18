@@ -2,6 +2,7 @@ using PastaQ
 using ITensors
 using Random
 using Test
+import Flux
 
 @testset "circuitobserver constructor" begin
 
@@ -208,7 +209,7 @@ end
   N = length(Ψ)     # Number of productstate
   χ = maxlinkdim(Ψ) # Bond dimension of variational MPS
   ψ0 = randomstate(Ψ; χ=χ, σ=0.1)
-  opt = SGD(; η=0.01)
+  opt = Flux.Optimise.Descent(0.01)
 
   F(ψ::MPS) = fidelity(ψ, Ψ)
   obs = Observer([maxlinkdim, norm, ("X", 1), F])
@@ -242,11 +243,6 @@ end
   params = results(obs, "parameters")
   @test params["batchsize"] == 10
   @test params["measurement_frequency"] == 3
-  #@test params["dataset_size"] == size(data, 1)
-  #@test haskey(params, "SGD")
-  #@test haskey(params["SGD"], :η)
-  #@test haskey(params["SGD"], :γ)
-  #@test params["SGD"][:η] == 0.01
 end
 
 @testset "process tomography observer output" begin
@@ -256,7 +252,7 @@ end
   N = length(V)     # Number of productstate
   χ = maxlinkdim(V) # Bond dimension of variational MPS
   U0 = randomprocess(V; χ=χ, σ=0.1)
-  opt = SGD(; η=0.01)
+  opt = Flux.Optimise.Descent(0.01)
 
   F(U::MPO) = fidelity(U, V; process=true)
   obs = Observer([maxlinkdim, norm, F])
@@ -288,9 +284,4 @@ end
   params = results(obs, "parameters")
   @test params["batchsize"] == 10
   @test params["measurement_frequency"] == 3
-  #@test params["dataset_size"] == size(data, 1) 
-  #@test haskey(params, "SGD")
-  #@test haskey(params["SGD"], :η)
-  #@test haskey(params["SGD"], :γ)
-  #@test params["SGD"][:η] == 0.01
 end
