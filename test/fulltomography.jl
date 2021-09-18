@@ -75,15 +75,15 @@ end
 
   ϱ = PastaQ.array(MPO(ψ))
 
-  ρ = tomography(samples; method = "LI")
+  ρ = PastaQ.array(tomography(samples; method = "LI"))
   λ = first(eigen(ρ))
   @test all(λ .≥ -1e-4)
 
-  ρ = tomography(samples; method = "LS")
+  ρ = PastaQ.array(tomography(samples; method = "LS"))
   λ = first(eigen(ρ))
   @test all(real(λ) .≥ -1e-4)
 
-  ρ = tomography(samples; method = "MLE")
+  ρ = PastaQ.array(tomography(samples; method = "MLE"))
   λ = first(eigen(ρ))
   @test all(real(λ) .≥-1e-4)
 end
@@ -98,37 +98,70 @@ end
 
   ϱ = PastaQ.array(MPO(ψ))
 
-  ρ = tomography(samples; method = "LI", trρ = 2.0)
+  ρ = PastaQ.array(tomography(samples; method = "LI", trρ = 2.0))
   @test tr(ρ) ≈ 2.0
-  ρ = tomography(samples; method = "LS", trρ = 2.0)
+  ρ = PastaQ.array(tomography(samples; method = "LS", trρ = 2.0))
   @test tr(ρ) ≈ 2.0 atol = 1e-5
-  ρ = tomography(samples; method = "MLE", trρ = 2.0)
+  ρ = PastaQ.array(tomography(samples; method = "MLE", trρ = 2.0))
   @test tr(ρ) ≈ 2.0 atol = 1e-5
+end
+
+
+
+
+
+
+@testset "Choi POVM matrix" begin
+  N = 2
+  d = 2^(2*N)
+  nshots = 3
+  gates = randomcircuit(N,2)
+  data, Λ = getsamples(gates, nshots; process = true, informationally_complete = true, noise = ("DEP",(p=0.001,)))
+
+  Λmat = PastaQ.array(Λ)
+  Λvec = vec(Λmat)
+  
+  probs = PastaQ.empirical_probabilities(data)
+  A = PastaQ.projector_matrix(probs; return_probs = false, process = true)
+  real_probs = A * Λvec
+  Λ̂vec = pinv(A) * real_probs
+  Λ̂ = reshape(Λ̂vec,(d,d))
+  @test Λmat ≈ Λ̂
+end
+
+
+@testset "PSD constraint in QPT" begin
+  N = 2
+  d = 1<<N
+  gates = randomcircuit(N,4)
+  #ψ = runcircuit(N,gates)
+  samples, Λ = getsamples(gates, 100; noise = ("DEP",(p=0.01,)), informationally_complete=true, process = true)
+  #ϱ = PastaQ.array(MPO(ψ))
+
+  #X = tomography(samples; method = "LI")
+  ρ = PastaQ.array(tomography(samples; method = "LI"))
+  λ = first(eigen(ρ))
+  @test all(λ .≥ -1e-4)
+
+  ρ = PastaQ.array(tomography(samples; method = "LS"))
+  λ = first(eigen(ρ))
+  @test all(real(λ) .≥ -1e-4)
 
 end
 
-#@testset "state tomography circuits" begin
-#  N = 3
-#  d = 1<<N
-#  gates = randomcircuit(N,4)
-#  ngates = length(gates)
-#
-#  bases, qst_circs = tomography_circuits(N, gates)
-#  @test length(qst_circs) == 3^N
-#
-#  @show typeof(bases)
-#  for b in 1:size(bases,1)
-#    basis = bases[b,:]
-#    mgates = 0
-#    for j in 1:N
-#      if basis[j] ≠ "Z"
-#        mgates += 1
-#      end
-#    end
-#    @test length(qst_circs[b]) == ngates + mgates
-#  end
-#
-#  _, qst_circs = tomography_circuits(N, gates; nbases = 10)
-#  @test length(qst_circs) == 10
-#
-#end
+@testset "Trace preserving condition in QPT" begin
+  N = 2
+  d = 1<<N
+  gates = randomcircuit(N,4)
+  samples, Λ = getsamples(gates, 10; noise = ("DEP",(p=0.01,)), informationally_complete=true, process = true)
+
+  ρ = tomography(samples; method = "LS")
+  for j in 1:N
+    s = firstind(ρ, tags="Output,n=$(j)", plev=0)
+    ρ = ρ * δ(s,s')
+  end
+  
+  ρmat = PastaQ.array(ρ)
+  @test ρmat ≈ Matrix{Float64}(I,d,d) atol = 1e-5
+end
+

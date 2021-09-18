@@ -119,11 +119,32 @@ end
 
 
 function toitensor(v::Vector, sites::Vector{<:Index})
-
-
+  d = length(v) 
+  n = length(sites)
+  totaldim = 1.0
+  for j in 1:n
+    totaldim *= dim(sites[j])
+  end
+  @assert totaldim == d
+  v = reshape(v, (repeat([2],n)...))
+  sites = reverse(sites)
+  T = itensor(v, sites)
+  return T
 end
 
-function toitensor(M::Matrix, sites::Vector{<:Index})
-
-
+function toitensor(M::Matrix, sites::Vector{<:Index}) 
+  d = size(M,1)
+  n = length(sites)
+  totaldim = 1.0
+  for j in 1:n
+    totaldim *= dim(sites[j])
+  end
+  @assert totaldim == d
+  M = reshape(M, (repeat([2],2*n)...))
+  sites = reverse(sites)
+  T = itensor(M, prime.(sites)..., ITensors.dag.(sites)...)
+  return T
 end
+
+
+

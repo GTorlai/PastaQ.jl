@@ -8,7 +8,10 @@ measurement bases (i.e. QST).
 function measurement_counts(samples::Matrix{Pair{String, Int}}; fillzeros::Bool = true)
   counts = Dict{Tuple,Dict}()
   N = size(samples,2)
-   
+  
+  if N > 8
+    error("Full QST restricted to N ≤ 8")
+  end
   # Loop over each measurement in the data
   for n in 1:size(samples,1)
     # Extract the measurement basis and  and outcome
@@ -40,8 +43,8 @@ function measurement_counts(samples::Matrix{Pair{String, Int}}; fillzeros::Bool 
   return counts
 end
 
-#measurement_counts(samples::Matrix{String}; kwargs...) = 
-#  measurement_counts(convertdatapoints(samples); kwargs...)
+measurement_counts(samples::Matrix{String}; kwargs...) = 
+  measurement_counts(convertdatapoints(samples); kwargs...)
 
 """
     measurement_counts(data::Matrix{Pair{String,Pair{String, Int}}}; fillzeros::Bool = true)
@@ -50,6 +53,9 @@ Generate a dictionary containing the measurement counts for a set
 of input states and measurement projectors (i.e. QPT).
 """
 function measurement_counts(data::Matrix{Pair{String,Pair{String, Int}}}; fillzeros::Bool = true)
+  if N > 8
+    error("Full QPT restricted to N ≤ 4")
+  end
   newdata = []
   input_states = first.(data)
   measurements = last.(data)
@@ -67,8 +73,6 @@ function measurement_counts(data::Matrix{Pair{String,Pair{String, Int}}}; fillze
   return measurement_counts(permutedims(hcat(newdata...)); fillzeros = fillzeros) 
 end
 
-measurement_counts(samples::Vector{<:Vector}; kwargs...) = 
-  measurement_counts(permutedims(hcat(samples...)); kwargs...)
 
 """
     empirical_probabilities(counts::Dict{Tuple,Dict})
@@ -150,11 +154,12 @@ function linearinversion_tomography(probabilities::AbstractDict;
   return ρ
 end
 
-function leastsquares_tomography(probabilities::AbstractDict; trρ::Number = 1.0, max_iters::Int=10000)
+function leastsquares_tomography(probabilities::AbstractDict; process::Bool = true, trρ::Number = 1.0, max_iters::Int=10000)
   # Generate the projector matrix corresponding to the probabilities.
-  A,p = projector_matrix(probabilities; return_probs = true)
+  A,p = projector_matrix(probabilities; return_probs = true, process = process)
   d = Int(sqrt(size(A,2)))
-  
+  N = Int(sqrt(d))
+  n = N ÷ 2
   # Variational density matrix
   ρ = Convex.ComplexVariable(d,d)
   
@@ -162,8 +167,24 @@ function leastsquares_tomography(probabilities::AbstractDict; trρ::Number = 1.0
   cost_function = Convex.norm(A * vec(ρ) - p) 
   
   # Contrained the trace and enforce positivity and hermitianity 
-  constraints = [Convex.tr(ρ) == trρ Convex.isposdef(ρ) ρ == ρ']
-  
+  function tracepreserving(ρ)
+    for j in 1:n
+      subsystem_dims = [2 for _ in 1:(N+1-j)]
+      ρ = Convex.partialtrace(ρ,j+1,subsystem_dims)
+    end
+    return ρ
+  end
+  if process 
+    constraints = [Convex.tr(ρ) == (1<<n)*trρ
+                  Convex.isposdef(ρ)
+                  tracepreserving(ρ) == Matrix{Float64}(I,1<<n,1<<n)
+                  ρ == ρ'
+                 ]
+  else
+    constraints = [Convex.tr(ρ) == trρ 
+                   Convex.isposdef(ρ) 
+                   ρ == ρ']
+  end
   # Use Convex.jl to solve the optimization
   problem = Convex.minimize(cost_function,constraints)
   Convex.solve!(problem, () -> SCS.Optimizer(verbose=false,max_iters=max_iters),verbose=false)
@@ -172,10 +193,12 @@ function leastsquares_tomography(probabilities::AbstractDict; trρ::Number = 1.0
   return ρ̂
 end
 
-function maximumlikelihood_tomography(probabilities::AbstractDict; trρ::Number = 1.0, max_iters::Int=10000)
+function maximumlikelihood_tomography(probabilities::AbstractDict; process::Bool = true, trρ::Number = 1.0, max_iters::Int=10000)
   # Generate the projector matrix corresponding to the probabilities. 
   A,p = projector_matrix(probabilities; return_probs = true)
   d = Int(sqrt(size(A,2)))
+  N = Int(sqrt(d))
+  n = N ÷ 2
 
   # Variational density matrix
   ρ = Convex.ComplexVariable(d,d)
@@ -193,35 +216,88 @@ function maximumlikelihood_tomography(probabilities::AbstractDict; trρ::Number 
   return ρ̂
 end
 
-function tomography(probabilities::Dict{Tuple,<:Dict}; method::String="linear_inversion", 
-                    fillzeros::Bool=true, kwargs...)
+function tomography(probabilities::Dict{Tuple,<:Dict}, sites::Vector{<:Index}; 
+                    method::String="linear_inversion", 
+                    fillzeros::Bool=true, 
+                    process::Bool = false,
+                    trρ::Number = 1.0,
+                    max_iters::Int=10000,
+                    kwargs...)
+  
+  # Generate the projector matrix corresponding to the probabilities.
+  A, p = projector_matrix(probabilities; return_probs = true, process = process)
   
   if (method == "LI"  || method == "linear_inversion")
-    ρ = linearinversion_tomography(probabilities; kwargs...)
-  elseif (method == "LS"  || method == "least_squares") 
-    ρ = leastsquares_tomography(probabilities; kwargs...)
-  elseif (method == "MLE" || method == "maximum_likelihood") 
-    ρ = maximumlikelihood_tomography(probabilities; kwargs...)
+    # Invert the Born rule and reshape
+    ρ_vec = pinv(A) * p
+    d = Int(sqrt(size(ρ_vec,1)))
+    ρ̂ = reshape(ρ_vec,(d,d))
+    
+    ρ̂ .= ρ̂ * (trρ / tr(ρ̂))
+    # Make PSD
+    ρ̂ = make_PSD(ρ̂)
   else
-    error("Tomography method not recognized
-     Currently available methods: - LI  : linear inversion
-                                    LS  : least squares
-                                    MLS : maximum likelihood")
+    d = Int(sqrt(size(A,2)))
+    N = Int(sqrt(d))
+    n = N ÷ 2
+    
+    # Variational density matrix
+    ρ = Convex.ComplexVariable(d,d)
+    
+    if (method == "LS"  || method == "least_squares") 
+      # Minimize the cost function C = ||A ρ⃗ - p̂||²
+      cost_function = Convex.norm(A * vec(ρ) - p) 
+    elseif (method == "MLE" || method == "maximum_likelihood")
+      # Minimize the negative log likelihood:
+      cost_function = - p' * Convex.log(real(A * vec(ρ)) + 1e-10)
+    else
+      error("Tomography method not recognized
+       Currently available methods: - LI  : linear inversion
+                                      LS  : least squares
+                                      MLS : maximum likelihood")
+    end
 
+    # Contrained the trace and enforce positivity and hermitianity 
+    if process 
+      function tracepreserving(ρ)
+        for j in 1:n
+          subsystem_dims = [2 for _ in 1:(N+1-j)]
+          ρ = Convex.partialtrace(ρ,j+1,subsystem_dims)
+        end
+        return ρ
+      end
+      
+      constraints = [Convex.tr(ρ) == (1<<n) * trρ
+                    Convex.isposdef(ρ)
+                    tracepreserving(ρ) == Matrix{Float64}(I,1<<n,1<<n)
+                    ρ == ρ']
+    else
+      constraints = [Convex.tr(ρ) == trρ 
+                     Convex.isposdef(ρ) 
+                     ρ == ρ']
+    end
+    # Use Convex.jl to solve the optimization
+    problem = Convex.minimize(cost_function,constraints)
+    Convex.solve!(problem, () -> SCS.Optimizer(verbose=false,max_iters=max_iters),verbose=false)
+    ρ̂ = ρ.value
   end
-  #!isnothing(sites) && return dense_to_itensor(ρ, sites)
-  #return dense_to_itensor(ρ)
+  return toitensor(ρ̂, sites)
 end
 
 
 tomography(data::Matrix{Pair{String, Int}}; method::String="linear_inversion", fillzeros::Bool=true, kwargs...) = 
-  tomography(empirical_probabilities(data; fillzeros=fillzeros); method = method, kwargs...)
+  tomography(empirical_probabilities(data; fillzeros=fillzeros), siteinds("Qubit", size(data,2)); method = method, kwargs...)
 
-#fulltomography(data::Matrix{Pair{String,Pair{String, Int}}}; method::String="linear_inversion", fillzeros::Bool=true, kwargs...) = 
-#  choitags(fulltomography(empirical_probabilities(data; fillzeros=fillzeros)))#; method = method, trρ = 1<<length(data[1,:])))
-
-
-
+function tomography(data::Matrix{Pair{String,Pair{String, Int}}}; method::String="linear_inversion", fillzeros::Bool=true, kwargs...) 
+  sites_in  = addtags.(siteinds("Qubit", size(data,2)),"Input")
+  sites_out = addtags.(siteinds("Qubit", size(data,2)), "Output")
+  process_sites = Index[]
+  for j in 1:size(data,2) 
+    push!(process_sites, sites_in[j]) 
+    push!(process_sites, sites_out[j]) 
+  end
+  tomography(empirical_probabilities(data; fillzeros=fillzeros), process_sites; method = method, process = true, kwargs...)
+end
 
 """
     make_PSD(ρ::AbstractArray{<:Number,2})

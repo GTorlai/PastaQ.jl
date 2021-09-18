@@ -10,50 +10,6 @@ macro GateName_str(s)
 end
 
 #
-# State-like gates, used to define product input states
-#
-
-# TODO: add an arbitrary state specified by angles
-
-state(::StateName"X+") = [
-  1 / sqrt(2)
-  1 / sqrt(2)
-]
-
-state(::StateName"X-") = [
-  1 / sqrt(2)
-  -1 / sqrt(2)
-]
-
-state(::StateName"Y+") = [
-  1 / sqrt(2)
-  im / sqrt(2)
-]
-
-state(::StateName"Y-") = [
-  1 / sqrt(2)
-  -im / sqrt(2)
-]
-
-state(::StateName"Z+") = [
-  1
-  0
-]
-
-state(::StateName"0") = state("Z+")
-
-state(::StateName"Z-") = [
-  0
-  1
-]
-
-state(::StateName"1") = state("Z-")
-
-state(sn::String; kwargs...) = state(StateName(sn); kwargs...)
-
-state(sn::String, i::Index; kwargs...) = itensor(state(sn; kwargs...), i)
-
-#
 # 1-qubit gates
 #
 

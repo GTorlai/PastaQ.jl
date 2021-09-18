@@ -183,3 +183,23 @@ end
   Λtest = PastaQ.array(Λprod)
   @test Λmat ≈ Λtest
 end
+
+
+
+@testset "dense states to itensors" begin
+  N = 2
+  d = 1<<N
+  gates = randomcircuit(N,4)
+  ψ = runcircuit(N,gates)
+  
+  sites = siteinds("Qubit", N)
+  ψvec = PastaQ.array(ψ)
+  ϕ = PastaQ.toitensor(ψvec, sites)
+  @test PastaQ.array(ϕ) ≈ ψvec
+
+  ρ = runcircuit(N, gates; noise = ("DEP",(p=0.1,)))
+  ρmat = PastaQ.array(ρ) 
+  ϱ = PastaQ.toitensor(ρmat, sites)
+  @test PastaQ.array(ϱ) ≈ ρmat
+
+end
