@@ -204,7 +204,11 @@ end
 
 @testset "state tomography observer output" begin
   Random.seed!(1234)
-  data, Ψ = readsamples("../examples/data/qst_circuit_test.h5")
+  N = 4
+  depth = 4
+  nshots = 100
+  circuit = randomcircuit(N, depth)
+  data, Ψ = getsamples(circuit, nshots; local_basis=["X", "Y", "Z"])
   test_data = copy(data[1:10, :])
   N = length(Ψ)     # Number of productstate
   χ = maxlinkdim(Ψ) # Bond dimension of variational MPS
@@ -247,7 +251,11 @@ end
 
 @testset "process tomography observer output" begin
   Random.seed!(1234)
-  data, V = readsamples("../examples/data/qpt_circuit_test.h5")
+  N = 4
+  depth = 4
+  nshots = 100
+  circuit = randomcircuit(N, depth)
+  data, V = getsamples(circuit, nshots; local_basis=["X", "Y", "Z"], process = true)
   test_data = copy(data[1:10, :])
   N = length(V)     # Number of productstate
   χ = maxlinkdim(V) # Bond dimension of variational MPS
