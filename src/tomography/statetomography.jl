@@ -549,3 +549,8 @@ end
 function tomography(data::Matrix{Pair{String,Int}}, ψ::MPS; kwargs...)
   return tomography(data, LPDO(ψ); kwargs...).X
 end
+
+tomography(train_data::Vector{<:Vector{Pair{String,Int}}}, args...; kwargs...) = 
+  tomography(permutedims(hcat(train_data...)), args...; kwargs...)
+
+

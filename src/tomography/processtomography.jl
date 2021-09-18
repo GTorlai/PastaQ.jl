@@ -708,3 +708,7 @@ function tomography(data::Matrix{Pair{String,Pair{String,Int}}}, U::MPO; kwargs.
     tomography(data, LPDO(unitary_mpo_to_choi_mps(U)); kwargs...)
   )
 end
+
+tomography(train_data::Vector{<:Vector{Pair{String,Pair{String,Int}}}}, args...; kwargs...) = 
+  tomography(permutedims(hcat(train_data...)), args...; kwargs...)
+

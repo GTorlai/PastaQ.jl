@@ -15,10 +15,6 @@ function fullbases(N::Int; local_basis = ["X","Y","Z"])
   return  reduce(hcat, getindex.(B,i) for i in 1:N)
 end
 
-#paulibases(N::Int, nshotsperbasis::Int; kwargs...) = 
-#  repeat(paulibases(N), nshotsperbasis; kwargs...)
-
-
 function fullpreparations(N::Int; local_input_states=["X+", "X-", "Y+", "Y-", "Z+", "Z-"])
   if N > 5
     print("The $(N)-qubit set of Pauli eigenstates contains $(6^N) bases.\n This may take a while...\n\n")
@@ -27,9 +23,6 @@ function fullpreparations(N::Int; local_input_states=["X+", "X-", "Y+", "Y-", "Z
   B = reverse.(reshape(A,length(A),1))
   return  reduce(hcat, getindex.(B,i) for i in 1:N)
 end
-
-#paulieigenstates(N::Int, nshots::Int; kwargs...) = 
-#  repeat(paulieigenstates(N), nshots; kwargs...)
 
 """
     randombases(N::Int, nshots::Int;
