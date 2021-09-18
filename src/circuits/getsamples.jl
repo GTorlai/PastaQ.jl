@@ -6,24 +6,30 @@
 --------------------------------------------------------------------------------
 """
 
-function paulibases(N::Int)
+function fullbases(N::Int; local_basis = ["X","Y","Z"])
   if N >15
     print("The $(N)-qubit set of Pauli bases contains $(3^N) bases.\n This may take a while...\n\n")
   end
-  A = Iterators.product(ntuple(i->["X","Y","Z"], N)...) |> collect
+  A = Iterators.product(ntuple(i->local_basis, N)...) |> collect
   B = reverse.(reshape(A,length(A),1))
   return  reduce(hcat, getindex.(B,i) for i in 1:N)
 end
 
-function paulieigenstates(N::Int)
+#paulibases(N::Int, nshotsperbasis::Int; kwargs...) = 
+#  repeat(paulibases(N), nshotsperbasis; kwargs...)
+
+
+function fullpreparations(N::Int; local_input_states=["X+", "X-", "Y+", "Y-", "Z+", "Z-"])
   if N > 5
     print("The $(N)-qubit set of Pauli eigenstates contains $(6^N) bases.\n This may take a while...\n\n")
   end
-  A = Iterators.product(ntuple(i->["X+","X-","Y+","Y-","Z+","Z-"], N)...) |> collect
+  A = Iterators.product(ntuple(i->local_input_states, N)...) |> collect
   B = reverse.(reshape(A,length(A),1))
   return  reduce(hcat, getindex.(B,i) for i in 1:N)
 end
 
+#paulieigenstates(N::Int, nshots::Int; kwargs...) = 
+#  repeat(paulieigenstates(N), nshots; kwargs...)
 
 """
     randombases(N::Int, nshots::Int;
@@ -94,18 +100,18 @@ times.
 function randompreparations(
   N::Int,
   nshots::Int;
-  local_input_state=["X+", "X-", "Y+", "Y-", "Z+", "Z-"],
+  local_input_states=["X+", "X-", "Y+", "Y-", "Z+", "Z-"],
   ndistinctstates=nothing,
 )
   # One shot per basis
   if isnothing(ndistinctstates)
-    preparations = rand(local_input_state, nshots, N)
+    preparations = rand(local_input_states, nshots, N)
   else
     @assert(nshots % ndistinctstates == 0)
     shotsperstate = nshots ÷ ndistinctstates
-    preparations = repeat(rand(local_input_state, 1, N), shotsperstate)
+    preparations = repeat(rand(local_input_states, 1, N), shotsperstate)
     for n in 1:(ndistinctstates - 1)
-      newstates = repeat(rand(local_input_state, 1, N), shotsperstate)
+      newstates = repeat(rand(local_input_states, 1, N), shotsperstate)
       preparations = vcat(preparations, newstates)
     end
   end
@@ -234,11 +240,6 @@ function getsamples!(M0::Union{MPS,MPO}, nshots::Int; kwargs...)
     push!(data[nthread], sample_)
   end
   return permutedims(hcat(vcat(data...)...))
-  #measurements = Matrix{Int64}(undef, nshots, length(M))
-  #for n in 1:nshots
-  #  measurements[n,:] = getsamples!(M; kwargs...)
-  #end
-  #return measurements
 end
 
 #
@@ -246,7 +247,7 @@ end
 #
 
 """
-    getsamples(M::Union{MPS,MPO}, bases::Array)
+    getsamples(M::Union{MPS,MPO,ITensor}, bases::Matrix; kwargs...)
 
 Generate a dataset of measurements acccording to a set
 of input `bases`. For a single measurement, `Û` is the depth-1 
@@ -255,7 +256,7 @@ is drawn from the probability distribution:
 - `P(σ) = |⟨σ|Û|ψ⟩|²`    :  if `M = ψ is MPS` 
 - `P(σ) = <σ|Û ρ Û†|σ⟩`  :  if `M = ρ is MPO`   
 """
-function getsamples(M0::Union{MPS,MPO,ITensor}, bases::Array; kwargs...)
+function getsamples(M0::Union{MPS,MPO,ITensor}, bases::Matrix; kwargs...)
   @assert length(M0) == size(bases)[2]
   nthreads = Threads.nthreads()
   data = [Vector{Vector{Pair{String,Int}}}(undef, 0) for _ in 1:nthreads]
@@ -271,19 +272,37 @@ function getsamples(M0::Union{MPS,MPO,ITensor}, bases::Array; kwargs...)
   end
   return permutedims(hcat(vcat(data...)...))
   #return hcat(vcat(data...)...)'
-
-  #@assert length(M0) == size(bases)[2]
-  #data = Matrix{Pair{String, Int}}(undef, size(bases)[1],length(M0))
-  #M = copy(M0)
-  #orthogonalize!(M,1)
-  #for n in 1:size(bases)[1]
-  #  meas_gates = measurementgates(bases[n,:])
-  #  M_meas = runcircuit(M,meas_gates)
-  #  measurement = getsamples!(M_meas;kwargs...)
-  #  data[n,:] .= bases[n,:] .=> measurement
-  #end
-  #return data 
 end
+
+getsamples(M0::Union{MPS,MPO,ITensor}, bases::Vector{<:Vector}; kwargs...) = 
+  getsamples(M0, permutedims(hcat(bases...)); kwargs...)
+
+
+"""
+    getsamples(M0::Union{MPS,MPO,ITensor}, nshots::Int, bases::Matrix; kwargs...)
+
+Generate `nshots` measurement for each basis in `bases`.
+"""
+function getsamples(M0::Union{MPS,MPO,ITensor}, nshots::Int, bases::Matrix; kwargs...)
+  @assert length(M0) == size(bases)[2]
+  nthreads = Threads.nthreads()
+  data = [Vector{Vector{Pair{String,Int}}}(undef, 0) for _ in 1:nthreads]
+  M = copy(M0)
+  orthogonalize!(M, 1)
+
+  Threads.@threads for n in 1:size(bases, 1)
+    nthread = Threads.threadid()
+    meas_gates = measurementgates(bases[n, :])
+    M_meas = runcircuit(copy(M), meas_gates)
+    measurements = getsamples!(copy(M_meas), nshots; kwargs...)
+    basisdata = [[bases[n,j] => measurements[k,j] for j in 1:length(M0)] for k in 1:nshots]
+    append!(data[nthread], basisdata)
+  end
+  return permutedims(hcat(vcat(data...)...))
+end
+
+getsamples(M0::Union{MPS,MPO,ITensor}, nshots::Int, bases::Vector{<:Vector}; kwargs...) = 
+  getsamples(M0, nshots, permutedims(hcat(bases...)); kwargs...)
 
 """
     getsamples(M::Union{MPS,MPO}, nshots::Int;
@@ -308,16 +327,26 @@ function getsamples(
   nshots::Int64;
   local_basis=nothing,
   ndistinctbases=nothing,
+  informationally_complete::Bool = false,
   readout_errors=(p1given0=nothing, p0given1=nothing),
 )
   if isnothing(local_basis)
+    if informationally_complete
+      error("Informationally complete set requires a local basis")
+    end
     data = getsamples!(copy(M), nshots; readout_errors=readout_errors)
   else
     N = M isa ITensor ? nqubits(M) : length(M)
-    bases = randombases(N, nshots;
+    
+    if informationally_complete
+      bases = fullbases(N; local_basis = local_basis)
+      data = getsamples(copy(M), nshots, bases)
+    else
+      bases = randombases(N, nshots;
                         local_basis = local_basis,
                         ndistinctbases = ndistinctbases)
-    data = getsamples(copy(M), bases; readout_errors = readout_errors)
+      data = getsamples(copy(M), bases; readout_errors = readout_errors)
+    end
   end
   return data
 end
@@ -325,7 +354,7 @@ end
 """
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
--                               TOMOGRAPHY DATA                                -
+                            PROCESS TOMOGRAPHY DATA                                -
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 """
@@ -350,12 +379,11 @@ basis rotation is performed at the output of a quantum channel.
  - `prep`: a prepared input state (e.g. `["X+","Z-","Y+","X-"]`)
  - `basis`: a measuremement basis (e.g. `["Z","Z","Y","X"])
 """
-
 function getsamples(
   hilbert0::Vector{<:Index},
   gate_tensors::Vector{<:ITensor},
-  prep::Array,
-  basis::Array;
+  prep::Vector,
+  basis::Vector;
   cutoff::Float64=1e-15,
   maxdim::Int64=10000,
   readout_errors=nothing,
@@ -380,6 +408,67 @@ function getsamples(
 
   return basis .=> measurement
 end
+
+
+"""
+    getsamples(
+          gates::Array,
+          preps::Array,
+          bases::Array;
+          noise=nothing,
+          cutoff::Float64=1e-15,
+          maxdim::Int64=10000,
+          readout_errors=(p1given0=nothing, p0given1=nothing),
+          kwargs...)
+
+
+"""
+function getsamples(
+  circuit::AbstractArray,
+  preps::Matrix,
+  bases::Matrix;
+  noise=nothing,
+  cutoff::Float64=1e-15,
+  maxdim::Int64=10000,
+  readout_errors=(p1given0=nothing, p0given1=nothing),
+  kwargs...,
+)
+  @assert size(preps) == size(bases)
+  N = size(preps)[2]
+  nshots = size(preps)[1]
+
+  ψ0 = productstate(N)
+  hilbert = hilbertspace(ψ0)
+  # Pre-compile quantum channel
+  gate_tensors = buildcircuit(ψ0, circuit; noise = noise, kwargs...)
+  
+  nthreads = Threads.nthreads()
+  data = [Vector{Vector{Pair{String,Int}}}(undef, 0) for _ in 1:nthreads]
+  Threads.@threads for n in 1:size(bases, 1)
+    nthread = Threads.threadid()
+    measurement = getsamples(
+      hilbert,
+      gate_tensors,
+      preps[n, :],
+      bases[n, :];
+      noise=noise,
+      cutoff=cutoff,
+      maxdim=maxdim,
+      readout_errors=readout_errors,
+      kwargs...,
+    )
+    push!(data[nthread], measurement)
+  end
+  return preps .=> permutedims(hcat(vcat(data...)...))
+end
+
+getsamples(circuit::AbstractArray, preps::Vector{<:Vector}, bases::Vector{<:Vector}; kwargs...) = 
+  getsamples(circuit, permutedims(hcat(preps...)), permutedims(hcat(bases...)); kwargs...)
+
+
+
+
+
 
 """
     projectchoi(Λ0::MPO, prep::Array)
@@ -423,6 +512,64 @@ function projectunitary(U::MPO, prep::Array)
   return noprime!(MPS(M))
 end
 
+
+function getsamples(
+  M0::Union{LPDO,MPO},
+  preps::Matrix,
+  bases::Matrix;
+  readout_errors=(p1given0=nothing, p0given1=nothing),
+)
+  @assert size(preps) == size(bases)
+  nthreads = Threads.nthreads()
+  data = [Vector{Vector{Pair{String,Int}}}(undef, 0) for _ in 1:nthreads]
+  M = copy(M0)
+
+  Threads.@threads for n in 1:size(bases, 1)
+    nthread = Threads.threadid()
+    M′ = (ischoi(M) ? projectchoi(M, preps[n, :]) : projectunitary(M, preps[n, :]))
+    meas_gates = measurementgates(bases[n, :])
+    M_meas = runcircuit(copy(M′), meas_gates)
+    measurement = getsamples!(copy(M_meas); readout_errors=readout_errors)
+    push!(data[nthread], bases[n, :] .=> measurement)
+  end
+  return preps .=> permutedims(hcat(vcat(data...)...))
+end
+
+getsamples(M::Union{LPDO,MPO, ITensor}, preps::Vector{<:Vector}, bases::Vector{<:Vector}; kwargs...) = 
+  getsamples(M, permutedims(hcat(preps...)), permutedims(hcat(bases...)); kwargs...)
+
+
+
+function getsamples(
+  M0::Union{LPDO,MPO},
+  nshots::Int,
+  preps::Matrix,
+  bases::Matrix;
+  readout_errors=(p1given0=nothing, p0given1=nothing),
+)
+  nthreads = Threads.nthreads()
+  data = [Vector{Vector{Pair{String,Pair{String,Int}}}}(undef, 0) for _ in 1:nthreads]
+  M = copy(M0)
+
+  Threads.@threads for p in 1:size(preps, 1)
+    nthread = Threads.threadid()
+    M′ = (ischoi(M) ? projectchoi(M, preps[p, :]) : projectunitary(M, preps[p, :]))
+    for n in 1:size(bases, 1)
+      meas_gates = measurementgates(bases[n, :])
+      M_meas = runcircuit(copy(M′), meas_gates)
+      measurements = getsamples!(copy(M_meas), nshots; readout_errors=readout_errors)
+      basisdata = [[bases[n,j] => measurements[k,j] for j in 1:length(M0)] for k in 1:nshots]
+      finaldata = [[preps[p,j] => basisdata[k][j] for j in 1:length(M0)] for k in 1:nshots]
+      append!(data[nthread], finaldata)
+    end
+  end
+  return permutedims(hcat(vcat(data...)...))
+end
+
+getsamples(M::Union{LPDO,MPO, ITensor}, nshots::Int, preps::Vector{<:Vector}, bases::Vector{<:Vector}; kwargs...) = 
+  getsamples(M, nshots, permutedims(hcat(preps...)), permutedims(hcat(bases...)); kwargs...)
+
+
 """
     getsamples(N::Int64, gates::Vector{<:Tuple}, nshots::Int64;     
                noise = nothing,
@@ -449,18 +596,19 @@ quantum channel corresponding to a set of quantum `gates` and a `noise` model.
 """
 function getsamples(
   N::Int64,
-  gates::Vector{<:Any},
+  circuit::Vector{<:Any},
   nshots::Int64;
   noise=nothing,
   build_process::Bool=true,
   process::Bool=false,
   local_basis=["X", "Y", "Z"],
-  local_input_state=["X+", "X-", "Y+", "Y-", "Z+", "Z-"],
+  local_input_states=["X+", "X-", "Y+", "Y-", "Z+", "Z-"],
   ndistinctbases=nothing,
   ndistinctstates=nothing,
   cutoff::Float64=1e-15,
   maxdim::Int64=10000,
   readout_errors=(p1given0=nothing, p0given1=nothing),
+  informationally_complete::Bool = false,
   kwargs...,
 )
 
@@ -468,7 +616,7 @@ function getsamples(
   if !process
     # Apply the quantum channel
     M = runcircuit(
-      N, gates; process=false, noise=noise, cutoff=cutoff, maxdim=maxdim, kwargs...
+      N, circuit; process=false, noise=noise, cutoff=cutoff, maxdim=maxdim, kwargs...
     )
 
     # Generate projective measurements
@@ -478,30 +626,41 @@ function getsamples(
       local_basis=local_basis,
       ndistinctbases=ndistinctbases,
       readout_errors=readout_errors,
+      informationally_complete = informationally_complete,
     )
     return data, M
 
   else
     local_basis = (isnothing(local_basis) ? ["X", "Y", "Z"] : local_basis)
-
-    bases = randombases(N, nshots; local_basis=local_basis, ndistinctbases=ndistinctbases)
-
-    preps = randompreparations(
-      N, nshots; local_input_state=local_input_state, ndistinctstates=ndistinctstates
-    )
-
+    
+    if informationally_complete
+      bases = fullbases(N; local_basis = local_basis)
+      preps = fullpreparations(N; local_input_states = local_input_states)
+    else
+      bases = randombases(N, nshots; local_basis = local_basis, ndistinctbases = ndistinctbases)
+      preps = randompreparations(
+        N, nshots; local_input_states=local_input_states, ndistinctstates=ndistinctstates
+      )
+    end
+    
     # Generate the unitary MPO / Choi matrix, then sample from it
     if build_process
       M = runcircuit(
-        N, gates; process=true, noise=noise, cutoff=cutoff, maxdim=maxdim, kwargs...
+        N, circuit; process=true, noise=noise, cutoff=cutoff, maxdim=maxdim, kwargs...
       )
-      data = getsamples(M, preps, bases; readout_errors=readout_errors)
+      if informationally_complete
+        data = getsamples(M, nshots, preps, bases; readout_errors=readout_errors)
+      else
+        data = getsamples(M, preps, bases; readout_errors=readout_errors)
+      end
       return data, M
-
       # Generate data with full state evolution
     else
+      if informationally_complete
+        error("informationally complete data sampling using full process evolution not yet implemented")
+      end
       data = getsamples(
-        gates,
+        circuit,
         preps,
         bases;
         noise=noise,
@@ -514,90 +673,12 @@ function getsamples(
     end
   end
 end
-function getsamples(N::Int64, gates::Vector{Vector{<:Any}}, nshots::Int64; kwargs...)
-  return getsamples(N, vcat(gates...), nshots; kwargs...)
+
+function getsamples(N::Int64, circuit::Vector{Vector{<:Any}}, nshots::Int64; kwargs...)
+  return getsamples(N, vcat(circuit...), nshots; kwargs...)
 end
 
-function getsamples(gates::Vector, nshots::Int64; kwargs...)
-  return getsamples(nqubits(gates), gates, nshots; kwargs...)
+function getsamples(circuit::Vector, nshots::Int64; kwargs...)
+  return getsamples(nqubits(circuit), circuit, nshots; kwargs...)
 end
 
-function getsamples(
-  gates::Array,
-  preps::Array,
-  bases::Array;
-  noise=nothing,
-  cutoff::Float64=1e-15,
-  maxdim::Int64=10000,
-  readout_errors=(p1given0=nothing, p0given1=nothing),
-  kwargs...,
-)
-  @assert size(preps) == size(bases)
-  N = size(preps)[2]
-  nshots = size(preps)[1]
-
-  ψ0 = productstate(N)
-  hilbert = hilbertspace(ψ0)
-  # Pre-compile quantum channel
-  gate_tensors = buildcircuit(ψ0, gates; noise = noise, kwargs...)
-  
-  nthreads = Threads.nthreads()
-  data = [Vector{Vector{Pair{String,Int}}}(undef, 0) for _ in 1:nthreads]
-  Threads.@threads for n in 1:size(bases, 1)
-    nthread = Threads.threadid()
-    measurement = getsamples(
-      hilbert,
-      gate_tensors,
-      preps[n, :],
-      bases[n, :];
-      noise=noise,
-      cutoff=cutoff,
-      maxdim=maxdim,
-      readout_errors=readout_errors,
-      kwargs...,
-    )
-    push!(data[nthread], measurement)
-  end
-  return preps .=> permutedims(hcat(vcat(data...)...))
-  #data = Matrix{Pair{String, Int}}(undef,nshots,length(ψ0))
-  #for n in 1:nshots
-  #  data[n,:] = getsamples(hilbert, gate_tensors, preps[n,:], bases[n,:];
-  #                         noise = noise, cutoff = cutoff, maxdim = maxdim,
-  #                         readout_errors = readout_errors, kwargs...)
-  #end
-  #return preps .=> data
-end
-
-function getsamples(
-  M0::Union{LPDO,MPO},
-  preps::Array,
-  bases::Array;
-  readout_errors=(p1given0=nothing, p0given1=nothing),
-)
-  @assert size(preps) == size(bases)
-  nthreads = Threads.nthreads()
-  data = [Vector{Vector{Pair{String,Int}}}(undef, 0) for _ in 1:nthreads]
-  M = copy(M0)
-
-  Threads.@threads for n in 1:size(bases, 1)
-    nthread = Threads.threadid()
-    M′ = (ischoi(M) ? projectchoi(M, preps[n, :]) : projectunitary(M, preps[n, :]))
-    meas_gates = measurementgates(bases[n, :])
-    M_meas = runcircuit(copy(M′), meas_gates)
-    measurement = getsamples!(copy(M_meas); readout_errors=readout_errors)
-    push!(data[nthread], bases[n, :] .=> measurement)
-  end
-  return preps .=> permutedims(hcat(vcat(data...)...))
-  #@assert size(preps) == size(bases)
-  #nshots = size(preps)[1]
-  #data = Matrix{Pair{String, Int}}(undef,nshots,length(M))
-  ## Get unitary MPO / Choi matrix
-  #for n in 1:nshots
-  #  M′= (ischoi(M) ? projectchoi(M,preps[n,:]) : projectunitary(M,preps[n,:]))
-  #  meas_gates = measurementgates(bases[n,:])
-  #  M_meas = runcircuit(M′,meas_gates)
-  #  measurement = getsamples!(M_meas; readout_errors = readout_errors)
-  #  data[n,:] .= bases[n,:] .=> measurement
-  #end
-  #return preps .=> data 
-end

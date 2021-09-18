@@ -21,9 +21,9 @@ export
   # circuits/getsamples.jl
   # Methods
   getsamples,
-  paulibases,
+  fullbases,
   randombases,
-  paulieigenstates,
+  fullpreparation,
   randompreparations,
   
   # noise.jl

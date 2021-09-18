@@ -1,7 +1,7 @@
 """
     array(M::MPS; reverse::Bool = true)
 
-Generate the full dense vector from an MPS
+Generate the full dense vector from an MPS.
 """
 function array(M::MPS; reverse::Bool=true)
   # check if it is a vectorized MPO
@@ -68,6 +68,11 @@ end
 
 is_operator(T::ITensor) = !isempty(inds(T,tags="Site,n=1",plev=1))
 
+"""
+    PastaQ.array(T::ITensor; kwargs...)
+
+Transform a prod(MPS/MPO) into a dense vector/matrix
+"""
 PastaQ.array(T::ITensor; kwargs...) = 
   (is_operator(T) ? tomatrix(T; kwargs...) : tovector(T; kwargs...))
 
@@ -112,3 +117,13 @@ function tomatrix(M::ITensor; reverse::Bool = true)
   return ITensors.array(permute(Mmat, c', c))
 end
 
+
+function toitensor(v::Vector, sites::Vector{<:Index})
+
+
+end
+
+function toitensor(M::Matrix, sites::Vector{<:Index})
+
+
+end

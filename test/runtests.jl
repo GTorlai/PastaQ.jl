@@ -14,6 +14,7 @@ using Test
     "distances.jl",
     "measurements.jl",
     "optimizers.jl",
+    "fulltomography.jl",
     "statetomography.jl",
     "processtomography.jl",
     "utils.jl",
