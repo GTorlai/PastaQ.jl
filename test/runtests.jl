@@ -13,11 +13,9 @@ using Test
     "randomstates.jl",
     "distances.jl",
     "measurements.jl",
-    "optimizers.jl",
     "statetomography.jl",
     "processtomography.jl",
     "utils.jl",
-    "examples.jl",
     "observer.jl",
   )
     println("Running $filename")
