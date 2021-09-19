@@ -33,8 +33,8 @@ N = length(Ψ)     # Number of qubits
 opt = Flux.Optimise.Descent(0.01)
 
 # Initialize the observer for the fidelity
-F(ψ::MPS) = fidelity(ψ, Ψ)
-obs = Observer(F)
+F(ψ::MPS; kwargs...) = fidelity(ψ, Ψ)
+obs = Observer(["F" => F])
 
 # Run quantum state tomography, where a variational MPS `|ψ(θ)⟩`
 # is optimized to mimimize the cross entropy between the data and 
@@ -81,9 +81,9 @@ N = length(ϱ)     # Number of qubits
 opt = Flux.Optimise.ADAM()
 
 # Initialize the observer
-F(ρ::LPDO) = fidelity(ρ, ϱ)
+F(ρ::LPDO; kwargs...) = fidelity(ρ, ϱ)
 
-obs = Observer(F)
+obs = Observer(["F" => F])
 
 # Run quantum state tomography, where a variational LPDO `ρ(θ)`
 # is optimized to mimimize the cross entropy between the data and 

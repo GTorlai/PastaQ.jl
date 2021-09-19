@@ -150,41 +150,12 @@ function writesamples(data::Matrix{Pair{String,Pair{String,Int}}}, output_path::
   end
 end
 
-"""
-
-TOMOGRAPHY OBSERVER
 
 """
 
+CIRCUIT OBSERVER
 
-function savetomographyobserver(observer::Observer, output_path::String; model = nothing)
-  mkpath(dirname(output_path)) 
-  
-  h5rewrite(output_path) do fout
-    if !isnothing(model)
-      write(fout, "model", model)
-    else
-      write(fout, "model", "nothing")
-    end
-    
-    params = results(observer, "parameters")
-    g1 = create_group(fout, "parameters")
-    g1["batchsize"] = params["batchsize"] 
-    g1["nshots"] = params["dataset_size"] 
-    g1["measurement_frequency"] = params["measurement_frequency"]
-    #g1["optimizer"] = params["optimizer"][:name]
-    #g1["learning_rate"] = params["optimizer"][:η]
-    attributes(g1)["Description"] = "This group contains the training parameters."
-    
-    g2 = create_group(fout, "measurements")
-    for (measurement, value) in observer.measurements
-      if measurement != "parameters"
-        g2[measurement] = real.(last(value))
-      end
-    end
-    attributes(g2)["Description"] = "This group contains measurements." 
-  end
-end
+"""
 
 function savecircuitobserver(observer::Observer, output_path::String; model = nothing)
   mkpath(dirname(output_path)) 
@@ -197,44 +168,50 @@ function savecircuitobserver(observer::Observer, output_path::String; model = no
     end
     
     g2 = create_group(fout, "measurements")
-    for (measurement, value) in observer.measurements
+    for (measurement, value) in observer 
       if measurement != "parameters"
-        g2[measurement] = real.(last(value))
+        g2[measurement] = last(value)
       end
     end
     attributes(g2)["Description"] = "This group contains measurements." 
   end
 end
 
-#function readtomographyobserver(input_path::String)
-#  fin = h5open(input_path, "r")
-#  
-#  parameters   = read(fin["parameters"])
-#  measurements = read(fin["measurements"])
-#
-#  # Check if a model is saved, if so read it and return it
-#  if haskey(fin, "model")
-#    g = fin["model"]
-#
-#    if haskey(attributes(g), "type")
-#      typestring = read(attributes(g)["type"])
-#      modeltype = eval(Meta.parse(typestring))
-#      model = read(fin, "model", modeltype)
-#    else
-#      model = read(fin, "model")
-#      if model == "nothing"
-#        model = nothing
-#      else
-#        error("model must be MPS, LPDO, or Nothing")
-#      end
-#    end
-#    close(fin)
-#    #return parameters, measurements, model
-#  end
-#  close(fin)
-#  return parameters, measurements
-#end
 
+"""
+
+TOMOGRAPHY OBSERVER
+
+"""
+
+function savetomographyobserver(observer::Observer, output_path::String; model = nothing)
+  mkpath(dirname(output_path)) 
+  
+  h5rewrite(output_path) do fout
+    if !isnothing(model)
+      write(fout, "model", model)
+    else
+      write(fout, "model", "nothing")
+    end
+    
+    #params = results(observer, "parameters")
+    #g1 = create_group(fout, "parameters")
+    #g1["batchsize"] = params["batchsize"] 
+    #g1["nshots"] = params["dataset_size"] 
+    #g1["measurement_frequency"] = params["measurement_frequency"]
+    #g1["optimizer"] = params["optimizer"][:name]
+    #g1["learning_rate"] = params["optimizer"][:η]
+    #attributes(g1)["Description"] = "This group contains the training parameters."
+    
+    g2 = create_group(fout, "measurements")
+    for (measurement, value) in observer
+      if measurement != "parameters"
+        g2[measurement] = last(value)
+      end
+    end
+    attributes(g2)["Description"] = "This group contains measurements." 
+  end
+end
 
 
 """
@@ -266,4 +243,5 @@ function printobserver(observer::Observer, print_metrics::Union{String,AbstractA
   end
   return
 end
+
 

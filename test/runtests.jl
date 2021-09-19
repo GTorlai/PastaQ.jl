@@ -17,7 +17,6 @@ using Test
     "statetomography.jl",
     "processtomography.jl",
     "utils.jl",
-    "observer.jl",
   )
     println("Running $filename")
     include(filename)

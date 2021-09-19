@@ -584,38 +584,26 @@ function tomography(
   batchsize::Int64 = get(kwargs, :batchsize, 100)
   epochs::Int64 = get(kwargs, :epochs, 1000)
   trace_preserving_regularizer = get(kwargs, :trace_preserving_regularizer, 0.0)
-  measurement_frequency::Int64 = get(kwargs, :measurement_frequency, 1)
+  observe_step::Int64 = get(kwargs, :observe_step, 1)
   test_data = get(kwargs, :test_data, nothing)
   outputpath = get(kwargs, :fout, nothing)
   print_metrics = get(kwargs, :print_metrics, [])
   outputpath = get(kwargs, :outputpath, nothing)
   outputlevel = get(kwargs, :outputlevel, 1)
   savemodel = get(kwargs, :savemodel, false)
-  earlystop = get(kwargs, :earlystop, nothing) 
  
-  function stoprun(earlystop, historyloss)
-    isnothing(earlystop) && return false
-    earlystop isa Function && return earlystop(historyloss)
-    ϵ = 1e-3
-    size = epochs ÷ 10
-    avgloss = StatsBase.mean(historyloss[end-size:end])
-    Δ = StatsBase.sem(historyloss[end-size:end])
-    return Δ/avgloss < ϵ
+  # configure the observer. if no observer is provided, create an empty one
+  if !isnothing(observer!)
+    observer!["train_loss"] = nothing 
+    if !isnothing(test_data)
+      observer!["test_loss"] = nothing
+    end
   end
 
-  # configure the observer. if no observer is provided, create an empty one
-  observer! = configure!(
-    observer!, optimizer, batchsize, measurement_frequency, train_data, test_data
-  )
-
-  #optimizer = copy(optimizer)
   model = copy(L)
 
   @assert size(train_data, 2) == length(model)
-  if !isnothing(test_data)
-    @assert size(test_data)[2] == length(model)
-    best_test_loss = 1_000
-  end
+  !isnothing(test_data) && @assert size(test_data)[2] == length(model)
 
   batchsize = min(size(train_data)[1], batchsize)
   num_batches = Int(floor(size(train_data)[1] / batchsize))
@@ -651,14 +639,17 @@ function tomography(
         update!(model, grads, optimizer)
       end
     end # end @elapsed
+    !isnothing(observer!) && push!(last(observer!["train_loss"]), train_loss)
     tot_time += ep_time
+    
     # measurement stage
-    if ep % measurement_frequency == 0
+    if ep % observe_step == 0
       normalized_model = copy(model)
       sqrt_localnorms = []
       normalize!(normalized_model; (sqrt_localnorms!)=sqrt_localnorms, localnorm=2)
       if !isnothing(test_data)
         test_loss = nll(normalized_model, test_data)
+        !isnothing(observer!) && push!(last(observer!["test_loss"]), test_loss)
         if test_loss ≤ best_testloss
           best_testloss = test_loss
           best_model = copy(normalized_model)
@@ -667,40 +658,37 @@ function tomography(
         best_model = copy(model)
       end
 
-      if model isa LPDO{MPS}
-        update!(
-          observer!,
-          choi_mps_to_unitary_mpo(normalized_model),
-          best_model,
-          tot_time,
-          train_loss,
-          test_loss,
-        )
-      else
-        update!(observer!, normalized_model, best_model, tot_time, train_loss, test_loss)
+      # update observer
+      if !isnothing(observer!)
+        loss = (!isnothing(test_data) ? results(observer!, "test_loss") : 
+                                        results(observer!, "train_loss"))
+        if model isa LPDO{MPS}
+          update!(observer!, choi_mps_to_unitary_mpo(normalized_model); loss = loss)
+        else
+          update!(observer!, normalized_model; loss = loss)
+        end
       end
+
       # printing
       if outputlevel ≥ 1 
         @printf("%-4d  ", ep)
-        @printf("⟨logP⟩ = %-4.4f  ", results(observer!, "train_loss")[end])
+        @printf("⟨logP⟩ = %-4.4f  ", train_loss)
         if !isnothing(test_data) 
-          @printf("(%.4f)  ", results(observer!, "test_loss")[end])
+          @printf("(%.4f)  ", test_loss)
         end
-        if !isnothing(observer!)
-          printobserver(observer!, print_metrics)
-        end
+        !isnothing(observer!) && printobserver(observer!, print_metrics)
         @printf("elapsed = %-4.3fs", ep_time)
         println()
       end
       # saving
       if !isnothing(outputpath)
+        isnothing(observer!) && error("Observer not defined")
         model_to_be_saved = (!savemodel ? nothing :
                              model isa LPDO{MPS} ? choi_mps_to_unitary_mpo(best_model) : best_model)
         savetomographyobserver(observer!, outputpath; model = model_to_be_saved)
       end
     end
-    historyloss = isnothing(test_data) ? results(observer!, "train_loss") : results(observer!, "test_loss")
-    (ep ≥ epochs÷10+1) && stoprun(earlystop, historyloss) && break
+    haskey(observer!.data,"earlystop") && results(observer!, "earlystop")[end] && break
   end
   return best_model
 end

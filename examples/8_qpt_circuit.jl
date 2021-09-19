@@ -34,8 +34,8 @@ U0 = randomprocess(Û; χ=χ)
 
 opt = Flux.Optimise.Descent(0.01)
 
-F(U::MPO) = fidelity(U, Û; process=true)
-obs = Observer(F)
+F(U::MPO; kwargs...) = fidelity(U, Û; process=true)
+obs = Observer(["F" => F])
 
 # Initialize stochastic gradient descent optimizer
 @show maxlinkdim(U0)
@@ -84,8 +84,8 @@ N = length(Φ)
 # Initialize stochastic gradient descent optimizer
 opt = Flux.Optimise.ADAM()
 
-F(Λ::LPDO) = fidelity(Λ, Φ; process=true)
-obs = Observer(F)
+F(Λ::LPDO; kwargs...) = fidelity(Λ, Φ; process=true)
+obs = Observer(["F" => F])
 
 # Run process tomography
 println("Run process tomography to learn noisy process Λ")

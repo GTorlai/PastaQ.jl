@@ -3,7 +3,7 @@ using PastaQ.ITensors
 using Test
 using LinearAlgebra
 using Random
-
+using Observers
 function state_to_int(state::Array)
   index = 0
   for j in 1:length(state)
@@ -189,3 +189,35 @@ end
   circuit = randomcircuit(N, depth)
   @test prod(ρ) ≈ prod(runcircuit(ψ0, circuit; noise=("depolarizing", (p=0.1,))))
 end
+
+
+
+@testset "circuit observer" begin
+  N = 6
+  depth = 5
+  R = 3
+  Random.seed!(1234)
+  circuit = Vector{Vector{<:Any}}(undef, depth)
+  for d in 1:depth
+    layer = []
+    layer = [("CX", (1, rand(2:N))), ("CX", (1, rand(2:N))), ("CX", (1, rand(2:N)))]#gatelayer(bonds,"CX") 
+    circuit[d] = layer
+  end
+
+  χ(ψ::MPS; kwargs...) = maxlinkdim(ψ::MPS)
+  obs = Observer(["χ" => χ])
+  
+  sites = siteinds("Qubit", N)
+  ϕ = randomstate(sites; χ = 10, normalize=true)
+  #ϕ = productstate(sites)
+  f(ψ::MPS; kwargs...) = fidelity(ψ, ϕ)#; kwargs...) = fidelity(ψ, ϕ)
+  obs["f"] = f
+  ψ = runcircuit(sites, circuit)
+  Ftest = fidelity(ψ,ϕ)
+
+  ψ = runcircuit(sites, circuit; (observer!)=obs, move_sites_back_before_measurements=true)
+  @test Ftest ≈ results(obs, "f")[end]
+  @test length(results(obs, "χ")) == depth
+  @test length(results(obs, "f")) == depth
+end
+

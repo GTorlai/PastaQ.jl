@@ -190,7 +190,7 @@ function runcircuit(
   isnothing(observer!) && return runcircuit(M, vcat(circuit...); noise=noise, kwargs...)
 
   # issue warning if there are custom functions and the sites are not being moved back
-  if _has_customfunctions(observer!) && move_sites_back_before_measurements == false
+  if !isnothing(observer!) && move_sites_back_before_measurements == false
     println("--------------")
     println(" WARNING")
     println(
@@ -207,21 +207,22 @@ function runcircuit(
     t = @elapsed begin
       M = runcircuit(M, layer; move_sites_back=move_sites_back_before_measurements, kwargs...)
       if !isnothing(observer!)
-        measure!(observer!, M, s)
+        update!(observer!, M; sites = s)
+        #measure!(observer!, M, s)
       end
     end
-    if outputlevel ≥ 1
-      @printf("%-4d  ", l)
-      @printf("χ = %-4d  ", maxlinkdim(M))
-      #TODO add the truncation error here
-      printobserver(observer!, print_metrics)
-      @printf("elapsed = %-4.3fs", t)
-      println()
-    end
-    if !isnothing(outputpath)
-      model_to_be_saved = savemodel ? M : nothing
-      savecircuitobserver(observer!, outputpath; model = model_to_be_saved)
-    end
+    #if outputlevel ≥ 1
+    #  @printf("%-4d  ", l)
+    #  @printf("χ = %-4d  ", maxlinkdim(M))
+    #  #TODO add the truncation error here
+    #  printobserver(observer!, print_metrics)
+    #  @printf("elapsed = %-4.3fs", t)
+    #  println()
+    #end
+    #if !isnothing(outputpath)
+    #  model_to_be_saved = savemodel ? M : nothing
+    #  savecircuitobserver(observer!, outputpath; model = model_to_be_saved)
+    #end
   end
   if move_sites_back_before_measurements == false
     new_s = siteinds(M)
