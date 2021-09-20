@@ -436,38 +436,3 @@ end
 end
 
 
-@testset "state tomography observer output" begin
-  Random.seed!(1234)
-  N = 4
-  depth = 4
-  nshots = 100
-  circuit = randomcircuit(N, depth)
-  data, Ψ = getsamples(circuit, nshots; local_basis=["X", "Y", "Z"])
-  test_data = copy(data[1:10, :])
-  
-  N = length(Ψ)     # Number of productstate
-  χ = maxlinkdim(Ψ) # Bond dimension of variational MPS
-  ψ0 = randomstate(Ψ; χ=χ, σ=0.1)
-  opt = Flux.Optimise.Descent(0.01)
-
-  F(ψ::MPS; kwargs...) = fidelity(ψ, Ψ)
-  obs = Observer(["F" => F])
-  #obs = Observer([maxlinkdim, norm, ("X", 1), F])
-  epochs = 18
-
-  batchsize = 10
-  observe_step = 3
-
-  ψ = tomography(
-    data,
-    ψ0;
-    test_data=test_data,
-    batchsize=10,
-    epochs=epochs,
-    (observer!)=obs,
-    observe_step = observe_step,
-    print_metrics = ["F"]
-  )
-  @test length(results(obs, "F")) == epochs ÷ observe_step 
-end
-

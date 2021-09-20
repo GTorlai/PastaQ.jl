@@ -3,6 +3,44 @@ using ITensors
 using Test
 using Random
 
+@testset "nqubits/nlayers/ngates" begin
+  @test nqubits(("H", 2)) == 2
+  @test nqubits(("CX", (2, 5))) == 5
+
+  for i in 1:1000
+    depth = 4
+    N = rand(3:50)
+    gates = randomcircuit(N, depth; twoqubitgates="CX", onequbitgates="Rn")
+    n = nqubits(gates)
+    @test N == n
+    @test PastaQ.nlayers(gates) == depth
+    @test PastaQ.ngates(gates) == depth ÷ 2 * (2 * N ÷ 2 - 1 + 2 * N)
+    gates = randomcircuit(N, depth; twoqubitgates="CX", onequbitgates="Rn", layered=false)
+    n = nqubits(gates)
+    @test N == n
+    @test PastaQ.nlayers(gates) == 1
+    @test PastaQ.ngates(gates) == depth ÷ 2 * (2 * N ÷ 2 - 1 + 2 * N)
+  end
+
+  N = 3
+  
+  # MPS
+  circuit = randomcircuit(N,4)
+  ψ = runcircuit(circuit; full_representation = true) 
+  @test nqubits(ψ) == N
+  # MPO
+  U = runcircuit(circuit; full_representation = true, process = true) 
+  @test nqubits(U) == N
+  # LPDO DM
+  ρ = prod(randomstate(N; ξ = 2)) 
+  @test nqubits(ρ) == N
+  
+  # MPO Choi
+  Λ = runcircuit(circuit; noise = ("DEP",(p=0.01,)), full_representation = true, process = true) 
+  @test nqubits(Λ) == N
+  Λ = prod(randomprocess(N; ξ = 2)) 
+  @test nqubits(Λ) == N
+end
 @testset "pre-defined ciruits" begin
   N = 10
   @test length(qft(N)) == sum(1:(N - 1)) + N
@@ -92,6 +130,16 @@ end
     N, depth; twoqubitgates="RandomUnitary", onequbitgates=["Rn", "X"]
   )
   @test size(circuit, 1) == depth
+
+  Lx = 5
+  Ly = 5
+  circuit = randomcircuit(Lx,Ly, depth; twoqubitgates="RandomUnitary", onequbitgates=["Rn", "X"])
+  @test nqubits(circuit) == Lx*Ly
+  
+  Lx = 5
+  Ly = 5
+  circuit = randomcircuit(Lx,Ly, depth; twoqubitgates="RandomUnitary", onequbitgates=["Rn", "X"], rotated = true)
+  @test nqubits(circuit) == Lx*Ly
 end
 
 @testset "dag circuit" begin

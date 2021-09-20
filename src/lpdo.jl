@@ -192,9 +192,9 @@ function tr(L::LPDO, tag::String)
 end
 
 function HDF5.write(parent::Union{HDF5.File,HDF5.Group}, name::AbstractString, L::LPDO)
-  g = create_group(parent, name)
-  attributes(g)["type"] = String(Symbol(typeof(L)))
-  return write(parent, "X", L.X)
+  g = g_create(parent, name)
+  attrs(g)["type"] = String(Symbol(typeof(L)))
+  return write(parent, "model/X", L.X)
 end
 
 function HDF5.read(

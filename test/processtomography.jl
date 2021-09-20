@@ -473,37 +473,3 @@ end
 end
 
 
-
-@testset "process tomography observer output" begin
-  Random.seed!(1234)
-  N = 4
-  depth = 4
-  nshots = 100
-  circuit = randomcircuit(N, depth)
-  data, V = getsamples(circuit, nshots; local_basis=["X", "Y", "Z"], process = true)
-  test_data = copy(data[1:10, :])
-  N = length(V)     # Number of productstate
-  χ = maxlinkdim(V) # Bond dimension of variational MPS
-  U0 = randomprocess(V; χ=χ, σ=0.1)
-  opt = Flux.Optimise.Descent(0.01)
-
-  F(U::MPO; kwargs...) = fidelity(U, V; process=true)
-  obs = Observer(["F" => F])
-  epochs = 9
-
-  batchsize = 10
-  observe_step = 3
-
-  U = tomography(
-    data,
-    U0;
-    test_data=test_data,
-    batchsize=10,
-    epochs=epochs,
-    (observer!)=obs,
-    observe_step = observe_step,
-    print_metrics = ["F"]
-   )
-
-  @test length(results(obs, "F")) == epochs ÷ observe_step 
-end

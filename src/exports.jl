@@ -36,6 +36,7 @@ export
   qubits,
   buildcircuit,
   runcircuit,
+  choimatrix,
 
   # lpdo.jl
   LPDO,

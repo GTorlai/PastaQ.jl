@@ -132,7 +132,7 @@ gates on the couplings contained in `support`.
 
 function randomlayer(
   gatename::AbstractString,
-  support::Union{Vector{<:Int},Vector{Tuple},AbstractRange};
+  support::Union{Vector{<:Int},Vector{<:Tuple},AbstractRange};
   rng=Random.GLOBAL_RNG,
   kwargs...,
 )
@@ -162,7 +162,7 @@ are provided, each gate is sampled accordingly.
 
 function randomlayer(
   gatenames::Vector{<:AbstractString},
-  support::Union{Vector{<:Int},AbstractRange,Vector{<:Tuple}};
+  support::Union{Vector{<:Int}, AbstractRange, Vector{<:Tuple}};
   rng=Random.GLOBAL_RNG,
   weights::Union{Nothing,Vector{Float64}}=ones(length(gatenames)) / length(gatenames),
   kwargs...,
@@ -193,14 +193,23 @@ end
 Build a random quantum circuit with `N` qubits and depth `depth`.
 """
 function randomcircuit(
-  N::Int,
-  depth::Int,
-  coupling_sequence::Vector{<:Any};
+  coupling_sequence::Vector,
+  depth::Int;
   twoqubitgates::Union{String,Vector{String}}="RandomUnitary",
   onequbitgates::Union{Nothing,String,Vector{String}}=nothing,
   layered::Bool=true,
   rng=Random.GLOBAL_RNG,
 )
+  #N = (coupling_sequence isa Vector{AbstractVector} ? maximum(vcat([maximum.(c) for c in coupling_sequence]...)) : 
+  #                                            maximum([maximum(c) for c in coupling_sequence]))
+  
+  N = 0
+  coupling_sequence = coupling_sequence isa Vector{<:Tuple} ? [coupling_sequence] : coupling_sequence
+  for seq in coupling_sequence
+    for b in seq
+      N = max(N,b[1],b[2])
+    end
+  end
   circuit = Vector[]
   for d in 1:depth
     layer = []
@@ -223,7 +232,7 @@ end
 Generate a 1D random quantum circuit
 """
 function randomcircuit(N::Int, depth::Int; kwargs...)
-  return randomcircuit(N, depth, lineararray(N); kwargs...)
+  return randomcircuit(lineararray(N), depth; kwargs...)
 end
 
 """
@@ -232,7 +241,7 @@ end
 Generate a 2D random quantum circuit
 """
 function randomcircuit(Lx::Int, Ly::Int, depth::Int; rotated::Bool=false, kwargs...)
-  return randomcircuit(Lx * Ly, depth, squarearray(Lx, Ly; rotated=rotated), kwargs...)
+  return randomcircuit(squarearray(Lx, Ly; rotated=rotated), depth; kwargs...)
 end
 
 

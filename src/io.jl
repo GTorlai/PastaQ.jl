@@ -6,62 +6,6 @@ SAVE AND READ SAMPLES
 
 
 """
-    readsamples(input_path::String)
-
-Load data and model from file:
-
-# Arguments:
-  - `input_path`: path to file
-"""
-function readsamples(input_path::String)
-  fin = h5open(input_path, "r")
-  # Check if the data is for state tomography or process tomography
-  # Process tomography
-  if haskey(fin, "inputs")
-    inputs = read(fin, "inputs")
-    bases = read(fin, "bases")
-    outcomes = read(fin, "outcomes")
-    data = inputs .=> (bases .=> outcomes)
-    # Measurements in bases
-  elseif haskey(fin, "bases")
-    bases = read(fin, "bases")
-    outcomes = read(fin, "outcomes")
-    data = bases .=> outcomes
-    # Measurements in Z basis
-  elseif haskey(fin, "outcomes")
-    data = read(fin, "outcomes")
-  else
-    close(fin)
-    error(
-      "File must contain either \"data\" for quantum state tomography data or \"data_first\" and \"data_second\" for quantum process tomography.",
-    )
-  end
-
-  # Check if a model is saved, if so read it and return it
-  if haskey(fin, "model")
-    g = fin["model"]
-
-    if haskey(attributes(g), "type")
-      typestring = read(attributes(g)["type"])
-      modeltype = eval(Meta.parse(typestring))
-      model = read(fin, "model", modeltype)
-    else
-      model = read(fin, "model")
-      if model == "nothing"
-        model = nothing
-      else
-        error("model must be MPS, LPDO, or Nothing")
-      end
-    end
-    close(fin)
-    return data, model
-  end
-
-  close(fin)
-  return data
-end
-
-"""
     writesamples(data::Matrix{Int},
                  [model::Union{MPS, MPO, LPDO, Nothing},]
                  output_path::String)
@@ -152,6 +96,63 @@ end
 
 
 """
+    readsamples(input_path::String)
+
+Load data and model from file:
+
+# Arguments:
+  - `input_path`: path to file
+"""
+function readsamples(input_path::String)
+  fin = h5open(input_path, "r")
+  # Check if the data is for state tomography or process tomography
+  # Process tomography
+  if haskey(fin, "inputs")
+    inputs = read(fin, "inputs")
+    bases = read(fin, "bases")
+    outcomes = read(fin, "outcomes")
+    data = inputs .=> (bases .=> outcomes)
+    # Measurements in bases
+  elseif haskey(fin, "bases")
+    bases = read(fin, "bases")
+    outcomes = read(fin, "outcomes")
+    data = bases .=> outcomes
+    # Measurements in Z basis
+  elseif haskey(fin, "outcomes")
+    data = read(fin, "outcomes")
+  else
+    close(fin)
+    error(
+      "File must contain either \"data\" for quantum state tomography data or \"data_first\" and \"data_second\" for quantum process tomography.",
+    )
+  end
+
+  # Check if a model is saved, if so read it and return it
+  if haskey(fin, "model")
+    g = fin["model"]
+    if haskey(attributes(g), "type")
+      typestring = read(attributes(g)["type"])
+      modeltype = eval(Meta.parse(typestring))
+      model = read(fin, "model", modeltype)
+    else
+      model = read(fin, "model")
+      if model == "nothing"
+        model = nothing
+      else
+        error("model must be MPS, LPDO, or Nothing")
+      end
+    end
+    close(fin)
+    return data, model
+  end
+
+  close(fin)
+  return data
+end
+
+
+
+"""
 
 CIRCUIT OBSERVER
 
@@ -168,10 +169,12 @@ function savecircuitobserver(observer::Observer, output_path::String; model = no
     end
     
     g2 = create_group(fout, "measurements")
-    for (measurement, value) in observer 
-      if measurement != "parameters"
-        g2[measurement] = last(value)
-      end
+    for (measurement, value) in observer.data 
+      # TODO HDF% cannot export complex numbers (?)
+      output = Vector{Float64}(last(value))
+      #if measurement != "parameters"
+      g2[measurement] = output#last(value)
+      #end
     end
     attributes(g2)["Description"] = "This group contains measurements." 
   end
@@ -193,7 +196,6 @@ function savetomographyobserver(observer::Observer, output_path::String; model =
     else
       write(fout, "model", "nothing")
     end
-    
     #params = results(observer, "parameters")
     #g1 = create_group(fout, "parameters")
     #g1["batchsize"] = params["batchsize"] 
@@ -205,8 +207,9 @@ function savetomographyobserver(observer::Observer, output_path::String; model =
     
     g2 = create_group(fout, "measurements")
     for (measurement, value) in observer
-      if measurement != "parameters"
-        g2[measurement] = last(value)
+      if measurement != "earlystop"
+        output = Vector{Float64}(last(value))
+        g2[measurement] = output
       end
     end
     attributes(g2)["Description"] = "This group contains measurements." 

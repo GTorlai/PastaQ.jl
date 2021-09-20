@@ -105,7 +105,7 @@ with a Vector of states specified as Strings or bit values (0 and 1).
 productstate(N::Int, states::Vector) = productstate(siteinds("Qubit", N), states)
 
 function productstate(M::Union{MPS,MPO,LPDO}, states::Vector)
-  return productstate(hilbertspace(M), states; mixed=mixed)
+  return productstate(hilbertspace(M), states)
 end
 
 productstate(sites::Vector{<:Index}, states::Vector) = MPS(state.(states, sites))
@@ -134,3 +134,4 @@ productoperator(N::Int) = productoperator(siteinds("Qubit", N))
 productoperator(M::Union{MPS,MPO,LPDO}) = productoperator(hilbertspace(M))
 
 productoperator(sites::Vector{<:Index}) = MPO([op("Id", s) for s in sites])
+

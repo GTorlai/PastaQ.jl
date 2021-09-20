@@ -159,6 +159,8 @@ function gate(::GateName"CRn"; θ::Real, ϕ::Real, λ::Real)
   ]
 end
 
+gate(::GateName"CRn̂"; kwargs...) = gate("CRn"; kwargs...)
+
 gate(::GateName"SWAP") = [
   1 0 0 0
   0 0 1 0
@@ -179,14 +181,20 @@ function gate(::GateName"√SWAP")
   ]
 end
 
-gate(::GateName"iSwap") = [
+gate(::GateName"√Sw") = gate("√SWAP")
+
+gate(::GateName"√Swap") = gate("√SWAP")
+
+gate(::GateName"iSWAP") = [
   1 0 0 0
   0 0 im 0
   0 im 0 0
   0 0 0 1
 ];
 
-gate(::GateName"iSw") = gate("iSwap")
+gate(::GateName"iSw") = gate("iSWAP")
+
+gate(::GateName"iSwap") = gate("iSWAP")
 
 # Ising (XX) coupling gate
 function gate(::GateName"XX"; ϕ::Number)
@@ -244,7 +252,9 @@ end
 
 gate(::GateName"CSWAP") = gate("Fredkin")
 
-gate(::GateName"CS") = gate("Fredkin")
+gate(::GateName"CSw") = gate("Fredkin")
+
+gate(::GateName"CSwap") = gate("Fredkin")
 
 #
 # 4-qubit gates

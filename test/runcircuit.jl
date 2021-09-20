@@ -71,16 +71,48 @@ end
   @test prod(ψ) ≈ runcircuit(prod(ψ0), buildcircuit(ψ0, gates))
   @test PastaQ.array(prod(ψ)) ≈ PastaQ.array(prod(runcircuit(N, gates)))
   @test PastaQ.array(prod(ψ)) ≈ PastaQ.array(prod(runcircuit(gates)))
-  @test PastaQ.array(ψ) ≈ PastaQ.tovector(runcircuit(gates; full_representation = true))
+  @test PastaQ.array(ψ) ≈ PastaQ.array(runcircuit(gates; full_representation = true))
+  
+  ϕ = runcircuit(ψ0, gates; apply_dag = false)
+  @test ϕ ≈ ψ
+  σ = runcircuit(ψ0, gates; apply_dag = true)
+  @test σ ≈ outer(ψ,ψ)
 
   # Mixed state, noiseless circuit
   ρ0 = MPO(productstate(N))
   ρ = runcircuit(ρ0, gates)
   X = runcircuit(prod(ρ0), buildcircuit(ρ0, gates); apply_dag=true)
   @test prod(ρ) ≈ runcircuit(prod(ρ0), buildcircuit(ρ0, gates); apply_dag=true)
-  @test PastaQ.array(ρ) ≈ PastaQ.tomatrix(runcircuit(prod(ρ0),gates; full_representation = true, apply_dag = true))
+  @test PastaQ.array(ρ) ≈ PastaQ.array(runcircuit(prod(ρ0),gates; full_representation = true, apply_dag = true))
+  
 end
 
+@testset "choi matrix" begin
+  N = 3
+  depth = 4
+  circuit = randomcircuit(N, depth; layered=false)
+  s = siteinds("Qubit",N)
+  Λ = runcircuit(s, circuit; process = true, noise = ("DEP",(p=0.01,)))
+  @test PastaQ.ischoi(Λ)
+  @test Λ isa MPO
+
+  Φ = choimatrix(circuit; noise = ("DEP",(p=0.01,)))
+  @test PastaQ.ischoi(Φ)
+  @test PastaQ.array(Λ) ≈ PastaQ.array(Φ)
+  @test Φ isa MPO
+
+  Φ = choimatrix(circuit; noise = ("DEP",(p=0.01,)), full_representation = true)
+  @test PastaQ.ischoi(Φ)
+  @test PastaQ.array(Λ) ≈ PastaQ.array(Φ)
+  @test Φ isa ITensor
+
+
+  Φ = choimatrix(circuit; noise = ("DEP",(p=0.01,)), full_representation=true)
+  @test PastaQ.ischoi(Φ)
+  @test PastaQ.array(Λ) ≈ PastaQ.array(Φ)
+  @test Φ isa ITensor
+
+end
 
 @testset "runcircuit: (n>2)-qubit gates" begin
   N = 3
@@ -191,33 +223,4 @@ end
 end
 
 
-
-@testset "circuit observer" begin
-  N = 6
-  depth = 5
-  R = 3
-  Random.seed!(1234)
-  circuit = Vector{Vector{<:Any}}(undef, depth)
-  for d in 1:depth
-    layer = []
-    layer = [("CX", (1, rand(2:N))), ("CX", (1, rand(2:N))), ("CX", (1, rand(2:N)))]#gatelayer(bonds,"CX") 
-    circuit[d] = layer
-  end
-
-  χ(ψ::MPS; kwargs...) = maxlinkdim(ψ::MPS)
-  obs = Observer(["χ" => χ])
-  
-  sites = siteinds("Qubit", N)
-  ϕ = randomstate(sites; χ = 10, normalize=true)
-  #ϕ = productstate(sites)
-  f(ψ::MPS; kwargs...) = fidelity(ψ, ϕ)#; kwargs...) = fidelity(ψ, ϕ)
-  obs["f"] = f
-  ψ = runcircuit(sites, circuit)
-  Ftest = fidelity(ψ,ϕ)
-
-  ψ = runcircuit(sites, circuit; (observer!)=obs, move_sites_back_before_measurements=true)
-  @test Ftest ≈ results(obs, "f")[end]
-  @test length(results(obs, "χ")) == depth
-  @test length(results(obs, "f")) == depth
-end
 

@@ -134,20 +134,50 @@ end
 
 Check whether a given LPDO{MPO}  
 """
-ischoi(M::LPDO{MPO}) = (length(inds(M.X[1], "Site")) == 2 && haschoitags(M)) # hastags(M.X[1], default_purifier_tags))
+function ischoi(M::LPDO{MPO})
+  !haschoitags(M) && return false
+  for j in 1:length(M)
+    length(inds(M.X[j], "Site")) != 2 && return false
+  end
+  return true
+end
 
-ischoi(M::MPO) = (length(inds(M[1], "Site")) == 4 && haschoitags(M))
+function ischoi(M::MPO) 
+  !haschoitags(M) && return false
+  for j in 1:length(M)
+    length(inds(M[j], "Site")) != 4 && return false
+  end
+  return true
+end
 
-# TODO: check all indices, not just the first ones
+ischoi(M::ITensor) = haschoitags(M)
+
+
 """
     haschoitags(L::LPDO)
     haschoitags(M::Union{MPS,MPO})
 
 Check whether the TN has input/output Choi tags
 """
-haschoitags(L::LPDO) = (hastags(inds(L.X[1]), "Input") && hastags(inds(L.X[1]), "Output"))
+function haschoitags(L::LPDO)
+  for j in 1:length(L)
+    !(hastags(inds(L.X[j]), "Input") && hastags(inds(L.X[j]), "Output")) && return false
+  end
+  return true
+end
 function haschoitags(M::Union{MPS,MPO})
-  return (hastags(inds(M[1]), "Input") && hastags(inds(M[1]), "Output"))
+  for j in 1:length(M)
+    !(hastags(inds(M[j]), "Input") && hastags(inds(M[j]), "Output")) && return false
+  end
+  return true
+end
+
+function haschoitags(M::ITensor)
+  N = nqubits(M)
+  for j in 1:N
+    !(hastags(M,"Input,n=$j") && hastags(M,"Output,n=$j")) && return false
+  end
+  return true
 end
 
 """

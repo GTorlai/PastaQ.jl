@@ -40,6 +40,10 @@ using Test
         states1[1] * states0[2] * states1[3] * states0[4]
   @test productstate(s, n -> isodd(n) ? "Y-" : "X+") ≈
         statesYm[1] * statesXp[2] * statesYm[3] * statesXp[4]
+
+  ψ = runcircuit(s, ghz(4))
+  ϕ = productstate(ψ, fill("0", length(s))) ≈ ψ0 
+
 end
 
 @testset "productoperator" begin
@@ -51,4 +55,8 @@ end
   @test PastaQ.promote_leaf_eltypes(I) == Float64
   @test prod(I) ≈ prod(gatesI)
   @test I ≈ prod(gatesI)
+
+  U = runcircuit(s, ghz(4); process = true)
+  X = productoperator(U)
+  @test X ≈ I
 end

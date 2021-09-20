@@ -184,8 +184,8 @@ function getsamples!(T::ITensor, nshots::Int;
   return measurements
 end
 
-getsamples(T::ITensor; kwargs...) = 
-  getsamples(T,1; kwargs...)
+getsamples!(T::ITensor; kwargs...) = 
+  vcat(getsamples!(T,1; kwargs...)...)
 
 
 """
@@ -250,12 +250,14 @@ is drawn from the probability distribution:
 - `P(σ) = <σ|Û ρ Û†|σ⟩`  :  if `M = ρ is MPO`   
 """
 function getsamples(M0::Union{MPS,MPO,ITensor}, bases::Matrix; kwargs...)
-  @assert length(M0) == size(bases)[2]
+  N = M0 isa ITensor ? nqubits(M0) : length(M0)
+  @assert N == size(bases)[2]
   nthreads = Threads.nthreads()
   data = [Vector{Vector{Pair{String,Int}}}(undef, 0) for _ in 1:nthreads]
   M = copy(M0)
-  orthogonalize!(M, 1)
-
+  if !(M isa ITensor)
+    orthogonalize!(M, 1)
+  end
   Threads.@threads for n in 1:size(bases, 1)
     nthread = Threads.threadid()
     meas_gates = measurementgates(bases[n, :])
@@ -433,7 +435,7 @@ function getsamples(
   ψ0 = productstate(N)
   hilbert = hilbertspace(ψ0)
   # Pre-compile quantum channel
-  gate_tensors = buildcircuit(ψ0, circuit; noise = noise, kwargs...)
+  gate_tensors = buildcircuit(ψ0, circuit; noise = noise)
   
   nthreads = Threads.nthreads()
   data = [Vector{Vector{Pair{String,Int}}}(undef, 0) for _ in 1:nthreads]
@@ -473,15 +475,26 @@ the quantum channel underlying the Choi matrix to `|ϕ⟩`.
 """
 function projectchoi(Λ0::MPO, prep::Array)
   Λ = copy(Λ0)
-  #choi = Λ.M
-  #st = "state" .* copy(prep) 
   st = prep
+  
   s = firstsiteinds(Λ; tags="Input")
-
-  for j in 1:length(Λ)
+  for j in 1:length(s)
     # No conjugate on the gate (transpose input!)
     Λ[j] = Λ[j] * dag(state(st[j], s[j]))
     Λ[j] = Λ[j] * prime(state(st[j], s[j]))
+  end
+  return Λ
+end
+
+function projectchoi(Λ0::ITensor, prep::Array)
+  Λ = copy(Λ0)
+  st = prep
+  
+  s = inds(Λ; tags = "Input", plev = 0)
+  for j in 1:length(s)
+    # No conjugate on the gate (transpose input!)
+    Λ = Λ * dag(state(st[j], s[j]))
+    Λ = Λ * prime(state(st[j], s[j]))
   end
   return Λ
 end
@@ -495,19 +508,28 @@ The resulting MPS describes the quantum state obtained by applying
 the quantum circuit to `|ϕ⟩`.
 """
 function projectunitary(U::MPO, prep::Array)
-  #st = "state" .* copy(prep) 
   st = prep
   M = ITensor[]
   s = firstsiteinds(U)
-  for j in 1:length(U)
+  for j in 1:length(s)
     push!(M, U[j] * state(st[j], s[j]))
   end
   return noprime!(MPS(M))
 end
 
+function projectunitary(U::ITensor, prep::Array)
+  st = prep
+  M = copy(U) 
+  s = inds(U; plev = 0)
+  for j in 1:length(s)
+    M = M * state(st[j], s[j]) 
+  end
+  return noprime!(M)
+end
+
 
 function getsamples(
-  M0::Union{LPDO,MPO},
+  M0::Union{LPDO,MPO,ITensor},
   preps::Matrix,
   bases::Matrix;
   readout_errors=(p1given0=nothing, p0given1=nothing),
@@ -534,7 +556,7 @@ getsamples(M::Union{LPDO,MPO, ITensor}, preps::Vector{<:Vector}, bases::Vector{<
 
 
 function getsamples(
-  M0::Union{LPDO,MPO},
+  M0::Union{LPDO,MPO,ITensor},
   nshots::Int,
   preps::Matrix,
   bases::Matrix;
