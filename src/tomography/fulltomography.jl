@@ -207,9 +207,15 @@ end
 tomography(data::Matrix{Pair{String, Int}}; method::String="linear_inversion", fillzeros::Bool=true, kwargs...) = 
   tomography(empirical_probabilities(data; fillzeros=fillzeros), siteinds("Qubit", size(data,2)); method = method, kwargs...)
 
-function tomography(data::Matrix{Pair{String,Pair{String, Int}}}; method::String="linear_inversion", fillzeros::Bool=true, kwargs...) 
-  sites_in  = addtags.(siteinds("Qubit", size(data,2)),"Input")
-  sites_out = addtags.(siteinds("Qubit", size(data,2)), "Output")
+tomography(data::Matrix{Pair{String, Int}}, sites::Vector{<:Index}; method::String="linear_inversion", fillzeros::Bool=true, kwargs...) = 
+  tomography(empirical_probabilities(data; fillzeros=fillzeros), sites; method = method, kwargs...)
+
+tomography(data::Matrix{Pair{String,Pair{String, Int}}}; kwargs...) = 
+  tomography(data, siteinds("Qubit", size(data,2)); kwargs...)
+
+function tomography(data::Matrix{Pair{String,Pair{String, Int}}}, sites::Vector{<:Index}; method::String="linear_inversion", fillzeros::Bool=true, kwargs...) 
+  sites_in  = addtags.(sites, "Input")
+  sites_out = addtags.(sites, "Output")
   process_sites = Index[]
   for j in 1:size(data,2) 
     push!(process_sites, sites_in[j]) 

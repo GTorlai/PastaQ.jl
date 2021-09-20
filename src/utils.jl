@@ -199,6 +199,12 @@ function choitags(U::MPO)
   return noprime(siteinds, U)
 end
 
+function choitags(T::ITensor)
+  haschoitags(T) && return T
+  T = addtags(T, "Input"; plev=0)
+  T = addtags(T, "Output"; plev=1)
+  return noprime(T)
+end
 """
     mpotags(U::MPO)
 
@@ -227,7 +233,9 @@ mpotags(M::Union{MPS,MPO}) = mpotags(LPDO(M)).X
 Transforms a unitary MPO into a Choi MPS with appropriate tags.
 """
 unitary_mpo_to_choi_mps(U::MPO) = convert(MPS, choitags(U))
+unitary_mpo_to_choi_mps(T::ITensor) = choitags(T) 
 unitary_mpo_to_choi_mps(L::LPDO{MPO}) = unitary_mpo_to_choi_mps(L.X)
+
 
 """
     unitary_mpo_to_choi_mpo(U::MPO)

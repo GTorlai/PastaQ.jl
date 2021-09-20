@@ -6,19 +6,24 @@
 --------------------------------------------------------------------------------
 """
 
-function fullbases(N::Int; local_basis = ["X","Y","Z"])
+function fullbases(N::Int; local_basis = "Pauli")
+  local_basis == "Pauli" && (local_basis = ["X","Y","Z"]) 
   if N >15
     print("The $(N)-qubit set of Pauli bases contains $(3^N) bases.\n This may take a while...\n\n")
   end
+  !(local_basis isa AbstractArray) && error("Basis not recognized")
   A = Iterators.product(ntuple(i->local_basis, N)...) |> collect
   B = reverse.(reshape(A,length(A),1))
   return  reduce(hcat, getindex.(B,i) for i in 1:N)
 end
 
-function fullpreparations(N::Int; local_input_states=["X+", "X-", "Y+", "Y-", "Z+", "Z-"])
+function fullpreparations(N::Int; local_input_states="Pauli")
   if N > 5
     print("The $(N)-qubit set of Pauli eigenstates contains $(6^N) bases.\n This may take a while...\n\n")
   end
+  local_input_states == "Pauli" && (local_input_states = ["X+", "X-", "Y+", "Y-", "Z+", "Z-"])
+  local_input_states == "Tetra" && (local_input_states = ["S1","S2","S3","S4"]) 
+  !(local_input_states isa AbstractArray) && error("States not recognized")
   A = Iterators.product(ntuple(i->local_input_states, N)...) |> collect
   B = reverse.(reshape(A,length(A),1))
   return  reduce(hcat, getindex.(B,i) for i in 1:N)
@@ -37,8 +42,10 @@ different measurement bases, each being repeated `nshots÷ndistinctbases`
 times.
 """
 function randombases(
-  N::Int, numshots::Int; local_basis=["X", "Y", "Z"], ndistinctbases=nothing
+  N::Int, numshots::Int; local_basis = "Pauli", ndistinctbases=nothing
 )
+  local_basis == "Pauli" && (local_basis = ["X","Y","Z"]) 
+  !(local_basis isa AbstractArray) && error("Basis not recognized")
   # One shot per basis
   if isnothing(ndistinctbases)
     bases = rand(local_basis, numshots, N)
@@ -93,9 +100,13 @@ times.
 function randompreparations(
   N::Int,
   nshots::Int;
-  local_input_states=["X+", "X-", "Y+", "Y-", "Z+", "Z-"],
+  local_input_states= "Pauli", 
   ndistinctstates=nothing,
 )
+ 
+  local_input_states == "Pauli" && (local_input_states = ["X+", "X-", "Y+", "Y-", "Z+", "Z-"])
+  local_input_states == "Tetra" && (local_input_states = ["S1","S2","S3","S4"]) 
+  !(local_input_states isa AbstractArray) && error("States not recognized")
   # One shot per basis
   if isnothing(ndistinctstates)
     preparations = rand(local_input_states, nshots, N)
@@ -616,8 +627,8 @@ function getsamples(
   noise=nothing,
   build_process::Bool=true,
   process::Bool=false,
-  local_basis=["X", "Y", "Z"],
-  local_input_states=["X+", "X-", "Y+", "Y-", "Z+", "Z-"],
+  local_basis="Pauli",
+  local_input_states="Pauli",
   ndistinctbases=nothing,
   ndistinctstates=nothing,
   cutoff::Float64=1e-15,
@@ -646,7 +657,7 @@ function getsamples(
     return data, M
 
   else
-    local_basis = (isnothing(local_basis) ? ["X", "Y", "Z"] : local_basis)
+    local_basis = (isnothing(local_basis) ? "Pauli" : local_basis)
     
     if informationally_complete
       bases = fullbases(N; local_basis = local_basis)
@@ -696,4 +707,10 @@ end
 function getsamples(circuit::Vector, nshots::Int64; kwargs...)
   return getsamples(nqubits(circuit), circuit, nshots; kwargs...)
 end
+
+function getsamples(circuit::Tuple, nshots::Int64; kwargs...)
+  return getsamples(nqubits(circuit), [circuit], nshots; kwargs...)
+end
+
+
 

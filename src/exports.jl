@@ -23,7 +23,7 @@ export
   getsamples,
   fullbases,
   randombases,
-  fullpreparation,
+  fullpreparations,
   randompreparations,
   
   # noise.jl

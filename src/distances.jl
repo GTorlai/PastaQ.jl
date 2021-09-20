@@ -19,12 +19,44 @@ from the unprimed to the primed indices (if they are matrix-like).
 
 Matrix-like ITensors should be Hermitian and non-negative.
 """
-function fidelity(ρ::ITensor, σ::ITensor)
-  @assert order(ρ) == order(σ)
-  ρ ./= tr(ρ)
-  σ ./= tr(σ)
-  F = product(product(sqrt_hermitian(ρ), σ), sqrt_hermitian(ρ))
-  F = real(tr(sqrt_hermitian(F)))^2
+function fidelity(A::ITensor, B::ITensor; process::Bool = false)
+  
+  if !(is_operator(A)) && !(is_operator(B))
+    # 1. F = |⟨A|B⟩|² (state fidelity)
+    K = (norm(A) * norm(B))^2
+    return abs2((dag(A) * B)[]) / K
+  
+  elseif !(is_operator(A)) && is_operator(B)
+    # 2a. F = ⟨A|B|A⟩ (state fidelity)
+    K = norm(A)^2 * tr(B)
+    return real((dag(A') * B * A)[] / K)
+  
+  elseif is_operator(A) && !(is_operator(B))
+    K = norm(B)^2 * tr(A)
+    return real((dag(B') * A * B)[] / K)
+  else
+    ischoiA = ischoi(A)
+    ischoiB = ischoi(B)
+    if process
+      if (!ischoiA && !ischoiB)
+        Av = choitags(A)
+        Bv = choitags(B)
+        return fidelity(Av,Bv)
+      elseif (!ischoiA && ischoiB)
+        Av = choitags(A)
+        return fidelity(Av,B)
+      elseif (ischoiA && !ischoiB)
+        Bv = choitags(B)
+        return fidelity(Bv,A)
+      end
+    end
+    
+    @assert order(A) == order(B)
+    A ./= tr(A)
+    B ./= tr(B)
+    F = product(product(sqrt_hermitian(A), B), sqrt_hermitian(A))
+    return real(tr(sqrt_hermitian(F)))^2
+  end
   return F
 end
 
@@ -39,6 +71,24 @@ function fidelity(ψ::MPS, ϕ::MPS; kwargs...)
   fidelity = exp(log_F̃ - log_K)
   return fidelity
 end
+
+fidelity(M::MPS, T::ITensor; kwargs...) =
+  fidelity(prod(M), T)
+
+function fidelity(M::MPO, T::ITensor; kwargs...)
+  #if process && !ischoi(M)
+  #  M = unitary_mpo_to_choi_mps(M)
+  #end
+  return fidelity(prod(M), T; kwargs...)
+end
+
+fidelity(L::LPDO, T::ITensor; kwargs...) = 
+  fidelity(prod(L), T; kwargs...)
+
+
+fidelity(T::ITensor, M::Union{MPS,MPO,LPDO}; kwargs...) =
+  fidelity(M,T; kwargs...)
+
 
 """
 Quantum state fidelity between an MPS wavefunction and a 
@@ -61,6 +111,7 @@ end
 
 fidelity(ρ::MPO, ψ::MPS) = fidelity(ψ, ρ)
 
+
 """
 Quantum state fidelity between an MPS wavefunction and a 
 LPDO density operator.
@@ -74,6 +125,10 @@ function fidelity(Ψ::MPS, ϱ::LPDO{MPO}; cutoff::Float64 = 1e-15)
   K = abs2(norm(Ψ)) * tr(ϱ)
   return inner(proj, proj) / K
 end
+
+fidelity(ρ::LPDO{MPO}, ψ::MPS; kwargs...) = 
+  fidelity(ψ, ρ; kwargs...)
+          
 
 """
 Quantum state/process fidelity between two MPO density matrices.
@@ -91,7 +146,7 @@ If `process = true`, get process fidelities:
 function fidelity(A::MPO, B::MPO; process::Bool=false, cutoff::Float64 = 1e-15)
   ischoiA = ischoi(A)
   ischoiB = ischoi(B)
-  # if quantum state fidelity:
+  # if either is a MPO unitary 
   if process && (!ischoiA || !ischoiB)
     A = ischoiA ? A : unitary_mpo_to_choi_mps(A)
     B = ischoiB ? B : unitary_mpo_to_choi_mps(B)
