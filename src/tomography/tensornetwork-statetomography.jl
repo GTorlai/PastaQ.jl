@@ -403,7 +403,7 @@ end
 Compute the gradients of the cost function:
 `C = log(Z) - ⟨log P(σ)⟩_data`
 """
-function gradients(L::LPDO, data::Matrix{Pair{String,Int}}; sqrt_localnorms=nothing)
+function gradients(L::LPDO, data::Matrix{Pair{String,Int}}; sqrt_localnorms=nothing, kwargs...)
   g_logZ, logZ = gradlogZ(L; sqrt_localnorms=sqrt_localnorms)
   g_nll, nll = gradnll(L, data; sqrt_localnorms=sqrt_localnorms)
 
@@ -416,149 +416,149 @@ function gradients(ψ::MPS, data::Matrix{Pair{String,Int}}; localnorms=nothing)
   return gradients(LPDO(ψ), data; sqrt_localnorms=localnorms)
 end
 
-"""
-    tomography(train_data::Matrix{Pair{String, Int}}, L::LPDO;
-               optimizer::Optimizer,
-               observer! = nothing,
-               batchsize::Int64 = 100,
-               epochs::Int64 = 1000,
-               kwargs...)
-
-Run quantum state tomography using a variational model `L` to fit `train_data`.
-The model can be either a pure state (MPS) or a density operator (LPDO).
-
-# Arguments:
- - `train_data`: pairs of basis/outcome: `("X"=>0, "Y"=>1, "Z"=>0, …)`.
- - `L`: variational model (MPS/LPDO).
- - `optimizer`: algorithm used to update the model parameters.
- - `observer!`: if provided, keep track of training metrics.
- - `batch_size`: number of samples used for one gradient update.
- - `epochs`: number of training iterations.
- - `target`: target quantum state (if provided, compute fidelities).
- - `test_data`: data for computing cross-validation.
- - `outputpath`: if provided, save metrics on file.
-"""
-function tomography(
-  train_data::Matrix{Pair{String,Int}}, L::LPDO; (observer!)=nothing, kwargs...
-)
-
-  # Read arguments
-  opt = get(kwargs, :optimizer, Optimisers.Descent(0.01))
-  batchsize::Int64 = get(kwargs, :batchsize, 100)
-  epochs::Int64 = get(kwargs, :epochs, 1000)
-  observe_step::Int64 = get(kwargs, :observe_step, 1)
-  test_data = get(kwargs, :test_data, nothing)
-  outputpath = get(kwargs, :fout, nothing)
-  print_metrics = get(kwargs, :print_metrics, [])
-  outputpath = get(kwargs, :outputpath, nothing)
-  outputlevel = get(kwargs, :outputlevel, 1)
-  savemodel = get(kwargs, :savemodel, false)
-
-  if !isnothing(observer!)
-    # add the fields of train loss and test loss
-    observer!["train_loss"] = nothing 
-    if !isnothing(test_data)
-      observer!["test_loss"] = nothing
-    end
-  end
- 
-  model = copy(L)
-  
-  # initialize optimizer
-  st = PastaQ.state(opt, model)
-  optimizer = (opt, st)
-
-  @assert size(train_data, 2) == length(model)
-  !isnothing(test_data) && @assert size(test_data)[2] == length(model)
-
-  batchsize = min(size(train_data)[1], batchsize)
-  num_batches = Int(floor(size(train_data)[1] / batchsize))
-
-  tot_time = 0.0
-  best_model = nothing
-  best_testloss = 1000.0
-  test_loss = nothing
-  
-  # training iterations
-  for ep in 1:epochs
-    ep_time = @elapsed begin
-      train_data = train_data[shuffle(1:end), :]
-      train_loss = 0.0
-
-      # Sweep over the data set
-      for b in 1:num_batches
-        batch = train_data[((b - 1) * batchsize + 1):(b * batchsize), :]
-
-        normalized_model = copy(model)
-        sqrt_localnorms = []
-        normalize!(normalized_model; (sqrt_localnorms!)=sqrt_localnorms)
-        grads, loss = gradients(normalized_model, batch; sqrt_localnorms=sqrt_localnorms)
-
-        nupdate = ep * num_batches + b
-        train_loss += loss / Float64(num_batches)
-        update!(model, grads, optimizer)
-      end
-    end # end @elapsed
-    !isnothing(observer!) && push!(last(observer!["train_loss"]), train_loss)
-    tot_time += ep_time
-
-    # measurement stage
-    if ep % observe_step == 0
-      normalized_model = copy(model)
-      sqrt_localnorms = []
-      normalize!(normalized_model; (sqrt_localnorms!)=sqrt_localnorms)
-      if !isnothing(test_data)
-        test_loss = nll(normalized_model, test_data)
-        !isnothing(observer!) && push!(last(observer!["test_loss"]), test_loss)
-        if test_loss ≤ best_testloss
-          best_testloss = test_loss
-          best_model = copy(normalized_model)
-        end
-      else
-       best_model = copy(model)
-      end
-      
-      # update the observer
-      if !isnothing(observer!)
-        loss = (!isnothing(test_data) ? results(observer!, "test_loss") : 
-                                        results(observer!, "train_loss"))
-        if normalized_model isa LPDO{MPS}
-          update!(observer!, normalized_model.X; loss = loss)
-        else
-          update!(observer!, normalized_model; loss = loss)
-        end
-      end
-      
-      # printing
-      if outputlevel ≥ 1
-        @printf("%-4d  ", ep)
-        @printf("⟨logP⟩ = %-4.4f  ", train_loss)#results(observer!, "train_loss")[end])
-        if !isnothing(test_data) 
-          @printf("(%.4f)  ", test_loss)#results(observer!, "test_loss")[end])
-        end
-        !isnothing(observer!) && printobserver(observer!, print_metrics)
-        @printf("elapsed = %-4.3fs", ep_time)
-        println()
-      end
-
-      # saving
-      if !isnothing(outputpath)
-        isnothing(observer!) && error("Observer not defined")
-        model_to_be_saved = savemodel ? best_model : nothing
-        savetomographyobserver(observer!, outputpath; model = model_to_be_saved)
-      end
-    end
-    # check early stop
-    !isnothing(observer!) && haskey(observer!.data,"earlystop") && results(observer!, "earlystop")[end] && break
-  end
-  return best_model
-end
-
-function tomography(data::Matrix{Pair{String,Int}}, ψ::MPS; kwargs...)
-  return tomography(data, LPDO(ψ); kwargs...).X
-end
-
-tomography(train_data::Vector{<:Vector{Pair{String,Int}}}, args...; kwargs...) = 
-  tomography(permutedims(hcat(train_data...)), args...; kwargs...)
-
-
+#"""
+#    tomography(train_data::Matrix{Pair{String, Int}}, L::LPDO;
+#               optimizer::Optimizer,
+#               observer! = nothing,
+#               batchsize::Int64 = 100,
+#               epochs::Int64 = 1000,
+#               kwargs...)
+#
+#Run quantum state tomography using a variational model `L` to fit `train_data`.
+#The model can be either a pure state (MPS) or a density operator (LPDO).
+#
+## Arguments:
+# - `train_data`: pairs of basis/outcome: `("X"=>0, "Y"=>1, "Z"=>0, …)`.
+# - `L`: variational model (MPS/LPDO).
+# - `optimizer`: algorithm used to update the model parameters.
+# - `observer!`: if provided, keep track of training metrics.
+# - `batch_size`: number of samples used for one gradient update.
+# - `epochs`: number of training iterations.
+# - `target`: target quantum state (if provided, compute fidelities).
+# - `test_data`: data for computing cross-validation.
+# - `outputpath`: if provided, save metrics on file.
+#"""
+#function tomography(
+#  train_data::Matrix{Pair{String,Int}}, L::LPDO; (observer!)=nothing, kwargs...
+#)
+#
+#  # Read arguments
+#  opt = get(kwargs, :optimizer, Optimisers.Descent(0.01))
+#  batchsize::Int64 = get(kwargs, :batchsize, 100)
+#  epochs::Int64 = get(kwargs, :epochs, 1000)
+#  observe_step::Int64 = get(kwargs, :observe_step, 1)
+#  test_data = get(kwargs, :test_data, nothing)
+#  outputpath = get(kwargs, :fout, nothing)
+#  print_metrics = get(kwargs, :print_metrics, [])
+#  outputpath = get(kwargs, :outputpath, nothing)
+#  outputlevel = get(kwargs, :outputlevel, 1)
+#  savemodel = get(kwargs, :savemodel, false)
+#
+#  if !isnothing(observer!)
+#    # add the fields of train loss and test loss
+#    observer!["train_loss"] = nothing 
+#    if !isnothing(test_data)
+#      observer!["test_loss"] = nothing
+#    end
+#  end
+# 
+#  model = copy(L)
+#  
+#  # initialize optimizer
+#  st = PastaQ.state(opt, model)
+#  optimizer = (opt, st)
+#
+#  @assert size(train_data, 2) == length(model)
+#  !isnothing(test_data) && @assert size(test_data)[2] == length(model)
+#
+#  batchsize = min(size(train_data)[1], batchsize)
+#  num_batches = Int(floor(size(train_data)[1] / batchsize))
+#
+#  tot_time = 0.0
+#  best_model = nothing
+#  best_testloss = 1000.0
+#  test_loss = nothing
+#  
+#  # training iterations
+#  for ep in 1:epochs
+#    ep_time = @elapsed begin
+#      train_data = train_data[shuffle(1:end), :]
+#      train_loss = 0.0
+#
+#      # Sweep over the data set
+#      for b in 1:num_batches
+#        batch = train_data[((b - 1) * batchsize + 1):(b * batchsize), :]
+#
+#        normalized_model = copy(model)
+#        sqrt_localnorms = []
+#        normalize!(normalized_model; (sqrt_localnorms!)=sqrt_localnorms)
+#        grads, loss = gradients(normalized_model, batch; sqrt_localnorms=sqrt_localnorms)
+#
+#        nupdate = ep * num_batches + b
+#        train_loss += loss / Float64(num_batches)
+#        update!(model, grads, optimizer)
+#      end
+#    end # end @elapsed
+#    !isnothing(observer!) && push!(last(observer!["train_loss"]), train_loss)
+#    tot_time += ep_time
+#
+#    # measurement stage
+#    if ep % observe_step == 0
+#      normalized_model = copy(model)
+#      sqrt_localnorms = []
+#      normalize!(normalized_model; (sqrt_localnorms!)=sqrt_localnorms)
+#      if !isnothing(test_data)
+#        test_loss = nll(normalized_model, test_data)
+#        !isnothing(observer!) && push!(last(observer!["test_loss"]), test_loss)
+#        if test_loss ≤ best_testloss
+#          best_testloss = test_loss
+#          best_model = copy(normalized_model)
+#        end
+#      else
+#       best_model = copy(model)
+#      end
+#      
+#      # update the observer
+#      if !isnothing(observer!)
+#        loss = (!isnothing(test_data) ? results(observer!, "test_loss") : 
+#                                        results(observer!, "train_loss"))
+#        if normalized_model isa LPDO{MPS}
+#          update!(observer!, normalized_model.X; loss = loss)
+#        else
+#          update!(observer!, normalized_model; loss = loss)
+#        end
+#      end
+#      
+#      # printing
+#      if outputlevel ≥ 1
+#        @printf("%-4d  ", ep)
+#        @printf("⟨logP⟩ = %-4.4f  ", train_loss)#results(observer!, "train_loss")[end])
+#        if !isnothing(test_data) 
+#          @printf("(%.4f)  ", test_loss)#results(observer!, "test_loss")[end])
+#        end
+#        !isnothing(observer!) && printobserver(observer!, print_metrics)
+#        @printf("elapsed = %-4.3fs", ep_time)
+#        println()
+#      end
+#
+#      # saving
+#      if !isnothing(outputpath)
+#        isnothing(observer!) && error("Observer not defined")
+#        model_to_be_saved = savemodel ? best_model : nothing
+#        savetomographyobserver(observer!, outputpath; model = model_to_be_saved)
+#      end
+#    end
+#    # check early stop
+#    !isnothing(observer!) && haskey(observer!.data,"earlystop") && results(observer!, "earlystop")[end] && break
+#  end
+#  return best_model
+#end
+#
+#function tomography(data::Matrix{Pair{String,Int}}, ψ::MPS; kwargs...)
+#  return tomography(data, LPDO(ψ); kwargs...).X
+#end
+#
+#tomography(train_data::Vector{<:Vector{Pair{String,Int}}}, args...; kwargs...) = 
+#  tomography(permutedims(hcat(train_data...)), args...; kwargs...)
+#
+#
