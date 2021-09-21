@@ -545,7 +545,7 @@ function tomography(
       end
     end
     # check early stop
-    haskey(observer!.data,"earlystop") && results(observer!, "earlystop")[end] && break
+    !isnothing(observer!) && haskey(observer!.data,"earlystop") && results(observer!, "earlystop")[end] && break
   end
   return best_model
 end

@@ -688,7 +688,7 @@ function tomography(
         savetomographyobserver(observer!, outputpath; model = model_to_be_saved)
       end
     end
-    haskey(observer!.data,"earlystop") && results(observer!, "earlystop")[end] && break
+    !isnothing(observer!) && haskey(observer!.data,"earlystop") && results(observer!, "earlystop")[end] && break
   end
   return best_model
 end

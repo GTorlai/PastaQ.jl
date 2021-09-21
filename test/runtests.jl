@@ -14,6 +14,7 @@ using Test
     "randomstates.jl",
     "measurements.jl",
     "fulltomography.jl",
+    "tomographyutils.jl",
     "statetomography.jl",
     "processtomography.jl",
   )
