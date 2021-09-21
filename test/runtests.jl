@@ -10,11 +10,12 @@ using Test
     "distances.jl",
     "runcircuit.jl",
     "getsamples.jl",
+    "optimizers.jl",
+    "deprecated.jl",
     "qubitarrays.jl",
     "randomstates.jl",
     "measurements.jl",
     "fulltomography.jl",
-    "tomographyutils.jl",
     "statetomography.jl",
     "processtomography.jl",
   )

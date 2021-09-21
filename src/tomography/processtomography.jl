@@ -580,10 +580,12 @@ function tomography(
 )
 
   # Read arguments
-  optimizer = get(kwargs, :optimizer, Flux.Optimise.Descent(0.01))
+  opt = get(kwargs, :optimizer, Optimisers.Descent(0.01))
   batchsize::Int64 = get(kwargs, :batchsize, 100)
   epochs::Int64 = get(kwargs, :epochs, 1000)
+  #TODO
   trace_preserving_regularizer = get(kwargs, :trace_preserving_regularizer, 0.0)
+  #TODO
   observe_step::Int64 = get(kwargs, :observe_step, 1)
   test_data = get(kwargs, :test_data, nothing)
   outputpath = get(kwargs, :fout, nothing)
@@ -602,6 +604,10 @@ function tomography(
 
   model = copy(L)
 
+  # initialize optimizer
+  st = PastaQ.state(opt, model)
+  optimizer = (opt, st)
+  
   @assert size(train_data, 2) == length(model)
   !isnothing(test_data) && @assert size(test_data)[2] == length(model)
 
@@ -626,13 +632,14 @@ function tomography(
         normalized_model = copy(model)
         sqrt_localnorms = []
         normalize!(normalized_model; (sqrt_localnorms!)=sqrt_localnorms, localnorm=2)
-
+        #TODO
         grads, loss = gradients(
           normalized_model,
           batch;
           sqrt_localnorms=sqrt_localnorms,
           trace_preserving_regularizer=trace_preserving_regularizer,
         )
+        #TODO
 
         nupdate = ep * num_batches + b
         train_loss += loss / Float64(num_batches)
@@ -662,11 +669,13 @@ function tomography(
       if !isnothing(observer!)
         loss = (!isnothing(test_data) ? results(observer!, "test_loss") : 
                                         results(observer!, "train_loss"))
+        # TODO
         if model isa LPDO{MPS}
           update!(observer!, choi_mps_to_unitary_mpo(normalized_model); loss = loss)
         else
           update!(observer!, normalized_model; loss = loss)
         end
+        # TODO
       end
 
       # printing
@@ -683,8 +692,10 @@ function tomography(
       # saving
       if !isnothing(outputpath)
         isnothing(observer!) && error("Observer not defined")
+        # TODO
         model_to_be_saved = (!savemodel ? nothing :
                              model isa LPDO{MPS} ? choi_mps_to_unitary_mpo(best_model) : best_model)
+        # TODO
         savetomographyobserver(observer!, outputpath; model = model_to_be_saved)
       end
     end

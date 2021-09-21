@@ -28,7 +28,7 @@ export
   
   # noise.jl
   insertnoise,
-
+  
   # circuits/runcircuit.jl
   # Methods
   productstate,
@@ -37,6 +37,9 @@ export
   buildcircuit,
   runcircuit,
   choimatrix,
+
+  # optimizers.jl
+  optimizer,
 
   # lpdo.jl
   LPDO,

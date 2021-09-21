@@ -115,6 +115,7 @@ end
   @test length(results(obs, "f")) == depth+1
   PastaQ.savecircuitobserver(obs, "test_data_circuitobserver.h5"; model = ψ)
 end
+
 @testset "circuit observer: LPDO" begin
   N = 4
   depth = 5
@@ -154,7 +155,7 @@ end
   N = length(Ψ)     # Number of productstate
   χ = maxlinkdim(Ψ) # Bond dimension of variational MPS
   ψ0 = randomstate(Ψ; χ=χ, σ=0.1)
-  opt = Flux.Optimise.Descent(0.01)
+  opt = Optimisers.Descent(0.01)
 
   F(ψ::MPS; kwargs...) = fidelity(ψ, Ψ)
   obs = Observer(["F" => F])
@@ -193,7 +194,7 @@ end
   N = length(ϱ)     # Number of productstate
   χ = maxlinkdim(ϱ) # Bond dimension of variational MPS
   ρ = randomstate(ϱ; χ=χ÷2, ξ=2)
-  opt = Flux.Optimise.Descent(0.01)
+  opt = Optimisers.Descent(0.01)
 
   F(ρ::LPDO; kwargs...) = fidelity(ρ, ϱ)
   obs = Observer(["F" => F])
@@ -229,7 +230,7 @@ end
   N = length(V)     # Number of productstate
   χ = maxlinkdim(V) # Bond dimension of variational MPS
   U0 = randomprocess(V; χ=χ, σ=0.1)
-  opt = Flux.Optimise.Descent(0.01)
+  opt = Optimisers.Descent(0.01)
 
   F(U::MPO; kwargs...) = fidelity(U, V; process=true)
   obs = Observer(["F" => F])
@@ -272,7 +273,7 @@ end
   N = length(Φ)     # Number of productstate
   χ = maxlinkdim(Φ) # Bond dimension of variational MPS
   Λ = randomprocess(Φ; χ=χ÷2, ξ=2)
-  opt = Flux.Optimise.Descent(0.01)
+  opt = Optimisers.Descent(0.01)
 
   F(Λ::LPDO; kwargs...) = fidelity(Λ, Φ)
   obs = Observer(["F" => F])

@@ -443,7 +443,7 @@ function tomography(
 )
 
   # Read arguments
-  optimizer = get(kwargs, :optimizer, Flux.Optimise.Descent(0.01))
+  opt = get(kwargs, :optimizer, Optimisers.Descent(0.01))
   batchsize::Int64 = get(kwargs, :batchsize, 100)
   epochs::Int64 = get(kwargs, :epochs, 1000)
   observe_step::Int64 = get(kwargs, :observe_step, 1)
@@ -461,8 +461,12 @@ function tomography(
       observer!["test_loss"] = nothing
     end
   end
-  
+ 
   model = copy(L)
+  
+  # initialize optimizer
+  st = PastaQ.state(opt, model)
+  optimizer = (opt, st)
 
   @assert size(train_data, 2) == length(model)
   !isnothing(test_data) && @assert size(test_data)[2] == length(model)
