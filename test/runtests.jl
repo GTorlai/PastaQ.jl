@@ -9,7 +9,8 @@ using Test
     "circuits.jl",
     "distances.jl",
     "runcircuit.jl",
-    "getsamples.jl",
+    #"getsamples.jl",
+    # The test remotely are extremely slow
     "optimizers.jl",
     "deprecated.jl",
     "qubitarrays.jl",

@@ -1,7 +1,8 @@
 using PastaQ
 using Random
 using ITensors
-import Flux
+using Observers
+import Optimisers
 
 Random.seed!(1234)
 
@@ -32,7 +33,7 @@ N = length(Û)     # Number of qubits
 # Initialize the unitary MPO
 U0 = randomprocess(Û; χ=χ)
 
-opt = Flux.Optimise.Descent(0.01)
+opt = Optimisers.Descent(0.01)
 
 F(U::MPO; kwargs...) = fidelity(U, Û; process=true)
 obs = Observer(["F" => F])
@@ -82,7 +83,7 @@ N = length(Φ)
 Λ0 = randomprocess(Φ; mixed=true, χ=χ, ξ=ξ)
 
 # Initialize stochastic gradient descent optimizer
-opt = Flux.Optimise.ADAM()
+opt = Optimisers.ADAM()
 
 F(Λ::LPDO; kwargs...) = fidelity(Λ, Φ; process=true)
 obs = Observer(["F" => F])
