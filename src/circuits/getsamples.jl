@@ -22,7 +22,7 @@ function fullpreparations(N::Int; local_input_states="Pauli")
     print("The $(N)-qubit set of Pauli eigenstates contains $(6^N) bases.\n This may take a while...\n\n")
   end
   local_input_states == "Pauli" && (local_input_states = ["X+", "X-", "Y+", "Y-", "Z+", "Z-"])
-  local_input_states == "Tetra" && (local_input_states = ["S1","S2","S3","S4"]) 
+  local_input_states == "Tetra" && (local_input_states = ["SIC1","SIC2","SIC3","SIC4"]) 
   !(local_input_states isa AbstractArray) && error("States not recognized")
   A = Iterators.product(ntuple(i->local_input_states, N)...) |> collect
   B = reverse.(reshape(A,length(A),1))
@@ -105,7 +105,7 @@ function randompreparations(
 )
  
   local_input_states == "Pauli" && (local_input_states = ["X+", "X-", "Y+", "Y-", "Z+", "Z-"])
-  local_input_states == "Tetra" && (local_input_states = ["S1","S2","S3","S4"]) 
+  local_input_states == "Tetra" && (local_input_states = ["SIC1","SIC2","SIC3","SIC4"]) 
   !(local_input_states isa AbstractArray) && error("States not recognized")
   # One shot per basis
   if isnothing(ndistinctstates)
