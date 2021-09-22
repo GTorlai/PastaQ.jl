@@ -3,7 +3,6 @@ using ITensors
 using Test
 using LinearAlgebra
 using Random
-import Flux
 
 """ HELPER FUNCTIONS """
 function numgradslogZ(L::LPDO; accuracy=1e-8)

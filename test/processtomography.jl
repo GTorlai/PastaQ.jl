@@ -4,11 +4,6 @@ using Test
 using LinearAlgebra
 using Random
 
-#function convertdatapoint(datapoint::Array{Int64}, basis::Array{String})
-#  data0 = PastaQ.convertdatapoint(datapoint,basis)
-#  return PastaQ.convertdatapoint(data0; state = true)
-#end
-
 """ HELPER FUNCTIONS """
 function numgradslogZ(L::LPDO; accuracy=1e-8)
   M = L.X
