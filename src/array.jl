@@ -117,27 +117,4 @@ function tomatrix(M::ITensor; reverse::Bool = true)
   return ITensors.array(permute(Mmat, c', c))
 end
 
-"""
-    toitensor(M::Array, sites::Vector{<:Index})
-
-Generate an itensor from a dense vector of matrix
-"""
-function toitensor(M::Array, sites::Vector{<:Index})
-  d = M isa Vector ?  length(M) : size(M,1) 
-  n = length(sites)
-  totaldim = 1.0
-  for j in 1:n
-    totaldim *= dim(sites[j])
-  end
-  @assert totaldim == d
-  
-  sites = reverse(sites)
-  if M isa Vector
-    M = reshape(M, (repeat([2],n)...))
-    return itensor(M, sites)
-  else
-    reshape(M, (repeat([2],2*n)...))
-    return itensor(M, prime.(sites)..., ITensors.dag.(sites)...) 
-  end
-end
 

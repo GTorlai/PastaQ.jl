@@ -5,9 +5,9 @@ using Random
 using LinearAlgebra
 using HDF5
 using Printf
-using StatsBase: StatsBase
-using StatsBase: Weights
 using Observers
+using StatsBase: StatsBase, Weights
+using Optimisers: Optimisers
 
 include("imports.jl")
 include("exports.jl")

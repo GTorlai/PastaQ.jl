@@ -63,7 +63,8 @@ function tomography(probabilities::Dict{Tuple,<:Dict}, sites::Vector{<:Index};
     Convex.solve!(problem, () -> SCS.Optimizer(verbose=false,max_iters=max_iters),verbose=false)
     ρ̂ = ρ.value
   end
-  return toitensor(ρ̂, sites)
+  # TODO: CHECK
+  return itensor(ρ̂, reverse(sites)', ITensors.dag(reverse(sites)))
 end
 
 

@@ -15,7 +15,6 @@ import SCS
 
 import Convex
 
-import Optimisers
 import Optimisers.state as optimizerstate
 
 import Observers: update!

@@ -108,9 +108,6 @@ end
 
 
 
-
-
-
 @testset "Choi POVM matrix" begin
   N = 2
   d = 2^(2*N)
@@ -134,11 +131,8 @@ end
   N = 2
   d = 1<<N
   gates = randomcircuit(N,4)
-  #ψ = runcircuit(N,gates)
   samples, Λ = getsamples(gates, 100; noise = ("DEP",(p=0.01,)), informationally_complete=true, process = true)
-  #ϱ = PastaQ.array(MPO(ψ))
 
-  #X = tomography(samples; method = "LI")
   ρ = PastaQ.array(tomography(samples; method = "LI"))
   λ = first(eigen(ρ))
   @test all(λ .≥ -1e-4)
@@ -150,6 +144,7 @@ end
 end
 
 @testset "Trace preserving condition in QPT" begin
+  Random.seed!(1234)
   N = 2
   d = 1<<N
   gates = randomcircuit(N,4)

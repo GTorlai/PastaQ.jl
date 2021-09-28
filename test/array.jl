@@ -217,12 +217,12 @@ end
   
   sites = siteinds("Qubit", N)
   ψvec = PastaQ.array(ψ)
-  ϕ = PastaQ.toitensor(ψvec, sites)
+  ϕ = itensor(ψvec, reverse(sites))
   @test PastaQ.array(ϕ) ≈ ψvec
 
   ρ = runcircuit(N, gates; noise = ("DEP",(p=0.1,)))
   ρmat = PastaQ.array(ρ) 
-  ϱ = PastaQ.toitensor(ρmat, sites)
+  ϱ = itensor(ρmat, reverse(sites)', reverse(sites))
   @test PastaQ.array(ϱ) ≈ ρmat
 
 end
