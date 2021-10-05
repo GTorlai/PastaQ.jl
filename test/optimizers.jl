@@ -26,7 +26,7 @@ end
   ϕ = LPDO(randomstate(sites; χ = 4))
   @test !(ψ ≈ ϕ.X)
   PastaQ.setparameters!(ϕ, θ)
-  @test ψ ≈ ϕ.X
+  @test PastaQ.array(ψ) ≈ PastaQ.array(ϕ.X)
 
   # LPDO (state) 
   ρ = randomstate(sites; χ = 4, ξ = 3)
@@ -89,8 +89,6 @@ end
   end
   @test PastaQ.array(γ) ≈ PastaQ.array(ρp)
 end
-
-
 
 @testset "mpo-qpt: SGD update" begin
   N = 3

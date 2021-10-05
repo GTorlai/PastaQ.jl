@@ -151,6 +151,37 @@ function readsamples(input_path::String)
 end
 
 
+"""
+Various printing functionalities
+"""
+
+printmetric(name::String, metric::Int) = @printf("%s = %d  ", name, metric)
+printmetric(name::String, metric::Float64) = @printf("%s = %-4.4f  ", name, metric)
+printmetric(name::String, metric::AbstractArray) = @printf("%s = [...]  ", name)
+
+function printmetric(name::String, metric::Complex)
+  if imag(metric) < 1e-8
+    @printf("%s = %-4.4f  ", name, real(metric))
+  else
+    @printf("%s = %.4f±i%-4.4f  ", name, real(metric), imag(metric))
+  end
+end
+
+function printobserver(observer::Observer, print_metrics::Union{String,AbstractArray}
+)
+  if !isempty(print_metrics)
+    if print_metrics isa String
+      printmetric(print_metrics, results(observer, print_metrics)[end])
+    else
+      for metric in print_metrics
+        printmetric(metric, results(observer, metric)[end])
+      end
+    end
+  end
+  return
+end
+
+
 
 """
 
@@ -214,37 +245,6 @@ function savetomographyobserver(observer::Observer, output_path::String; model =
     end
     attributes(g2)["Description"] = "This group contains measurements." 
   end
-end
-
-
-"""
-Various printing functionalities
-"""
-
-printmetric(name::String, metric::Int) = @printf("%s = %d  ", name, metric)
-printmetric(name::String, metric::Float64) = @printf("%s = %-4.4f  ", name, metric)
-printmetric(name::String, metric::AbstractArray) = @printf("%s = [...]  ", name)
-
-function printmetric(name::String, metric::Complex)
-  if imag(metric) < 1e-8
-    @printf("%s = %-4.4f  ", name, real(metric))
-  else
-    @printf("%s = %.4f±i%-4.4f  ", name, real(metric), imag(metric))
-  end
-end
-
-function printobserver(observer::Observer, print_metrics::Union{String,AbstractArray}
-)
-  if !isempty(print_metrics)
-    if print_metrics isa String
-      printmetric(print_metrics, results(observer, print_metrics)[end])
-    else
-      for metric in print_metrics
-        printmetric(metric, results(observer, metric)[end])
-      end
-    end
-  end
-  return
 end
 
 

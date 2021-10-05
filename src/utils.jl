@@ -161,13 +161,13 @@ Check whether the TN has input/output Choi tags
 """
 function haschoitags(L::LPDO)
   for j in 1:length(L)
-    !(hastags(inds(L.X[j]), "Input") && hastags(inds(L.X[j]), "Output")) && return false
+    !(hastags(L.X[j], "Input") && hastags(L.X[j], "Output")) && return false
   end
   return true
 end
 function haschoitags(M::Union{MPS,MPO})
   for j in 1:length(M)
-    !(hastags(inds(M[j]), "Input") && hastags(inds(M[j]), "Output")) && return false
+    !(hastags(M[j], "Input") && hastags(M[j], "Output")) && return false
   end
   return true
 end

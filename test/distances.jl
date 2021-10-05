@@ -238,17 +238,17 @@ end
           real(tr(sqrt(sqrt(ϱ1mat) * ϱ2mat * sqrt(ϱ1mat))))^2 atol = 1e-7
 
     ## ITensors
-    #U1prod = prod(U1) 
-    #U2prod = prod(U2) 
-    #ϱ1prod = prod(ϱ1)
-    #ϱ2prod = prod(ϱ2)
+    U1prod = prod(U1) 
+    U2prod = prod(U2) 
+    ϱ1prod = prod(ϱ1)
+    ϱ2prod = prod(ϱ2)
 
-    #@test fidelity(U1prod, U2prod; process=true) ≈ fidelity(U1, U2; process=true)  
-    #@test fidelity(U1, U2prod; process=true) ≈ fidelity(U1, U2; process=true)  
-    #@test fidelity(U1prod, U2; process=true) ≈ fidelity(U1, U2; process=true)  
-    #
-    #@test fidelity(U1prod, ϱ2prod; process=true) ≈ fidelity(U1, ϱ2; process=true) 
-    #@test fidelity(U1, ϱ2prod; process=true) ≈ fidelity(U1, ϱ2; process=true) 
+    @test fidelity(U1prod, U2prod; process=true) ≈ fidelity(U1, U2; process=true)  
+    @test fidelity(U1, U2prod; process=true) ≈ fidelity(U1, U2; process=true)  
+    @test fidelity(U1prod, U2; process=true) ≈ fidelity(U1, U2; process=true)  
+    
+    @test fidelity(U1prod, ϱ2prod; process=true) ≈ fidelity(U1, ϱ2; process=true) 
+    @test fidelity(U1, ϱ2prod; process=true) ≈ fidelity(U1, ϱ2; process=true) 
   end
 end
 

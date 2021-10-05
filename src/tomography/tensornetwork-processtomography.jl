@@ -551,6 +551,13 @@ function gradients(
   if !isnothing(trace_preserving_regularizer)
     grads += trace_preserving_regularizer * g_TP
   end
+  
+  # TODO: check if this slows down the training
+  # permute the gradients
+  for j in 1:length(L)
+    grads[j] = permute(grads[j], inds(L.X[j])...)
+  end
+  
   return grads, loss
 end
 
