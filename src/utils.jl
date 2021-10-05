@@ -205,6 +205,10 @@ function choitags(T::ITensor)
   T = addtags(T, "Output"; plev=1)
   return noprime(T)
 end
+
+choitags(O::ITensorOperator) = 
+  ITensorState(choitags(O.T))
+
 """
     mpotags(U::MPO)
 

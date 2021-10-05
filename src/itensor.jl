@@ -41,7 +41,7 @@ end
 # ITensor
 #
 
-function sqrt_hermitian(ρ::ITensor; cutoff::Float64 = 1e-10)
+function sqrt_hermitian(ρ::ITensor; cutoff::Float64 = 1e-15)
   if !isapprox(swapprime(dag(ρ), 0 => 1), ρ)
     error("matrix is not hermitian")
   end

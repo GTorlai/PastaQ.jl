@@ -66,8 +66,9 @@ function array(L::LPDO{MPO}; reverse::Bool=true)
 end
 
 
-is_operator(T::ITensor) = !isempty(inds(T,tags="Site,n=1",plev=1))
-
+is_operator(T::ITensor) = 
+  !isempty(inds(T, plev = 1))
+  
 """
     PastaQ.array(T::ITensor; kwargs...)
 
