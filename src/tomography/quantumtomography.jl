@@ -129,7 +129,7 @@ function tomography(
   print_metrics = get(kwargs, :print_metrics, [])
   outputpath = get(kwargs, :outputpath, nothing)
   outputlevel = get(kwargs, :outputlevel, 1)
-  savemodel = get(kwargs, :savemodel, false)
+  savestate = get(kwargs, :savemodel, false)
   earlystop = get(kwargs, :earlystop, false)
 
   model = copy(L)
@@ -245,16 +245,19 @@ function tomography(
       end
       # saving
       if !isnothing(outputpath)
-        isnothing(observer!) && error("Observer not defined")
-        if isqpt
-          model_to_be_saved = 
-            (!savemodel ? nothing :
-                          model isa LPDO{MPS} ? choi_mps_to_unitary_mpo(best_model) : 
-                                                 best_model)
-        else
-          model_to_be_saved = savemodel ? best_model : nothing
+        observerpath = outputpath * "_observer.jld"
+        save(observerpath, observer!)
+        if savestate
+          if isqpt
+            model_to_be_saved = model isa LPDO{MPS} ? choi_mps_to_unitary_mpo(best_model) : best_model
+          else
+            model_to_be_saved = best_model
+          end
+          statepath = outputpath * "_state.h5"
+          h5rewrite(statepath) do fout
+            write(fout, "state", model_to_be_saved)
+          end
         end
-        savetomographyobserver(observer!, outputpath; model = model_to_be_saved)
       end
     end
     !isnothing(observer!) && haskey(observer!.data,"earlystop") && results(observer!, "earlystop")[end] && break

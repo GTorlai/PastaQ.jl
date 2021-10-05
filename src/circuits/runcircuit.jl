@@ -178,10 +178,10 @@ function runcircuit(
   circuit::Vector{<:Vector{<:Any}};
   (observer!)=nothing,
   move_sites_back_before_measurements::Bool=false,
-  noise=nothing,
+  noise = nothing,
   outputlevel = 1,
   outputpath = nothing,
-  savemodel = false,
+  savestate = false,
   print_metrics = [],
   kwargs...,
 )
@@ -208,8 +208,7 @@ function runcircuit(
                      move_sites_back=move_sites_back_before_measurements,
                      kwargs...)
       if !isnothing(observer!)
-        update!(observer!, M; sites = s)
-        #measure!(observer!, M, s)
+        update!(observer!, M)#; sites = s)
       end
     end
     if outputlevel ≥ 1
@@ -221,8 +220,14 @@ function runcircuit(
       println()
     end
     if !isnothing(outputpath)
-      model_to_be_saved = savemodel ? M : nothing
-      savecircuitobserver(observer!, outputpath; model = model_to_be_saved)
+      observerpath = outputpath * "_observer.jld"
+      save(observerpath, observer!)
+      if savestate
+        statepath = outputpath * "_state.h5"
+        h5rewrite(statepath) do fout
+          write(fout, "state", M)
+        end
+      end
     end
   end
   if move_sites_back_before_measurements == false

@@ -25,9 +25,9 @@ function writesamples(
   h5rewrite(output_path) do fout
     write(fout, "outcomes", data)
     if isnothing(model)
-      write(fout, "model", "nothing")
+      write(fout, "state", "nothing")
     else
-      write(fout, "model", model)
+      write(fout, "state", model)
     end
   end
 end
@@ -49,9 +49,9 @@ function writesamples(
     write(fout, "bases", first.(data))
     write(fout, "outcomes", last.(data))
     if isnothing(model)
-      write(fout, "model", "nothing")
+      write(fout, "state", "nothing")
     else
-      write(fout, "model", model)
+      write(fout, "state", model)
     end
   end
 end
@@ -77,9 +77,9 @@ function writesamples(
     write(fout, "bases", first.(last.(data)))
     write(fout, "outcomes", last.(last.(data)))
     if isnothing(model)
-      write(fout, "model", "nothing")
+      write(fout, "state", "nothing")
     else
-      write(fout, "model", model)
+      write(fout, "state", model)
     end
   end
 end
@@ -128,14 +128,14 @@ function readsamples(input_path::String)
   end
 
   # Check if a model is saved, if so read it and return it
-  if haskey(fin, "model")
-    g = fin["model"]
+  if haskey(fin, "state")
+    g = fin["state"]
     if haskey(attributes(g), "type")
       typestring = read(attributes(g)["type"])
       modeltype = eval(Meta.parse(typestring))
-      model = read(fin, "model", modeltype)
+      model = read(fin, "state", modeltype)
     else
-      model = read(fin, "model")
+      model = read(fin, "state")
       if model == "nothing"
         model = nothing
       else
@@ -179,72 +179,6 @@ function printobserver(observer::Observer, print_metrics::Union{String,AbstractA
     end
   end
   return
-end
-
-
-
-"""
-
-CIRCUIT OBSERVER
-
-"""
-
-function savecircuitobserver(observer::Observer, output_path::String; model = nothing)
-  mkpath(dirname(output_path)) 
-  
-  h5rewrite(output_path) do fout
-    if !isnothing(model)
-      write(fout, "model", model)
-    else
-      write(fout, "model", "nothing")
-    end
-    
-    g2 = create_group(fout, "measurements")
-    for (measurement, value) in observer.data 
-      # TODO HDF% cannot export complex numbers (?)
-      output = Vector{Float64}(last(value))
-      #if measurement != "parameters"
-      g2[measurement] = output#last(value)
-      #end
-    end
-    attributes(g2)["Description"] = "This group contains measurements." 
-  end
-end
-
-
-"""
-
-TOMOGRAPHY OBSERVER
-
-"""
-
-function savetomographyobserver(observer::Observer, output_path::String; model = nothing)
-  mkpath(dirname(output_path)) 
-  
-  h5rewrite(output_path) do fout
-    if !isnothing(model)
-      write(fout, "model", model)
-    else
-      write(fout, "model", "nothing")
-    end
-    #params = results(observer, "parameters")
-    #g1 = create_group(fout, "parameters")
-    #g1["batchsize"] = params["batchsize"] 
-    #g1["nshots"] = params["dataset_size"] 
-    #g1["measurement_frequency"] = params["measurement_frequency"]
-    #g1["optimizer"] = params["optimizer"][:name]
-    #g1["learning_rate"] = params["optimizer"][:η]
-    #attributes(g1)["Description"] = "This group contains the training parameters."
-    
-    g2 = create_group(fout, "measurements")
-    for (measurement, value) in observer
-      if measurement != "earlystop"
-        output = Vector{Float64}(last(value))
-        g2[measurement] = output
-      end
-    end
-    attributes(g2)["Description"] = "This group contains measurements." 
-  end
 end
 
 
