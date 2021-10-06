@@ -208,7 +208,7 @@ function runcircuit(
                      move_sites_back=move_sites_back_before_measurements,
                      kwargs...)
       if !isnothing(observer!)
-        update!(observer!, M)#; sites = s)
+        update!(observer!, M; sites = s)
       end
     end
     if outputlevel ≥ 1
@@ -220,7 +220,7 @@ function runcircuit(
       println()
     end
     if !isnothing(outputpath)
-      observerpath = outputpath * "_observer.jld"
+      observerpath = outputpath * "_observer.jld2"
       save(observerpath, observer!)
       if savestate
         statepath = outputpath * "_state.h5"

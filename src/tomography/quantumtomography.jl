@@ -129,7 +129,7 @@ function tomography(
   print_metrics = get(kwargs, :print_metrics, [])
   outputpath = get(kwargs, :outputpath, nothing)
   outputlevel = get(kwargs, :outputlevel, 1)
-  savestate = get(kwargs, :savemodel, false)
+  savestate = get(kwargs, :savestate, false)
   earlystop = get(kwargs, :earlystop, false)
 
   model = copy(L)
@@ -137,7 +137,7 @@ function tomography(
   localnorm = isqpt ? 2.0 : 1.0
   
   # observer is not passed but earlystop is called
-  observer! = isnothing(observer!) && earlystop ? Observer() : nothing
+  observer! = (isnothing(observer!) && earlystop) ? Observer() : observer!
   
   # observer is defined
   if !isnothing(observer!)
@@ -222,13 +222,18 @@ function tomography(
         loss = (!isnothing(test_data) ? results(observer!, "test_loss") : 
                                         results(observer!, "train_loss"))
         
-        if isqpt && (normalized_model isa LPDO{MPS})
-          update!(observer!, choi_mps_to_unitary_mpo(normalized_model); loss = loss)
-        elseif !isqpt && (normalized_model isa LPDO{MPS})
-          update!(observer!, normalized_model.X; loss = loss)
-        else
-          update!(observer!, normalized_model; loss = loss)
-        end
+        model_to_observe = (isqpt && (normalized_model isa LPDO{MPS}) ? choi_mps_to_unitary_mpo(normalized_model) : 
+                                  !isqpt && (normalized_model isa LPDO{MPS}) ? normalized_model.X :
+                                                                               normalized_model)
+        update!(observer!, model_to_observe; train_loss = train_loss,
+                                             test_loss  = test_loss)
+        #if isqpt && (normalized_model isa LPDO{MPS})
+        #  update!(observer!, choi_mps_to_unitary_mpo(normalized_model); loss = loss)
+        #elseif !isqpt && (normalized_model isa LPDO{MPS})
+        #  update!(observer!, normalized_model.X; loss = loss)
+        #else
+        #  update!(observer!, normalized_model; loss = loss)
+        #end
       end
 
       # printing
@@ -245,13 +250,13 @@ function tomography(
       end
       # saving
       if !isnothing(outputpath)
-        observerpath = outputpath * "_observer.jld"
+        observerpath = outputpath * "_observer.jld2"
         save(observerpath, observer!)
         if savestate
           if isqpt
             model_to_be_saved = model isa LPDO{MPS} ? choi_mps_to_unitary_mpo(best_model) : best_model
           else
-            model_to_be_saved = best_model
+            model_to_be_saved = model isa LPDO{MPS} ? best_model.X : best_model
           end
           statepath = outputpath * "_state.h5"
           h5rewrite(statepath) do fout

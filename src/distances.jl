@@ -105,7 +105,7 @@ _fidelity(A::MPO, B::Choi; cutoff::Float64 = 1e-15, kwargs...) =
 [INTERNAL]: process fidelity between two Choi matrices
 """
 _fidelity(A::Choi, B::Choi; kwargs...) = 
-  fidelity(prod(A.X), prod(B.X))
+  fidelity(prod(A.X), prod(B.X); kwargs...)
 
 """
     _fidelity(A::MPO, B::MPO; process::Bool = false, kwargs...)
@@ -155,6 +155,9 @@ function fidelity(A::MPO, B::LPDO{MPO}; process::Bool=false, cutoff::Float64 = 1
   A = ischoi(A) ? Choi(A) : A
   return _fidelity(A, B; process = process, cutoff = cutoff)
 end
+
+fidelity(A::LPDO{MPO}, B::MPO; kwargs...) = 
+  fidelity(B,A; kwargs...)
 
 """
     _fidelity(A::Choi, B::LPDO{MPO}; process::Bool = false, kwargs...)
@@ -265,7 +268,7 @@ _fidelity(A::ITensorOperator, B::Choi; kwargs...) =
 fidelity between two Choi matrices
 """
 _fidelity(A::Choi{ITensorOperator}, B::Choi{ITensorOperator}; cutoff::Float64 = 1e-15, kwargs...) = 
-  _fidelity(A.X, B.X)
+  _fidelity(A.X, B.X; cutoff = cutoff)
 
 """
     _fidelity(A::ITensorOperator, B::ITensorOperator; process::Bool = false, kwargs...)
@@ -289,8 +292,9 @@ function __fidelity(A::ITensorOperator, B::ITensorOperator; cutoff::Float64 = 1e
   @assert order(a) == order(b)
   a ./= tr(a)
   b ./= tr(b)
-  F = product(product(sqrt_hermitian(a), b), sqrt_hermitian(a))
-  return real(tr(sqrt_hermitian(F)))^2
+  sqrt_a = sqrt_hermitian(a; cutoff = cutoff)
+  F = product(product(sqrt_a, b), sqrt_a)
+  return real(tr(sqrt_hermitian(F; cutoff = cutoff)))^2
 end
 
 """
