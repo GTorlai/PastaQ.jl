@@ -352,7 +352,7 @@ and `ε`` is a quantum channel built out of a set of quantum gates and
 a local noise model. Returns a MPO with `N` tensor having 4 sites indices. 
 """
 choimatrix(circuit::Vector{<:Any}; kwargs...) = 
-  choimatrix(nqubits(circuit), gates; kwargs...)
+  choimatrix(nqubits(circuit), circuit; kwargs...)
 
 choimatrix(sites::Union{Int, Vector{<:Index}}, args...; kwargs...) = 
   choimatrix(unitary_mpo_to_choi_mpo(productoperator(sites)), args...; kwargs...) 
