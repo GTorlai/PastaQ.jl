@@ -5,6 +5,7 @@ using LinearAlgebra
 using Random
 using Observers
 using JLD2
+using HDF5
 using Optimisers
 
 @testset "write and read samples" begin
