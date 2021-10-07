@@ -3,22 +3,23 @@ using Test
 @testset "PastaQ.jl" begin
   @testset "$filename" for filename in (
     "array.jl",
-    "gates.jl",
-    "noise.jl",
     "circuits.jl",
-    "circuitops.jl",
-    "runcircuit.jl",
-    "getsamples.jl",
+    "distances.jl",
+    "deprecated.jl",
+    "fulltomography.jl",
+    "gates.jl",
+    "io.jl",
+    #"getsamples.jl", the test remotely are extremely slow, skip for now
+    "measurements.jl",
+    "noise.jl",
+    "optimizers.jl",
+    "processtomography.jl",
+    "productstates.jl",
     "qubitarrays.jl",
     "randomstates.jl",
-    "distances.jl",
-    "measurements.jl",
-    "optimizers.jl",
+    "runcircuit.jl",
     "statetomography.jl",
-    "processtomography.jl",
     "utils.jl",
-    "examples.jl",
-    "observer.jl",
   )
     println("Running $filename")
     include(filename)

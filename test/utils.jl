@@ -4,28 +4,6 @@ using Test
 using LinearAlgebra
 using Random
 
-@testset "array" begin
-  N = 5
-  ψ = productstate(N)
-  ψvec = PastaQ.array(ψ)
-  @test size(ψvec) == (1 << N,)
-
-  ρ = MPO(productstate(N))
-  ρmat = PastaQ.array(ρ)
-  @test size(ρmat) == (1 << N, 1 << N)
-
-  ρ = randomstate(N; mixed=true)
-  ρmat = PastaQ.array(ρ)
-  @test size(ρmat) == (1 << N, 1 << N)
-
-  U = randomprocess(N)
-  Umat = PastaQ.array(U)
-  @test size(Umat) == (1 << N, 1 << N)
-
-  N = 3
-  Λ = randomprocess(N; mixed=true)
-end
-
 @testset "hilbertspace" begin
   N = 5
   ψ = productstate(N)
@@ -79,22 +57,3 @@ end
   @test plev(inds(V[1]; tags="Qubit")[2]) == 0
 end
 
-@testset "nqubits/nlayers/ngates" begin
-  @test nqubits(("H", 2)) == 2
-  @test nqubits(("CX", (2, 5))) == 5
-
-  for i in 1:1000
-    depth = 4
-    N = rand(3:50)
-    gates = randomcircuit(N, depth; twoqubitgates="CX", onequbitgates="Rn")
-    n = nqubits(gates)
-    @test N == n
-    @test PastaQ.nlayers(gates) == depth
-    @test PastaQ.ngates(gates) == depth ÷ 2 * (2 * N ÷ 2 - 1 + 2 * N)
-    gates = randomcircuit(N, depth; twoqubitgates="CX", onequbitgates="Rn", layered=false)
-    n = nqubits(gates)
-    @test N == n
-    @test PastaQ.nlayers(gates) == 1
-    @test PastaQ.ngates(gates) == depth ÷ 2 * (2 * N ÷ 2 - 1 + 2 * N)
-  end
-end

@@ -3,6 +3,29 @@ using ITensors
 using Test
 using LinearAlgebra
 
+
+@testset "array" begin
+  N = 5
+  ψ = productstate(N)
+  ψvec = PastaQ.array(ψ)
+  @test size(ψvec) == (1 << N,)
+
+  ρ = MPO(productstate(N))
+  ρmat = PastaQ.array(ρ)
+  @test size(ρmat) == (1 << N, 1 << N)
+
+  ρ = randomstate(N; mixed=true)
+  ρmat = PastaQ.array(ρ)
+  @test size(ρmat) == (1 << N, 1 << N)
+
+  U = randomprocess(N)
+  Umat = PastaQ.array(U)
+  @test size(Umat) == (1 << N, 1 << N)
+
+  N = 3
+  Λ = randomprocess(N; mixed=true)
+end
+
 @testset "array for MPS/MPO" begin
   
   N = 5
@@ -182,4 +205,24 @@ end
   Λprod = prod(Λ)
   Λtest = PastaQ.array(Λprod)
   @test Λmat ≈ Λtest
+end
+
+
+
+@testset "dense states to itensors" begin
+  N = 2
+  d = 1<<N
+  gates = randomcircuit(N,4)
+  ψ = runcircuit(N,gates)
+  
+  sites = siteinds("Qubit", N)
+  ψvec = PastaQ.array(ψ)
+  ϕ = itensor(ψvec, reverse(sites))
+  @test PastaQ.array(ϕ) ≈ ψvec
+
+  ρ = runcircuit(N, gates; noise = ("DEP",(p=0.1,)))
+  ρmat = PastaQ.array(ρ) 
+  ϱ = itensor(ρmat, reverse(sites)', reverse(sites))
+  @test PastaQ.array(ϱ) ≈ ρmat
+
 end

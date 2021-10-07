@@ -134,20 +134,50 @@ end
 
 Check whether a given LPDO{MPO}  
 """
-ischoi(M::LPDO{MPO}) = (length(inds(M.X[1], "Site")) == 2 && haschoitags(M)) # hastags(M.X[1], default_purifier_tags))
+function ischoi(M::LPDO{MPO})
+  !haschoitags(M) && return false
+  for j in 1:length(M)
+    length(inds(M.X[j], "Site")) != 2 && return false
+  end
+  return true
+end
 
-ischoi(M::MPO) = (length(inds(M[1], "Site")) == 4 && haschoitags(M))
+function ischoi(M::MPO) 
+  !haschoitags(M) && return false
+  for j in 1:length(M)
+    length(inds(M[j], "Site")) != 4 && return false
+  end
+  return true
+end
 
-# TODO: check all indices, not just the first ones
+ischoi(M::ITensor) = haschoitags(M)
+
+
 """
     haschoitags(L::LPDO)
     haschoitags(M::Union{MPS,MPO})
 
 Check whether the TN has input/output Choi tags
 """
-haschoitags(L::LPDO) = (hastags(inds(L.X[1]), "Input") && hastags(inds(L.X[1]), "Output"))
+function haschoitags(L::LPDO)
+  for j in 1:length(L)
+    !(hastags(L.X[j], "Input") && hastags(L.X[j], "Output")) && return false
+  end
+  return true
+end
 function haschoitags(M::Union{MPS,MPO})
-  return (hastags(inds(M[1]), "Input") && hastags(inds(M[1]), "Output"))
+  for j in 1:length(M)
+    !(hastags(M[j], "Input") && hastags(M[j], "Output")) && return false
+  end
+  return true
+end
+
+function haschoitags(M::ITensor)
+  N = nqubits(M)
+  for j in 1:N
+    !(hastags(M,"Input,n=$j") && hastags(M,"Output,n=$j")) && return false
+  end
+  return true
 end
 
 """
@@ -168,6 +198,16 @@ function choitags(U::MPO)
   U = addtags(siteinds, U, "Output"; plev=1)
   return noprime(siteinds, U)
 end
+
+function choitags(T::ITensor)
+  haschoitags(T) && return T
+  T = addtags(T, "Input"; plev=0)
+  T = addtags(T, "Output"; plev=1)
+  return noprime(T)
+end
+
+choitags(O::ITensorOperator) = 
+  ITensorState(choitags(O.T))
 
 """
     mpotags(U::MPO)
@@ -197,7 +237,9 @@ mpotags(M::Union{MPS,MPO}) = mpotags(LPDO(M)).X
 Transforms a unitary MPO into a Choi MPS with appropriate tags.
 """
 unitary_mpo_to_choi_mps(U::MPO) = convert(MPS, choitags(U))
+unitary_mpo_to_choi_mps(T::ITensor) = choitags(T) 
 unitary_mpo_to_choi_mps(L::LPDO{MPO}) = unitary_mpo_to_choi_mps(L.X)
+
 
 """
     unitary_mpo_to_choi_mpo(U::MPO)

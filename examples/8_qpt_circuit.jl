@@ -1,6 +1,8 @@
 using PastaQ
 using Random
 using ITensors
+using Observers
+import Optimisers
 
 Random.seed!(1234)
 
@@ -31,8 +33,10 @@ N = length(Û)     # Number of qubits
 # Initialize the unitary MPO
 U0 = randomprocess(Û; χ=χ)
 
-F(U::MPO) = fidelity(U, Û; process=true)
-obs = Observer(F)
+opt = Optimisers.Descent(0.01)
+
+F(U::MPO; kwargs...) = fidelity(U, Û; process=true)
+obs = Observer(["F" => F])
 
 # Initialize stochastic gradient descent optimizer
 @show maxlinkdim(U0)
@@ -43,7 +47,7 @@ U = tomography(
   train_data,
   U0;
   test_data=test_data,
-  optimizer=SGD(; η=0.1),
+  optimizer=opt,
   batchsize=500,
   epochs=5,
   (observer!)=obs,
@@ -79,10 +83,10 @@ N = length(Φ)
 Λ0 = randomprocess(Φ; mixed=true, χ=χ, ξ=ξ)
 
 # Initialize stochastic gradient descent optimizer
-opt = SGD(; η=0.1)
+opt = Optimisers.ADAM()
 
-F(Λ::LPDO) = fidelity(Λ, Φ; process=true, warnings=false)
-obs = Observer(F)
+F(Λ::LPDO; kwargs...) = fidelity(Λ, Φ; process=true)
+obs = Observer(["F" => F])
 
 # Run process tomography
 println("Run process tomography to learn noisy process Λ")

@@ -1,6 +1,8 @@
 using PastaQ
 using Random
 using ITensors
+using Observers
+import Optimisers
 
 Random.seed!(1234)
 
@@ -29,11 +31,11 @@ N = length(Ψ)     # Number of qubits
 ψ0 = randomstate(Ψ; χ=χ)
 
 # Initialize stochastic gradient descent optimizer
-opt = SGD(; η=0.01)
+opt = Optimisers.Descent(0.01)
 
 # Initialize the observer for the fidelity
-F(ψ::MPS) = fidelity(ψ, Ψ)
-obs = Observer(F)
+F(ψ::MPS; kwargs...) = fidelity(ψ, Ψ)
+obs = Observer(["F" => F])
 
 # Run quantum state tomography, where a variational MPS `|ψ(θ)⟩`
 # is optimized to mimimize the cross entropy between the data and 
@@ -49,6 +51,7 @@ println("Running tomography to learn a pure state ψ:")
   (observer!)=obs,
   print_metrics="F",
 )
+
 @show maxlinkdim(ψ)
 println()
 
@@ -76,12 +79,12 @@ N = length(ϱ)     # Number of qubits
 ρ0 = randomstate(ϱ; mixed=true, χ=χ, ξ=ξ)
 
 # Initialize stochastic gradient descent optimizer
-opt = SGD(; η=0.1)
+opt = Optimisers.ADAM()
 
 # Initialize the observer
-F(ρ::LPDO) = fidelity(ρ, ϱ; warnings=false)
+F(ρ::LPDO; kwargs...) = fidelity(ρ, ϱ)
 
-obs = Observer(F)
+obs = Observer(["F" => F])
 
 # Run quantum state tomography, where a variational LPDO `ρ(θ)`
 # is optimized to mimimize the cross entropy between the data and 

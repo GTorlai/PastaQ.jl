@@ -1,5 +1,5 @@
 using PastaQ
-
+using Random
 using ITensors
 using Test
 using LinearAlgebra
@@ -61,6 +61,10 @@ end
       @test bases[10 * (i - 1) + j] == bases[10 * (i - 1) + 1]
     end
   end
+  
+  bases = fullbases(N)
+  @test bases isa Matrix{String}
+  @test size(bases) == (3^N,N)
 end
 
 @testset "measurements" begin
@@ -247,6 +251,34 @@ end
   end
 end
 
+
+@testset "projection into input state" begin
+
+  N = 4
+  ntrials = 100
+  
+  U = runcircuit(randomcircuit(N,3); process = true)
+  for n in 1:ntrials
+    ϕ = rand(["X+","X-","Y+","Y-","Z+","Z-"], N)
+    Π = PastaQ.projectunitary(U, ϕ)
+    Γ = PastaQ.projectunitary(prod(U), ϕ)
+    @test prod(Π) ≈ Γ
+  end
+
+  N = 3
+  ntrials = 100
+  @disable_warn_order begin
+    Λ = runcircuit(randomcircuit(N,3); process = true, noise=("amplitude_damping", (γ=0.1,)))
+    for n in 1:ntrials
+      ϕ = rand(["X+","X-","Y+","Y-","Z+","Z-"], N)
+      Π = PastaQ.projectchoi(Λ, ϕ)
+      Γ = PastaQ.projectchoi(prod(Λ), ϕ)
+      @test prod(Π) ≈ Γ
+    end
+  end
+end
+
+
 @testset "getsamples" begin
   N = 4
   nshots = 10
@@ -257,30 +289,59 @@ end
   # 1a) Generate data with a MPS on the reference basis
   data = PastaQ.getsamples!(ψ, nshots)
   @test size(data) == (nshots, N)
+  data = PastaQ.getsamples!(prod(ψ), nshots)
+  @test size(data) == (nshots, N)
   # 1b) Generate data with a MPO on the reference basis
   data = PastaQ.getsamples!(ρ, nshots)
+  @test size(data) == (nshots, N)
+  data = PastaQ.getsamples!(prod(ρ), nshots)
   @test size(data) == (nshots, N)
 
   # 2a) Generate data with a MPS on multiple bases
   bases = randombases(N, nshots; local_basis=["X", "Y", "Z"])
   data = getsamples(ψ, bases)
   @test size(data) == (nshots, N)
+  data = getsamples(prod(ψ), bases)
+  @test size(data) == (nshots, N)
   # 2b) Generate data with a MPO on multiple bases
   bases = randombases(N, nshots; local_basis=["X", "Y", "Z"])
   data = getsamples(ρ, bases)
   @test size(data) == (nshots, N)
+  data = getsamples(prod(ρ), bases)
+  @test size(data) == (nshots, N)
 
   # 3) Measure MPS at the output of a circuit
-  data, _ = getsamples(N, gates, nshots)
+  data, X = getsamples(N, gates, nshots)
   @test size(data) == (nshots, N)
-  data, _ = getsamples(N, gates, nshots; noise=("amplitude_damping", (γ=0.1,)))
+  @test X isa MPS
+  data, X = getsamples(N, gates, nshots; noise=("amplitude_damping", (γ=0.1,)))
   @test size(data) == (nshots, N)
-  data, _ = getsamples(N, gates, nshots; local_basis=["X", "Y", "Z"])
+  @test X isa MPO
+  data, X = getsamples(N, gates, nshots; local_basis=["X", "Y", "Z"])
   @test size(data) == (nshots, N)
-  data, _ = getsamples(
+  @test X isa MPS
+  data, X = getsamples(
     N, gates, nshots; noise=("amplitude_damping", (γ=0.1,)), local_basis=["X", "Y", "Z"]
   )
   @test size(data) == (nshots, N)
+  @test X isa MPO
+
+  data, X = getsamples(N, gates, nshots; full_representation = true)
+  @test size(data) == (nshots, N)
+  @test X isa ITensor
+  data, X = getsamples(N, gates, nshots; full_representation = true, noise=("amplitude_damping", (γ=0.1,)))
+  @test size(data) == (nshots, N)
+  @test X isa ITensor
+  data, X = getsamples(N, gates, nshots; full_representation = true, local_basis=["X", "Y", "Z"])
+  @test size(data) == (nshots, N)
+  @test X isa ITensor
+  data, X = getsamples(
+    N, gates, nshots; noise=("amplitude_damping", (γ=0.1,)), local_basis=["X", "Y", "Z"],full_representation = true
+  )
+  @test size(data) == (nshots, N)
+  @test X isa ITensor
+
+
   data, M = getsamples(N, gates, nshots;)
   data, M = getsamples(N, gates, nshots; noise=("amplitude_damping", (γ=0.1,)))
   data, M = getsamples(N, gates, nshots; local_basis=["X", "Y", "Z"])
@@ -289,9 +350,10 @@ end
   )
 
   # 4) Process tomography
-  data, _ = getsamples(N, gates, nshots; process=true, build_process=false)
+  data, X = getsamples(N, gates, nshots; process=true, build_process=false)
   @test size(data) == (nshots, N)
-  data, _ = getsamples(
+  @test isnothing(X)
+  data, X = getsamples(
     N,
     gates,
     nshots;
@@ -300,6 +362,77 @@ end
     noise=("amplitude_damping", (γ=0.1,)),
   )
   @test size(data) == (nshots, N)
+  @test isnothing(X)
+  data, X = getsamples(N, gates, nshots; process=true, build_process=true)
+  @test X isa MPO
+  data, X = getsamples(
+    N,
+    gates,
+    nshots;
+    process=true,
+    build_process=true,
+    noise=("amplitude_damping", (γ=0.1,)),
+  )
+  @test X isa MPO
+  @test PastaQ.ischoi(X) == true
+  
+  data, X = getsamples(N, gates, nshots; process=true, build_process=false, full_representation = true)
+  @test isnothing(X)
+  @test size(data) == (nshots, N)
+  data, X = getsamples(
+    N,
+    gates,
+    nshots;
+    process=true,
+    build_process=false,
+    noise=("amplitude_damping", (γ=0.1,)),
+    full_representation = true
+  )
+  @test size(data) == (nshots, N)
+  @test isnothing(X)
+  data, X = getsamples(N, gates, nshots; process=true, build_process=true, full_representation = true)
+  @test X isa ITensor
+  
+  @disable_warn_order begin
+    data, X = getsamples(
+      N,
+      gates,
+      nshots;
+      process=true,
+      build_process=true,
+      noise=("amplitude_damping", (γ=0.1,)),
+      full_representation = true
+     )
+  end
+  @test X isa ITensor
+  @test PastaQ.ischoi(X) == true
+end
+
+
+@testset "getsamples (IC)" begin
+  N = 3
+  nshots = 10
+  gates = randomcircuit(N, 4)
+  ψ = runcircuit(N, gates)
+  ρ = runcircuit(N, gates; noise=("amplitude_damping", (γ=0.1,)))
+
+  # 2a) Generate data with a MPS on multiple bases
+  bases = fullbases(N; local_basis=["X", "Y", "Z"])
+  data = getsamples(ψ, nshots, bases)
+  @test size(data) == (3^N*nshots, N)
+  # 2b) Generate data with a MPO on multiple bases
+  data = getsamples(ρ, nshots, bases)
+  @test size(data) == (3^N*nshots, N)
+
+  # 3) Measure MPS at the output of a circuit
+  data, _ = getsamples(N, gates, nshots; local_basis=["X", "Y", "Z"], informationally_complete = true)
+  @test size(data) == (3^N*nshots, N)
+  data, _ = getsamples(
+    N, gates, nshots; noise=("amplitude_damping", (γ=0.1,)), local_basis=["X", "Y", "Z"],
+    informationally_complete = true
+  )
+  @test size(data) == (3^N*nshots, N)
+
   data, Λ = getsamples(N, gates, nshots; process=true, build_process=true)
   @test Λ isa MPO
   data, Λ = getsamples(
@@ -309,114 +442,9 @@ end
     process=true,
     build_process=true,
     noise=("amplitude_damping", (γ=0.1,)),
+    informationally_complete = true
   )
+  @test size(data) == (18^N*nshots, N)
   @test PastaQ.ischoi(Λ) == true
 end
 
-@testset "readout errors" begin
-  N = 4
-  nshots = 10
-  gates = randomcircuit(N, 4)
-
-  readout_errors = (p1given0=0.01, p0given1=0.04)
-  ψ = runcircuit(N, gates)
-  ρ = runcircuit(N, gates; noise=("amplitude_damping", (γ=0.1,)))
-
-  # 1a) Generate data with a MPS on the reference basis
-  data = PastaQ.getsamples!(ψ, nshots; readout_errors=readout_errors)
-  @test size(data) == (nshots, N)
-  # 1b) Generate data with a MPO on treadout_errors = readout_errors
-  data = PastaQ.getsamples!(ρ, nshots; readout_errors=readout_errors)
-  @test size(data) == (nshots, N)
-
-  # 2a) Generate data with a MPS on multiple bases
-  bases = randombases(N, nshots; local_basis=["X", "Y", "Z"])
-  data = getsamples(ψ, bases; readout_errors=readout_errors)
-  @test size(data) == (nshots, N)
-  # 2b) Generate data with a MPO on multiple bases
-  bases = randombases(N, nshots; local_basis=["X", "Y", "Z"])
-  data = getsamples(ρ, bases; readout_errors=readout_errors)
-  @test size(data) == (nshots, N)
-
-  # 3) Measure MPS at the output of a circuit
-  data, _ = getsamples(N, gates, nshots; readout_errors=readout_errors)
-  @test size(data) == (nshots, N)
-  data, _ = getsamples(gates, nshots; readout_errors=readout_errors)
-  @test size(data) == (nshots, N)
-  data, _ = getsamples(
-    N, gates, nshots; noise=("amplitude_damping", (γ=0.1,)), readout_errors=readout_errors
-  )
-  @test size(data) == (nshots, N)
-  data, _ = getsamples(
-    N, gates, nshots; local_basis=["X", "Y", "Z"], readout_errors=readout_errors
-  )
-  @test size(data) == (nshots, N)
-  data, _ = getsamples(
-    gates, nshots; local_basis=["X", "Y", "Z"], readout_errors=readout_errors
-  )
-  @test size(data) == (nshots, N)
-  data, _ = getsamples(
-    N,
-    gates,
-    nshots;
-    noise=("amplitude_damping", (γ=0.1,)),
-    local_basis=["X", "Y", "Z"],
-    readout_errors=readout_errors,
-  )
-  @test size(data) == (nshots, N)
-  data, _ = getsamples(
-    gates,
-    nshots;
-    noise=("amplitude_damping", (γ=0.1,)),
-    local_basis=["X", "Y", "Z"],
-    readout_errors=readout_errors,
-  )
-  @test size(data) == (nshots, N)
-  data, M = getsamples(N, gates, nshots; readout_errors=readout_errors)
-  data, M = getsamples(
-    N, gates, nshots; noise=("amplitude_damping", (γ=0.1,)), readout_errors=readout_errors
-  )
-  data, M = getsamples(
-    N, gates, nshots; local_basis=["X", "Y", "Z"], readout_errors=readout_errors
-  )
-  data, M = getsamples(
-    N,
-    gates,
-    nshots;
-    noise=("amplitude_damping", (γ=0.1,)),
-    local_basis=["X", "Y", "Z"],
-    readout_errors=readout_errors,
-  )
-
-  # 4) Process tomography
-  data, _ = getsamples(
-    N, gates, nshots; process=true, build_process=false, readout_errors=readout_errors
-  )
-  @test size(data) == (nshots, N)
-  data, _ = getsamples(
-    gates, nshots; process=true, build_process=false, readout_errors=readout_errors
-  )
-  @test size(data) == (nshots, N)
-  data, _ = getsamples(
-    N,
-    gates,
-    nshots;
-    process=true,
-    build_process=false,
-    noise=("amplitude_damping", (γ=0.1,)),
-    readout_errors=readout_errors,
-  )
-  @test size(data) == (nshots, N)
-  data, Λ = getsamples(
-    N, gates, nshots; process=true, build_process=true, readout_errors=readout_errors
-  )
-  data, Λ = getsamples(
-    N,
-    gates,
-    nshots;
-    process=true,
-    build_process=true,
-    noise=("amplitude_damping", (γ=0.1,)),
-    readout_errors=readout_errors,
-  )
-end

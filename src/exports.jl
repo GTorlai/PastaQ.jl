@@ -21,12 +21,14 @@ export
   # circuits/getsamples.jl
   # Methods
   getsamples,
+  fullbases,
   randombases,
+  fullpreparations,
   randompreparations,
   
   # noise.jl
   insertnoise,
-
+  
   # circuits/runcircuit.jl
   # Methods
   productstate,
@@ -34,6 +36,10 @@ export
   qubits,
   buildcircuit,
   runcircuit,
+  choimatrix,
+
+  # optimizers.jl
+  optimizer,
 
   # lpdo.jl
   LPDO,
@@ -60,11 +66,6 @@ export
   processfidelity,
   fidelity_bound,
   frobenius_distance,
-
-  # optimizers.jl
-  Optimizer,
-  SGD,
-  AdaDelta,
 
   # observer.jl
   Observer,

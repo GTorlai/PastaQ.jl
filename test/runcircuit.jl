@@ -3,7 +3,7 @@ using PastaQ.ITensors
 using Test
 using LinearAlgebra
 using Random
-
+using Observers
 function state_to_int(state::Array)
   index = 0
   for j in 1:length(state)
@@ -71,16 +71,48 @@ end
   @test prod(ψ) ≈ runcircuit(prod(ψ0), buildcircuit(ψ0, gates))
   @test PastaQ.array(prod(ψ)) ≈ PastaQ.array(prod(runcircuit(N, gates)))
   @test PastaQ.array(prod(ψ)) ≈ PastaQ.array(prod(runcircuit(gates)))
-  @test PastaQ.array(ψ) ≈ PastaQ.tovector(runcircuit(gates; full_representation = true))
+  @test PastaQ.array(ψ) ≈ PastaQ.array(runcircuit(gates; full_representation = true))
+  
+  ϕ = runcircuit(ψ0, gates; apply_dag = false)
+  @test ϕ ≈ ψ
+  σ = runcircuit(ψ0, gates; apply_dag = true)
+  @test σ ≈ outer(ψ,ψ)
 
   # Mixed state, noiseless circuit
   ρ0 = MPO(productstate(N))
   ρ = runcircuit(ρ0, gates)
   X = runcircuit(prod(ρ0), buildcircuit(ρ0, gates); apply_dag=true)
   @test prod(ρ) ≈ runcircuit(prod(ρ0), buildcircuit(ρ0, gates); apply_dag=true)
-  @test PastaQ.array(ρ) ≈ PastaQ.tomatrix(runcircuit(prod(ρ0),gates; full_representation = true, apply_dag = true))
+  @test PastaQ.array(ρ) ≈ PastaQ.array(runcircuit(prod(ρ0),gates; full_representation = true, apply_dag = true))
+  
 end
 
+@testset "choi matrix" begin
+  N = 3
+  depth = 4
+  circuit = randomcircuit(N, depth; layered=false)
+  s = siteinds("Qubit",N)
+  Λ = runcircuit(s, circuit; process = true, noise = ("DEP",(p=0.01,)))
+  @test PastaQ.ischoi(Λ)
+  @test Λ isa MPO
+
+  Φ = choimatrix(circuit; noise = ("DEP",(p=0.01,)))
+  @test PastaQ.ischoi(Φ)
+  @test PastaQ.array(Λ) ≈ PastaQ.array(Φ)
+  @test Φ isa MPO
+
+  Φ = choimatrix(circuit; noise = ("DEP",(p=0.01,)), full_representation = true)
+  @test PastaQ.ischoi(Φ)
+  @test PastaQ.array(Λ) ≈ PastaQ.array(Φ)
+  @test Φ isa ITensor
+
+
+  Φ = choimatrix(circuit; noise = ("DEP",(p=0.01,)), full_representation=true)
+  @test PastaQ.ischoi(Φ)
+  @test PastaQ.array(Λ) ≈ PastaQ.array(Φ)
+  @test Φ isa ITensor
+
+end
 
 @testset "runcircuit: (n>2)-qubit gates" begin
   N = 3
@@ -189,3 +221,6 @@ end
   circuit = randomcircuit(N, depth)
   @test prod(ρ) ≈ prod(runcircuit(ψ0, circuit; noise=("depolarizing", (p=0.1,))))
 end
+
+
+

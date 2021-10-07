@@ -10,7 +10,7 @@ added to each gate as a tensor with an extra (Kraus) index.
 function buildcircuit(
   M::Union{MPS,MPO,ITensor},
   circuit::Union{Tuple,Vector{<:Any}};
-  noise::Union{Nothing, Tuple, NamedTuple} = nothing
+  noise::Union{Nothing, Tuple, NamedTuple} = nothing#, kwargs...
 )
   circuit_tensors = ITensor[]
   if circuit isa Tuple
@@ -178,10 +178,10 @@ function runcircuit(
   circuit::Vector{<:Vector{<:Any}};
   (observer!)=nothing,
   move_sites_back_before_measurements::Bool=false,
-  noise=nothing,
+  noise = nothing,
   outputlevel = 1,
   outputpath = nothing,
-  savemodel = false,
+  savestate = false,
   print_metrics = [],
   kwargs...,
 )
@@ -190,7 +190,7 @@ function runcircuit(
   isnothing(observer!) && return runcircuit(M, vcat(circuit...); noise=noise, kwargs...)
 
   # issue warning if there are custom functions and the sites are not being moved back
-  if _has_customfunctions(observer!) && move_sites_back_before_measurements == false
+  if !isnothing(observer!) && move_sites_back_before_measurements == false
     println("--------------")
     println(" WARNING")
     println(
@@ -201,13 +201,14 @@ function runcircuit(
   M0 = copy(M)
   # record the initial configuration of the indices
   s = siteinds(M)
-
   for l in 1:length(circuit)
     layer = circuit[l]
     t = @elapsed begin
-      M = runcircuit(M, layer; move_sites_back=move_sites_back_before_measurements, kwargs...)
+      M = runcircuit(M, layer; noise = noise,
+                     move_sites_back=move_sites_back_before_measurements,
+                     kwargs...)
       if !isnothing(observer!)
-        measure!(observer!, M, s)
+        update!(observer!, M; sites = s)
       end
     end
     if outputlevel ≥ 1
@@ -219,8 +220,14 @@ function runcircuit(
       println()
     end
     if !isnothing(outputpath)
-      model_to_be_saved = savemodel ? M : nothing
-      savecircuitobserver(observer!, outputpath; model = model_to_be_saved)
+      observerpath = outputpath * "_observer.jld2"
+      save(observerpath, observer!)
+      if savestate
+        statepath = outputpath * "_state.h5"
+        h5rewrite(statepath) do fout
+          write(fout, "state", M)
+        end
+      end
     end
   end
   if move_sites_back_before_measurements == false
@@ -273,9 +280,9 @@ function runcircuit(sites::Vector{<:Index},
   end 
   # Choi matrix
   if process && !isnothing(noise)
-    full_representation && error("Exact Choi matrix not yet implemented")
     return choimatrix(sites, circuit; 
                       noise = noise, 
+                      full_representation = full_representation,
                       kwargs...)
   end
   
@@ -359,7 +366,7 @@ choimatrix(sites::Union{Int, Vector{<:Index}}, args...; kwargs...) =
 
 function choimatrix(Λ0::MPO, circuit::Vector{<:Any};
                     noise = nothing, cutoff = 1e-15, maxdim = 10000,
-                    svd_alg = "divide_and_conquer")
+                    svd_alg = "divide_and_conquer", full_representation = false)
   N = length(Λ0)
   if isnothing(noise)
     error("choi matrix requires noise")
@@ -374,7 +381,8 @@ function choimatrix(Λ0::MPO, circuit::Vector{<:Any};
   circuit_tensors = buildcircuit(compiler, circuit; noise = noise)
 
   # contract to compute the Choi matrix
-  return runcircuit(Λ0, circuit_tensors; apply_dag = true, cutoff = cutoff,
+  Λ₀ = full_representation ? prod(Λ0) : Λ0
+  return runcircuit(Λ₀, circuit_tensors; apply_dag = true, cutoff = cutoff,
                     maxdim = maxdim, svd_alg = svd_alg)
 end
 

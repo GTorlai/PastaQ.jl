@@ -97,17 +97,3 @@ function qubits(sites::Vector{<:Index}, states::Vector{String}; mixed::Bool=fals
   return ψ
 end
 
-""" 
-    resetqubits!(M::Union{MPS,MPO})
-
-Reset qubits to the initial state:
-- `|ψ⟩=|0,0,…,0⟩` if `M = MPS`
-- `ρ = |0,0,…,0⟩⟨0,0,…,0|` if `M = MPO`
-"""
-function resetqubits!(M::Union{MPS,MPO})
-  @warn "researqubits! is deprecated"
-  indices = [firstind(M[j]; tags="Site", plev=0) for j in 1:length(M)]
-  M_new = qubits(indices; mixed=!(M isa MPS))
-  M[:] = M_new
-  return M
-end
