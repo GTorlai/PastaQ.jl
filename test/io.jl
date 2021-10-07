@@ -25,7 +25,6 @@ using Optimisers
   @test X ≈ Xtest
   @test datatest ≈ data
   
-  
   X = runcircuit(circuit; noise = ("DEP",(p=0.01,)))
   data = getsamples(X, nshots)
   writesamples(data, path)
