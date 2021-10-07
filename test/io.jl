@@ -1,173 +1,186 @@
-#using PastaQ
-#using PastaQ.ITensors
-#using Test
-#using LinearAlgebra
-#using Random
-#using Observers
-#using JLD2
-#
-#@testset "write and read samples" begin
-#  N = 3
-#  depth = 4
-#  nshots = 100
-#  circuit = randomcircuit(N, depth)
-#  path = "test_data_writesamples.h5"
-#  
-#  data, X = getsamples(circuit, nshots; local_basis = nothing) 
-#  writesamples(data, path)
-#  datatest = readsamples(path)
-#  @test datatest ≈ data
-#  writesamples(data, X, path)
-#  datatest, Xtest = readsamples(path)
-#  @test X ≈ Xtest
-#  @test datatest ≈ data
-#  
-#  data, X = getsamples(circuit, nshots; local_basis = nothing, noise = ("DEP",(p=0.01,))) 
-#  writesamples(data, path)
-#  datatest = readsamples(path)
-#  @test datatest ≈ data
-#  writesamples(data, X, path)
-#  datatest, Xtest = readsamples(path)
-#  @test X ≈ Xtest
-#  @test datatest ≈ data
-#  
-#  data, _ = getsamples(circuit, nshots; local_basis = nothing, noise = ("DEP",(p=0.01,))) 
-#  X = randomstate(N; ξ = 2, χ = 3)
-#  writesamples(data, path)
-#  datatest = readsamples(path)
-#  @test datatest ≈ data
-#  writesamples(data, X, path)
-#  datatest, Xtest = readsamples(path)
-#  @test X.X ≈ Xtest.X
-#  @test datatest ≈ data
-#
-#  
-#  data, X = getsamples(circuit, nshots; local_basis = ["X","Y","Z"]) 
-#  writesamples(data, path)
-#  datatest = readsamples(path)
-#  @test all(data .== datatest)
-#  writesamples(data, X, path)
-#  datatest, Xtest = readsamples(path)
-#  @test X ≈ Xtest
-#  @test all(data .== datatest)
-#  
-#  data, X = getsamples(circuit, nshots; local_basis = ["X","Y","Z"], noise = ("DEP",(p=0.01,))) 
-#  writesamples(data, path)
-#  datatest = readsamples(path)
-#  @test all(data .== datatest)
-#  writesamples(data, X, path)
-#  datatest, Xtest = readsamples(path)
-#  @test X ≈ Xtest
-#  @test all(data .== datatest)
-#  
-#  data, _ = getsamples(circuit, nshots; local_basis = ["X","Y","Z"], noise = ("DEP",(p=0.01,))) 
-#  X = randomstate(N; ξ = 2, χ = 3)
-#  writesamples(data, path)
-#  datatest = readsamples(path)
-#  @test all(data .== datatest)
-#  writesamples(data, X, path)
-#  datatest, Xtest = readsamples(path)
-#  @test X.X ≈ Xtest.X
-#  @test all(data .== datatest)
-#
-#
-#  data, X = getsamples(circuit, nshots; local_basis = ["X","Y","Z"], process = true) 
-#  writesamples(data, path)
-#  datatest = readsamples(path)
-#  @test all(data .== datatest)
-#  writesamples(data, X, path)
-#  datatest, Xtest = readsamples(path)
-#  @test X ≈ Xtest
-#  @test all(data .== datatest)
-#  
-#  data, _ = getsamples(circuit, nshots; local_basis = ["X","Y","Z"],process = true, noise = ("DEP",(p=0.01,))) 
-#  X = randomprocess(N; ξ = 2, χ = 3)
-#  writesamples(data, path)
-#  datatest = readsamples(path)
-#  @test all(data .== datatest)
-#  writesamples(data, X, path)
-#  datatest, Xtest = readsamples(path)
-#  @test X.X ≈ Xtest.X
-#  @test all(data .== datatest)
-#
-#end
-#
-#@testset "circuit observer: MPS" begin
-#  N = 8
-#  depth = 9
-#  R = 5
-#  Random.seed!(1234)
-#  #circuit = Vector{Vector{<:Any}}(undef, depth)
-#  circuit = randomcircuit(N, depth)
-#  layer = Tuple[]
-#  push!(circuit, [("CX",(1,N)),])
-#
-#  sites = siteinds("Qubit", N)
-#  
-#  outputpath = "simulation"
-#  ϕ = randomstate(sites; χ = 10, normalize=true)
-#  ψ = runcircuit(sites, circuit)
-#  Ftest = fidelity(ψ,ϕ)
-#  f(ψ::MPS; kwargs...) = fidelity(ψ, ϕ)#; kwargs...) = fidelity(ψ, ϕ)
-#  obs = Observer(["f" => f])
-#  ψ = runcircuit(sites, circuit; (observer!)=obs, move_sites_back_before_measurements=true,
-#                 outputpath = outputpath, savestate = true, outputlevel = 0)
-#  @test Ftest ≈ results(obs, "f")[end]
-#  @test length(results(obs, "f")) == depth+1
-#  
-#  obs2 = load("simulation_observer.jld2")
-#  for (k,v) in obs2
-#    @test last(v) ≈ results(obs, k)
-#  end
-#
-#  fin = h5open("simulation_state.h5","r")
-#  M = read(fin, "state", MPS)
-#  close(fin)
-#  @test M ≈ ψ
-#end
-#
-#@testset "circuit observer: MPO" begin
-#  N = 4
-#  depth = 5
-#  #circuit = Vector{Vector{<:Any}}(undef, depth)
-#  sites = siteinds("Qubit", N)
-#  circuit = randomcircuit(N, depth)
-#  
-#  @disable_warn_order begin
-#    L = randomstate(sites; χ = 10, ξ = 3, normalize=true)
-#    ϱ = MPO(L)
-#    ρ = runcircuit(sites, circuit; noise = ("DEP",(p=0.001,)))
-#    Ftest = fidelity(ϱ,ρ)
-#    g(ρ::MPO; kwargs...) = fidelity(ρ, ϱ)#; kwargs...) = fidelity(ψ, ϕ)
-#    obs = Observer(["g" => g])
-#    outputpath = "simulation"
-#    ρ = runcircuit(sites, circuit; 
-#                   (observer!)=obs, 
-#                   move_sites_back_before_measurements=true, 
-#                   outputlevel = 0,
-#                   noise = ("DEP",(p=0.001,)),
-#                   outputpath = outputpath, savestate = true)
-# end
-#  @test Ftest ≈ results(obs, "g")[end]
-#  @test length(results(obs, "g")) == depth
-#  obs2 = load("simulation_observer.jld2")
-#  for (k,v) in obs2
-#    @test last(v) ≈ results(obs, k)
-#  end
-#  
-#  fin = h5open("simulation_state.h5","r")
-#  M = read(fin, "state", MPO)
-#  close(fin)
-#  @test M ≈ ρ
-#end
-#
+using PastaQ
+using PastaQ.ITensors
+using Test
+using LinearAlgebra
+using Random
+using Observers
+using JLD2
+using HDF5
+using Optimisers
+
+@testset "write and read samples" begin
+  N = 3
+  depth = 4
+  nshots = 100
+  circuit = randomcircuit(N, depth)
+  path = "test_data_writesamples.h5"
+  
+  X = runcircuit(circuit)
+  data = getsamples(X, nshots)
+  writesamples(data, path)
+  datatest = readsamples(path)
+  @test datatest ≈ data
+  writesamples(data, X, path)
+  datatest, Xtest = readsamples(path)
+  @test X ≈ Xtest
+  @test datatest ≈ data
+  
+  
+  X = runcircuit(circuit; noise = ("DEP",(p=0.01,)))
+  data = getsamples(X, nshots)
+  writesamples(data, path)
+  datatest = readsamples(path)
+  @test datatest ≈ data
+  writesamples(data, X, path)
+  datatest, Xtest = readsamples(path)
+  @test X ≈ Xtest
+  @test datatest ≈ data
+  
+  X = randomstate(N; ξ = 2, χ = 3)
+  writesamples(data, X, path)
+  datatest, Xtest = readsamples(path)
+  @test X.X ≈ Xtest.X
+  @test datatest ≈ data
+
+  
+  X = runcircuit(circuit)
+  bases = randombases(N, 10)
+  data = getsamples(X, bases, nshots)
+  writesamples(data, path)
+  datatest = readsamples(path)
+  @test all(data .== datatest)  
+  writesamples(data, X, path)
+  datatest, Xtest = readsamples(path)
+  @test X ≈ Xtest
+  @test all(data .== datatest)  
+  
+  X = runcircuit(circuit; noise = ("DEP",(p=0.01,)))
+  bases = randombases(N, 10)
+  data = getsamples(X, bases, nshots)
+  writesamples(data, path)
+  datatest = readsamples(path)
+  @test all(data .== datatest)  
+  writesamples(data, X, path)
+  datatest, Xtest = readsamples(path)
+  @test X ≈ Xtest
+  @test all(data .== datatest)  
+  
+  X = randomstate(N; ξ = 2, χ = 3)
+  writesamples(data, X, path)
+  datatest, Xtest = readsamples(path)
+  @test X.X ≈ Xtest.X
+  @test all(data .== datatest)  
+  
+
+
+  X = runcircuit(circuit; process = true)
+  preps = randompreparations(N, 8)
+  bases = randombases(N, 10)
+  data = getsamples(X, preps, bases, nshots)
+  writesamples(data, path)
+  datatest = readsamples(path)
+  @test all(data .== datatest)  
+  writesamples(data, X, path)
+  datatest, Xtest = readsamples(path)
+  @test X ≈ Xtest
+  @test all(data .== datatest)  
+  
+  X = runcircuit(circuit; noise = ("DEP",(p=0.01,)), process = true)
+  preps = randompreparations(N, 8)
+  bases = randombases(N, 10)
+  data = getsamples(X, preps, bases, nshots)
+  writesamples(data, path)
+  datatest = readsamples(path)
+  @test all(data .== datatest)  
+  writesamples(data, X, path)
+  datatest, Xtest = readsamples(path)
+  @test X ≈ Xtest
+  @test all(data .== datatest)  
+  
+  X = randomstate(N; ξ = 2, χ = 3)
+  writesamples(data, X, path)
+  datatest, Xtest = readsamples(path)
+  @test X.X ≈ Xtest.X
+  @test all(data .== datatest)  
+end
+
+@testset "circuit observer: MPS" begin
+  N = 8
+  depth = 9
+  R = 5
+  Random.seed!(1234)
+  circuit = randomcircuit(N, depth)
+  layer = Tuple[]
+  push!(circuit, [("CX",(1,N)),])
+
+  sites = siteinds("Qubit", N)
+  
+  outputpath = "simulation"
+  ϕ = randomstate(sites; χ = 10, normalize=true)
+  ψ = runcircuit(sites, circuit)
+  Ftest = fidelity(ψ,ϕ)
+  f(ψ::MPS; kwargs...) = fidelity(ψ, ϕ)#; kwargs...) = fidelity(ψ, ϕ)
+  obs = Observer(["f" => f])
+  ψ = runcircuit(sites, circuit; (observer!)=obs, move_sites_back_before_measurements=true,
+                 outputpath = outputpath, savestate = true, outputlevel = 0)
+  @test Ftest ≈ results(obs, "f")[end]
+  @test length(results(obs, "f")) == depth+1
+  
+  obs2 = load("simulation_observer.jld2")
+  for (k,v) in obs2
+    @test last(v) ≈ results(obs, k)
+  end
+
+  fin = h5open("simulation_state.h5","r")
+  M = read(fin, "state", MPS)
+  close(fin)
+  @test M ≈ ψ
+end
+
+@testset "circuit observer: MPO" begin
+  N = 4
+  depth = 5
+  #circuit = Vector{Vector{<:Any}}(undef, depth)
+  sites = siteinds("Qubit", N)
+  circuit = randomcircuit(N, depth)
+  
+  @disable_warn_order begin
+    L = randomstate(sites; χ = 10, ξ = 3, normalize=true)
+    ϱ = MPO(L)
+    ρ = runcircuit(sites, circuit; noise = ("DEP",(p=0.001,)))
+    Ftest = fidelity(ϱ,ρ)
+    g(ρ::MPO; kwargs...) = fidelity(ρ, ϱ)#; kwargs...) = fidelity(ψ, ϕ)
+    obs = Observer(["g" => g])
+    outputpath = "simulation"
+    ρ = runcircuit(sites, circuit; 
+                   (observer!)=obs, 
+                   move_sites_back_before_measurements=true, 
+                   outputlevel = 0,
+                   noise = ("DEP",(p=0.001,)),
+                   outputpath = outputpath, savestate = true)
+ end
+  @test Ftest ≈ results(obs, "g")[end]
+  @test length(results(obs, "g")) == depth
+  obs2 = load("simulation_observer.jld2")
+  for (k,v) in obs2
+    @test last(v) ≈ results(obs, k)
+  end
+  
+  fin = h5open("simulation_state.h5","r")
+  M = read(fin, "state", MPO)
+  close(fin)
+  @test M ≈ ρ
+end
+
 @testset "state tomography observer output: MPS" begin
   Random.seed!(1234)
   N = 4
   depth = 4
   nshots = 100
   circuit = randomcircuit(N, depth)
-  data, Ψ = getsamples(circuit, nshots; local_basis=["X", "Y", "Z"])
+  Ψ = runcircuit(circuit)
+  bases = randombases(N,2)
+  data = getsamples(Ψ, bases, nshots)
   test_data = copy(data[1:10, :])
   
   N = length(Ψ)     # Number of productstate
@@ -177,7 +190,6 @@
 
   F(ψ::MPS; kwargs...) = fidelity(ψ, Ψ)
   obs = Observer(["F" => F])
-  #obs = Observer([maxlinkdim, norm, ("X", 1), F])
   epochs = 18
 
   batchsize = 10
@@ -215,9 +227,9 @@ end
   depth = 4
   nshots = 100
   circuit = randomcircuit(N, depth)
-  data, ϱ = getsamples(circuit, nshots; 
-                       local_basis=["X", "Y", "Z"], 
-                       noise = ("DEP",(p=0.01,))) 
+  ϱ = runcircuit(circuit; noise = ("DEP",(p=0.01,)))
+  bases = randombases(N,2)
+  data = getsamples(ϱ, bases, nshots)
   test_data = copy(data[1:10, :])
   
   N = length(ϱ)     # Number of productstate
@@ -265,7 +277,10 @@ end
   depth = 4
   nshots = 100
   circuit = randomcircuit(N, depth)
-  data, V = getsamples(circuit, nshots; local_basis=["X", "Y", "Z"], process = true)
+  V = runcircuit(circuit; process = true)
+  preps = randompreparations(N,2)
+  bases = randombases(N,2)
+  data = getsamples(V, preps, bases, nshots)
   test_data = copy(data[1:10, :])
   N = length(V)     # Number of productstate
   χ = maxlinkdim(V) # Bond dimension of variational MPS
@@ -313,10 +328,10 @@ end
   depth = 4
   nshots = 100
   circuit = randomcircuit(N, depth)
-  data, Φ = getsamples(circuit, nshots; 
-                       local_basis=["X", "Y", "Z"], 
-                       noise = ("DEP",(p=0.01,)), 
-                       process = true)
+  Φ = runcircuit(circuit; process = true, noise = ("DEP",(p=0.01,)))
+  preps = randompreparations(N,2)
+  bases = randombases(N,2)
+  data = getsamples(Φ, preps, bases, nshots)
   test_data = copy(data[1:10, :])
   
   N = length(Φ)     # Number of productstate

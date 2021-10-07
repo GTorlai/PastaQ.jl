@@ -10,7 +10,7 @@ added to each gate as a tensor with an extra (Kraus) index.
 function buildcircuit(
   M::Union{MPS,MPO,ITensor},
   circuit::Union{Tuple,Vector{<:Any}};
-  noise::Union{Nothing, Tuple, NamedTuple} = nothing#, kwargs...
+  noise::Union{Nothing, Tuple, NamedTuple} = nothing
 )
   circuit_tensors = ITensor[]
   if circuit isa Tuple

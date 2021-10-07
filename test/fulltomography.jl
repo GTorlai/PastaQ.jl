@@ -10,7 +10,8 @@ using Random
   gates = randomcircuit(N,4)
   ψ = runcircuit(N,gates)
 
-  samples = getsamples(ψ, 100; local_basis = ["X","Y","Z"], informationally_complete = true)
+  bases = fullbases(N)
+  samples = getsamples(ψ, bases, 100)
 
   C = PastaQ.measurement_counts(samples)
   @test length(keys(C)) == 3^N
@@ -35,7 +36,8 @@ end
   gates = randomcircuit(N,4)
   ψ = runcircuit(N,gates)
 
-  samples = getsamples(ψ,100; local_basis = ["X","Y","Z"], informationally_complete = true)
+  bases = fullbases(N)
+  samples = getsamples(ψ, bases, 100)
 
   ρ = MPO(ψ)
   ρmat = PastaQ.array(ρ)
@@ -71,7 +73,8 @@ end
   gates = randomcircuit(N,4)
   ψ = runcircuit(N,gates)
 
-  samples = getsamples(ψ,100; local_basis = ["X","Y","Z"], informationally_complete=true)
+  bases = fullbases(N)
+  samples = getsamples(ψ, bases, 100)
 
   ϱ = PastaQ.array(MPO(ψ))
 
@@ -94,7 +97,8 @@ end
   gates = randomcircuit(N,4)
   ψ = runcircuit(N,gates)
 
-  samples = getsamples(ψ,100; local_basis = ["X","Y","Z"], informationally_complete=true)
+  bases = fullbases(N)
+  samples = getsamples(ψ, bases, 100)
 
   ϱ = PastaQ.array(MPO(ψ))
 
@@ -113,7 +117,11 @@ end
   d = 2^(2*N)
   nshots = 3
   gates = randomcircuit(N,2)
-  data, Λ = getsamples(gates, nshots; process = true, informationally_complete = true, noise = ("DEP",(p=0.001,)))
+  
+  Λ = runcircuit(gates; process = true,noise = ("DEP",(p=0.001,)))
+  preps = fullpreparations(N)
+  bases = fullbases(N)
+  data = getsamples(Λ, preps, bases, nshots)
 
   Λmat = PastaQ.array(Λ)
   Λvec = vec(Λmat)
@@ -130,14 +138,18 @@ end
 @testset "PSD constraint in QPT" begin
   N = 2
   d = 1<<N
+  nshots = 3
   gates = randomcircuit(N,4)
-  samples, Λ = getsamples(gates, 100; noise = ("DEP",(p=0.01,)), informationally_complete=true, process = true)
+  Λ = runcircuit(gates; process = true,noise = ("DEP",(p=0.001,)))
+  preps = fullpreparations(N)
+  bases = fullbases(N)
+  data = getsamples(Λ, preps, bases, nshots)
 
-  ρ = PastaQ.array(tomography(samples; method = "LI"))
+  ρ = PastaQ.array(tomography(data; method = "LI"))
   λ = first(eigen(ρ))
   @test all(λ .≥ -1e-4)
 
-  ρ = PastaQ.array(tomography(samples; method = "LS"))
+  ρ = PastaQ.array(tomography(data; method = "LS"))
   λ = first(eigen(ρ))
   @test all(real(λ) .≥ -1e-4)
 
@@ -147,10 +159,14 @@ end
   Random.seed!(1234)
   N = 2
   d = 1<<N
+  nshots = 3
   gates = randomcircuit(N,4)
-  samples, Λ = getsamples(gates, 10; noise = ("DEP",(p=0.01,)), informationally_complete=true, process = true)
+  Λ = runcircuit(gates; process = true,noise = ("DEP",(p=0.001,)))
+  preps = fullpreparations(N)
+  bases = fullbases(N)
+  data = getsamples(Λ, preps, bases, nshots)
 
-  ρ = tomography(samples; method = "LS")
+  ρ = tomography(data; method = "LS")
   for j in 1:N
     s = firstind(ρ, tags="Output,n=$(j)", plev=0)
     ρ = ρ * δ(s,s')
