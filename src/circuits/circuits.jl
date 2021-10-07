@@ -13,7 +13,7 @@ ngates(circuit::Vector{<:Any}) = length(circuit)
 ngates(circuit::Vector{<:Vector{<:Any}}) = length(vcat(circuit...))
 
 
-function nqubits(T::ITensor)
+function Base.length(T::ITensor)
   s1 = inds(T,tags="Site,n=1")
   # Wavefunction
   if length(s1) == 1 || length(s1) == 2
@@ -193,8 +193,8 @@ end
 Build a random quantum circuit with `N` qubits and depth `depth`.
 """
 function randomcircuit(
-  coupling_sequence::Vector,
-  depth::Int;
+  coupling_sequence::Vector;
+  depth::Int = 1,
   twoqubitgates::Union{String,Vector{String}}="RandomUnitary",
   onequbitgates::Union{Nothing,String,Vector{String}}=nothing,
   layered::Bool=true,
@@ -231,8 +231,8 @@ end
 
 Generate a 1D random quantum circuit
 """
-function randomcircuit(N::Int, depth::Int; kwargs...)
-  return randomcircuit(lineararray(N), depth; kwargs...)
+function randomcircuit(N::Int; kwargs...)
+  return randomcircuit(lineararray(N); kwargs...)
 end
 
 """
@@ -240,8 +240,8 @@ end
 
 Generate a 2D random quantum circuit
 """
-function randomcircuit(Lx::Int, Ly::Int, depth::Int; rotated::Bool=false, kwargs...)
-  return randomcircuit(squarearray(Lx, Ly; rotated=rotated), depth; kwargs...)
+function randomcircuit(Lx::Int, Ly::Int; rotated::Bool=false, kwargs...)
+  return randomcircuit(squarearray(Lx, Ly; rotated=rotated); kwargs...)
 end
 
 

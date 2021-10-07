@@ -12,7 +12,7 @@ using Optimisers
   N = 3
   depth = 4
   nshots = 100
-  circuit = randomcircuit(N, depth)
+  circuit = randomcircuit(N; depth = depth)
   path = "test_data_writesamples.h5"
   
   X = runcircuit(circuit)
@@ -109,7 +109,7 @@ end
   depth = 9
   R = 5
   Random.seed!(1234)
-  circuit = randomcircuit(N, depth)
+  circuit = randomcircuit(N; depth = depth)
   layer = Tuple[]
   push!(circuit, [("CX",(1,N)),])
 
@@ -142,7 +142,7 @@ end
   depth = 5
   #circuit = Vector{Vector{<:Any}}(undef, depth)
   sites = siteinds("Qubit", N)
-  circuit = randomcircuit(N, depth)
+  circuit = randomcircuit(N; depth = depth)
   
   @disable_warn_order begin
     L = randomstate(sites; χ = 10, ξ = 3, normalize=true)
@@ -177,7 +177,7 @@ end
   N = 4
   depth = 4
   nshots = 100
-  circuit = randomcircuit(N, depth)
+  circuit = randomcircuit(N; depth = depth)
   Ψ = runcircuit(circuit)
   bases = randombases(N,2)
   data = getsamples(Ψ, bases, nshots)
@@ -226,7 +226,7 @@ end
   N = 4
   depth = 4
   nshots = 100
-  circuit = randomcircuit(N, depth)
+  circuit = randomcircuit(N; depth = depth)
   ϱ = runcircuit(circuit; noise = ("DEP",(p=0.01,)))
   bases = randombases(N,2)
   data = getsamples(ϱ, bases, nshots)
@@ -276,7 +276,7 @@ end
   N = 3
   depth = 4
   nshots = 100
-  circuit = randomcircuit(N, depth)
+  circuit = randomcircuit(N; depth =  depth)
   V = runcircuit(circuit; process = true)
   preps = randompreparations(N,2)
   bases = randombases(N,2)
@@ -327,7 +327,7 @@ end
   N = 2
   depth = 4
   nshots = 100
-  circuit = randomcircuit(N, depth)
+  circuit = randomcircuit(N; depth = depth)
   Φ = runcircuit(circuit; process = true, noise = ("DEP",(p=0.01,)))
   preps = randompreparations(N,2)
   bases = randombases(N,2)

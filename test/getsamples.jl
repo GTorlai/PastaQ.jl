@@ -52,7 +52,7 @@ end
   N = 3
   depth = 4
   ψ0 = productstate(N)
-  gates = randomcircuit(N, depth)
+  gates = randomcircuit(N; depth =  depth)
   ψ = runcircuit(ψ0, gates)
   ψ_vec = PastaQ.array(ψ)
   probs = abs2.(ψ_vec)
@@ -101,7 +101,7 @@ end
 @testset "project unitary MPO" begin
   N = 4
   ntrial = 100
-  gates = randomcircuit(N, 4; layered=false)
+  gates = randomcircuit(N; depth =  4, layered=false)
 
   U = runcircuit(N, gates; process=true)
 
@@ -125,7 +125,7 @@ end
 @testset "project unitary ITensor" begin
   N = 4
   ntrial = 100
-  gates = randomcircuit(N, 4; layered=false)
+  gates = randomcircuit(N; depth =  4, layered=false)
 
   U = runcircuit(N, gates; process=true, full_representation = true)
 
@@ -149,7 +149,7 @@ end
 @testset "project Choi MPO" begin
   N = 4
   ntrial = 100
-  gates = randomcircuit(N, 4; layered=false)
+  gates = randomcircuit(N; depth =  4, layered=false)
 
   Λ = runcircuit(N, gates; process=true, noise=("amplitude_damping", (γ=0.1,)))
 
@@ -172,7 +172,7 @@ end
 @testset "project Choi ITensor" begin
   N = 4
   ntrial = 100
-  gates = randomcircuit(N, 4; layered=false)
+  gates = randomcircuit(N; depth =  4, layered=false)
 
   @disable_warn_order begin
     Λ = runcircuit(N, gates; process=true, noise=("amplitude_damping", (γ=0.1,)), full_representation = true)
@@ -201,7 +201,7 @@ end
 
 @testset "getsamples: states" begin
   N = 3
-  circuit = randomcircuit(N, 3)
+  circuit = randomcircuit(N; depth = 3)
   
   # quantum states
   ψ = runcircuit(N, circuit)
@@ -231,7 +231,7 @@ end
     end
   end
   
-  # quantum states
+  # ITensors quantum states
   ψ = runcircuit(N, circuit; full_representation = true)
   ρ = runcircuit(N, circuit; noise=("amplitude_damping", (γ=0.1,)), full_representation = true)
   
@@ -263,11 +263,54 @@ end
 @testset "getsamples: channels" begin
 
   N = 3
-  circuit = randomcircuit(N, 3)
+  circuit = randomcircuit(N; depth = 3)
   
-  # quantum states
+  # quantum processes
   U = runcircuit(N, circuit; process = true)
   Λ = runcircuit(N, circuit; noise=("amplitude_damping", (γ=0.1,)), process = true)
+  
+  npreps = 5
+  nbases = 7
+  preps = randompreparations(N, npreps)
+  bases = randombases(N, nbases)
+  
+  data = getsamples(U, preps, bases)
+  @test size(data) == (npreps*nbases,N)
+  nshots = 3
+  data = getsamples(U, preps, bases, nshots)
+  @test size(data) == (npreps*nbases*nshots,N)
+  
+  for p in 1:npreps
+    for b in 1:nbases
+      for k in 1:nshots
+        pdata = first.(data[(p-1)*nbases*nshots+(b-1)*nshots+k,:])
+        bdata = first.(last.(data[(p-1)*nbases*nshots+(b-1)*nshots+k,:]))
+        @test pdata == preps[p,:]
+        @test bdata == bases[b,:]
+      end
+    end
+  end
+  
+  data = getsamples(Λ, preps, bases)
+  @test size(data) == (npreps*nbases,N)
+  nshots = 3
+  data = getsamples(Λ, preps, bases, nshots)
+  @test size(data) == (npreps*nbases*nshots,N)
+  
+  for p in 1:npreps
+    for b in 1:nbases
+      for k in 1:nshots
+        pdata = first.(data[(p-1)*nbases*nshots+(b-1)*nshots+k,:])
+        bdata = first.(last.(data[(p-1)*nbases*nshots+(b-1)*nshots+k,:]))
+        @test pdata == preps[p,:]
+        @test bdata == bases[b,:]
+      end
+    end
+  end
+  # quantum processes
+
+  U = runcircuit(N, circuit; process = true, full_representation = true)
+  Λ = runcircuit(N, circuit; noise=("amplitude_damping", (γ=0.1,)), process = true,full_representation = true)
   
   npreps = 5
   nbases = 7

@@ -145,7 +145,7 @@ function getsamples(T::ITensor, nshots::Int;
   p0given1 = readout_errors[:p0given1]
  
   # Get the number of qubits
-  N = nqubits(T)
+  N = length(T)
   
   # Get a dense array which can be
   # - Vector with dim 2^N for a wavefunction |ψ⟩
@@ -235,7 +235,7 @@ is drawn from the probability distribution:
 - `P(σ) = <σ|Û ρ Û†|σ⟩`  :  if `M = ρ is MPO`   
 """
 function getsamples(M0::Union{MPS,MPO,ITensor}, bases::Matrix, nshots::Int; kwargs...)
-  N = M0 isa ITensor ? nqubits(M0) : length(M0)
+  N = length(M0)
   @assert N == size(bases)[2]
   nthreads = Threads.nthreads()
   data = [Vector{Vector{Pair{String,Int}}}(undef, 0) for _ in 1:nthreads]
@@ -321,7 +321,7 @@ function getsamples(
   nshots::Int;
   readout_errors=(p1given0=nothing, p0given1=nothing),
 )
-  N = M0 isa ITensor ? nqubits(M0) : length(M0)
+  N = length(M0)
   @assert N == size(preps, 2)
 
   nthreads = Threads.nthreads()

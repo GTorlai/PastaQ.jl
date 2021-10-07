@@ -17,7 +17,7 @@ end
 
 @testset "choi tags and MPO/MPS conversion" begin
   N = 4
-  circuit = randomcircuit(4, 4)
+  circuit = randomcircuit(4; depth =  4)
 
   U = runcircuit(circuit; process=true)
   ρ = PastaQ.choimatrix(PastaQ.hilbertspace(U), circuit; noise=("DEP", (p=0.01,)))

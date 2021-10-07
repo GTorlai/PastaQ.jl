@@ -56,7 +56,7 @@ end
   end
 
   N = 2
-  circuit1 = randomcircuit(N,3; layered = false)
+  circuit1 = randomcircuit(N; depth = 3, layered = false)
   circuit2 = copy(circuit1)
   push!(circuit1, ("AD",1,(γ=0.1,)))
   push!(circuit1, ("AD",2,(γ=0.1,)))
@@ -80,7 +80,7 @@ end
   end
   
   N = 2
-  circuit1 = randomcircuit(N,3; layered = false)
+  circuit1 = randomcircuit(N; depth = 3, layered = false)
   circuit2 = copy(circuit1)
   push!(circuit1, ("PD",1,(γ=0.1,)))
   push!(circuit1, ("PD",2,(γ=0.1,)))
@@ -108,7 +108,7 @@ end
   N = 6
   depth = 4
   
-  circuit = randomcircuit(N,depth; twoqubitgates = ["CX","CZ"], onequbitgates = ["Rn","X"], layered = false)
+  circuit = randomcircuit(N; depth = depth, twoqubitgates = ["CX","CZ"], onequbitgates = ["Rn","X"], layered = false)
   ngates = length(circuit)
   nCZ,nCX,nR,nX = 0,0,0,0
   for g in circuit
@@ -148,7 +148,7 @@ end
   N = 6
   depth = 4
   
-  circuit = randomcircuit(N,depth; twoqubitgates = ["CX","CZ"], onequbitgates = ["Rn","X"], layered = false)
+  circuit = randomcircuit(N; depth = depth, twoqubitgates = ["CX","CZ"], onequbitgates = ["Rn","X"], layered = false)
   ngates = length(circuit)
   nCZ,nCX,nR,nX = 0,0,0,0
   for g in circuit

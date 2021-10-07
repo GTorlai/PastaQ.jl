@@ -1,4 +1,4 @@
-import Base: copy, getindex, sqrt, length, push!, setindex!
+import Base: copy, getindex, sqrt, length, push!, setindex!, length
 
 import ITensors:
   # types

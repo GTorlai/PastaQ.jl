@@ -46,7 +46,7 @@ function setparameters!(L::LPDO, θ::Vector)
     d = dims(X[j])
     tot_d = prod(d)
     ϑ = θ[cnt:cnt+tot_d-1]
-    Y[j] = itensor(reshape(ϑ, d), inds(X[j])...) 
+    Y[j] = ITensors.itensor(reshape(ϑ, d), inds(X[j])...) 
     cnt += tot_d
   end
   X[:] = Y

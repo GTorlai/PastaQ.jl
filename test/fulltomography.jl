@@ -7,7 +7,7 @@ using Random
 @testset " counts and frequencies" begin
   N = 3
   d = 1<<N
-  gates = randomcircuit(N,4)
+  gates = randomcircuit(N; depth = 4)
   ψ = runcircuit(N,gates)
 
   bases = fullbases(N)
@@ -33,7 +33,7 @@ end
 @testset "POVM matrix" begin
   N = 3
   d = 1<<N
-  gates = randomcircuit(N,4)
+  gates = randomcircuit(N,; depth = 4)
   ψ = runcircuit(N,gates)
 
   bases = fullbases(N)
@@ -70,7 +70,7 @@ end
 @testset "PSD constraint in QST" begin
   N = 2
   d = 1<<N
-  gates = randomcircuit(N,4)
+  gates = randomcircuit(N; depth = 4)
   ψ = runcircuit(N,gates)
 
   bases = fullbases(N)
@@ -94,7 +94,7 @@ end
 @testset "arbitrary trace in QST" begin
   N = 2
   d = 1<<N
-  gates = randomcircuit(N,4)
+  gates = randomcircuit(N; depth = 4)
   ψ = runcircuit(N,gates)
 
   bases = fullbases(N)
@@ -116,7 +116,7 @@ end
   N = 2
   d = 2^(2*N)
   nshots = 3
-  gates = randomcircuit(N,2)
+  gates = randomcircuit(N; depth = 2)
   
   Λ = runcircuit(gates; process = true,noise = ("DEP",(p=0.001,)))
   preps = fullpreparations(N)
@@ -139,7 +139,7 @@ end
   N = 2
   d = 1<<N
   nshots = 3
-  gates = randomcircuit(N,4)
+  gates = randomcircuit(N; depth = 4)
   Λ = runcircuit(gates; process = true,noise = ("DEP",(p=0.001,)))
   preps = fullpreparations(N)
   bases = fullbases(N)
@@ -160,7 +160,7 @@ end
   N = 2
   d = 1<<N
   nshots = 3
-  gates = randomcircuit(N,4)
+  gates = randomcircuit(N; depth = 4)
   Λ = runcircuit(gates; process = true,noise = ("DEP",(p=0.001,)))
   preps = fullpreparations(N)
   bases = fullbases(N)

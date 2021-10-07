@@ -15,7 +15,7 @@
 
 state(sn::String; kwargs...) = state(StateName(sn); kwargs...)
 
-state(sn::String, i::Index; kwargs...) = itensor(state(sn; kwargs...), i)
+state(sn::String, i::Index; kwargs...) = ITensors.itensor(state(sn; kwargs...), i)
 
 # Pauli eingenstates
 

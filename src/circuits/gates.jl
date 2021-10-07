@@ -358,12 +358,12 @@ function gate(gn::GateName, s1::Index, ss::Index...; dag::Bool = false, kwargs..
   if ndims(g) == 1
     # TODO:
     #error("gate must have more than one dimension, use state(...) for state vectors.")
-    return itensor(g, rs...)
+    return ITensors.itensor(g, rs...)
   elseif ndims(g) == 2
-    return itensor(g, prime.(rs)..., ITensors.dag.(rs)...)
+    return ITensors.itensor(g, prime.(rs)..., ITensors.dag.(rs)...)
   elseif ndims(g) == 3
     kraus = Index(size(g, 3); tags="kraus")
-    return itensor(g, prime.(rs)..., ITensors.dag.(rs)..., kraus)
+    return ITensors.itensor(g, prime.(rs)..., ITensors.dag.(rs)..., kraus)
   end
   return error(
     "Gate definitions must be either Vector{T} (for a state), Matrix{T} (for a gate) or Array{T,3} (for a noise model). For gate name $gn, gate size is $(size(g)).",
