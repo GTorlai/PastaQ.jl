@@ -214,7 +214,7 @@ function tomography(
           best_model = copy(normalized_model)
         end
       else
-        best_model = copy(model)
+        best_model = copy(normalized_model)
       end
 
       # update observer
@@ -227,13 +227,6 @@ function tomography(
                                                                                normalized_model)
         update!(observer!, model_to_observe; train_loss = train_loss,
                                              test_loss  = test_loss)
-        #if isqpt && (normalized_model isa LPDO{MPS})
-        #  update!(observer!, choi_mps_to_unitary_mpo(normalized_model); loss = loss)
-        #elseif !isqpt && (normalized_model isa LPDO{MPS})
-        #  update!(observer!, normalized_model.X; loss = loss)
-        #else
-        #  update!(observer!, normalized_model; loss = loss)
-        #end
       end
 
       # printing
