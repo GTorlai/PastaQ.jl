@@ -670,3 +670,14 @@ end
   psi_vec = PastaQ.array(psi)
   @test psi_vec ≈ [0.0, 0.0, 0.0, 1.0]
 end
+
+
+@testset "qudit gates" begin
+  dim = 3
+  s = siteinds("Qudit", 4; dim = dim)
+  
+  @test gate("a†", dim)      ≈ [0 0 0; 1 0 0; 0 √2 0] 
+  @test gate("a", dim)       ≈ [0 1 0; 0 0 √2; 0 0 0]  
+
+  @test gate("a†", dim) * gate("a", dim) ≈ [0 0 0; 0 1 0; 0 0 2] 
+end

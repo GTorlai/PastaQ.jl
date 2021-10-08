@@ -17,7 +17,12 @@ SCS = "c946c3f1-0d1f-5ce8-9dea-7daa1f7e2d13"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
 [compat]
+Convex = "0.14"
 HDF5 = "0.13.1, 0.14, 0.15"
 ITensors = "0.1.41, 0.2"
+JLD2 = "0.4"
+Observers = "0.0.3"
+Optimisers = "0.1"
+SCS = "0.7"
 StatsBase = "0.33"
 julia = "1.6"

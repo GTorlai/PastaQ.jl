@@ -285,15 +285,65 @@ end
 # Random Haard unitary:
 # 
 # Reference: http://math.mit.edu/~edelman/publications/random_matrix_theory.pdf
-function gate(::GateName"randU", N::Int = 1;
+function gate(::GateName"randU", dims::Tuple = (2,);
               eltype = ComplexF64,
-              random_matrix = randn(eltype, 1<<N, 1<<N))
+              random_matrix = randn(eltype, prod(dims), prod(dims)))
   Q, _ = NDTensors.qr_positive(random_matrix)
   return Q
 end
 
-gate(::GateName"RandomUnitary", N::Int = 1; kwargs...) = 
-  gate("randU", N; kwargs...)
+gate(::GateName"RandomUnitary", dims::Tuple = (2,); kwargs...) = 
+  gate("randU", dims; kwargs...)
+
+#function gate(::GateName"randU", N::Int = 1;
+#              eltype = ComplexF64,
+#              random_matrix = randn(eltype, 1<<N, 1<<N))
+#  Q, _ = NDTensors.qr_positive(random_matrix)
+#  return Q
+#end
+#
+#gate(::GateName"RandomUnitary", N::Int = 1; kwargs...) = 
+#  gate("randU", N; kwargs...)
+
+
+function gate(::GateName"a", dim::Int = 2)
+  mat = zeros(dim, dim)
+  for k in 1:dim-1
+    mat[k,k+1] = √k
+  end
+  return mat
+end
+
+
+function gate(::GateName"a†", dim::Int = 2)
+  mat = zeros(dim, dim)
+  for k in 1:dim-1
+    mat[k+1,k] = √k
+  end
+  return mat
+end
+
+gate(::GateName"adag", args...) = 
+  gate("a†", args...)
+
+function gate(::GateName"a†a", dim::Int = 2)
+  mat = zeros(dim, dim)
+  for k in 1:dim
+    mat[k,k] = k-1
+  end 
+  return mat
+end
+
+gate(::GateName"a†a†aa", dim::Int = 2) = 
+  gate("a†", dim) * gate("a†", dim) * gate("a", dim) * gate("a", dim)
+
+gate(::GateName"a†b", dims::Tuple = (2,2)) = 
+  kron(gate("a†", dims[1]), gate("a", dims[2]))
+
+gate(::GateName"a†b+ab†", dims::Tuple = (2,2)) =  
+  gate("a†b", dims) + gate("a†b", dims)'
+
+
 
 #
 # Basis definitions (eigenbases of measurement gates)
@@ -353,8 +403,10 @@ gate(gn::GateName, dims::Tuple; kwargs...) = gate(gn, length(dims); kwargs...)
 function gate(gn::GateName, s1::Index, ss::Index...; dag::Bool = false, kwargs...)
   s = tuple(s1, ss...)
   rs = reverse(s)
+  
   g = gate(gn, dim.(s); kwargs...) 
   g = dag ? Array(g') : g
+  
   if ndims(g) == 1
     # TODO:
     #error("gate must have more than one dimension, use state(...) for state vectors.")
