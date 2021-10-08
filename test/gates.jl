@@ -681,3 +681,20 @@ end
 
   @test gate("a†", dim) * gate("a", dim) ≈ [0 0 0; 0 1 0; 0 0 2] 
 end
+
+@testset "function applied to a gate" begin
+  s = siteinds("Qubit", 2)
+  
+  θ = 0.1
+  rx = gate("Rx"; θ = 0.1)
+  exp_rx = exp(rx)
+  gtest = gate("Rx",s[1]; θ = 0.1, f = x -> exp(x))
+  @test PastaQ.array(gtest) ≈ exp_rx
+  
+  cx = 0.1*gate("CX")
+  exp_cx = exp(cx)
+  gtest = gate("CX",s[1],s[2]; f = x -> exp(0.1*x))
+  @test PastaQ.array(gtest) ≈ exp_cx
+
+end
+

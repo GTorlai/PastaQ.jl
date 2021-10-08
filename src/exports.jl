@@ -10,6 +10,9 @@ export
   qft,
   ghz,
   dag,
+  
+  # circuits/trottersuzuki.jl
+  trottercircuit,
 
   # circuits/gates.jl
   # Methods

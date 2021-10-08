@@ -93,17 +93,26 @@ gate(::GateName"Rx"; θ::Number) = [
   -im*sin(θ / 2) cos(θ / 2)
 ]
 
+gate(::GateName"RX"; kwargs...) = 
+  gate("Rx"; kwargs...)
+
 # Rotation around Y-axis
 gate(::GateName"Ry"; θ::Number) = [
   cos(θ / 2) -sin(θ / 2)
   sin(θ / 2) cos(θ / 2)
 ]
 
+gate(::GateName"RY"; kwargs...) = 
+  gate("Ry"; kwargs...)
+
 # Rotation around Z-axis
 gate(::GateName"Rz"; ϕ::Number) = [
   1 0
   0 exp(im * ϕ)
 ]
+
+gate(::GateName"RZ"; kwargs...) = 
+  gate("Rz"; kwargs...)
 
 # Rotation around generic axis n̂
 function gate(::GateName"Rn"; θ::Real, ϕ::Real, λ::Real)
@@ -149,6 +158,9 @@ gate(::GateName"CRz"; ϕ::Real) = [
   0 0 1 0
   0 0 0 exp(im * ϕ)
 ]
+
+gate(::GateName"CRZ"; kwargs...) = 
+  gate("CRz"; kwargs...)
 
 function gate(::GateName"CRn"; θ::Real, ϕ::Real, λ::Real)
   return [
@@ -197,7 +209,7 @@ gate(::GateName"iSw") = gate("iSWAP")
 gate(::GateName"iSwap") = gate("iSWAP")
 
 # Ising (XX) coupling gate
-function gate(::GateName"XX"; ϕ::Number)
+function gate(::GateName"Rxx"; ϕ::Number)
   return [
     cos(ϕ) 0 0 -im*sin(ϕ)
     0 cos(ϕ) -im*sin(ϕ) 0
@@ -205,6 +217,19 @@ function gate(::GateName"XX"; ϕ::Number)
     -im*sin(ϕ) 0 0 cos(ϕ)
   ]
 end
+
+gate(::GateName"RXX"; kwargs...) = 
+  gate("Rxx"; kwargs...)
+
+gate(::GateName"XX") = 
+  kron(gate("X"),gate("X"))
+
+gate(::GateName"YY") = 
+  kron(gate("Y"),gate("Y"))
+
+gate(::GateName"ZZ") = 
+  kron(gate("Z"),gate("Z"))
+
 
 # TODO: Ising (YY) coupling gate
 #gate(::GateName"YY"; ϕ::Number) =
@@ -295,16 +320,10 @@ end
 gate(::GateName"RandomUnitary", dims::Tuple = (2,); kwargs...) = 
   gate("randU", dims; kwargs...)
 
-#function gate(::GateName"randU", N::Int = 1;
-#              eltype = ComplexF64,
-#              random_matrix = randn(eltype, 1<<N, 1<<N))
-#  Q, _ = NDTensors.qr_positive(random_matrix)
-#  return Q
-#end
-#
-#gate(::GateName"RandomUnitary", N::Int = 1; kwargs...) = 
-#  gate("randU", N; kwargs...)
 
+#
+# qudit gates
+#
 
 function gate(::GateName"a", dim::Int = 2)
   mat = zeros(dim, dim)
@@ -313,7 +332,6 @@ function gate(::GateName"a", dim::Int = 2)
   end
   return mat
 end
-
 
 function gate(::GateName"a†", dim::Int = 2)
   mat = zeros(dim, dim)
@@ -400,13 +418,29 @@ gate(s::String, args...; kwargs...) = gate(GateName(s), args...; kwargs...)
 gate(gn::GateName, N::Int; kwargs...) = gate(gn; kwargs...)
 gate(gn::GateName, dims::Tuple; kwargs...) = gate(gn, length(dims); kwargs...)
 
-function gate(gn::GateName, s1::Index, ss::Index...; dag::Bool = false, kwargs...)
+function gate(gn::GateName, s1::Index, ss::Index...; 
+              dag::Bool = false,
+              f = nothing,
+              kwargs...)
   s = tuple(s1, ss...)
   rs = reverse(s)
   
-  g = gate(gn, dim.(s); kwargs...) 
-  g = dag ? Array(g') : g
+  # if `f` is being passed
+  if !isnothing(f)
+    # if `f` isa a function, apply `f` to the gate
+    if f isa Function
+      g = f(gate(gn, dim.(s); kwargs...))
+    # if not, pass it as a regular argument
+    else
+      g = gate(gn, dim.(s); f = f, kwargs...)
+    end
+  else
+    g = gate(gn, dim.(s); kwargs...)
+  end
   
+  # conjugate the gate if `dag=true`
+  g = dag ? Array(g') : g
+    
   if ndims(g) == 1
     # TODO:
     #error("gate must have more than one dimension, use state(...) for state vectors.")

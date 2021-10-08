@@ -19,6 +19,7 @@ using Test
     "randomstates.jl",
     "runcircuit.jl",
     "statetomography.jl",
+    "trottersuzuki.jl",
     "utils.jl",
   )
     println("Running $filename")
