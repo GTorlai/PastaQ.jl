@@ -93,7 +93,6 @@ using Optimisers
   @test all(data .== datatest)  
   writesamples(data, X, path)
   datatest, Xtest = readsamples(path)
-  @test X ≈ Xtest
   @test all(data .== datatest)  
   
   X = randomstate(N; ξ = 2, χ = 3)
