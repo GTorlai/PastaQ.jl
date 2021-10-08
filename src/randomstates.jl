@@ -349,10 +349,11 @@ function randomprocess(ElT::Type{<:Number}, T::Type, sites::Vector{<:Index}; kwa
   σ::Float64 = get(kwargs, :σ, 0.1)
   purifier_tags = get(kwargs, :purifier_tags, default_purifier_tags)
   alg::String = get(kwargs, :alg, "rand")
+  normalize::Bool = get(kwargs, :normalize, false)
   processtags = !(any(x -> hastags(x, "Input"), sites))
 
   if ξ > 1
-    return random_choi(ElT, sites, χ, ξ, σ; purifier_tags=purifier_tags)
+    M = random_choi(ElT, sites, χ, ξ, σ; purifier_tags=purifier_tags)
   else
     if T == MPO
       if alg == "rand"
@@ -364,6 +365,15 @@ function randomprocess(ElT::Type{<:Number}, T::Type, sites::Vector{<:Index}; kwa
       M = random_choi(ElT, sites, χ, ξ, σ; purifier_tags=purifier_tags)
     else
       error("ansatz type not recognized")
+    end
+  end
+  if normalize
+    if M isa MPO
+      Φ = normalize!(unitary_mpo_to_choi_mps(M))
+      Φ = Φ * √2^length(M)
+      M = choi_mps_to_unitary_mpo(Φ)
+    else
+      normalize!(M; localnorm = 2)
     end
   end
   return M
