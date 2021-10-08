@@ -27,19 +27,19 @@ using Random
   # MPS
   circuit = randomcircuit(N; depth = 4)
   ψ = runcircuit(circuit; full_representation = true) 
-  @test length(ψ) == N
+  @test PastaQ.nsites(ψ) == N
   # MPO
   U = runcircuit(circuit; full_representation = true, process = true) 
-  @test length(U) == N
+  @test PastaQ.nsites(U) == N
   # LPDO DM
   ρ = prod(randomstate(N; ξ = 2)) 
-  @test length(ρ) == N
+  @test PastaQ.nsites(ρ) == N
   
   # MPO Choi
   Λ = runcircuit(circuit; noise = ("DEP",(p=0.01,)), full_representation = true, process = true) 
-  @test length(Λ) == N
+  @test PastaQ.nsites(Λ) == N
   Λ = prod(randomprocess(N; ξ = 2)) 
-  @test length(Λ) == N
+  @test PastaQ.nsites(Λ) == N
 end
 
 @testset "pre-defined ciruits" begin

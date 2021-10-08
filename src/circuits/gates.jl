@@ -325,7 +325,9 @@ gate(::GateName"RandomUnitary", dims::Tuple = (2,); kwargs...) =
 # qudit gates
 #
 
-function gate(::GateName"a", dim::Int = 2)
+function gate(::GateName"a", dims::Tuple = (2,))
+  @assert length(dims) == 1
+  dim = dims[1]
   mat = zeros(dim, dim)
   for k in 1:dim-1
     mat[k,k+1] = √k
@@ -333,35 +335,26 @@ function gate(::GateName"a", dim::Int = 2)
   return mat
 end
 
-function gate(::GateName"a†", dim::Int = 2)
-  mat = zeros(dim, dim)
-  for k in 1:dim-1
-    mat[k+1,k] = √k
-  end
-  return mat
+gate(::GateName"a†", dims::Tuple = (2,)) = 
+  Array(gate("a", dims)')
+
+gate(::GateName"adag", dims::Tuple) = 
+  gate("a†", dims::Tuple)
+
+
+function gate(::GateName"a†a", dims::Tuple = (2,))
+  # single-qubit gate (i.e. chemical potential)
+  length(dims) == 1 && return gate("a†",dims) * gate("a", dims)
+  length(dims) == 2 && return kron(gate("a†", (dims[1],)),gate("a", (dims[2],)))
+  error("gate `a†a` only acting on one or two qubits")
 end
 
-gate(::GateName"adag", args...) = 
-  gate("a†", args...)
-
-function gate(::GateName"a†a", dim::Int = 2)
-  mat = zeros(dim, dim)
-  for k in 1:dim
-    mat[k,k] = k-1
-  end 
-  return mat
+function gate(::GateName"aa†", dims::Tuple = (2,))
+  # single-qubit gate (i.e. chemical potential)
+  length(dims) == 1 && return gate("a",dims) * gate("a†", dims)
+  length(dims) == 2 && return kron(gate("a", (dims[1],)),gate("a†", (dims[2],)))
+  error("gate `aa†` only acting on one or two qubits")
 end
-
-gate(::GateName"a†a†aa", dim::Int = 2) = 
-  gate("a†", dim) * gate("a†", dim) * gate("a", dim) * gate("a", dim)
-
-gate(::GateName"a†b", dims::Tuple = (2,2)) = 
-  kron(gate("a†", dims[1]), gate("a", dims[2]))
-
-gate(::GateName"a†b+ab†", dims::Tuple = (2,2)) =  
-  gate("a†b", dims) + gate("a†b", dims)'
-
-
 
 #
 # Basis definitions (eigenbases of measurement gates)
@@ -414,9 +407,7 @@ gate(s::String; kwargs...) = gate(GateName(s); kwargs...)
 gate(s::String, args...; kwargs...) = gate(GateName(s), args...; kwargs...)
 
 # Version that accepts a dimension for the gate,
-# for n-qubit gates
-gate(gn::GateName, N::Int; kwargs...) = gate(gn; kwargs...)
-gate(gn::GateName, dims::Tuple; kwargs...) = gate(gn, length(dims); kwargs...)
+gate(gn::GateName, dims::Tuple; kwargs...) = gate(gn; kwargs...)
 
 function gate(gn::GateName, s1::Index, ss::Index...; 
               dag::Bool = false,
@@ -425,6 +416,29 @@ function gate(gn::GateName, s1::Index, ss::Index...;
   s = tuple(s1, ss...)
   rs = reverse(s)
   
+  name = string(ITensors.name(gn))
+  name = filter(x -> !isspace(x), name)
+  
+  # first check for addition
+  pluspos = findfirst("+", name)
+  if !isnothing(pluspos)
+    !isempty(kwargs) && error("Composition of parametric gates not allowed")
+    gate1 = name[1:prevind(name, pluspos.start)]
+    gate2 = name[nextind(name, pluspos.start):end]
+    return gate(GateName(gate1), s...; dag=dag,f=f,kwargs...) + gate(GateName(gate2), s...; dag=dag,f=f,kwargs...)
+  end
+  
+  # next check for multiplication
+  starpos = findfirst("*", name)
+  if !isnothing(starpos)
+    !isempty(kwargs) && error("Composition of parametric gates not allowed")
+    gate1 = name[1:prevind(name, starpos.start)]
+    gate2 = name[nextind(name, starpos.start):end]
+    # note the inverted order, which is related to how we apply the gates
+    return product(gate(GateName(gate1), s...; dag=dag,f=f,kwargs...), 
+                   gate(GateName(gate2), s...; dag=dag,f=f,kwargs...))
+  end
+
   # if `f` is being passed
   if !isnothing(f)
     # if `f` isa a function, apply `f` to the gate

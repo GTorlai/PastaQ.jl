@@ -9,6 +9,7 @@ using Printf
 using Observers
 using StatsBase: StatsBase, Weights
 using Optimisers: Optimisers
+using TupleTools: TupleTools
 
 include("imports.jl")
 include("exports.jl")

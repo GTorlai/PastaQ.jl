@@ -6,7 +6,7 @@ using Random
 @testset "trotter layer" begin
   N = 5
   H = OpSum()
-  nterms = 20
+  nterms = 5
   for j in 1:nterms
     h = rand()
     localop = rand(["X","Y","Z"])
@@ -20,7 +20,7 @@ using Random
     H += g, localop, siteA,siteB
   end
 
-  layer = PastaQ.trotterlayer(H; τ = 0.1)
+  layer = PastaQ.trotterlayer(H; δt = 0.1)
   twoqubitgates = layer[1:nterms]
   for (j,g) in enumerate(twoqubitgates)
     @test g == layer[end+1-j]
@@ -41,7 +41,7 @@ using Random
   end
 end
 
-@testset "trotter circuit" begin
+@testset "trotter circuit: real time" begin
 
   N = 5
   B = 0.5
@@ -70,14 +70,55 @@ end
   ψ₀ = productstate(sites)
   ψtest = noprime(exp(-im * prod(H) * T) * prod(ψ₀))
 
-  circuit = trottercircuit(Hop, T; τ = 0.001)
+  circuit = trottercircuit(Hop, T; δt = 0.001)
   @test length(circuit) == 1000  
   @test length(circuit[1]) == 13
 
-  circuit = trottercircuit(Hop, T; τ = 0.001, layered = false)
+  circuit = trottercircuit(Hop, T; δt = 0.001, layered = false)
   @test length(circuit) == 13000 
   
   ψ = runcircuit(ψ₀, circuit)
   @test PastaQ.array(ψ) ≈ PastaQ.array(ψtest) atol = 1e-5
-
 end
+
+@testset "trotter circuit: real time" begin
+
+  N = 5
+  B = 0.5
+  
+  ampo = OpSum()
+  # loop over the pauli operators
+  for j in 1:N-1
+    ampo += -1.0,"Z",j,"Z",j+1
+    ampo += -B,"X",j
+  end
+  ampo += -B,"X",N
+  
+  sites = siteinds("Qubit",N)
+  H = MPO(ampo, sites)
+
+  Hop = OpSum()
+  # loop over the pauli operators
+  for j in 1:N-1
+    Hop += -1.0,"ZZ",(j,j+1)
+    Hop += -B,"X",j
+  end
+  Hop += -B,"X",N
+
+  T = 1.0
+  
+  ψ₀ = productstate(sites)
+  ψtest = noprime(exp(-prod(H) * T) * prod(ψ₀))
+
+  circuit = trottercircuit(Hop, T; δτ = 0.001)
+  @test length(circuit) == 1000  
+  @test length(circuit[1]) == 13
+
+  circuit = trottercircuit(Hop, T; δτ = 0.001, layered = false)
+  @test length(circuit) == 13000 
+  
+  ψ = runcircuit(ψ₀, circuit)
+  @test PastaQ.array(ψ) ≈ PastaQ.array(ψtest) atol = 1e-3
+end
+
+

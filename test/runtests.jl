@@ -9,7 +9,7 @@ using Test
     "fulltomography.jl",
     "gates.jl",
     "io.jl",
-    "getsamples.jl", #the test remotely are extremely slow, skip for now
+    "getsamples.jl", 
     "measurements.jl",
     "noise.jl",
     "optimizers.jl",
