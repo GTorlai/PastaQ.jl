@@ -11,10 +11,6 @@ import ITensors:
 
 import LinearAlgebra: normalize!, tr, norm
 
-import SCS
-
-import Convex
-
 import Optimisers.state as optimizerstate
 
 import Observers: update!

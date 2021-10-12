@@ -411,6 +411,7 @@ gate(gn::GateName, dims::Tuple; kwargs...) = gate(gn; kwargs...)
 
 function gate(gn::GateName, s1::Index, ss::Index...; 
               dag::Bool = false,
+              ∇::Bool = false,
               f = nothing,
               kwargs...)
   s = tuple(s1, ss...)

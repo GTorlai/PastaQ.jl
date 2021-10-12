@@ -162,6 +162,7 @@ function tomography(
   num_batches = Int(floor(size(train_data)[1] / batchsize))
 
   tot_time = 0.0
+  observe_time = 0.0
   best_model = nothing
   best_testloss = 1000.0
   test_loss = nothing
@@ -195,7 +196,7 @@ function tomography(
       end
     end # end @elapsed
     !isnothing(observer!) && push!(last(observer!["train_loss"]), train_loss)
-    tot_time += ep_time
+    observe_time += ep_time
     
     # measurement stage
     if ep % observe_step == 0
@@ -226,6 +227,8 @@ function tomography(
                                                                                normalized_model)
         update!(observer!, model_to_observe; train_loss = train_loss,
                                              test_loss  = test_loss)
+        tot_time += observe_time
+        observe_time = 0.0
       end
 
       # printing
@@ -237,7 +240,7 @@ function tomography(
         end
         # TODO: add the trace preserving cost function here for QPT
         !isnothing(observer!) && printobserver(observer!, print_metrics)
-        @printf("elapsed = %-4.3fs", ep_time)
+        @printf("elapsed = %-4.3fs", observe_time)
         println()
       end
       # saving

@@ -15,6 +15,10 @@ export
   # circuits/trottersuzuki.jl
   trottercircuit,
 
+  # circuits/variationalcircuit.jl
+  variationalgate,
+  variationalcircuit,
+
   # circuits/gates.jl
   # Methods
   gate,

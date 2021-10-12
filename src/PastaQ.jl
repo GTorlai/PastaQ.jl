@@ -10,6 +10,9 @@ using Observers
 using StatsBase: StatsBase, Weights
 using Optimisers: Optimisers
 using TupleTools: TupleTools
+using Zygote: Zygote
+using Convex: Convex
+using SCS: SCS
 
 include("imports.jl")
 include("exports.jl")
@@ -23,6 +26,8 @@ include("circuits/circuits.jl")
 include("circuits/runcircuit.jl")
 include("circuits/getsamples.jl")
 include("circuits/trottersuzuki.jl")
+include("circuits/variationalcircuit.jl")
+include("circuits/coherentcontrol.jl")
 include("optimizers.jl")
 include("productstates.jl")
 include("randomstates.jl")
