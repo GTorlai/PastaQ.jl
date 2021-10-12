@@ -115,12 +115,12 @@ trottercircuit(H::OpSum, T::Number; kwargs...) =
   _trottercircuit(H, T, get_times(;kwargs...); kwargs...) 
 
 function _trottercircuit(H::Vector{<:OpSum}, τs::Vector; order::Int = 2, layered::Bool = true, kwargs...)
-  if τs isa Vector{<:Complex}
-    println("Running real-time evolution from t = $(imag(τs[1])) to t = $(imag(τs[end]))") 
-  else
-    println("Running imaginary-time evolution from τ = im*$(τs[1]) to τ = im*$(τs[end])") 
-  end
-  @assert length(H) == (length(τs) -1)
+  #if τs isa Vector{<:Complex}
+  #  println("Running real-time evolution from t = $(imag(τs[1])) to t = $(imag(τs[end]))") 
+  #else
+  #  println("Running imaginary-time evolution from τ = im*$(τs[1]) to τ = im*$(τs[end])") 
+  #end
+  #@assert length(H) == (length(τs) -1)
   δτs = diff(τs)
   circuit = [trotterlayer(H[t], δτs[t]; order = order) for t in 1:length(δτs)] 
   layered && return circuit

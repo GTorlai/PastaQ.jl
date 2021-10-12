@@ -107,32 +107,32 @@ end
 #                                   twoqubitgates = twoqubitgates,
 #                                   onequbitgates = onequbitgates,
 #                                   kwargs...); variationalgates = variationalgates)
-#
-#"""
-#    circuitmap(circuit::Vector{<:Vector{<:Any}}) 
-#Generates an encoding of the locations of trainable gates within a 
-#variational quantum circuit
-#"""
-#function circuitmap(circuit::Vector{<:Vector{<:Any}}) 
-#  cmap = []
-#  # loop over the layers
-#  for layer in circuit
-#    # find where there are parametrized gates
-#    lmap = []
-#    for (i,g) in enumerate(layer)
-#      if (length(g) == 3) && (haskey(g[3],:∇)) && g[3][:∇]
-#        push!(lmap,i)
-#      end
-#    end
-#    push!(cmap, lmap)
-#  end
-#  return cmap
-#end
-#
-#circuitmap(circuit::Vector{<:Any}) = 
-#  vcat(circuitmap([circuit])...)
-#
-#
+
+"""
+    circuitmap(circuit::Vector{<:Vector{<:Any}}) 
+Generates an encoding of the locations of trainable gates within a 
+variational quantum circuit
+"""
+function circuitmap(circuit::Vector{<:Vector{<:Any}}) 
+  cmap = []
+  # loop over the layers
+  for layer in circuit
+    # find where there are parametrized gates
+    lmap = []
+    for (i,g) in enumerate(layer)
+      if (length(g) == 3) && (haskey(g[3],:∇)) && g[3][:∇]
+        push!(lmap,i)
+      end
+    end
+    push!(cmap, lmap)
+  end
+  return cmap
+end
+
+circuitmap(circuit::Vector{<:Any}) = 
+  vcat(circuitmap([circuit])...)
+
+
 #"""
 #    trainableparameters(circuit::Vector{<:Any})
 #Return a list of trainable parameters (e.g. θ, ϕ etc) for each
