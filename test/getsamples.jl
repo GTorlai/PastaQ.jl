@@ -291,6 +291,15 @@ end
     end
   end
   
+  npreps = 5
+  nbases = 5
+  preps = randompreparations(N, npreps)
+  bases = randombases(N, nbases)
+  
+  data = getsamples(U, preps .=> bases)
+  @test size(data) == (npreps,N)
+
+
   data = getsamples(Λ, preps, bases)
   @test size(data) == (npreps*nbases,N)
   nshots = 3
@@ -307,8 +316,16 @@ end
       end
     end
   end
-  # quantum processes
+  
+  npreps = 5
+  nbases = 5
+  preps = randompreparations(N, npreps)
+  bases = randombases(N, nbases)
+  
+  data = getsamples(Λ, preps .=> bases)
+  @test size(data) == (npreps,N)
 
+  # full representation
   U = runcircuit(N, circuit; process = true, full_representation = true)
   Λ = runcircuit(N, circuit; noise=("amplitude_damping", (γ=0.1,)), process = true,full_representation = true)
   

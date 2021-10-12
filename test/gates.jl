@@ -4,7 +4,7 @@ using Test
 using LinearAlgebra
 
 @testset "Gate generation: 1-qubit gates" begin
-  i = Index(2)
+  i = Index(2, tags = "Qubit")
   
   g = gate("I", i)
   @test plev(inds(g)[1]) == 1

@@ -43,6 +43,18 @@ using Test
 
   ψ = runcircuit(s, ghz(4))
   ϕ = productstate(ψ, fill("0", length(s))) ≈ ψ0 
+  
+  n = 4
+  ψ = productstate(n; dim = 3)
+  @test length(ψ) == n
+  @test length(PastaQ.array(ψ)) == 3^n
+  
+  n = 2
+  s = qudits(n; dim = 3)
+  ψ = productstate(n, [0,2]; dim = 3)
+  @test PastaQ.array(ψ) == [0,0,1,0,0,0,0,0,0]
+  ψ = productstate(s, [2,1])
+  @test PastaQ.array(ψ) == [0,0,0,0,0,0,0,1,0]
 
 end
 
@@ -59,4 +71,10 @@ end
   U = runcircuit(s, ghz(4); process = true)
   X = productoperator(U)
   @test X ≈ I
+
+
+  s = qudits(3; dim = 3)
+  X = productoperator(s)
+  @test PastaQ.array(X) ≈ PastaQ.array(productoperator(3; dim = 3))
+  @test PastaQ.array(X) ≈ Matrix(LinearAlgebra.I,27,27)
 end

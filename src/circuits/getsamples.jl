@@ -35,7 +35,7 @@ function fullpreparations(N::Int; local_input_states="Pauli")
     print("The $(N)-qubit set of Pauli eigenstates contains $(6^N) bases.\n This may take a while...\n\n")
   end
   local_input_states == "Pauli" && (local_input_states = ["X+", "X-", "Y+", "Y-", "Z+", "Z-"])
-  local_input_states == "Tetra" && (local_input_states = ["SIC1","SIC2","SIC3","SIC4"]) 
+  local_input_states == "Tetra" && (local_input_states = ["T1","T2","T3","T4"]) 
   !(local_input_states isa AbstractArray) && error("States not recognized")
   A = Iterators.product(ntuple(i->local_input_states, N)...) |> collect
   B = reverse.(reshape(A,length(A),1))
@@ -96,7 +96,7 @@ function randompreparations(
 )
  
   local_input_states == "Pauli" && (local_input_states = ["X+", "X-", "Y+", "Y-", "Z+", "Z-"])
-  local_input_states == "Tetra" && (local_input_states = ["SIC1","SIC2","SIC3","SIC4"]) 
+  local_input_states == "Tetra" && (local_input_states = ["T1","T2","T3","T4"]) 
   # One shot per basis
   return rand(local_input_states, npreps, N)
 end
@@ -234,7 +234,7 @@ is drawn from the probability distribution:
 - `P(σ) = |⟨σ|Û|ψ⟩|²`    :  if `M = ψ is MPS` 
 - `P(σ) = <σ|Û ρ Û†|σ⟩`  :  if `M = ρ is MPO`   
 """
-function getsamples(M0::Union{MPS,MPO,ITensor}, bases::Matrix, nshots::Int; kwargs...)
+function getsamples(M0::Union{MPS,MPO,ITensor}, bases::Matrix{<:String}, nshots::Int; kwargs...)
   N = nsites(M0)
   @assert N == size(bases)[2]
   nthreads = Threads.nthreads()
@@ -314,27 +314,63 @@ projectchannel(M::Union{MPO,ITensor}, prep::AbstractArray) =
   ischoi(M) ? _projectchannel(Choi(M), prep) : _projectchannel(M, prep) 
 
 
+
+
+function getsamples(
+  M0::Union{LPDO,MPO,ITensor},
+  preps_and_bases::Matrix{<:Pair},
+  nshots::Int,
+  kwargs...
+)
+  N = nsites(M0)
+  @assert N == size(preps_and_bases, 2)
+
+  nthreads = Threads.nthreads()
+  data = [Matrix{Pair{String,Pair{String,Int}}}(undef, 0, N) for _ in 1:nthreads]
+  M = copy(M0)
+
+  Threads.@threads for k in 1:size(preps_and_bases, 1)
+    nthread = Threads.threadid()
+    # input state to the channel
+    prep  = first.(preps_and_bases[k,:])
+    # measurement basis
+    basis = last.(preps_and_bases[k,:])
+
+    # project the channel into the input state
+    Mproj = projectchannel(M, prep)
+    
+    # perform measurement basis rotation
+    meas_gates = measurementgates(basis)
+    M_meas = runcircuit(Mproj, meas_gates)
+    
+    # perform projective measurement
+    measurements = getsamples(M_meas, nshots; kwargs...)
+    basisdata = [[prep[j] => (basis[j] => measurements[k,j]) for j in 1:N] for k in 1:nshots]
+    data[nthread] = vcat(data[nthread], permutedims(hcat(basisdata...)))
+  end
+  return vcat(data...)
+end
+
+
 function getsamples(
   M0::Union{LPDO,MPO,ITensor},
   preps::Matrix,
   bases::Matrix,
   nshots::Int;
-  readout_errors=(p1given0=nothing, p0given1=nothing),
+  kwargs...
 )
+  
   N = nsites(M0)
-  @assert N == size(preps, 2)
+  npreps = size(preps, 1)
+  nbases = size(bases, 1)
+  ntotal = npreps * nbases
 
-  nthreads = Threads.nthreads()
-  data = [Matrix{Pair{String,Pair{String,Int}}}(undef, 0, N) for _ in 1:nthreads]
-  M = copy(M0)
-  Threads.@threads for p in 1:size(preps, 1)
-    nthread = Threads.threadid()
-    Mproj = projectchannel(M, preps[p,:])
-    prepdata = permutedims(hcat(repeat([preps[p,:]], nshots * size(bases,1))...))
-    basisdata = getsamples(Mproj, bases, nshots; readout_errors=readout_errors)
-    data[nthread] = vcat(data[nthread], prepdata .=> basisdata)
+  preps_and_bases = Matrix{Pair{String,String}}(undef, 0, N)
+  for p in 1:npreps
+    x = [preps[p,:] .=> bases[b,:] for b in 1:nbases]
+    preps_and_bases = vcat(preps_and_bases, permutedims(hcat(x...))) 
   end
-  return vcat(data...)
+  return getsamples(M0, preps_and_bases, nshots; kwargs...) 
 end
 
 getsamples(M::Union{LPDO,MPO, ITensor}, preps::Vector{<:Vector}, bases::Vector{<:Vector}, nshots::Int; kwargs...) = 
@@ -342,5 +378,6 @@ getsamples(M::Union{LPDO,MPO, ITensor}, preps::Vector{<:Vector}, bases::Vector{<
 
 getsamples(M::Union{LPDO,MPO, ITensor}, preps::Union{Matrix,Vector{<:Vector}}, bases::Union{Matrix,Vector{<:Vector}}; kwargs...) = 
   getsamples(M, preps, bases, 1; kwargs...)
+
 
 

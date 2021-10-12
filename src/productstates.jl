@@ -6,6 +6,11 @@
 --------------------------------------------------------------------------------
 """
 
+qubits(N::Int) = siteinds("Qubit", N)
+
+qudits(N::Int; dim::Int = 3) = siteinds("Qudit",N; dim = dim)
+
+
 #
 # State-like gates, used to define product input states
 #
@@ -14,11 +19,14 @@
 
 
 state(sn::String; kwargs...) = state(StateName(sn); kwargs...)
+state(sn::String, dim::Int; kwargs...) = state(StateName(sn), dim; kwargs...)
 
-state(sn::String, i::Index; kwargs...) = ITensors.itensor(state(sn; kwargs...), i)
+function state(sn::String, i::Index; kwargs...)
+  st = hastags(i, "Qubit") ? state(sn) : state(sn, dim(i); kwargs...)
+  return ITensors.itensor(st, i)
+end
 
 # Pauli eingenstates
-
 state(::StateName"X+") = [
   1 / sqrt(2)
   1 / sqrt(2)
@@ -44,32 +52,38 @@ state(::StateName"Z+") = [
   0
 ]
 
-state(::StateName"0") = state("Z+")
 
 state(::StateName"Z-") = [
   0
   1
 ]
 
+state(::StateName"0") = state("Z+")
 state(::StateName"1") = state("Z-")
 
 # SIC-POVMs
 
-state(::StateName"SIC1") = state("Z+")
-state(::StateName"SIC2") = [
+state(::StateName"T1") = state("Z+")
+state(::StateName"T2") = [
   1/√3
   √2/√3
 ]
-state(::StateName"SIC3") = [
+state(::StateName"T3") = [
   1/√3
   √2/√3 * exp(im*2π/3)
 ]
-state(::StateName"SIC4") = [
+state(::StateName"T4") = [
   1/√3
   √2/√3 * exp(im*4π/3)
 ]
 
 
+function state(::StateName{N}, dim::Int) where {N}
+  n = parse(Int, String(N))
+  st = zeros(Int64,dim)
+  st[n + 1] = 1
+  return st
+end
 
 
 """
@@ -80,7 +94,11 @@ state(::StateName"SIC4") = [
 
 Initialize qubits to an MPS wavefunction in the 0 state (`|ψ⟩ = |0⟩ ⊗ |0⟩ ⊗ …`).
 """
-productstate(N::Int) = productstate(siteinds("Qubit", N))
+# TODO: add dimension to use qudit instead of qubit
+function productstate(N::Int; dim::Int = 2, sitetype::String = "Qubit")
+  dim > 2 && return productstate(siteinds("Qudit", N; dim = dim))
+  return productstate(siteinds(sitetype,N))
+end
 
 productstate(sites::Vector{<:Index}) = productMPS(sites, "0")
 
@@ -102,16 +120,21 @@ productstate(M::Union{MPS,MPO,LPDO}) = productstate(hilbertspace(M))
 Initialize the qubits to a given product state, where the state `T` can be specified either
 with a Vector of states specified as Strings or bit values (0 and 1).
 """
-productstate(N::Int, states::Vector) = productstate(siteinds("Qubit", N), states)
-
-function productstate(M::Union{MPS,MPO,LPDO}, states::Vector)
-  return productstate(hilbertspace(M), states)
+function productstate(N::Int, states::Vector; dim::Int = 2, sitetype::String = "Qubit")
+  dim > 2 && return productstate(siteinds("Qudit", N; dim = dim), states)
+  return productstate(siteinds(sitetype, N), states)
 end
-
-productstate(sites::Vector{<:Index}, states::Vector) = MPS(state.(states, sites))
 
 function productstate(sites::Vector{<:Index}, states::Vector{<:Integer})
   return MPS(state.(string.(Int.(states)), sites))
+end
+
+function productstate(sites::Vector{<:Index}, states::Vector)
+  return MPS(state.(states, sites))
+end
+
+function productstate(M::Union{MPS,MPO,LPDO}, states::Vector)
+  return productstate(hilbertspace(M), states)
 end
 
 function productstate(sites::Vector{<:Index}, state::Union{String,Integer})
@@ -129,7 +152,10 @@ end
 
 Initialize an MPO that is a product of identity operators.
 """
-productoperator(N::Int) = productoperator(siteinds("Qubit", N))
+function productoperator(N::Int; dim::Int = 2, sitetype::String = "Qubit")
+  dim > 2 && return productoperator(siteinds("Qudit", N; dim = dim))
+  return productoperator(siteinds(sitetype, N))
+end
 
 productoperator(M::Union{MPS,MPO,LPDO}) = productoperator(hilbertspace(M))
 
