@@ -34,7 +34,7 @@ goal is to discover a parametric drive that realize such dynamics at a fixed tim
 function gradients(ψs::Vector{MPS}, 
                    ϕs::Vector{MPS},
                    circuit::Vector{<:Vector{<:Any}},
-                   drives::Union{Pair, Vector}, 
+                   drives::Vector{<:Pair}, 
                    ts::Vector, 
                    cmap::Vector; 
                    kwargs...)
@@ -102,7 +102,7 @@ function gradients(ψs::Vector{MPS},
   for nthread in 1:nthreads
     ∇tot += ∇C[nthread]
   end
-  return Odag * conj(Odag), imag.(∇tot)
+  return real(Odag * conj(Odag)), imag.(∇tot)
 end
 
 gradients(ψ₀::MPS, ψtarget::MPS, args...; kwargs...) = 
@@ -110,36 +110,86 @@ gradients(ψ₀::MPS, ψtarget::MPS, args...; kwargs...) =
 
 
 
-#"""
-#maximmize fidelity
-#"""
-#function maximize!(θ₀::Vector{<:Number},
-#                   makecircuit::Function,
-#                   drives::Union{Pair,Vector{<:Pair}},
-#                   ψ₀::Union{MPS,Vector{MPS}}, ψtarget::Union{MPS,Vector{MPS}},
-#                   δt::Number;
-#                   optimizer = Optimisers.Descent(0.01),
-#                   epochs::Int = 100,
-#                   maxdim::Int64 = 10_000,
-#                   cutoff::Float64 = 1E-12,)
-#  
-#  # identity trainable parameters
-#  circuit = makecircuit(θ₀, drives)
-#  cmap = circuitmap(circuit) 
-#  
-#  st = Optimisers.state(optimizer, θ₀)
-#  θ = copy(θ₀)
-#  for ep in 1:epochs
-#    circuit = makecircuit(θ, drives) 
-#    F, ∇ = gradients(θ, ψ₀, ψtarget, circuit, drives, δt, cmap; maxdim = maxdim, cutoff = cutoff)
-#    ∇avg = StatsBase.mean(abs.(∇))
-#    #Optimise.update!(optimizer, θ, -∇)
-#    st, θ′ = Optimisers.update!(optimizer, st, θ, ∇)
-#    @printf("iter = %d  F = %.5E  ⟨∇⟩ = %.3E ",ep,real(F), ∇avg)
-#    println()
-#  end
-#end
-#
+"""
+maximmize fidelity
+"""
+function optimize!(drives0::Vector{<:Pair}, 
+                   H::OpSum,
+                   ψs::Vector{MPS},
+                   ϕs::Vector{MPS};
+                   (observer!) = nothing,
+                   kwargs...)
+  
+  ts          = get(kwargs, :ts, nothing)
+  δt          = get(kwargs, :δt, nothing)
+  T           = get(kwargs, :T, nothing)
+  optimizer   = get(kwargs, :optimizer, Optimisers.Descent(0.01))
+  epochs      = get(kwargs, :epochs, 100)
+  maxdim      = get(kwargs, :maxdim, 10_000)
+  cutoff      = get(kwargs, :cutoff, 1E-15)
+  outputpath  = get(kwargs, :outputpath, nothing)
+  outputlevel = get(kwargs, :outputpath, 1)
+  #earlystop  = get(kwargs, :earlystop, false)
+ 
+  drives = deepcopy(drives0)
+  
+  # set the time sequence
+  if isnothing(ts)
+    (isnothing(δt) || isnothing(T)) && error("Time sequence not defined")
+    ts = 0.0:δt:T
+  end
+  ts = collect(ts) 
+  
+  if !isnothing(observer!)
+    observer!["drives"] = nothing
+    observer!["loss"]   = nothing
+    observer!["∇avg"]   = nothing
+  end
 
+  Hts = [_drivinghamiltonian(H, drives, t) for t in ts]
+  circuit = trottercircuit(Hts; ts =  ts)
+  cmap = circuitmap(circuit)
+  
+  θ = [last(first(drive)) for drive in drives]
+  st = Optimisers.state(optimizer, θ)
+  
+  tot_time = 0.0
+  for ep in 1:epochs
+    ep_time = @elapsed begin
+      Hts = [_drivinghamiltonian(H, drives, t) for t in ts]
+      circuit = trottercircuit(Hts; ts =  ts)
+      F, ∇ = gradients(ψs, ϕs, circuit, drives, ts, cmap; cutoff = cutoff, maxdim = maxdim)
+      
+      θ = [last(first(drive)) for drive in drives]
+      st, θ′ = Optimisers.update(optimizer, st, θ, -∇)
+      drives = [(first(first(drives[k])), θ′[k]) => last(drives[k]) for k in 1:length(drives)]
+    end
+    ∇avg = StatsBase.mean(abs.(vcat(∇...)))
+    
+    if !isnothing(observer!)
+      push!(last(observer!["drives"]), drives)
+      push!(last(observer!["loss"]), F)
+      push!(last(observer!["∇avg"]), ∇avg)
+    end
+    
+    if !isnothing(outputpath)
+      observerpath = outputpath * "_observer.jld2"
+      save(observerpath, observer!)
+    end
 
+    if outputlevel > 0
+      @printf("iter = %d  infidelity = %.5E  ", ep, 1 - F); flush(stdout)
+      @printf("⟨∇⟩ = %.3E  elapsed = %.3f", ∇avg, ep_time); flush(stdout)
+      println()
+    end
+  end
+  drives0[:] = drives
+  return drives0
+end
+
+optimize!(drives::Union{Pair,Vector{<:Pair}}, H::OpSum, ψ::MPS, ϕ::MPS) = 
+  optimize!(drives, H, [ψ], [ϕ])
+
+optimize!(drive::Pair, H, ψ, ϕ) = 
+  optimize!([drive], H, ψ, ϕ)
 

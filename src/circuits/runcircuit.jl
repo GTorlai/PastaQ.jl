@@ -201,6 +201,9 @@ function runcircuit(
   M0 = copy(M)
   # record the initial configuration of the indices
   s = siteinds(M)
+  if !isnothing(observer!)
+    update!(observer!, M; sites = s)
+  end
   for l in 1:length(circuit)
     layer = circuit[l]
     t = @elapsed begin

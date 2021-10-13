@@ -15,6 +15,9 @@ export
   # circuits/trottersuzuki.jl
   trottercircuit,
 
+  # circuits/coherentcontrol.jl
+  optimize!,
+  
   # circuits/variationalcircuit.jl
   variationalgate,
   variationalcircuit,

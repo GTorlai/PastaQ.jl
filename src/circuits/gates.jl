@@ -426,7 +426,7 @@ function gate(gn::GateName, s1::Index, ss::Index...;
     !isempty(kwargs) && error("Composition of parametric gates not allowed")
     gate1 = name[1:prevind(name, pluspos.start)]
     gate2 = name[nextind(name, pluspos.start):end]
-    return gate(GateName(gate1), s...; dag=dag,f=f,kwargs...) + gate(GateName(gate2), s...; dag=dag,f=f,kwargs...)
+    return gate(GateName(gate1), s...; dag=dag,f=f,∇=∇,kwargs...) + gate(GateName(gate2), s...; dag=dag,f=f,∇=∇,kwargs...)
   end
   
   # next check for multiplication
@@ -436,10 +436,9 @@ function gate(gn::GateName, s1::Index, ss::Index...;
     gate1 = name[1:prevind(name, starpos.start)]
     gate2 = name[nextind(name, starpos.start):end]
     # note the inverted order, which is related to how we apply the gates
-    return product(gate(GateName(gate1), s...; dag=dag,f=f,kwargs...), 
-                   gate(GateName(gate2), s...; dag=dag,f=f,kwargs...))
+    return product(gate(GateName(gate1), s...; dag=dag,f=f,∇=∇,kwargs...), 
+                   gate(GateName(gate2), s...; dag=dag,f=f,∇=∇,kwargs...))
   end
-
   # if `f` is being passed
   if !isnothing(f)
     # if `f` isa a function, apply `f` to the gate
