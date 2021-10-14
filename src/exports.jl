@@ -2,6 +2,7 @@ export
   # ITensors
   maxlinkdim,
   siteinds,
+  state,
 
   # circuits/circuits.jl
   randomlayer,
@@ -10,6 +11,9 @@ export
   qft,
   ghz,
   dag,
+  
+  # circuits/trottersuzuki.jl
+  trottercircuit,
 
   # circuits/gates.jl
   # Methods
@@ -29,11 +33,14 @@ export
   # noise.jl
   insertnoise,
   
-  # circuits/runcircuit.jl
-  # Methods
+  # productstates.jl
+  qubits,
+  qudits,
   productstate,
   productoperator,
-  qubits,
+
+  # circuits/runcircuit.jl
+  # Methods
   buildcircuit,
   runcircuit,
   choimatrix,
@@ -62,8 +69,6 @@ export
 
   # distances.jl
   fidelity,
-  statefidelity,
-  processfidelity,
   fidelity_bound,
   frobenius_distance,
 

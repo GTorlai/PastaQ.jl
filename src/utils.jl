@@ -173,7 +173,7 @@ function haschoitags(M::Union{MPS,MPO})
 end
 
 function haschoitags(M::ITensor)
-  N = nqubits(M)
+  N = nsites(M)
   for j in 1:N
     !(hastags(M,"Input,n=$j") && hastags(M,"Output,n=$j")) && return false
   end
@@ -264,4 +264,21 @@ Inverse of `unitary_mpo_to_choi_mps`.
 """
 choi_mps_to_unitary_mpo(Ψ::MPS) = mpotags(convert(MPO, Ψ))
 choi_mps_to_unitary_mpo(L::LPDO{MPS}) = choi_mps_to_unitary_mpo(L.X)
+
+
+function nsites(T::ITensor)
+  s1 = inds(T,tags="Site,n=1")
+  # Wavefunction
+  if length(s1) == 1 || length(s1) == 2
+    return length(inds(T,plev=0))
+  # Choi matrix
+  elseif length(s1) == 4
+    return length(inds(T,plev=0)) ÷ 2
+  else
+    error("Indices not recognized")
+  end
+end
+
+nsites(M::Union{MPS,MPO,LPDO}) = 
+  length(M)
 

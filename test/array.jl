@@ -30,7 +30,7 @@ end
   
   N = 5
   depth = 3
-  circuit = randomcircuit(N, depth)
+  circuit = randomcircuit(N; depth = depth)
   qubits = siteinds("Qubit", N)
   
   # MPS wavefunction
@@ -96,7 +96,7 @@ end
   # MPO Choi matrix 
   N = 3
   depth = 3
-  circuit = randomcircuit(N, depth)
+  circuit = randomcircuit(N; depth = depth)
   qubits = siteinds("Qubit", N)
   
   Λ = runcircuit(qubits, circuit; process = true, noise = ("DEP",(p=0.01,)))
@@ -155,7 +155,7 @@ end
   
   N = 5
   depth = 3
-  circuit = randomcircuit(N, depth)
+  circuit = randomcircuit(N; depth = depth)
   qubits = siteinds("Qubit", N)
   
   # MPS wavefunction
@@ -190,7 +190,7 @@ end
   # MPO Choi matrix 
   N = 3
   depth = 3
-  circuit = randomcircuit(N, depth)
+  circuit = randomcircuit(N; depth = depth)
   qubits = siteinds("Qubit", N)
   
   Λ = runcircuit(qubits, circuit; process = true, noise = ("DEP",(p=0.01,)))
@@ -208,21 +208,20 @@ end
 end
 
 
-
 @testset "dense states to itensors" begin
   N = 2
   d = 1<<N
-  gates = randomcircuit(N,4)
+  gates = randomcircuit(N; depth = 4)
   ψ = runcircuit(N,gates)
   
   sites = siteinds("Qubit", N)
   ψvec = PastaQ.array(ψ)
-  ϕ = itensor(ψvec, reverse(sites))
+  ϕ = PastaQ.itensor(ψvec, sites)
   @test PastaQ.array(ϕ) ≈ ψvec
 
   ρ = runcircuit(N, gates; noise = ("DEP",(p=0.1,)))
   ρmat = PastaQ.array(ρ) 
-  ϱ = itensor(ρmat, reverse(sites)', reverse(sites))
+  ϱ = PastaQ.itensor(ρmat, sites)
   @test PastaQ.array(ϱ) ≈ ρmat
 
 end

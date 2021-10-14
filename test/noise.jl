@@ -5,7 +5,6 @@ using LinearAlgebra
 using Random
 
 
-
 @testset "noise models: pauli channel" begin
   E = gate("pauli_channel") 
   K = [E[:,:,k] for k in 1:size(E,3)]
@@ -14,7 +13,7 @@ using Random
   for N in 2:5
     probs = rand(4^N)
     probs = probs ./ sum(probs)
-    E = gate("pauli_channel", N; error_probabilities = probs)
+    E = gate("pauli_channel", Tuple(repeat([2],N)); error_probabilities = probs)
     @test size(E,3) == 4^N
     @test sum([E[:,:,k]' * E[:,:,k] for k in 1:size(E,3)]) ≈ Matrix{Float64}(I,1<<N,1<<N)
   end
@@ -26,7 +25,7 @@ end
   @test size(E,3) == 2
   @test sum([E[:,:,k]' * E[:,:,k] for k in 1:size(E,3)]) ≈ Matrix{Float64}(I,2,2)
   for N in 2:5
-    E = gate("bit_flip", N; p = 0.1)
+    E = gate("bit_flip", Tuple(repeat([2],N)); p = 0.1)
     @test size(E,3) == 2^N
     @test sum([E[:,:,k]' * E[:,:,k] for k in 1:size(E,3)]) ≈ Matrix{Float64}(I,1<<N,1<<N)
   end
@@ -38,7 +37,7 @@ end
   @test size(E,3) == 2
   @test sum([E[:,:,k]' * E[:,:,k] for k in 1:size(E,3)]) ≈ Matrix{Float64}(I,2,2)
   for N in 2:5
-    E = gate("phase_flip", N; p = 0.1)
+    E = gate("phase_flip", Tuple(repeat([2],N)); p = 0.1)
     @test size(E,3) == 2^N
     @test sum([E[:,:,k]' * E[:,:,k] for k in 1:size(E,3)]) ≈ Matrix{Float64}(I,1<<N,1<<N)
   end
@@ -50,13 +49,13 @@ end
   @test size(E,3) == 2
   @test sum([E[:,:,k]' * E[:,:,k] for k in 1:size(E,3)]) ≈ Matrix{Float64}(I,2,2)
   for N in 2:5
-    E = gate("AD", N; γ = 0.1)
+    E = gate("AD", Tuple(repeat([2],N)); γ = 0.1)
     @test size(E,3) == 2^N
     @test sum([E[:,:,k]' * E[:,:,k] for k in 1:size(E,3)]) ≈ Matrix{Float64}(I,1<<N,1<<N)
   end
 
   N = 2
-  circuit1 = randomcircuit(N,3; layered = false)
+  circuit1 = randomcircuit(N; depth = 3, layered = false)
   circuit2 = copy(circuit1)
   push!(circuit1, ("AD",1,(γ=0.1,)))
   push!(circuit1, ("AD",2,(γ=0.1,)))
@@ -74,13 +73,13 @@ end
   @test size(E,3) == 2
   @test sum([E[:,:,k]' * E[:,:,k] for k in 1:size(E,3)]) ≈ Matrix{Float64}(I,2,2)
   for N in 2:5
-    E = gate("PD", N; γ = 0.1)
+    E = gate("PD", Tuple(repeat([2],N)); γ = 0.1)
     @test size(E,3) == 2^N
     @test sum([E[:,:,k]' * E[:,:,k] for k in 1:size(E,3)]) ≈ Matrix{Float64}(I,1<<N,1<<N)
   end
   
   N = 2
-  circuit1 = randomcircuit(N,3; layered = false)
+  circuit1 = randomcircuit(N; depth = 3, layered = false)
   circuit2 = copy(circuit1)
   push!(circuit1, ("PD",1,(γ=0.1,)))
   push!(circuit1, ("PD",2,(γ=0.1,)))
@@ -98,7 +97,7 @@ end
   @test size(E,3) == 4
   @test sum([E[:,:,k]' * E[:,:,k] for k in 1:size(E,3)]) ≈ Matrix{Float64}(I,2,2)
   for N in 2:5
-    E = gate("DEP", N; p = 0.1)
+    E = gate("DEP", Tuple(repeat([2],N)); p = 0.1)
     @test size(E,3) == 4^N
     @test sum([E[:,:,k]' * E[:,:,k] for k in 1:size(E,3)]) ≈ Matrix{Float64}(I,1<<N,1<<N)
   end
@@ -108,7 +107,7 @@ end
   N = 6
   depth = 4
   
-  circuit = randomcircuit(N,depth; twoqubitgates = ["CX","CZ"], onequbitgates = ["Rn","X"], layered = false)
+  circuit = randomcircuit(N; depth = depth, twoqubitgates = ["CX","CZ"], onequbitgates = ["Rn","X"], layered = false)
   ngates = length(circuit)
   nCZ,nCX,nR,nX = 0,0,0,0
   for g in circuit
@@ -148,7 +147,7 @@ end
   N = 6
   depth = 4
   
-  circuit = randomcircuit(N,depth; twoqubitgates = ["CX","CZ"], onequbitgates = ["Rn","X"], layered = false)
+  circuit = randomcircuit(N; depth = depth, twoqubitgates = ["CX","CZ"], onequbitgates = ["Rn","X"], layered = false)
   ngates = length(circuit)
   nCZ,nCX,nR,nX = 0,0,0,0
   for g in circuit

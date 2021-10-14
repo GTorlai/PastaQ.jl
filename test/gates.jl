@@ -4,7 +4,7 @@ using Test
 using LinearAlgebra
 
 @testset "Gate generation: 1-qubit gates" begin
-  i = Index(2)
+  i = Index(2, tags = "Qubit")
   
   g = gate("I", i)
   @test plev(inds(g)[1]) == 1
@@ -670,3 +670,84 @@ end
   psi_vec = PastaQ.array(psi)
   @test psi_vec ≈ [0.0, 0.0, 0.0, 1.0]
 end
+
+
+@testset "function applied to a gate" begin
+  s = siteinds("Qubit", 2)
+  
+  θ = 0.1
+  rx = gate("Rx"; θ = 0.1)
+  exp_rx = exp(rx)
+  gtest = gate("Rx",s[1]; θ = 0.1, f = x -> exp(x))
+  @test PastaQ.array(gtest) ≈ exp_rx
+  
+  cx = 0.1*gate("CX")
+  exp_cx = exp(cx)
+  gtest = gate("CX",s[1],s[2]; f = x -> exp(0.1*x))
+  @test PastaQ.array(gtest) ≈ exp_cx
+
+end
+
+
+@testset "gate built out of elementary gates" begin
+  
+  s = siteinds("Qubit", 2)
+  
+  G = gate("S") * gate("S") 
+  gtest = gate("S * S", s[1])
+  @test PastaQ.array(gtest) ≈ G 
+  
+  cx = gate("CX")
+  
+  G = cx * cx * cx
+  gtest = gate("CX*CX*CX", s[1],s[2])
+  @test PastaQ.array(gtest) ≈ G 
+  
+  G = gate("S") + gate("T")
+  gtest = gate("S + T", s[1])
+  @test PastaQ.array(gtest) ≈ G
+  
+  G = gate("S") + gate("T") * gate("X")
+  gtest = gate("S + T * X", s[1])
+  @test PastaQ.array(gtest) ≈ G
+  
+  G = gate("S") + gate("T") * gate("X") * gate("Y")
+  gtest = gate("S + T * X * Y", s[1])
+  @test PastaQ.array(gtest) ≈ G
+  
+  G = gate("Z")*gate("S") + gate("T") * gate("X") * gate("Y")
+  gtest = gate("Z*S + T * X * Y", s[1])
+  @test PastaQ.array(gtest) ≈ G
+end
+
+
+
+@testset "qudit gates" begin
+  dim = 3
+  s = siteinds("Qudit", 4; dim = dim)
+  dims = (dim,)
+  @test gate("a†", dims)      ≈ [0 0 0; 1 0 0; 0 √2 0] 
+  @test gate("a", dims)       ≈ [0 1 0; 0 0 √2; 0 0 0]  
+
+  @test gate("a†", dims) * gate("a", dims) ≈ [0 0 0; 0 1 0; 0 0 2] 
+
+  @test PastaQ.array(gate("a†", s[1])) ≈ [0 0 0; 1 0 0; 0 √2 0]
+  @test PastaQ.array(gate("a", s[1])) ≈ [0 1 0; 0 0 √2; 0 0 0] 
+  
+  @test PastaQ.array(gate("a†a", s[1])) ≈ [0 0 0; 0 1 0; 0 0 2]
+  @test PastaQ.array(gate("aa†", s[1])) ≈ [1 0 0; 0 2 0; 0 0 0]
+  @test PastaQ.array(gate("a† * a", s[1])) ≈ [0 0 0; 0 1 0; 0 0 2]
+  @test PastaQ.array(gate("a * a†", s[1])) ≈ [1 0 0; 0 2 0; 0 0 0]
+  
+
+  dim = 10
+  s = siteinds("Qudit", 4; dim = dim)
+  dims = (dim,)
+  @test PastaQ.array(gate("a† * a† * a * a", s[1])) ≈ gate("a†", dims)  * gate("a†", dims)  * gate("a", dims) * gate("a", dims)
+  
+  @test PastaQ.array(gate("a†a", s[1], s[2])) ≈ kron(gate("a†", dims), gate("a", dims))
+  @test PastaQ.array(gate("aa†", s[1], s[2])) ≈ kron(gate("a", dims), gate("a†", dims))
+  
+  @test PastaQ.array(gate("a†a+aa†", s[1], s[2])) ≈ kron(gate("a†", dims), gate("a", dims)) + kron(gate("a", dims), gate("a†", dims))
+end
+

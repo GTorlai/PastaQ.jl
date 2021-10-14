@@ -6,8 +6,8 @@ using Random
 
 @testset "quantum state fidelity: normalized input states" begin
   N = 4
-  circuit1 = randomcircuit(N, 3)
-  circuit2 = randomcircuit(N, 3)
+  circuit1 = randomcircuit(N; depth = 3)
+  circuit2 = randomcircuit(N; depth = 3)
   
   sites = siteinds("Qubit", N)
   # MPS wavefunction
@@ -141,8 +141,8 @@ end
   N = 3
   sites = siteinds("Qubit",N)
 
-  circuit1 = randomcircuit(N, 3)
-  circuit2 = randomcircuit(N, 3)
+  circuit1 = randomcircuit(N; depth =  3)
+  circuit2 = randomcircuit(N; depth =  3)
   # MPO unitary 
   U1 = runcircuit(sites, circuit1; process=true)
   U2 = randomprocess(sites)
@@ -209,8 +209,8 @@ end
   N = 3
   sites = siteinds("Qubit",N)
 
-  circuit1 = randomcircuit(N, 3)
-  circuit2 = randomcircuit(N, 3)
+  circuit1 = randomcircuit(N; depth =  3)
+  circuit2 = randomcircuit(N; depth =  3)
   # MPO unitary 
   U1 = randomprocess(sites; χ = 3) 
   U2 = randomprocess(sites; χ = 4)

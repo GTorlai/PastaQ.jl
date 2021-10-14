@@ -118,4 +118,12 @@ function tomatrix(M::ITensor; reverse::Bool = true)
   return ITensors.array(permute(Mmat, c', c))
 end
 
+function itensor(M::AbstractMatrix, sites::Vector{<:Index}; reverse::Bool = true)
+  sites = reverse ? Base.reverse(sites) : sites
+  return ITensors.itensor(M, sites', ITensors.dag(sites))
+end
 
+function itensor(v::AbstractVector, sites::Vector{<:Index}; reverse::Bool = true) 
+  sites = reverse ? Base.reverse(sites) : sites
+  return ITensors.itensor(v, sites)
+end

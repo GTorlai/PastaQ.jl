@@ -12,10 +12,11 @@ using Optimisers
   N = 3
   depth = 4
   nshots = 100
-  circuit = randomcircuit(N, depth)
+  circuit = randomcircuit(N; depth = depth)
   path = "test_data_writesamples.h5"
   
-  data, X = getsamples(circuit, nshots; local_basis = nothing) 
+  X = runcircuit(circuit)
+  data = getsamples(X, nshots)
   writesamples(data, path)
   datatest = readsamples(path)
   @test datatest ≈ data
@@ -24,7 +25,8 @@ using Optimisers
   @test X ≈ Xtest
   @test datatest ≈ data
   
-  data, X = getsamples(circuit, nshots; local_basis = nothing, noise = ("DEP",(p=0.01,))) 
+  X = runcircuit(circuit; noise = ("DEP",(p=0.01,)))
+  data = getsamples(X, nshots)
   writesamples(data, path)
   datatest = readsamples(path)
   @test datatest ≈ data
@@ -33,65 +35,71 @@ using Optimisers
   @test X ≈ Xtest
   @test datatest ≈ data
   
-  data, _ = getsamples(circuit, nshots; local_basis = nothing, noise = ("DEP",(p=0.01,))) 
   X = randomstate(N; ξ = 2, χ = 3)
-  writesamples(data, path)
-  datatest = readsamples(path)
-  @test datatest ≈ data
   writesamples(data, X, path)
   datatest, Xtest = readsamples(path)
   @test X.X ≈ Xtest.X
   @test datatest ≈ data
 
   
-  data, X = getsamples(circuit, nshots; local_basis = ["X","Y","Z"]) 
+  X = runcircuit(circuit)
+  bases = randombases(N, 10)
+  data = getsamples(X, bases, nshots)
   writesamples(data, path)
   datatest = readsamples(path)
-  @test all(data .== datatest)
+  @test all(data .== datatest)  
   writesamples(data, X, path)
   datatest, Xtest = readsamples(path)
   @test X ≈ Xtest
-  @test all(data .== datatest)
+  @test all(data .== datatest)  
   
-  data, X = getsamples(circuit, nshots; local_basis = ["X","Y","Z"], noise = ("DEP",(p=0.01,))) 
+  X = runcircuit(circuit; noise = ("DEP",(p=0.01,)))
+  bases = randombases(N, 10)
+  data = getsamples(X, bases, nshots)
   writesamples(data, path)
   datatest = readsamples(path)
-  @test all(data .== datatest)
+  @test all(data .== datatest)  
   writesamples(data, X, path)
   datatest, Xtest = readsamples(path)
   @test X ≈ Xtest
-  @test all(data .== datatest)
+  @test all(data .== datatest)  
   
-  data, _ = getsamples(circuit, nshots; local_basis = ["X","Y","Z"], noise = ("DEP",(p=0.01,))) 
   X = randomstate(N; ξ = 2, χ = 3)
-  writesamples(data, path)
-  datatest = readsamples(path)
-  @test all(data .== datatest)
   writesamples(data, X, path)
   datatest, Xtest = readsamples(path)
   @test X.X ≈ Xtest.X
-  @test all(data .== datatest)
+  @test all(data .== datatest)  
+  
 
 
-  data, X = getsamples(circuit, nshots; local_basis = ["X","Y","Z"], process = true) 
+  X = runcircuit(circuit; process = true)
+  preps = randompreparations(N, 8)
+  bases = randombases(N, 10)
+  data = getsamples(X, preps, bases, nshots)
   writesamples(data, path)
   datatest = readsamples(path)
-  @test all(data .== datatest)
+  @test all(data .== datatest)  
   writesamples(data, X, path)
   datatest, Xtest = readsamples(path)
   @test X ≈ Xtest
-  @test all(data .== datatest)
+  @test all(data .== datatest)  
   
-  data, _ = getsamples(circuit, nshots; local_basis = ["X","Y","Z"],process = true, noise = ("DEP",(p=0.01,))) 
-  X = randomprocess(N; ξ = 2, χ = 3)
+  X = runcircuit(circuit; noise = ("DEP",(p=0.01,)), process = true)
+  preps = randompreparations(N, 8)
+  bases = randombases(N, 10)
+  data = getsamples(X, preps, bases, nshots)
   writesamples(data, path)
   datatest = readsamples(path)
-  @test all(data .== datatest)
+  @test all(data .== datatest)  
+  writesamples(data, X, path)
+  datatest, Xtest = readsamples(path)
+  @test all(data .== datatest)  
+  
+  X = randomstate(N; ξ = 2, χ = 3)
   writesamples(data, X, path)
   datatest, Xtest = readsamples(path)
   @test X.X ≈ Xtest.X
-  @test all(data .== datatest)
-
+  @test all(data .== datatest)  
 end
 
 @testset "circuit observer: MPS" begin
@@ -99,8 +107,7 @@ end
   depth = 9
   R = 5
   Random.seed!(1234)
-  #circuit = Vector{Vector{<:Any}}(undef, depth)
-  circuit = randomcircuit(N, depth)
+  circuit = randomcircuit(N; depth = depth)
   layer = Tuple[]
   push!(circuit, [("CX",(1,N)),])
 
@@ -133,7 +140,7 @@ end
   depth = 5
   #circuit = Vector{Vector{<:Any}}(undef, depth)
   sites = siteinds("Qubit", N)
-  circuit = randomcircuit(N, depth)
+  circuit = randomcircuit(N; depth = depth)
   
   @disable_warn_order begin
     L = randomstate(sites; χ = 10, ξ = 3, normalize=true)
@@ -168,8 +175,10 @@ end
   N = 4
   depth = 4
   nshots = 100
-  circuit = randomcircuit(N, depth)
-  data, Ψ = getsamples(circuit, nshots; local_basis=["X", "Y", "Z"])
+  circuit = randomcircuit(N; depth = depth)
+  Ψ = runcircuit(circuit)
+  bases = randombases(N,2)
+  data = getsamples(Ψ, bases, nshots)
   test_data = copy(data[1:10, :])
   
   N = length(Ψ)     # Number of productstate
@@ -179,7 +188,6 @@ end
 
   F(ψ::MPS; kwargs...) = fidelity(ψ, Ψ)
   obs = Observer(["F" => F])
-  #obs = Observer([maxlinkdim, norm, ("X", 1), F])
   epochs = 18
 
   batchsize = 10
@@ -216,10 +224,10 @@ end
   N = 4
   depth = 4
   nshots = 100
-  circuit = randomcircuit(N, depth)
-  data, ϱ = getsamples(circuit, nshots; 
-                       local_basis=["X", "Y", "Z"], 
-                       noise = ("DEP",(p=0.01,))) 
+  circuit = randomcircuit(N; depth = depth)
+  ϱ = runcircuit(circuit; noise = ("DEP",(p=0.01,)))
+  bases = randombases(N,2)
+  data = getsamples(ϱ, bases, nshots)
   test_data = copy(data[1:10, :])
   
   N = length(ϱ)     # Number of productstate
@@ -266,8 +274,11 @@ end
   N = 3
   depth = 4
   nshots = 100
-  circuit = randomcircuit(N, depth)
-  data, V = getsamples(circuit, nshots; local_basis=["X", "Y", "Z"], process = true)
+  circuit = randomcircuit(N; depth =  depth)
+  V = runcircuit(circuit; process = true)
+  preps = randompreparations(N,2)
+  bases = randombases(N,2)
+  data = getsamples(V, preps, bases, nshots)
   test_data = copy(data[1:10, :])
   N = length(V)     # Number of productstate
   χ = maxlinkdim(V) # Bond dimension of variational MPS
@@ -314,11 +325,11 @@ end
   N = 2
   depth = 4
   nshots = 100
-  circuit = randomcircuit(N, depth)
-  data, Φ = getsamples(circuit, nshots; 
-                       local_basis=["X", "Y", "Z"], 
-                       noise = ("DEP",(p=0.01,)), 
-                       process = true)
+  circuit = randomcircuit(N; depth = depth)
+  Φ = runcircuit(circuit; process = true, noise = ("DEP",(p=0.01,)))
+  preps = randompreparations(N,2)
+  bases = randombases(N,2)
+  data = getsamples(Φ, preps, bases, nshots)
   test_data = copy(data[1:10, :])
   
   N = length(Φ)     # Number of productstate

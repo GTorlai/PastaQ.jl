@@ -93,17 +93,26 @@ gate(::GateName"Rx"; θ::Number) = [
   -im*sin(θ / 2) cos(θ / 2)
 ]
 
+gate(::GateName"RX"; kwargs...) = 
+  gate("Rx"; kwargs...)
+
 # Rotation around Y-axis
 gate(::GateName"Ry"; θ::Number) = [
   cos(θ / 2) -sin(θ / 2)
   sin(θ / 2) cos(θ / 2)
 ]
 
+gate(::GateName"RY"; kwargs...) = 
+  gate("Ry"; kwargs...)
+
 # Rotation around Z-axis
 gate(::GateName"Rz"; ϕ::Number) = [
   1 0
   0 exp(im * ϕ)
 ]
+
+gate(::GateName"RZ"; kwargs...) = 
+  gate("Rz"; kwargs...)
 
 # Rotation around generic axis n̂
 function gate(::GateName"Rn"; θ::Real, ϕ::Real, λ::Real)
@@ -149,6 +158,9 @@ gate(::GateName"CRz"; ϕ::Real) = [
   0 0 1 0
   0 0 0 exp(im * ϕ)
 ]
+
+gate(::GateName"CRZ"; kwargs...) = 
+  gate("CRz"; kwargs...)
 
 function gate(::GateName"CRn"; θ::Real, ϕ::Real, λ::Real)
   return [
@@ -197,7 +209,7 @@ gate(::GateName"iSw") = gate("iSWAP")
 gate(::GateName"iSwap") = gate("iSWAP")
 
 # Ising (XX) coupling gate
-function gate(::GateName"XX"; ϕ::Number)
+function gate(::GateName"Rxx"; ϕ::Number)
   return [
     cos(ϕ) 0 0 -im*sin(ϕ)
     0 cos(ϕ) -im*sin(ϕ) 0
@@ -205,6 +217,19 @@ function gate(::GateName"XX"; ϕ::Number)
     -im*sin(ϕ) 0 0 cos(ϕ)
   ]
 end
+
+gate(::GateName"RXX"; kwargs...) = 
+  gate("Rxx"; kwargs...)
+
+gate(::GateName"XX") = 
+  kron(gate("X"),gate("X"))
+
+gate(::GateName"YY") = 
+  kron(gate("Y"),gate("Y"))
+
+gate(::GateName"ZZ") = 
+  kron(gate("Z"),gate("Z"))
+
 
 # TODO: Ising (YY) coupling gate
 #gate(::GateName"YY"; ϕ::Number) =
@@ -285,15 +310,51 @@ end
 # Random Haard unitary:
 # 
 # Reference: http://math.mit.edu/~edelman/publications/random_matrix_theory.pdf
-function gate(::GateName"randU", N::Int = 1;
+function gate(::GateName"randU", dims::Tuple = (2,);
               eltype = ComplexF64,
-              random_matrix = randn(eltype, 1<<N, 1<<N))
+              random_matrix = randn(eltype, prod(dims), prod(dims)))
   Q, _ = NDTensors.qr_positive(random_matrix)
   return Q
 end
 
-gate(::GateName"RandomUnitary", N::Int = 1; kwargs...) = 
-  gate("randU", N; kwargs...)
+gate(::GateName"RandomUnitary", dims::Tuple = (2,); kwargs...) = 
+  gate("randU", dims; kwargs...)
+
+
+#
+# qudit gates
+#
+
+function gate(::GateName"a", dims::Tuple = (2,))
+  @assert length(dims) == 1
+  dim = dims[1]
+  mat = zeros(dim, dim)
+  for k in 1:dim-1
+    mat[k,k+1] = √k
+  end
+  return mat
+end
+
+gate(::GateName"a†", dims::Tuple = (2,)) = 
+  Array(gate("a", dims)')
+
+gate(::GateName"adag", dims::Tuple) = 
+  gate("a†", dims::Tuple)
+
+
+function gate(::GateName"a†a", dims::Tuple = (2,))
+  # single-qubit gate (i.e. chemical potential)
+  length(dims) == 1 && return gate("a†",dims) * gate("a", dims)
+  length(dims) == 2 && return kron(gate("a†", (dims[1],)),gate("a", (dims[2],)))
+  error("gate `a†a` only acting on one or two qubits")
+end
+
+function gate(::GateName"aa†", dims::Tuple = (2,))
+  # single-qubit gate (i.e. chemical potential)
+  length(dims) == 1 && return gate("a",dims) * gate("a†", dims)
+  length(dims) == 2 && return kron(gate("a", (dims[1],)),gate("a†", (dims[2],)))
+  error("gate `aa†` only acting on one or two qubits")
+end
 
 #
 # Basis definitions (eigenbases of measurement gates)
@@ -346,24 +407,63 @@ gate(s::String; kwargs...) = gate(GateName(s); kwargs...)
 gate(s::String, args...; kwargs...) = gate(GateName(s), args...; kwargs...)
 
 # Version that accepts a dimension for the gate,
-# for n-qubit gates
-gate(gn::GateName, N::Int; kwargs...) = gate(gn; kwargs...)
-gate(gn::GateName, dims::Tuple; kwargs...) = gate(gn, length(dims); kwargs...)
+gate(gn::GateName, dims::Tuple; kwargs...) = gate(gn; kwargs...)
 
-function gate(gn::GateName, s1::Index, ss::Index...; dag::Bool = false, kwargs...)
+function gate(gn::GateName, s1::Index, ss::Index...; 
+              dag::Bool = false,
+              f = nothing,
+              kwargs...)
   s = tuple(s1, ss...)
   rs = reverse(s)
-  g = gate(gn, dim.(s); kwargs...) 
+  
+  name = string(ITensors.name(gn))
+  name = filter(x -> !isspace(x), name)
+  
+  # first check for addition
+  pluspos = findfirst("+", name)
+  if !isnothing(pluspos)
+    !isempty(kwargs) && error("Composition of parametric gates not allowed")
+    gate1 = name[1:prevind(name, pluspos.start)]
+    gate2 = name[nextind(name, pluspos.start):end]
+    return gate(GateName(gate1), s...; dag=dag,f=f,kwargs...) + gate(GateName(gate2), s...; dag=dag,f=f,kwargs...)
+  end
+  
+  # next check for multiplication
+  starpos = findfirst("*", name)
+  if !isnothing(starpos)
+    !isempty(kwargs) && error("Composition of parametric gates not allowed")
+    gate1 = name[1:prevind(name, starpos.start)]
+    gate2 = name[nextind(name, starpos.start):end]
+    # note the inverted order, which is related to how we apply the gates
+    return product(gate(GateName(gate1), s...; dag=dag,f=f,kwargs...), 
+                   gate(GateName(gate2), s...; dag=dag,f=f,kwargs...))
+  end
+
+  # if `f` is being passed
+  if !isnothing(f)
+    # if `f` isa a function, apply `f` to the gate
+    if f isa Function
+      g = f(gate(gn, dim.(s); kwargs...))
+    # if not, pass it as a regular argument
+    else
+      g = gate(gn, dim.(s); f = f, kwargs...)
+    end
+  else
+    g = gate(gn, dim.(s); kwargs...)
+  end
+  
+  # conjugate the gate if `dag=true`
   g = dag ? Array(g') : g
+    
   if ndims(g) == 1
     # TODO:
     #error("gate must have more than one dimension, use state(...) for state vectors.")
-    return itensor(g, rs...)
+    return ITensors.itensor(g, rs...)
   elseif ndims(g) == 2
-    return itensor(g, prime.(rs)..., ITensors.dag.(rs)...)
+    return ITensors.itensor(g, prime.(rs)..., ITensors.dag.(rs)...)
   elseif ndims(g) == 3
     kraus = Index(size(g, 3); tags="kraus")
-    return itensor(g, prime.(rs)..., ITensors.dag.(rs)..., kraus)
+    return ITensors.itensor(g, prime.(rs)..., ITensors.dag.(rs)..., kraus)
   end
   return error(
     "Gate definitions must be either Vector{T} (for a state), Matrix{T} (for a gate) or Array{T,3} (for a noise model). For gate name $gn, gate size is $(size(g)).",

@@ -1,8 +1,10 @@
 
-function gate(::GateName"pauli_channel", N::Int = 1; 
+function gate(::GateName"pauli_channel", dims::Tuple = (2,); 
               pauli_ops = ["Id","X","Y","Z"],
-              error_probabilities = prepend!(zeros(length(pauli_ops)^N-1),1))
+              error_probabilities = prepend!(zeros(length(pauli_ops)^length(dims)-1),1))
   @assert sum(error_probabilities) ≈ 1
+  @assert all(dims .== 2)
+  N = length(dims)
   length(error_probabilities) > (1 << 10) && error("Hilbert space too large")
   error_probabilities ./= sum(error_probabilities)
   kraus = zeros(Complex{Float64},1<<N,1<<N,length(pauli_ops)^N)
@@ -13,13 +15,15 @@ function gate(::GateName"pauli_channel", N::Int = 1;
   return kraus
 end
 
-gate(::GateName"bit_flip", N::Int = 1; p::Number) = 
-  gate("pauli_channel", N; error_probabilities = prepend!(p/(2^N-1) * ones(2^N-1), 1-p), pauli_ops = ["Id","X"])
+gate(::GateName"bit_flip", dims::Tuple = (2,); p::Number) = 
+  gate("pauli_channel", dims; error_probabilities = prepend!(p/(2^length(dims)-1) * ones(2^length(dims)-1), 1-p), pauli_ops = ["Id","X"])
 
-gate(::GateName"phase_flip", N::Int = 1; p::Number) = 
-  gate("pauli_channel", N; error_probabilities = prepend!(p/(2^N-1) * ones(2^N-1), 1-p), pauli_ops = ["Id","Z"])
+gate(::GateName"phase_flip", dims::Tuple = (2,); p::Number) = 
+  gate("pauli_channel", dims; error_probabilities = prepend!(p/(2^length(dims)-1) * ones(2^length(dims)-1), 1-p), pauli_ops = ["Id","Z"])
 
-function gate(::GateName"AD", N::Int = 1; γ::Real)
+function gate(::GateName"AD", dims::Tuple = (2,); γ::Real)
+  N = length(dims)
+  @assert all(dims .== 2)
   kraus = zeros(2,2,2)
   kraus[:,:,1] = [1 0
                   0 sqrt(1-γ)]
@@ -37,9 +41,11 @@ function gate(::GateName"AD", N::Int = 1; γ::Real)
 end
 #
 # To accept the gate name "amplitude_damping"
-gate(::GateName"amplitude_damping", N::Int=1; kwargs...) = gate("AD", N; kwargs...)
+gate(::GateName"amplitude_damping", dims::Tuple = (2,); kwargs...) = gate("AD", dims; kwargs...)
 
-function gate(::GateName"PD", N::Int = 1; γ::Real)
+function gate(::GateName"PD", dims::Tuple = (2,); γ::Real)
+  N = length(dims)
+  @assert all(dims .== 2)
   kraus = zeros(2,2,2)
   kraus[:,:,1] = [1 0
                   0 sqrt(1-γ)]
@@ -58,18 +64,18 @@ function gate(::GateName"PD", N::Int = 1; γ::Real)
 end
 
 # To accept the gate name "phase_damping"
-gate(::GateName"phase_damping",N::Int = 1; kwargs...) = gate("PD", N; kwargs...)
+gate(::GateName"phase_damping", dims::Tuple = (2,); kwargs...) = gate("PD", dims; kwargs...)
 #
 # To accept the gate name "dephasing"
-gate(::GateName"dephasing", N::Int = 1; kwargs...) = gate("PD", N; kwargs...)
+gate(::GateName"dephasing", dims::Tuple = (2,); kwargs...) = gate("PD", dims; kwargs...)
 
 # make general n-qubit
-gate(::GateName"DEP", N::Int = 1; p::Number) =
-  gate("pauli_channel", N; error_probabilities = prepend!(p/(4^N-1) * ones(4^N-1), 1-p), pauli_ops = ["Id","X","Y","Z"])
+gate(::GateName"DEP", dims::Tuple = (2,); p::Number) =
+  gate("pauli_channel", dims; error_probabilities = prepend!(p/(4^length(dims)-1) * ones(4^length(dims)-1), 1-p), pauli_ops = ["Id","X","Y","Z"])
 
 # To accept the gate name "depolarizing"
-gate(::GateName"depolarizing", N::Int = 1; kwargs...) = 
-  gate("DEP", N; kwargs...)
+gate(::GateName"depolarizing", dims::Tuple = (2,); kwargs...) = 
+  gate("DEP", dims; kwargs...)
 
 function insertnoise(circuit::Vector{<:Vector{<:Any}}, noisemodel::Tuple; gate = nothing)#idlenoise::Bool = false) 
   max_g_size = maxgatesize(circuit) 
@@ -104,7 +110,7 @@ function insertnoise(circuit::Vector{<:Vector{<:Any}}, noisemodel::Tuple; gate =
           gatenoise = last(noisemodel[gatenoiseindex])
           # Check whether the n-qubit Kraus channel has been defined
           # n -qubit Kraus operator
-          noisecheck = PastaQ.gate(gatenoise[1], length(nq); gatenoise[2]...)
+          noisecheck = PastaQ.gate(gatenoise[1], Tuple(repeat([2], length(nq))); gatenoise[2]...)
           # if the single-qubit copy is return, use productnoise, and throw a warning
           if size(noisecheck,1) < 1<<length(nq)
             @warn "$(length(nq))-qubit Kraus operators for the $(gatenoise[1]) noise not defined. Applying tensor-product noise instead.\n"
@@ -142,8 +148,6 @@ end
 
 insertnoise(circuit::Vector{<:Any}, noisemodel::Tuple; kwargs...) = 
   insertnoise([circuit], noisemodel; kwargs...)[1]
-#insertnoise(circuit::Vector, noise; kwargs...) = 
-#  insertnoise!(copy(circuit), noise; kwargs...)
 
 function maxgatesize(circuit::Vector{<:Vector{<:Any}})
   maxsize = 0
