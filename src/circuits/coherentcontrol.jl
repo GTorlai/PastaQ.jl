@@ -56,7 +56,7 @@ function gradients(ψs::Vector{MPS},
   
   F = Odag * conj(Odag)
   ∇C = [[zeros(Complex, length(first(drives[k])[2])) for k in 1:length(drives)] for _ in 1:nthreads]
-  
+
   Threads.@threads for j in 1:d
     nthread = Threads.threadid()
 
@@ -130,6 +130,7 @@ function optimize!(drives0::Vector{<:Pair},
   outputpath  = get(kwargs, :outputpath, nothing)
   outputlevel = get(kwargs, :outputpath, 1)
   #earlystop  = get(kwargs, :earlystop, false)
+  print_metrics = get(kwargs, :print_metrics, [])
  
   drives = deepcopy(drives0)
   
@@ -158,7 +159,9 @@ function optimize!(drives0::Vector{<:Pair},
     ep_time = @elapsed begin
       Hts = [_drivinghamiltonian(H, drives, t) for t in ts]
       circuit = trottercircuit(Hts; ts =  ts)
-      F, ∇ = gradients(ψs, ϕs, circuit, drives, ts, cmap; cutoff = cutoff, maxdim = maxdim)
+      
+      # evolve layer by layer and record infidelity estimator
+      F, ∇ = gradients(copy(ψs), copy(ϕs), circuit, drives, ts, cmap; cutoff = cutoff, maxdim = maxdim)
       
       θ = [last(first(drive)) for drive in drives]
       st, θ′ = Optimisers.update(optimizer, st, θ, -∇)
@@ -168,8 +171,9 @@ function optimize!(drives0::Vector{<:Pair},
     
     if !isnothing(observer!)
       push!(last(observer!["drives"]), drives)
-      push!(last(observer!["loss"]), F)
+      push!(last(observer!["loss"]), 1-F)
       push!(last(observer!["∇avg"]), ∇avg)
+      update!(observer!, ψs, ϕs)
     end
     
     if !isnothing(outputpath)
@@ -179,7 +183,10 @@ function optimize!(drives0::Vector{<:Pair},
 
     if outputlevel > 0
       @printf("iter = %d  infidelity = %.5E  ", ep, 1 - F); flush(stdout)
-      @printf("⟨∇⟩ = %.3E  elapsed = %.3f", ∇avg, ep_time); flush(stdout)
+      
+      @printf("⟨∇⟩ = %.3E  ", ∇avg); flush(stdout)
+      printobserver(observer!, print_metrics)
+      @printf(" elapsed = %.3f",ep_time); flush(stdout)
       println()
     end
   end
