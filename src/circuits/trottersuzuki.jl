@@ -18,7 +18,6 @@ sort_gates(gates) =
   sort(gates; by=sort_gates_by, lt=sort_gates_lt)
 
 
-
 function trotter1(H::OpSum, δτ::Number)
   onequbitgates = Tuple[]
   multiqubitgates = Tuple[]
@@ -111,45 +110,48 @@ end
 trottercircuit(H; kwargs...) = 
   _trottercircuit(H, get_times(;kwargs...); kwargs...)
 
-trottercircuit(H::OpSum, T::Number; kwargs...) = 
-  _trottercircuit(H, T, get_times(;kwargs...); kwargs...) 
-
 function _trottercircuit(H::Vector{<:OpSum}, τs::Vector; order::Int = 2, layered::Bool = true, kwargs...)
-  #if τs isa Vector{<:Complex}
-  #  println("Running real-time evolution from t = $(imag(τs[1])) to t = $(imag(τs[end]))") 
-  #else
-  #  println("Running imaginary-time evolution from τ = im*$(τs[1]) to τ = im*$(τs[end])") 
-  #end
-  #@assert length(H) == (length(τs) -1)
+  @assert length(H) == (length(τs) -1) || length(H) == length(τs)
   δτs = diff(τs)
   circuit = [trotterlayer(H[t], δτs[t]; order = order) for t in 1:length(δτs)] 
   layered && return circuit
   return vcat(circuit...)
 end
 
-_trottercircuit(H::Vector{<:OpSum}, δτ::Real; kwargs...) =
-  _trottercircuit(H, collect(0.0:δτ:(length(H)*δτ)); kwargs...)
-
-_trottercircuit(H::Vector{<:OpSum}, δτ::Complex; kwargs...) =
-  _trottercircuit(H, im .* collect(0.0:imag(δτ):((length(H))*imag(δτ))); kwargs...)
-
 _trottercircuit(H::OpSum, τs::Vector; kwargs...) = 
   _trottercircuit(repeat([H], length(τs)-1), τs; kwargs...) 
 
-function _trottercircuit(H::OpSum, T::Number, δτ::Number; kwargs...)
-  depth = abs(T / δτ)
+get_times(; δt=nothing, δτ=nothing, t=nothing, τ=nothing, ts=nothing, τs=nothing, kwargs...) = get_times(δt, δτ, t, τ, ts, τs)
+
+
+get_times(δt::Nothing, δτ::Nothing, t::Nothing, τ::Nothing, ts::Vector,  τs::Nothing)   = im .* ts 
+get_times(δt::Nothing, δτ::Nothing, t::Nothing, τ::Nothing, ts::Nothing, τs::Vector)    = τs 
+
+function get_times(δt::Nothing, δτ::Number, t::Nothing, τ::Number, ts::Nothing, τs::Nothing)
+  depth = abs(τ / δτ)
   (depth-Int(floor(depth)) > 1e-5) && @warn "Incommensurate Trotter step!"
-  depth = Int(floor(depth))
-  return _trottercircuit(repeat([H], depth), δτ; kwargs...) 
+  return collect(0.0:δτ:τ) 
 end
 
-get_times(; δt=nothing, δτ=nothing, ts=nothing, τs=nothing, kwargs...) = get_times(δt, δτ, ts, τs)
+get_times(δt::Number, δτ::Nothing, t::Number, τ::Nothing, ts::Nothing, τs::Nothing) =
+  im .* get_times(δτ, δt, τ, t, ts, τs)
 
-get_times(δt::Number,  δτ::Nothing, ts::Nothing,      τs::Nothing)   = im * δt 
-get_times(δt::Nothing, δτ::Number,  ts::Nothing,      τs::Nothing)   = δτ  
-get_times(δt::Nothing, δτ::Nothing, ts::Vector,       τs::Nothing)   = im .* ts 
-get_times(δt::Nothing, δτ::Nothing, ts::Nothing,      τs::Vector)    = τs 
-get_times(δt::Nothing, δτ::Nothing, ts::StepRangeLen, τs::Nothing)   = im .* collect(ts) 
-get_times(δt::Nothing, δτ::Nothing, ts::Nothing,      τs::StepRangeLen) = collect(τs) 
- 
+get_times(δt::Nothing, δτ::Nothing, t::Nothing, τ::Nothing, ts::AbstractRange, τs::Nothing)       = 
+  get_times(δt, δτ, t, τ, collect(ts), τs) 
+
+get_times(δt::Nothing, δτ::Nothing, t::Nothing, τ::Nothing, ts::Nothing,       τs::AbstractRange) = 
+  get_times(δt, δτ, t, τ, ts, collect(τs))
+
+
+get_times(δt::Number,  δτ::Nothing, t::Nothing, τ::Nothing, ts::Nothing, τs::Nothing)   =
+  error("Total time `t` not set.")
+
+get_times(δt::Nothing, δτ::Number,  t::Nothing, τ::Nothing, ts::Nothing, τs::Nothing)   =
+  error("Total imaginary time `τ` not set")
+
+get_times(δt::Nothing,  δτ::Nothing, t::Number, τ::Nothing, ts::Nothing, τs::Nothing)   =
+  error("Trotter step `δt` not set.")
+
+get_times(δt::Nothing,  δτ::Nothing, t::Nothing, τ::Number, ts::Nothing, τs::Nothing)   =
+  error("Imaginary Trotter step `δτ` not set.")
 

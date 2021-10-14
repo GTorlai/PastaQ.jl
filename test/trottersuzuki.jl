@@ -26,13 +26,14 @@ using Random
   end
   H += -B,"X",N
 
-  T = 1.0
+  t = 1.0
   ψ₀ = productstate(sites)
-  ψtest = noprime(exp(-im * prod(Hmpo) * T) * prod(ψ₀))
+  ψtest = noprime(exp(-im * prod(Hmpo) * t) * prod(ψ₀))
   
   # 1. Specify final time and trotter step
   δt = 0.001
-  circuit = trottercircuit(H, T; δt = δt)
+  t = 1.0
+  circuit = trottercircuit(H; δt = δt, t = t)
   @test length(circuit) == 1000
   ψ = runcircuit(sites, circuit)
   @test prod(ψ) ≈ ψtest atol = 1e-5 
@@ -80,14 +81,13 @@ end
   end
   H += -B,"X",N
 
-  iT = 1.0
+  τ = 1.0
   ψ₀ = productstate(sites)
-  ψtest = noprime(exp(-prod(Hmpo) * iT) * prod(ψ₀))
+  ψtest = noprime(exp(-prod(Hmpo) * τ) * prod(ψ₀))
   
   ## 1. Specify final time and trotter step
   δτ = 0.001
-  T = im
-  circuit = trottercircuit(H, T; δτ = δτ)
+  circuit = trottercircuit(H; δτ = δτ, τ = τ)
   @test length(circuit) == 1000
   ψ = runcircuit(sites, circuit)
   @test prod(ψ) ≈ ψtest atol = 1e-5 
