@@ -18,11 +18,11 @@ qudits(N::Int; dim::Int = 3) = siteinds("Qudit",N; dim = dim)
 # TODO: add an arbitrary state specified by angles
 
 
-state(sn::String; kwargs...) = state(StateName(sn); kwargs...)
-state(sn::String, dim::Int; kwargs...) = state(StateName(sn), dim; kwargs...)
+state(sn::String) = state(StateName(sn))
+state(sn::String, dim::Int) = state(StateName(sn), dim)
 
-function state(sn::String, i::Index; kwargs...)
-  st = hastags(i, "Qubit") ? state(sn) : state(sn, dim(i); kwargs...)
+function state(sn::String, i::Index)
+  st = hastags(i, "Qubit") ? state(sn) : state(sn, dim(i))
   return ITensors.itensor(st, i)
 end
 
