@@ -128,7 +128,7 @@ function optimize!(drives0::Vector{<:Pair},
   maxdim      = get(kwargs, :maxdim, 10_000)
   cutoff      = get(kwargs, :cutoff, 1E-15)
   outputpath  = get(kwargs, :outputpath, nothing)
-  outputlevel = get(kwargs, :outputpath, 1)
+  outputlevel = get(kwargs, :outputlevel, 1)
   #earlystop  = get(kwargs, :earlystop, false)
   print_metrics = get(kwargs, :print_metrics, [])
  
@@ -143,6 +143,7 @@ function optimize!(drives0::Vector{<:Pair},
   
   if !isnothing(observer!)
     observer!["drives"] = nothing
+    push!(last(observer!["drives"]), [])
     observer!["loss"]   = nothing
     observer!["∇avg"]   = nothing
   end
@@ -165,12 +166,15 @@ function optimize!(drives0::Vector{<:Pair},
       
       θ = [last(first(drive)) for drive in drives]
       st, θ′ = Optimisers.update(optimizer, st, θ, -∇)
+      @show θ
+      @show θ′
       drives = [(first(first(drives[k])), θ′[k]) => last(drives[k]) for k in 1:length(drives)]
     end
     ∇avg = StatsBase.mean(abs.(vcat(∇...)))
     
     if !isnothing(observer!)
-      push!(last(observer!["drives"]), drives)
+      #push!(last(observer!["drives"]), drives)
+      last(observer!["drives"])[1] = drives
       push!(last(observer!["loss"]), 1-F)
       push!(last(observer!["∇avg"]), ∇avg)
       update!(observer!, ψs, ϕs)
@@ -183,7 +187,6 @@ function optimize!(drives0::Vector{<:Pair},
 
     if outputlevel > 0
       @printf("iter = %d  infidelity = %.5E  ", ep, 1 - F); flush(stdout)
-      
       @printf("⟨∇⟩ = %.3E  ", ∇avg); flush(stdout)
       printobserver(observer!, print_metrics)
       @printf(" elapsed = %.3f",ep_time); flush(stdout)
