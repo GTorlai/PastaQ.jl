@@ -718,6 +718,17 @@ end
   G = gate("Z")*gate("S") + gate("T") * gate("X") * gate("Y")
   gtest = gate("Z*S + T * X * Y", s[1])
   @test PastaQ.array(gtest) ≈ G
+
+
+  exp_cx = exp(0.1*cx)
+  gtest = gate("CX",s[1],s[2]; f = x -> exp(0.1*x))
+  @test PastaQ.array(gtest) ≈ exp_cx
+  
+  d = 3
+  q = siteinds("Qudit", 4; dim = d)
+  g1 = gate("a†a", q[1]; f = x -> exp(0.1*x))
+  g2 = gate("a† * a", q[1]; f = x -> exp(0.1*x))
+  @test g1 ≈ g2
 end
 
 
