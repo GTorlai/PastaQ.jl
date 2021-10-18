@@ -412,14 +412,12 @@ gate(s::String, args...; kwargs...) = gate(GateName(s), args...; kwargs...)
 # Version that accepts a dimension for the gate,
 gate(gn::GateName, dims::Tuple; kwargs...) = gate(gn; kwargs...)
 
-function gate(gn::GateName, s1::Index, ss::Index...; 
-              dag::Bool = false,
-              ∇::Bool = false,
-              f = nothing,
-              kwargs...)
-  s = tuple(s1, ss...)
-  rs = reverse(s)
-  
+"""
+    combinegates(gn::GateName, s::Tuple; kwargs...)
+
+Generate a gate (matrix) given a set of operations in the gatename string
+"""
+function combinegates(gn::GateName, s::Tuple; kwargs...)
   name = string(ITensors.name(gn))
   name = filter(x -> !isspace(x), name)
   
@@ -429,35 +427,38 @@ function gate(gn::GateName, s1::Index, ss::Index...;
     !isempty(kwargs) && error("Composition of parametric gates not allowed")
     gate1 = name[1:prevind(name, pluspos.start)]
     gate2 = name[nextind(name, pluspos.start):end]
-    return gate(GateName(gate1), s...; dag=dag,f=f,∇=∇,kwargs...) + gate(GateName(gate2), s...; dag=dag,f=f,∇=∇,kwargs...)
+    return combinegates(GateName(gate1), dim.(s); kwargs...) + combinegates(GateName(gate2), dim.(s); kwargs...)
   end
-  
   # next check for multiplication
   starpos = findfirst("*", name)
   if !isnothing(starpos)
     !isempty(kwargs) && error("Composition of parametric gates not allowed")
     gate1 = name[1:prevind(name, starpos.start)]
     gate2 = name[nextind(name, starpos.start):end]
-    # note the inverted order, which is related to how we apply the gates
-    return product(gate(GateName(gate1), s...; f = f, dag=dag,∇=∇,kwargs...), 
-                   gate(GateName(gate2), s...; f = f, dag=dag,∇=∇,kwargs...))
+    return combinegates(GateName(gate1), dim.(s); kwargs...) * combinegates(GateName(gate2), dim.(s); kwargs...)
   end
-  # if `f` is being passed
-  if !isnothing(f)
-    # if `f` isa a function, apply `f` to the gate
-    if f isa Function
-      g = f(gate(gn, dim.(s); kwargs...))
-    # if not, pass it as a regular argument
-    else
-      g = gate(gn, dim.(s); f = f, kwargs...)
-    end
-  else
-    g = gate(gn, dim.(s); kwargs...)
-  end
+  return gate(gn, dim.(s); kwargs...)
+end
+
+function gate(gn::GateName, s1::Index, ss::Index...; 
+              dag::Bool = false,
+              f = nothing,
+              kwargs...)
+  s = tuple(s1, ss...)
+  rs = reverse(s)
+  # temporary block on f. To be revised in gate system refactoring.
+  !isnothing(f) && !(f isa Function) && error("gate parameter `f` not allowed")
+
+  # generate dense gate
+  g = combinegates(gn, s; kwargs...)
   
   # conjugate the gate if `dag=true`
   g = dag ? Array(g') : g
+  
+  # apply a function if passed
+  g = !isnothing(f) ? f(g) : g
     
+  # generate itensor gate
   if ndims(g) == 1
     # TODO:
     #error("gate must have more than one dimension, use state(...) for state vectors.")
