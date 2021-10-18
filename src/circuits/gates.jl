@@ -13,11 +13,6 @@ end
 # 1-qubit gates
 #
 
-gate(::GateName"Id") = [
-  1 0
-  0 1
-]
-
 gate(::GateName"I") = gate("Id")
 
 gate(::GateName"X") = [
@@ -325,6 +320,14 @@ gate(::GateName"RandomUnitary", dims::Tuple = (2,); kwargs...) =
 # qudit gates
 #
 
+function gate(::GateName"Id", dims::Tuple = (2,))
+  g = 1.0
+  for k in 1:length(dims)
+    g = kron(g, Matrix(I,dims[k],dims[k]))
+  end
+  return g
+end
+
 function gate(::GateName"a", dims::Tuple = (2,))
   @assert length(dims) == 1
   dim = dims[1]
@@ -436,8 +439,8 @@ function gate(gn::GateName, s1::Index, ss::Index...;
     gate1 = name[1:prevind(name, starpos.start)]
     gate2 = name[nextind(name, starpos.start):end]
     # note the inverted order, which is related to how we apply the gates
-    return product(gate(GateName(gate1), s...; dag=dag,f=f,∇=∇,kwargs...), 
-                   gate(GateName(gate2), s...; dag=dag,f=f,∇=∇,kwargs...))
+    return product(gate(GateName(gate1), s...; f = f, dag=dag,∇=∇,kwargs...), 
+                   gate(GateName(gate2), s...; f = f, dag=dag,∇=∇,kwargs...))
   end
   # if `f` is being passed
   if !isnothing(f)
