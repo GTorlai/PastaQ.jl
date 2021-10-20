@@ -133,12 +133,12 @@ end
 
   Lx = 5
   Ly = 5
-  circuit = randomcircuit(Lx,Ly; depth = depth, twoqubitgates="RandomUnitary", onequbitgates=["Rn", "X"])
+  circuit = randomcircuit((Lx,Ly); depth = depth, twoqubitgates="RandomUnitary", onequbitgates=["Rn", "X"])
   @test nqubits(circuit) == Lx*Ly
   
   Lx = 5
   Ly = 5
-  circuit = randomcircuit(Lx,Ly; depth = depth,  twoqubitgates="RandomUnitary", onequbitgates=["Rn", "X"], rotated = true)
+  circuit = randomcircuit((Lx,Ly); depth = depth,  twoqubitgates="RandomUnitary", onequbitgates=["Rn", "X"], rotated = true)
   @test nqubits(circuit) == Lx*Ly
 end
 
