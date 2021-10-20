@@ -226,10 +226,16 @@ end
 
 Generate a 2D random quantum circuit
 """
-function randomcircuit(Lx::Int, Ly::Int; rotated::Bool=false, kwargs...)
+function randomcircuit(size::Tuple; rotated::Bool=false, kwargs...)
+  Lx, Ly = size
   return randomcircuit(squarearray(Lx, Ly; rotated=rotated); kwargs...)
 end
 
+function randomcircuit(L::Int, depth::Int; rotated::Bool=false, kwargs...)
+  error("randomcircuit(N::Int, depth::Int; kwargs...) is depracated\n
+         - for a 1d random circuit: randomcircuit(N::Int; depth = depth, kwargs...)\n
+         - for a 2d random circuit: randomcircuit((Lx, Ly); depth = depth, kwargs...)")
+end
 
 ITensors.dag(single_gate::Tuple{String,Union{Int,Tuple}}) = 
   (single_gate[1], single_gate[2], (dag = true,))
