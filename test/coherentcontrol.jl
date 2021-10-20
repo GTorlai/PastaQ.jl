@@ -5,48 +5,43 @@ using Random
 using Printf
 using Zygote: Zygote
 
-
-#function isingmodel(N::Int)
-#  # generate the hamiltonian MPO
-#  sites = siteinds("Qubit",N)
-#  ampo = AutoMPO()
-#  
-#  # loop over the pauli operators
-#  for j in 1:N-1
-#    ampo .+= -1.0,"Z",j,"Z",j+1 
-#    ampo .+= -1.0,"X",j
-#  end
-#  ampo .+= -1.0,"X",N
-#  H = MPO(ampo,sites)
-#  
-#  # find ground state with DMRG
-#  mps = randomMPS(sites)
-#  sweeps = Sweeps(10)
-#  maxdim!(sweeps, 10,20,30,50,100)
-#  cutoff!(sweeps, 1E-10)
-#  E0, mps = dmrg(H, mps, sweeps, outputlevel = 0);
-#  return H,mps  
-#end
-
 @testset "Control field gradients" begin
- 
-  f(p, t) = p[1] * cos(p[2] * t) + p[3] * sin(p[4] * t);
-  x = [1.2,0.1,2.0,0.3];
-  T = 0.01
-
-  gs = Zygote.gradient(Zygote.Params([x])) do
-    f(x, T)
+  
+  f(t, θ) = PastaQ.control_fourierseries(t, θ; maxfrequency = 1000.0, amplitude = 100.0)
+  θ = rand(11)
+  t = 0.1
+  gs = Zygote.gradient(Zygote.Params([θ])) do
+    f(t, θ)
   end
   
-  alg_grads = gs[x]
+  alg_grads = gs[θ]
   ϵ = 1e-5
-  for i in 1:4
-    x[i] += ϵ
-    fp = f(x,T)
-    x[i] -= 2*ϵ
-    fm = f(x,T)
-    x[i] += ϵ
+  for i in 1:length(θ)
+    θ[i] += ϵ
+    fp = f(t, θ)
+    θ[i] -= 2*ϵ
+    fm = f(t, θ)
+    θ[i] += ϵ
     numgrad = (fp-fm)/(2*ϵ)
+    @test numgrad ≈ alg_grads[i] atol = 1e-8
+  end
+
+  g(t, θ) = PastaQ.control_sweep(t, θ)
+  θ = rand(6)
+  t = 0.1
+  gs = Zygote.gradient(Zygote.Params([θ])) do
+    g(t, θ)
+  end
+  
+  alg_grads = gs[θ]
+  ϵ = 1e-5
+  for i in 1:length(θ)
+    θ[i] += ϵ
+    gp = g(t, θ)
+    θ[i] -= 2*ϵ
+    gm = g(t, θ)
+    θ[i] += ϵ
+    numgrad = (gp-gm)/(2*ϵ)
     @test numgrad ≈ alg_grads[i] atol = 1e-8
   end
 end
@@ -76,13 +71,13 @@ end
   ts = 0.0:δt:T
   drive = [f,θ₀] => ("Z",2)
   Hts = [PastaQ._drivinghamiltonian(H, drive, t) for t in ts] 
-  circuit = trottercircuit(Hts; ts =  ts) 
+  circuit = trottercircuit(Hts; ts = ts) 
   
   ψ = productstate(sites)
   ϕ = normalize!(randomstate(sites))
-
+  
   cmap = PastaQ.circuitmap(circuit)
-  F, ∇alg = PastaQ.gradients(ψ, ϕ, circuit, drive, collect(ts), cmap)
+  F, ∇alg = PastaQ.gradients(copy(ψ), copy(ϕ), circuit, drive, collect(ts), cmap)
 
   ψT = runcircuit(ψ, circuit)
   @test F ≈ fidelity(ψT, ϕ) atol = 1e-5
@@ -132,7 +127,7 @@ end
   θ₀ = [1.011,1.155]
 
   ts = 0.0:δt:T
-  drives = [f,θ₀] => [("Z",j) for j in 1:N]
+  drives = (f,θ₀) => [("Z",j) for j in 1:N]
   Hts = [PastaQ._drivinghamiltonian(H, drives, t) for t in ts] 
   circuit = trottercircuit(Hts; ts =  ts) 
   

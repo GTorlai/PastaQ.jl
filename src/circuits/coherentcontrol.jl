@@ -1,3 +1,35 @@
+
+"""
+    control_fourierseries(t::Number, θ::Vector;
+                          amplitude::Number = 1.0,
+                          maxfrequency::Number = 1.0,
+                          nharmonics::Number = 1)
+
+"""
+function control_fourierseries(t::Number, θ::Vector;
+                               amplitude::Number = 1.0,
+                               maxfrequency::Number = 1.0)
+  
+  nharmonics = floor(length(θ))÷2
+  f = isodd(length(θ)) ? 0.5 * θ[end] : 0.0
+  
+  for n in 1:length(θ)÷2
+    ω = 2π * n * (maxfrequency / nharmonics)
+    f += θ[2*n-1] * cos(ω*t) + θ[2*n] * sin(ω*t)
+  end
+  return amplitude * tanh(f)
+end
+
+function control_sweep(t::Number, θ::Vector)
+  @assert length(θ) == 6
+  offset, amplitude = θ[1],θ[2]/2
+  ton,τon,toff,τoff = θ[3:end]
+  f = offset + amplitude * (tanh((t-ton)/τon) - tanh((t-toff)/τoff))
+  return f
+end
+
+
+
 function _drivinghamiltonian(H₀::OpSum, drives::Vector{<:Pair}, t::Float64; kwargs...)
   H = copy(H₀)
   for drive in drives
@@ -31,39 +63,40 @@ Compute the gradients for the optimization in optimal coherent control.
 Given a set of input states {ψ₀} and a set of desired target states {ψtarget}, the
 goal is to discover a parametric drive that realize such dynamics at a fixed time T.
 """
-function gradients(ψs::Vector{MPS}, 
-                   ϕs::Vector{MPS},
+function gradients(ψs₀::Vector{MPS}, 
+                   ϕs₀::Vector{MPS},
                    circuit::Vector{<:Vector{<:Any}},
-                   drives::Vector{<:Pair}, 
+                   drives::Union{Pair,Vector{<:Pair}}, 
                    ts::Vector, 
                    cmap::Vector; 
                    kwargs...)
  
+  ψs = copy(ψs₀)
+  ϕs = copy(ϕs₀)
+
   @assert length(ψs) == length(ϕs) 
+  
   nthreads = Threads.nthreads()
-  depth = length(circuit)
+  
   d = length(ψs)
   
   drives = drives isa Pair ? [drives] : drives
   
   dagcircuit = dag(circuit)
-  Odag = 0.0
-  for j in 1:d
-    @assert siteinds(ψs[j]) == siteinds(ϕs[j])
-    ϕ = runcircuit(ϕs[j], dagcircuit; kwargs...)
-    Odag += conj(inner(ϕ, ψs[j])) / d
-  end
   
-  F = Odag * conj(Odag)
+  Odag = 0.0
   ∇C = [[zeros(Complex, length(first(drives[k])[2])) for k in 1:length(drives)] for _ in 1:nthreads]
-
+  
   Threads.@threads for j in 1:d
+    @assert siteinds(ψs[j]) == siteinds(ϕs[j])
     nthread = Threads.threadid()
 
     ψL = runcircuit(ϕs[j], dagcircuit; kwargs...)
     ψR = copy(ψs[j])
+    
+    Odag += conj(inner(ψL,ψR)) / d
     # loop over circuit layers
-    for m in 1:depth
+    for m in 1:length(circuit)
       t = ts[m]
       δt = ts[m+1]-ts[m]
       layer = circuit[m]
@@ -73,26 +106,27 @@ function gradients(ψs::Vector{MPS},
       for g in cmap[m]
         driveop, support, pars = layer[g]
         if !((m==1) && g == 1)
+          # here I assume that the gate is on the form exp(im * operator)
           ψR = runcircuit(ψR, layer[gcnt:g]; kwargs...)
           ψL = runcircuit(ψL, layer[gcnt:g]; kwargs...) 
           gcnt = g+1
         end
+
         for (i,drive) in enumerate(drives)
           μs = last(drive)
-          μs = μs isa Tuple ? [μs] : μs 
-          for μ in μs 
-            if μ == (driveop, support)
-              f, θ = first(drive)
-              grads = Zygote.gradient(Zygote.Params([θ])) do
-                f(t, θ)
-              end
-              # TODO remove the exponent from the params
-              Ψ = runcircuit(ψR, (driveop, support); kwargs...)
-              ∇F_wrt_T = inner(ψL, Ψ)
-              ∇C[nthread][i] += δt * ∇F_wrt_T * Odag * grads[θ] / d
+          μs = μs isa Tuple ? [μs] : μs
+          modeinds = findall(x -> x == (driveop, support), μs)
+          for j in modeinds
+            f, θ = first(drive)
+            grads = Zygote.gradient(Zygote.Params([θ])) do
+              f(t, θ)
             end
+            # TODO remove the exponent from the params
+            Ψ = runcircuit(ψR, (driveop, support); kwargs...)
+            ∇F_wrt_T = inner(ψL, Ψ)
+            ∇C[nthread][i] += δt * ∇F_wrt_T * grads[θ] / d
           end
-        end
+        end 
       end
       ψR = runcircuit(ψR, layer[gcnt:end]; kwargs...)
       ψL = runcircuit(ψL, layer[gcnt:end]; kwargs...) 
@@ -102,7 +136,8 @@ function gradients(ψs::Vector{MPS},
   for nthread in 1:nthreads
     ∇tot += ∇C[nthread]
   end
-  return real(Odag * conj(Odag)), imag.(∇tot)
+  F = real(Odag * conj(Odag))
+  return F, imag.(Odag .* ∇tot)
 end
 
 gradients(ψ₀::MPS, ψtarget::MPS, args...; kwargs...) = 
@@ -162,18 +197,15 @@ function optimize!(drives0::Vector{<:Pair},
       circuit = trottercircuit(Hts; ts =  ts)
       
       # evolve layer by layer and record infidelity estimator
-      F, ∇ = gradients(copy(ψs), copy(ϕs), circuit, drives, ts, cmap; cutoff = cutoff, maxdim = maxdim)
+      F, ∇ = gradients(ψs, ϕs, circuit, drives, ts, cmap; cutoff = cutoff, maxdim = maxdim)
       
       θ = [last(first(drive)) for drive in drives]
       st, θ′ = Optimisers.update(optimizer, st, θ, -∇)
-      @show θ
-      @show θ′
       drives = [(first(first(drives[k])), θ′[k]) => last(drives[k]) for k in 1:length(drives)]
     end
     ∇avg = StatsBase.mean(abs.(vcat(∇...)))
     
     if !isnothing(observer!)
-      #push!(last(observer!["drives"]), drives)
       last(observer!["drives"])[1] = drives
       push!(last(observer!["loss"]), 1-F)
       push!(last(observer!["∇avg"]), ∇avg)

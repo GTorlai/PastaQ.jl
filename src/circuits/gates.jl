@@ -345,19 +345,17 @@ gate(::GateName"adag", dims::Tuple) =
   gate("a†", dims::Tuple)
 
 
-function gate(::GateName"a†a", dims::Tuple = (2,))
-  # single-qubit gate (i.e. chemical potential)
-  length(dims) == 1 && return gate("a†",dims) * gate("a", dims)
-  length(dims) == 2 && return kron(gate("a†", (dims[1],)),gate("a", (dims[2],)))
-  error("gate `a†a` only acting on one or two qubits")
-end
+gate(::GateName"a†a", dims::Tuple = (2,2)) = 
+  kron(gate("a†", (dims[1],)),gate("a", (dims[2],)))
 
-function gate(::GateName"aa†", dims::Tuple = (2,))
-  # single-qubit gate (i.e. chemical potential)
-  length(dims) == 1 && return gate("a",dims) * gate("a†", dims)
-  length(dims) == 2 && return kron(gate("a", (dims[1],)),gate("a†", (dims[2],)))
-  error("gate `aa†` only acting on one or two qubits")
-end
+gate(::GateName"aa†", dims::Tuple = (2,2)) = 
+  kron(gate("a", (dims[1],)),gate("a†", (dims[2],)))
+
+gate(::GateName"aa", dims::Tuple = (2,2)) = 
+  kron(gate("a", (dims[1],)),gate("a", (dims[2],)))
+
+gate(::GateName"a†a†", dims::Tuple = (2,2)) = 
+  kron(gate("a†", (dims[1],)),gate("a†", (dims[2],)))
 
 #
 # Basis definitions (eigenbases of measurement gates)
@@ -443,6 +441,7 @@ end
 function gate(gn::GateName, s1::Index, ss::Index...; 
               dag::Bool = false,
               f = nothing,
+              ∇::Bool = false,
               kwargs...)
   s = tuple(s1, ss...)
   rs = reverse(s)
@@ -452,11 +451,11 @@ function gate(gn::GateName, s1::Index, ss::Index...;
   # generate dense gate
   g = combinegates(gn, s; kwargs...)
   
-  # conjugate the gate if `dag=true`
-  g = dag ? Array(g') : g
-  
   # apply a function if passed
   g = !isnothing(f) ? f(g) : g
+  
+  # conjugate the gate if `dag=true`
+  g = dag ? Array(g') : g
     
   # generate itensor gate
   if ndims(g) == 1
