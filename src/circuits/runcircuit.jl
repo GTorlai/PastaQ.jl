@@ -19,9 +19,11 @@ function buildcircuit(
   if !isnothing(noise)
     circuit = insertnoise(circuit, noise)
   end
-  for g in circuit
-    push!(circuit_tensors, gate(M, g))
-  end
+  circuit_tensors = [gate(M, g) for g in circuit]
+  #TODO understand why this does not work
+  #for g in circuit
+  #  circuit_tensors = vcat(circuit_tensors, gate(M, g))
+  #end
   return circuit_tensors
 end
 

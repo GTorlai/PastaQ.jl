@@ -441,17 +441,19 @@ end
 function gate(gn::GateName, s1::Index, ss::Index...; 
               dag::Bool = false,
               f = nothing,
-              ∇::Bool = false,
+              #∇::Bool = false,
               kwargs...)
   s = tuple(s1, ss...)
   rs = reverse(s)
   # temporary block on f. To be revised in gate system refactoring.
   !isnothing(f) && !(f isa Function) && error("gate parameter `f` not allowed")
 
+  g = gate(gn, dim.(s); kwargs...)
+  #TODO re-introduce + and * system with AD
   # generate dense gate
-  g = combinegates(gn, s; kwargs...)
+  #g = combinegates(gn, s; kwargs...)
   
-  # apply a function if passed
+  ## apply a function if passed
   g = !isnothing(f) ? f(g) : g
   
   # conjugate the gate if `dag=true`
@@ -514,7 +516,7 @@ end
 #gate(M::Union{MPS,MPO}, gatedata::Tuple) = gate(M, gatedata...)
 
 gate(M::Union{MPS,MPO,ITensor}, gatedata::Tuple) =
-  gate(M,gatedata...)
+  gate(M, gatedata...)
 
 gate(M::Union{MPS,MPO,ITensor},
      gatename::String,

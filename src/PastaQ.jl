@@ -13,11 +13,13 @@ using TupleTools: TupleTools
 using Zygote: Zygote
 using Convex: Convex
 using SCS: SCS
+using OptimKit: OptimKit
 
 include("imports.jl")
 include("exports.jl")
 include("lpdo.jl")
 include("itensor.jl")
+include("autodiff.jl")
 include("distances.jl")
 include("circuits/gates.jl")
 include("circuits/noise.jl")
@@ -26,8 +28,8 @@ include("circuits/circuits.jl")
 include("circuits/runcircuit.jl")
 include("circuits/getsamples.jl")
 include("circuits/trottersuzuki.jl")
-include("circuits/variationalcircuit.jl")
-include("circuits/coherentcontrol.jl")
+#include("circuits/variationalcircuit.jl")
+#include("circuits/coherentcontrol.jl")
 include("optimizers.jl")
 include("productstates.jl")
 include("randomstates.jl")

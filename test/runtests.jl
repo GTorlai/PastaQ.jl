@@ -3,6 +3,7 @@ using Test
 @testset "PastaQ.jl" begin
   @testset "$filename" for filename in (
     "array.jl",
+    "autodiff.jl",
     "circuits.jl",
     "distances.jl",
     "fulltomography.jl",
