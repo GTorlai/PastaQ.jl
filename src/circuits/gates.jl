@@ -21,8 +21,10 @@ gate(::GateName"X") = [
 ]
 
 gate(::GateName"σx") = gate("X")
+gate(::GateName"σˣ") = gate("X")
 
 gate(::GateName"σ1") = gate("X")
+gate(::GateName"σ¹") = gate("X")
 
 gate(::GateName"√NOT") = [
   (1 + im)/2 (1 - im)/2
@@ -37,8 +39,10 @@ gate(::GateName"Y") = [
 ]
 
 gate(::GateName"σy") = gate("Y")
+gate(::GateName"σʸ") = gate("Y")
 
 gate(::GateName"σ2") = gate("Y")
+gate(::GateName"σ²") = gate("Y")
 
 gate(::GateName"iY") = [
   0 1
@@ -46,8 +50,10 @@ gate(::GateName"iY") = [
 ]
 
 gate(::GateName"iσy") = gate("iY")
+gate(::GateName"iσʸ") = gate("iY")
 
 gate(::GateName"iσ2") = gate("iY")
+gate(::GateName"iσ²") = gate("iY")
 
 # Rϕ with ϕ = π
 gate(::GateName"Z") = [
@@ -56,8 +62,9 @@ gate(::GateName"Z") = [
 ]
 
 gate(::GateName"σz") = gate("Z")
+gate(::GateName"σᶻ") = gate("Z")
 
-gate(::GateName"σ3") = gate("Z")
+gate(::GateName"σ³") = gate("Z")
 
 gate(::GateName"H") = [
   1/sqrt(2) 1/sqrt(2)

@@ -34,7 +34,9 @@ function trotter1(H::OpSum, δτ::Number)
     # single-qubit gate
     if length(support) == 1
       g = (localop, support[1], (params..., f = x -> exp(-δτ * coupling * x),)) 
-      push!(onequbitgates, g)
+      # XXX Zygote
+      #push!(onequbitgates, g)
+      onequbitgates = vcat(onequbitgates, [g])
       n = support[1] ≥ n ? support[1] : n
     # multi-qubit gate
     else
@@ -44,7 +46,9 @@ function trotter1(H::OpSum, δτ::Number)
     end
   end
   
-  sorted_multi_qubit = sort_gates(multiqubitgates)
+  # XXX Zygote: Add this back (Zygote fails)
+  #sorted_multi_qubit = sort_gates(multiqubitgates)
+  sorted_multi_qubit = multiqubitgates
   sorted_one_qubit = onequbitgates[sortperm([s[2] for s in onequbitgates])]
   
   # TODO: simplify this unison sorting loop
@@ -53,11 +57,15 @@ function trotter1(H::OpSum, δτ::Number)
   gm_counter = 1; n1q = length(onequbitgates)
   for j in 1:n
     while (gm_counter ≤ nmq) && any(sorted_multi_qubit[gm_counter][2] .== j)
-      push!(tebd1, sorted_multi_qubit[gm_counter])
+      # XXX Zygote
+      #push!(tebd1, sorted_multi_qubit[gm_counter])
+      tebd1 = vcat(tebd1, [sorted_multi_qubit[gm_counter]])
       gm_counter += 1
     end
     while (g1_counter ≤ n1q) && any(sorted_one_qubit[g1_counter][2] .== j)
-      push!(tebd1, sorted_one_qubit[g1_counter])
+      # XXX Zygote
+      #push!(tebd1, sorted_one_qubit[g1_counter])
+      tebd1 = vcat(tebd1, [sorted_one_qubit[g1_counter]])
       g1_counter += 1
     end
   end
@@ -74,8 +82,10 @@ Generate a single layer of gates for one step of 2nd order TEBD.
 """
 function trotter2(H::OpSum, δτ::Number)
   tebd1 = trotter1(H, δτ/2)
-  tebd2 = copy(tebd1)
-  append!(tebd2, reverse(tebd1))
+  # XXX Zygote
+  #tebd2 = copy(tebd1)
+  #append!(tebd2, reverse(tebd1))
+  tebd2 = vcat(tebd1, reverse(tebd1))
   return tebd2
 end
 
@@ -87,8 +97,11 @@ function trotter4(H::OpSum, δτ::Number)
   tebd2_δ2 = trotter2(H, δτ2)
   
   tebd4 = vcat(tebd2_δ1,tebd2_δ1)
-  append!(tebd4, tebd2_δ2)
-  append!(tebd4, vcat(tebd2_δ1,tebd2_δ1))
+  # XXX Zygote
+  #append!(tebd4, tebd2_δ2)
+  #append!(tebd4, vcat(tebd2_δ1,tebd2_δ1))
+  tebd4 = vcat(tebd4, tebd2_δ2)
+  tebd4 = vcat(tebd4, vcat(tebd2_δ1,tebd2_δ1))
   return tebd4
 end
 
@@ -114,12 +127,19 @@ function _trottercircuit(H::Vector{<:OpSum}, τs::Vector; order::Int = 2, layere
   @assert length(H) == (length(τs) -1) || length(H) == length(τs)
   δτs = diff(τs)
   circuit = [trotterlayer(H[t], δτs[t]; order = order) for t in 1:length(δτs)] 
-  layered && return circuit
-  return vcat(circuit...)
+  return circuit
+  # XXX Zygote
+  #layered && return circuit
+  #return reduce(vcat, circuit)
 end
 
-_trottercircuit(H::OpSum, τs::Vector; kwargs...) = 
-  _trottercircuit(repeat([H], length(τs)-1), τs; kwargs...) 
+function _trottercircuit(H::OpSum, τs::Vector; kwargs...)
+  nlayers = length(τs) - 1
+  # XXX Zygote
+  #Hs = repeat([H], nlayers)
+  Hs = [H for _ in 1:nlayers]
+  _trottercircuit(Hs, τs; kwargs...) 
+end
 
 get_times(; δt=nothing, δτ=nothing, t=nothing, τ=nothing, ts=nothing, τs=nothing, kwargs...) = get_times(δt, δτ, t, τ, ts, τs)
 

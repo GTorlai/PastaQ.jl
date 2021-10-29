@@ -10,10 +10,10 @@ using Observers
 using StatsBase: StatsBase, Weights
 using Optimisers: Optimisers
 using TupleTools: TupleTools
-using Zygote: Zygote
+#using Zygote: Zygote
 using Convex: Convex
 using SCS: SCS
-using OptimKit: OptimKit
+#using OptimKit: OptimKit
 
 include("imports.jl")
 include("exports.jl")

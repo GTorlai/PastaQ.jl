@@ -46,5 +46,7 @@ end
 Base.reverse(z::ZeroTangent) = z
 Base.adjoint(::Tuple{Nothing}) = nothing
 Base.adjoint(::Tuple{Nothing,Nothing}) = nothing
+(::ProjectTo{NoTangent})(::Nothing) = nothing
 
-
+# XXX Zygote: Delete once OpSum rules are better defined
+Base.:+(::Base.RefValue{Any}, g::NamedTuple{(:data,), Tuple{Vector{NamedTuple{(:coef, :ops), Tuple{ComplexF64, Nothing}}}}}) = g
