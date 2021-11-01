@@ -23,16 +23,20 @@ end
 
 function rrule(::typeof(inner_circuit), ϕ::MPS, U::Vector{ITensor}, ψ::MPS; kwargs...)
   Udag = reverse([dag(swapprime(u, 0=>1)) for u in U])
-  ξl = runcircuit(ϕ, Udag; move_sites_back = true, kwargs...) 
+  ξl = runcircuit(ϕ, Udag; kwargs...) 
   ξr = ψ
-  y = conj(inner(ξl,ξr))
+  # TODO:double check this
+  #y = conj(inner(ξl,ξr))
+  y = inner(ξl,ξr)
   function inner_circuit_pullback(ȳ)
     ∇ = ITensor[]
     for u in U
       x  = inds(u, plev = 0)
       ξl = apply(u, ξl; move_sites_back = true, kwargs...)
       ξl = prime(ξl, x)
-      ∇  = vcat(∇, partial_contraction(dag(ξl), ξr))
+      ∇  = vcat(∇, partial_contraction(ξl, ξr))
+      # TODO: double check this
+      #∇  = vcat(∇, partial_contraction(dag(ξl), ξr))
       ξl = noprime(ξl)
       ξr = apply(u, ξr; move_sites_back = true, kwargs...)
     end
