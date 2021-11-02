@@ -10,7 +10,6 @@ using Observers
 using StatsBase: StatsBase, Weights
 using Optimisers: Optimisers
 using TupleTools: TupleTools
-#using Zygote: Zygote
 using Convex: Convex
 using SCS: SCS
 #using OptimKit: OptimKit

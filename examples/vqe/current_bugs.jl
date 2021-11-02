@@ -1,0 +1,85 @@
+using PastaQ
+using ITensors
+using Zygote
+using Random
+
+N = 2
+q = qudits(N; dim = 4)
+
+function variational_circuit(θ⃗)
+  H = OpSum()
+  for n in 1:N
+    # is this related to each term being or not hermitian? the Trotter step?
+    #H += θ⃗[n], "a† + a", n
+    H += θ⃗[n], "a†", n
+    H += θ⃗[n], "a", n
+  end
+  return trottercircuit(H; δt=0.1, t=1.0, order = 2, layered = true)
+end
+
+Random.seed!(1234)
+θ⃗ = rand(N)
+ψ = randomstate(q; normalize = true)
+ϕ = randomstate(q; normalize = true)
+
+function loss(θ⃗)
+  circuit = variational_circuit(θ⃗)
+  U = buildcircuit(ψ, circuit)
+  return -abs2(PastaQ.inner_circuit(ϕ, U, ψ))
+end
+
+∇ad = loss'(θ⃗)
+ϵ = 1e-5
+for k in 1:length(θ⃗)
+  θ⃗[k] += ϵ
+  f₊ = loss(θ⃗)
+  θ⃗[k] -= 2*ϵ
+  f₋ = loss(θ⃗)
+  ∇num = (f₊ - f₋)/(2ϵ)
+  θ⃗[k] += ϵ
+  println("∇ad = ",∇ad[k],"  ∇num = ",∇num)
+  @show ∇ad[k] - ∇num
+end
+
+
+N = 2
+q = qubits(N)
+
+function variational_circuit(θ⃗)
+  H = OpSum()
+  for n in 1:N
+    # is this related to each term being or not hermitian? the Trotter step?
+    H += θ⃗[n], "X", n
+  end
+  H += θ⃗[1], "CX", 1,2
+  return trottercircuit(H; δt=0.1, t=1.0, order = 2, layered = true)
+end
+
+Random.seed!(1234)
+θ⃗ = rand(N)
+ψ = randomstate(q; normalize = true)
+ϕ = randomstate(q; normalize = true)
+
+function loss(θ⃗)
+  circuit = variational_circuit(θ⃗)
+  U = buildcircuit(ψ, circuit)
+  return -abs2(PastaQ.inner_circuit(ϕ, U, ψ))
+end
+
+∇ad = loss'(θ⃗)
+ϵ = 1e-5
+for k in 1:length(θ⃗)
+  θ⃗[k] += ϵ
+  f₊ = loss(θ⃗)
+  θ⃗[k] -= 2*ϵ
+  f₋ = loss(θ⃗)
+  ∇num = (f₊ - f₋)/(2ϵ)
+  θ⃗[k] += ϵ
+  println("∇ad = ",∇ad[k],"  ∇num = ",∇num)
+  @show ∇ad[k] - ∇num
+end
+
+
+
+
+

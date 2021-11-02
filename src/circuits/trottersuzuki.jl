@@ -21,7 +21,6 @@ sort_gates(gates) =
 function trotter1(H::OpSum, δτ::Number)
   onequbitgates = Tuple[]
   multiqubitgates = Tuple[]
-  
   n = 1
   for k in 1:length(H)
     coupling = ITensors.coef(H[k])
@@ -41,7 +40,8 @@ function trotter1(H::OpSum, δτ::Number)
     # multi-qubit gate
     else
       g = (localop, support, (params..., f = x -> exp(-δτ * coupling * x),)) 
-      push!(multiqubitgates, g)
+      multiqubitgates = vcat(multiqubitgates, [g])
+      #push!(multiqubitgates, g)
       n = maximum(support) ≥ n ? maximum(support) : n
     end
   end
@@ -69,7 +69,6 @@ function trotter1(H::OpSum, δτ::Number)
       g1_counter += 1
     end
   end
-  #tebd1 = vcat(sorted_multi_qubit, sorted_one_qubit)
   return tebd1
 end
 
@@ -127,10 +126,9 @@ function _trottercircuit(H::Vector{<:OpSum}, τs::Vector; order::Int = 2, layere
   @assert length(H) == (length(τs) -1) || length(H) == length(τs)
   δτs = diff(τs)
   circuit = [trotterlayer(H[t], δτs[t]; order = order) for t in 1:length(δτs)] 
-  return circuit
   # XXX Zygote
   #layered && return circuit
-  #return reduce(vcat, circuit)
+  return reduce(vcat, circuit)
 end
 
 function _trottercircuit(H::OpSum, τs::Vector; kwargs...)

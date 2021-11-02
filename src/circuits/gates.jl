@@ -336,17 +336,25 @@ function gate(::GateName"Id", dims::Tuple = (2,))
 end
 
 function gate(::GateName"a", dims::Tuple = (2,))
-  @assert length(dims) == 1
-  dim = dims[1]
-  mat = zeros(dim, dim)
-  for k in 1:dim-1
-    mat[k,k+1] = √k
+  #@assert length(dims) == 1
+  #dim = dims[1]
+  #return [(k == j + 1) ? √j : 0.0 for j in 1:dim, k in 1:dim]
+  ignore() do 
+    @assert length(dims) == 1
+    dim = dims[1]
+    mat = zeros(dim, dim)
+    for k in 1:dim-1
+      mat[k,k+1] = √k
+    end
+    return mat
   end
-  return mat
 end
 
 gate(::GateName"a†", dims::Tuple = (2,)) = 
   Array(gate("a", dims)')
+
+gate(::GateName"n", dims::Tuple = (2,)) = 
+  gate("a†", dims) * gate("a", dims)
 
 gate(::GateName"adag", dims::Tuple) = 
   gate("a†", dims::Tuple)
@@ -423,23 +431,33 @@ gate(gn::GateName, dims::Tuple; kwargs...) = gate(gn; kwargs...)
 Generate a gate (matrix) given a set of operations in the gatename string
 """
 function combinegates(gn::GateName, s::Tuple; kwargs...)
-  name = string(ITensors.name(gn))
-  name = filter(x -> !isspace(x), name)
+  name = ""
+  gate1 = nothing
+  gate2 = nothing
+
+  ignore() do 
+    name = string(ITensors.name(gn))
+    name = filter(x -> !isspace(x), name)
+  end
   
   # first check for addition
   pluspos = findfirst("+", name)
   if !isnothing(pluspos)
     !isempty(kwargs) && error("Composition of parametric gates not allowed")
-    gate1 = name[1:prevind(name, pluspos.start)]
-    gate2 = name[nextind(name, pluspos.start):end]
+    ignore() do 
+      gate1 = name[1:prevind(name, pluspos.start)]
+      gate2 = name[nextind(name, pluspos.start):end]
+    end
     return combinegates(GateName(gate1), dim.(s); kwargs...) + combinegates(GateName(gate2), dim.(s); kwargs...)
   end
   # next check for multiplication
   starpos = findfirst("*", name)
   if !isnothing(starpos)
     !isempty(kwargs) && error("Composition of parametric gates not allowed")
-    gate1 = name[1:prevind(name, starpos.start)]
-    gate2 = name[nextind(name, starpos.start):end]
+    ignore() do 
+      gate1 = name[1:prevind(name, starpos.start)]
+      gate2 = name[nextind(name, starpos.start):end]
+    end
     return combinegates(GateName(gate1), dim.(s); kwargs...) * combinegates(GateName(gate2), dim.(s); kwargs...)
   end
   return gate(gn, dim.(s); kwargs...)
@@ -455,17 +473,14 @@ function gate(gn::GateName, s1::Index, ss::Index...;
   # temporary block on f. To be revised in gate system refactoring.
   !isnothing(f) && !(f isa Function) && error("gate parameter `f` not allowed")
 
-  g = gate(gn, dim.(s); kwargs...)
-  #TODO re-introduce + and * system with AD
   # generate dense gate
-  #g = combinegates(gn, s; kwargs...)
+  g = combinegates(gn, s; kwargs...)
   
-  ## apply a function if passed
+  # apply a function if passed
   g = !isnothing(f) ? f(g) : g
   
   # conjugate the gate if `dag=true`
   g = dag ? Array(g') : g
-    
   # generate itensor gate
   if ndims(g) == 1
     # TODO:
