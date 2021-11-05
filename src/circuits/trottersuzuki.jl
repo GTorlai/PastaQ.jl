@@ -40,6 +40,7 @@ function trotter1(H::OpSum, δτ::Number)
     # multi-qubit gate
     else
       g = (localop, support, (params..., f = x -> exp(-δτ * coupling * x),)) 
+      # XXX Zygote
       multiqubitgates = vcat(multiqubitgates, [g])
       #push!(multiqubitgates, g)
       n = maximum(support) ≥ n ? maximum(support) : n
@@ -52,23 +53,26 @@ function trotter1(H::OpSum, δτ::Number)
   sorted_one_qubit = onequbitgates[sortperm([s[2] for s in onequbitgates])]
   
   # TODO: simplify this unison sorting loop
-  tebd1 = Tuple[]
-  g1_counter = 1; nmq = length(sorted_multi_qubit)
-  gm_counter = 1; n1q = length(onequbitgates)
-  for j in 1:n
-    while (gm_counter ≤ nmq) && any(sorted_multi_qubit[gm_counter][2] .== j)
-      # XXX Zygote
-      #push!(tebd1, sorted_multi_qubit[gm_counter])
-      tebd1 = vcat(tebd1, [sorted_multi_qubit[gm_counter]])
-      gm_counter += 1
-    end
-    while (g1_counter ≤ n1q) && any(sorted_one_qubit[g1_counter][2] .== j)
-      # XXX Zygote
-      #push!(tebd1, sorted_one_qubit[g1_counter])
-      tebd1 = vcat(tebd1, [sorted_one_qubit[g1_counter]])
-      g1_counter += 1
-    end
-  end
+  
+  tebd1 = vcat(sorted_multi_qubit, sorted_one_qubit)
+  # XXX Zygote: Add this back (Zygote fails)
+  #tebd1 = Tuple[]
+  #g1_counter = 1; nmq = length(sorted_multi_qubit)
+  #gm_counter = 1; n1q = length(onequbitgates)
+  #for j in 1:n
+  #  while (gm_counter ≤ nmq) && any(sorted_multi_qubit[gm_counter][2] .== j)
+  #    # XXX Zygote
+  #    push!(tebd1, sorted_multi_qubit[gm_counter])
+  #    #tebd1 = vcat(tebd1, [sorted_multi_qubit[gm_counter]])
+  #    gm_counter += 1
+  #  end
+  #  while (g1_counter ≤ n1q) && any(sorted_one_qubit[g1_counter][2] .== j)
+  #    # XXX Zygote
+  #    push!(tebd1, sorted_one_qubit[g1_counter])
+  #    #tebd1 = vcat(tebd1, [sorted_one_qubit[g1_counter]])
+  #    g1_counter += 1
+  #  end
+  #end
   return tebd1
 end
 
@@ -127,7 +131,7 @@ function _trottercircuit(H::Vector{<:OpSum}, τs::Vector; order::Int = 2, layere
   δτs = diff(τs)
   circuit = [trotterlayer(H[t], δτs[t]; order = order) for t in 1:length(δτs)] 
   # XXX Zygote
-  #layered && return circuit
+  layered && return circuit
   return reduce(vcat, circuit)
 end
 
