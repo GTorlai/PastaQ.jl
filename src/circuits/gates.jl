@@ -64,6 +64,7 @@ gate(::GateName"Z") = [
 gate(::GateName"σz") = gate("Z")
 gate(::GateName"σᶻ") = gate("Z")
 
+gate(::GateName"σ3") = gate("Z")
 gate(::GateName"σ³") = gate("Z")
 
 gate(::GateName"H") = [
