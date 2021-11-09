@@ -28,37 +28,35 @@ function control_sweep(t::Number, θ::Vector)
   return f
 end
 
-
-
-function _drivinghamiltonian(H₀::OpSum, drives::Vector{<:Pair}, t::Float64; kwargs...)
-  H = copy(H₀)
-  for drive in drives
-    drive_function = first(drive)
-    if drive_function isa Function
-      ft = drive_function(t)
-    else
-      @assert length(drive_function) > 1
-      f, θ... = drive_function
-      ft = f(t,θ...)
-    end
-    μs = last(drive)
-    μs = μs isa Tuple ? [μs] : μs 
-    for μ in μs 
-      driveop, support = μ 
-      H += ft, driveop, support, (∇ = true,)
-    end
-  end
-  return H
-  # TODO merge the terms once the new gate interface is operational.
-  #return ITensors.sortmergeterms!(H)
-end
-
-_drivinghamiltonian(H₀::OpSum, drive::Pair, args...; kwargs...) =  
-  _drivinghamiltonian(H₀, [drive], args...; kwargs...)
+#function _drivinghamiltonian(H₀::OpSum, variational_parameters::Vector{<:Pair}, t::Float64; kwargs...)
+#  H = copy(H₀)
+#  for drive in variational_parameters
+#    drive_function = first(drive)
+#    if drive_function isa Function
+#      ft = drive_function(t)
+#    else
+#      @assert length(drive_function) > 1
+#      f, θ... = drive_function
+#      ft = f(t,θ...)
+#    end
+#    μs = last(drive)
+#    μs = μs isa Tuple ? [μs] : μs 
+#    for μ in μs 
+#      driveop, support = μ 
+#      H += ft, driveop, support, (∇ = true,)
+#    end
+#  end
+#  return H
+#  # TODO merge the terms once the new gate interface is operational.
+#  #return ITensors.sortmergeterms!(H)
+#end
+#
+#_drivinghamiltonian(H₀::OpSum, drive::Pair, args...; kwargs...) =  
+#  _drivinghamiltonian(H₀, [drive], args...; kwargs...)
 
 """
     gradients(ψ₀::Vector{MPS},ψtarget::Vector{MPS},circuit::Vector{<:Vector{<:Any}},
-              drives::Union{Pair, Vector},δt::Number, cmap::Vector; kwargs...)
+              variational_parameters::Union{Pair, Vector},δt::Number, cmap::Vector; kwargs...)
 Compute the gradients for the optimization in optimal coherent control. 
 Given a set of input states {ψ₀} and a set of desired target states {ψtarget}, the
 goal is to discover a parametric drive that realize such dynamics at a fixed time T.
@@ -66,7 +64,7 @@ goal is to discover a parametric drive that realize such dynamics at a fixed tim
 function gradients(ψs₀::Vector{MPS}, 
                    ϕs₀::Vector{MPS},
                    circuit::Vector{<:Vector{<:Any}},
-                   drives::Union{Pair,Vector{<:Pair}}, 
+                   variational_parameters::Union{Pair,Vector{<:Pair}}, 
                    ts::Vector, 
                    cmap::Vector; 
                    kwargs...)
@@ -80,12 +78,12 @@ function gradients(ψs₀::Vector{MPS},
   
   d = length(ψs)
   
-  drives = drives isa Pair ? [drives] : drives
+  variational_parameters = variational_parameters isa Pair ? [variational_parameters] : variational_parameters
   
   dagcircuit = dag(circuit)
   
   Odag = 0.0
-  ∇C = [[zeros(Complex, length(first(drives[k])[2])) for k in 1:length(drives)] for _ in 1:nthreads]
+  ∇C = [[zeros(Complex, length(first(variational_parameters[k])[2])) for k in 1:length(variational_parameters)] for _ in 1:nthreads]
   
   Threads.@threads for j in 1:d
     @assert siteinds(ψs[j]) == siteinds(ϕs[j])
@@ -112,7 +110,7 @@ function gradients(ψs₀::Vector{MPS},
           gcnt = g+1
         end
 
-        for (i,drive) in enumerate(drives)
+        for (i,drive) in enumerate(variational_parameters)
           μs = last(drive)
           μs = μs isa Tuple ? [μs] : μs
           modeinds = findall(x -> x == (driveop, support), μs)
@@ -132,7 +130,7 @@ function gradients(ψs₀::Vector{MPS},
       ψL = runcircuit(ψL, layer[gcnt:end]; kwargs...) 
     end
   end
-  ∇tot = [zeros(Complex, length(first(drives[k])[2])) for k in 1:length(drives)]
+  ∇tot = [zeros(Complex, length(first(variational_parameters[k])[2])) for k in 1:length(variational_parameters)]
   for nthread in 1:nthreads
     ∇tot += ∇C[nthread]
   end
@@ -145,11 +143,8 @@ gradients(ψ₀::MPS, ψtarget::MPS, args...; kwargs...) =
 
 
 
-"""
-maximmize fidelity
-"""
-function optimize!(drives0::Vector{<:Pair}, 
-                   H::OpSum,
+function optimize!(variational_parameters0::Vector{<:Pair}, 
+                   Ht::Vector{OpSum},
                    ψs::Vector{MPS},
                    ϕs::Vector{MPS};
                    (observer!) = nothing,
@@ -167,7 +162,7 @@ function optimize!(drives0::Vector{<:Pair},
   #earlystop  = get(kwargs, :earlystop, false)
   print_metrics = get(kwargs, :print_metrics, [])
  
-  drives = deepcopy(drives0)
+  variational_parameters = deepcopy(variational_parameters0)
   
   # set the time sequence
   if isnothing(ts)
@@ -177,36 +172,36 @@ function optimize!(drives0::Vector{<:Pair},
   ts = collect(ts) 
   
   if !isnothing(observer!)
-    observer!["drives"] = nothing
-    push!(last(observer!["drives"]), [])
+    observer!["variational_parameters"] = nothing
+    push!(last(observer!["variational_parameters"]), [])
     observer!["loss"]   = nothing
     observer!["∇avg"]   = nothing
   end
 
-  Hts = [_drivinghamiltonian(H, drives, t) for t in ts]
+  Hts = [_drivinghamiltonian(H, variational_parameters, t) for t in ts]
   circuit = trottercircuit(Hts; ts =  ts)
   cmap = circuitmap(circuit)
   
-  θ = [last(first(drive)) for drive in drives]
+  θ = [last(first(drive)) for drive in variational_parameters]
   st = Optimisers.state(optimizer, θ)
   
   tot_time = 0.0
   for ep in 1:epochs
     ep_time = @elapsed begin
-      Hts = [_drivinghamiltonian(H, drives, t) for t in ts]
+      Hts = [_drivinghamiltonian(H, variational_parameters, t) for t in ts]
       circuit = trottercircuit(Hts; ts =  ts)
       
       # evolve layer by layer and record infidelity estimator
-      F, ∇ = gradients(ψs, ϕs, circuit, drives, ts, cmap; cutoff = cutoff, maxdim = maxdim)
+      F, ∇ = gradients(ψs, ϕs, circuit, variational_parameters, ts, cmap; cutoff = cutoff, maxdim = maxdim)
       
-      θ = [last(first(drive)) for drive in drives]
+      θ = [last(first(drive)) for drive in variational_parameters]
       st, θ′ = Optimisers.update(optimizer, st, θ, -∇)
-      drives = [(first(first(drives[k])), θ′[k]) => last(drives[k]) for k in 1:length(drives)]
+      variational_parameters = [(first(first(variational_parameters[k])), θ′[k]) => last(variational_parameters[k]) for k in 1:length(variational_parameters)]
     end
     ∇avg = StatsBase.mean(abs.(vcat(∇...)))
     
     if !isnothing(observer!)
-      last(observer!["drives"])[1] = drives
+      last(observer!["variational_parameters"])[1] = variational_parameters
       push!(last(observer!["loss"]), 1-F)
       push!(last(observer!["∇avg"]), ∇avg)
       update!(observer!, ψs, ϕs)
@@ -225,12 +220,12 @@ function optimize!(drives0::Vector{<:Pair},
       println()
     end
   end
-  drives0[:] = drives
-  return drives0
+  variational_parameters0[:] = variational_parameters
+  return variational_parameters0
 end
 
-optimize!(drives::Union{Pair,Vector{<:Pair}}, H::OpSum, ψ::MPS, ϕ::MPS) = 
-  optimize!(drives, H, [ψ], [ϕ])
+optimize!(variational_parameters::Union{Pair,Vector{<:Pair}}, H::OpSum, ψ::MPS, ϕ::MPS) = 
+  optimize!(variational_parameters, H, [ψ], [ϕ])
 
 optimize!(drive::Pair, H, ψ, ϕ) = 
   optimize!([drive], H, ψ, ϕ)
