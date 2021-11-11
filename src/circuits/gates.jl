@@ -154,6 +154,13 @@ gate(::GateName"CZ") = [
   0 0 0 -1
 ]
 
+gate(::GateName"CRy"; θ::Number) = [
+  1 0 0 0   
+  0 1 0 0 
+  0 0 cos(θ / 2) -sin(θ / 2)
+  0 0 sin(θ / 2) cos(θ / 2)
+]
+
 # Same as CRn with (θ = 0, λ = 0)
 gate(::GateName"CRz"; ϕ::Real) = [
   1 0 0 0
@@ -467,7 +474,6 @@ end
 function gate(gn::GateName, s1::Index, ss::Index...; 
               dag::Bool = false,
               f = nothing,
-              #∇::Bool = false,
               kwargs...)
   s = tuple(s1, ss...)
   rs = reverse(s)
@@ -477,11 +483,11 @@ function gate(gn::GateName, s1::Index, ss::Index...;
   # generate dense gate
   g = combinegates(gn, s; kwargs...)
   
-  # apply a function if passed
+  ## apply a function if passed
   g = !isnothing(f) ? f(g) : g
-  
   # conjugate the gate if `dag=true`
   g = dag ? Array(g') : g
+  
   # generate itensor gate
   if ndims(g) == 1
     # TODO:
@@ -492,11 +498,12 @@ function gate(gn::GateName, s1::Index, ss::Index...;
   elseif ndims(g) == 3
     kraus = Index(size(g, 3); tags="kraus")
     return ITensors.itensor(g, prime.(rs)..., ITensors.dag.(rs)..., kraus)
-  end
+  end  
   return error(
     "Gate definitions must be either Vector{T} (for a state), Matrix{T} (for a gate) or Array{T,3} (for a noise model). For gate name $gn, gate size is $(size(g)).",
   )
 end
+
 
 gate(gn::String, s::Index...; kwargs...) = gate(GateName(gn), s...; kwargs...)
 

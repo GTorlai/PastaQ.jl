@@ -39,7 +39,7 @@ function rrule(::typeof(inner_circuit), ϕ::MPS, U::Vector{ITensor}, ψ::MPS; kw
       udag = dag(swapprime(U[i+1], 0=>1))
       ξl[i] = apply(udag, ξl[i+1]; move_sites_back = true, kwargs...)
     end
-    
+    #∇⃗ = [prod(ξl[1])' * prod(ξr[1])]
     ∇⃗ = ITensor[]
     for i in 1:length(U)
       x  = inds(U[i], plev = 0)
@@ -48,6 +48,7 @@ function rrule(::typeof(inner_circuit), ϕ::MPS, U::Vector{ITensor}, ψ::MPS; kw
       for n in 1:length(ψ)
         # TODO: figure out the dag
         ∇ = ∇ * ξl[i][n] * dag(ξr[i][n])
+        #∇ = ∇ * dag(ξl[i][n]) * ξr[i][n]
       end
       ∇⃗ = vcat(∇⃗, ∇)
     end
