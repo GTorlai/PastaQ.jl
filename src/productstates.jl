@@ -6,9 +6,9 @@
 --------------------------------------------------------------------------------
 """
 
-qubits(N::Int) = siteinds("Qubit", N)
+qubits(N::Int; kwargs...) = siteinds("Qubit", N; kwargs...)
 
-qudits(N::Int; dim::Int = 3) = siteinds("Qudit",N; dim = dim)
+qudits(N::Int; dim::Int = 3, kwargs...) = siteinds("Qudit",N; dim = dim, kwargs...)
 
 
 #

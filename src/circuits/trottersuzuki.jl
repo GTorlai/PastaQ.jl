@@ -18,6 +18,27 @@ sort_gates(gates) =
   sort(gates; by=sort_gates_by, lt=sort_gates_lt)
 
 
+"""
+
+WORKING WITH TUPLES  (TEMPORARY)
+"""
+
+# simplified version
+function trotter1(H::Vector{<:Tuple}, δτ::Number)
+  layer = Tuple[]
+  for k in 1:length(H)
+    coupling, localop, support = H[k]
+    layer = vcat(layer, [(localop, support, (f = x -> exp(-δτ * coupling * x),))]) 
+  end
+  return layer 
+end
+
+"""
+
+WORKING WITH OPSUM
+
+"""
+
 function trotter1(H::OpSum, δτ::Number)
   onequbitgates = Tuple[]
   multiqubitgates = Tuple[]
@@ -77,13 +98,19 @@ function trotter1(H::OpSum, δτ::Number)
 end
 
 
+"""
+
+TROTTER FUNCTIONS
+
+"""
+
 
 """
     trotter2(H::OpSum; δt::Float64=0.1, δτ=im*δt)
 
 Generate a single layer of gates for one step of 2nd order TEBD.
 """
-function trotter2(H::OpSum, δτ::Number)
+function trotter2(H::Union{OpSum,Vector{<:Tuple}}, δτ::Number)
   tebd1 = trotter1(H, δτ/2)
   # XXX Zygote
   #tebd2 = copy(tebd1)
@@ -92,7 +119,7 @@ function trotter2(H::OpSum, δτ::Number)
   return tebd2
 end
 
-function trotter4(H::OpSum, δτ::Number)
+function trotter4(H::Union{OpSum,Vector{<:Tuple}}, δτ::Number)
   δτ1 = δτ / (4 - 4^(1/3)) 
   δτ2 = δτ - 4 * δτ1
   
@@ -113,7 +140,7 @@ end
 
 Generate a single layer of gates for one step of TEBD.
 """
-function trotterlayer(H::OpSum, δτ::Number; order::Int = 2)
+function trotterlayer(H::Union{OpSum,Vector{<:Tuple}}, δτ::Number; order::Int = 2)
   order == 1 && return trotter1(H, δτ) 
   order == 2 && return trotter2(H, δτ) 
   error("Automated Trotter circuits with order > 2 not yet implemented")
@@ -122,11 +149,7 @@ function trotterlayer(H::OpSum, δτ::Number; order::Int = 2)
   #error("Automated Trotter circuits with order > 2 not yet implemented")
 end
 
-
-trottercircuit(H; kwargs...) = 
-  _trottercircuit(H, get_times(;kwargs...); kwargs...)
-
-function _trottercircuit(H::Vector{<:OpSum}, τs::Vector; order::Int = 2, layered::Bool = true, kwargs...)
+function _trottercircuit(H::Union{Vector{<:OpSum},Vector{<:Vector{Tuple}}}, τs::Vector; order::Int = 2, layered::Bool = true, kwargs...)
   @assert length(H) == (length(τs) -1) || length(H) == length(τs)
   δτs = diff(τs)
   circuit = [trotterlayer(H[t], δτs[t]; order = order) for t in 1:length(δτs)] 
@@ -142,6 +165,19 @@ function _trottercircuit(H::OpSum, τs::Vector; kwargs...)
   Hs = [H for _ in 1:nlayers]
   _trottercircuit(Hs, τs; kwargs...) 
 end
+
+#XXX simplified version for Zygote
+function _trottercircuit(H::Vector{<:Tuple}, τs::Vector; order::Int = 2, kwargs...)
+  nlayers = length(τs) - 1
+  Δ = τs[2] - τs[1]
+  layer = trotterlayer(H, Δ; order = order)
+  return reduce(vcat, [layer for _ in 1:nlayers])
+end
+
+trottercircuit(H; kwargs...) = 
+  _trottercircuit(H, get_times(;kwargs...); kwargs...)
+
+
 
 get_times(; δt=nothing, δτ=nothing, t=nothing, τ=nothing, ts=nothing, τs=nothing, kwargs...) = get_times(δt, δτ, t, τ, ts, τs)
 

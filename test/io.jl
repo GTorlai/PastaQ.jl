@@ -109,7 +109,6 @@ end
   Random.seed!(1234)
   circuit = randomcircuit(N; depth = depth)
   layer = Tuple[]
-  push!(circuit, [("CX",(1,N)),])
 
   sites = siteinds("Qubit", N)
   
@@ -122,6 +121,7 @@ end
   ψ = runcircuit(sites, circuit; (observer!)=obs, move_sites_back_before_measurements=true,
                  outputpath = outputpath, savestate = true, outputlevel = 0)
   @test Ftest ≈ results(obs, "f")[end]
+  @show length(results(obs, "f"))
   @test length(results(obs, "f")) == depth+1
   
   obs2 = load("simulation_observer.jld2")
@@ -150,15 +150,16 @@ end
     g(ρ::MPO; kwargs...) = fidelity(ρ, ϱ)#; kwargs...) = fidelity(ψ, ϕ)
     obs = Observer(["g" => g])
     outputpath = "simulation"
-    ρ = runcircuit(sites, circuit; 
+    ρ₀ = MPO(productstate(sites))
+    ρ = runcircuit(ρ₀, circuit; 
                    (observer!)=obs, 
                    move_sites_back_before_measurements=true, 
                    outputlevel = 0,
                    noise = ("DEP",(p=0.001,)),
                    outputpath = outputpath, savestate = true)
- end
+  end
   @test Ftest ≈ results(obs, "g")[end]
-  @test length(results(obs, "g")) == depth
+  @test length(results(obs, "g")) == depth+1
   obs2 = load("simulation_observer.jld2")
   for (k,v) in obs2
     @test last(v) ≈ results(obs, k)

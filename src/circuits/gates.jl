@@ -110,8 +110,8 @@ gate(::GateName"RY"; kwargs...) =
 
 # Rotation around Z-axis
 gate(::GateName"Rz"; ϕ::Number) = [
-  1 0
-  0 exp(im * ϕ)
+  exp(im * ϕ / 2)  0
+  0          exp(-im * ϕ / 2)
 ]
 
 gate(::GateName"RZ"; kwargs...) = 
@@ -342,6 +342,10 @@ function gate(::GateName"Id", dims::Tuple = (2,))
   end
   return g
 end
+
+gate(::GateName"Φ", dims::Tuple = (2,); Φ::Number) =
+  exp(im * Φ) * gate("Id", dims)
+
 
 function gate(::GateName"a", dims::Tuple = (2,))
   #@assert length(dims) == 1

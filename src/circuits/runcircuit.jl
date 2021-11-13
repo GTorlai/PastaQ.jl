@@ -27,9 +27,8 @@ function buildcircuit(
   return circuit_tensors
 end
 
-function buildcircuit(M::Union{MPS,MPO,ITensor}, circuit::Vector{<:Vector{<:Any}}; kwargs...)
-  return buildcircuit(M, vcat(circuit...); kwargs...)
-end
+buildcircuit(M::Union{MPS,MPO,ITensor}, circuit::Vector{<:Vector{<:Any}}; kwargs...) = 
+  buildcircuit(M, vcat(circuit...); kwargs...)
 
 
 """

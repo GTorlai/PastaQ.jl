@@ -360,12 +360,12 @@ end
   psi = productstate(1)
   gate_data = ("Rz", 1, (ϕ=ϕ,))
   psi = runcircuit(psi, gate_data)
-  @test PastaQ.array(psi[1]) ≈ [1.0, 0.0]
+  @test PastaQ.array(psi[1]) ≈ [exp(im * ϕ /2), 0.0]
   psi = productstate(1)
   psi = runcircuit(psi, ("X", 1))
   gate_data = ("Rz", 1, (ϕ=ϕ,))
   psi = runcircuit(psi, gate_data)
-  @test PastaQ.array(psi[1]) ≈ [0.0, exp(im * ϕ)]
+  @test PastaQ.array(psi[1]) ≈ [0.0, exp(-im * ϕ/2)]
 end
 
 @testset "apply gate: Rn" begin
@@ -724,11 +724,6 @@ end
   gtest = gate("CX",s[1],s[2]; f = x -> exp(0.1*x))
   @test PastaQ.array(gtest) ≈ exp_cx
   
-  d = 3
-  q = siteinds("Qudit", 4; dim = d)
-  g1 = gate("a†a", q[1]; f = x -> exp(0.1*x))
-  g2 = gate("a† * a", q[1]; f = x -> exp(0.1*x))
-  @test g1 ≈ g2
 end
 
 
@@ -745,8 +740,6 @@ end
   @test PastaQ.array(gate("a†", s[1])) ≈ [0 0 0; 1 0 0; 0 √2 0]
   @test PastaQ.array(gate("a", s[1])) ≈ [0 1 0; 0 0 √2; 0 0 0] 
   
-  @test PastaQ.array(gate("a†a", s[1])) ≈ [0 0 0; 0 1 0; 0 0 2]
-  @test PastaQ.array(gate("aa†", s[1])) ≈ [1 0 0; 0 2 0; 0 0 0]
   @test PastaQ.array(gate("a† * a", s[1])) ≈ [0 0 0; 0 1 0; 0 0 2]
   @test PastaQ.array(gate("a * a†", s[1])) ≈ [1 0 0; 0 2 0; 0 0 0]
   
