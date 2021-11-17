@@ -20,10 +20,6 @@ function buildcircuit(
     circuit = insertnoise(circuit, noise)
   end
   circuit_tensors = isempty(circuit) ? ITensor[] : [gate(M, g) for g in circuit]
-  #TODO understand why this does not work
-  #for g in circuit
-  #  circuit_tensors = vcat(circuit_tensors, gate(M, g))
-  #end
   return circuit_tensors
 end
 
