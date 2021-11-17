@@ -3,6 +3,7 @@ export
   maxlinkdim,
   siteinds,
   state,
+  inner, 
 
   # circuits/circuits.jl
   randomlayer,

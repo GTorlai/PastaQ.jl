@@ -6,7 +6,7 @@ function partial_contraction(ψ::MPS, ϕ::MPS)
   return T
 end
 
-function inner_circuit(ϕ::ITensor, U::Vector{ITensor}, ψ::ITensor)
+function inner(ϕ::ITensor, U::Vector{ITensor}, ψ::ITensor)
   Uψ = ψ
   for u in U
     s = commoninds(u, Uψ)
@@ -16,24 +16,40 @@ function inner_circuit(ϕ::ITensor, U::Vector{ITensor}, ψ::ITensor)
   return (dag(ϕ) * Uψ)[]
 end
 
-function inner_circuit(ϕ::MPS, U::Vector{ITensor}, ψ::MPS; kwargs...)
+
+
+function inner(ϕ::MPS, U::Vector{ITensor}, ψ::MPS; kwargs...)
   Uψ = runcircuit(ψ, U; kwargs...)
-  return inner(ϕ, Uψ)
+  return ITensors.inner(ϕ, Uψ)
 end
 
-inner_circuit(ϕ::MPS, U::Vector{ITensor}, ψ::MPS, cmap::Vector; kwargs...) = 
-  inner_circuit(ϕ, U, ψ; kwargs...)
+inner(ϕ::MPS, circuit::Vector{<:Tuple}, ψ::MPS; kwargs...) = 
+  inner(ϕ, buildcircuit(ψ, circuit), ψ; kwargs...)
 
 
-function rrule(::typeof(inner_circuit), ϕ::MPS, U::Vector{ITensor}, ψ::MPS; kwargs...)
+function rrule(::typeof(inner), ϕ::MPS, U::Vector{ITensor}, ψ::MPS; cache::Bool = true, kwargs...)
   Udag = reverse([dag(swapprime(u, 0=>1)) for u in U])
-  ξl = runcircuit(ϕ, Udag; kwargs...) 
-  y = inner(ξl, ψ)
-  function inner_circuit_pullback(ȳ)
+  if cache
+    ξ⃗ = MPS[ϕ]
+    for udag in Udag
+      ξ⃗  = vcat(ξ⃗, apply(udag, ξ⃗[end]; move_sites_back = true, kwargs...))
+    end
+    ξ⃗l = reverse(ξ⃗)
+    y = inner(ξ⃗l[1], ψ)
+  else
+    ξl = runcircuit(ϕ, Udag; kwargs...)
+    y = inner(ξl, ψ)
+  end
+
+  function inner_pullback(ȳ)
     ∇⃗ = ITensor[]
     ξr = copy(ψ)
-    for u in U
-      ξl = apply(u, ξl; move_sites_back = true, kwargs...)   
+    for (i,u) in enumerate(U)
+      if cache
+        ξl = ξ⃗l[i+1]
+      else
+        ξl = apply(u, ξl; move_sites_back = true, kwargs...)
+      end
       ξl = prime(ξl, inds(u, plev = 0))
       ∇⃗ = vcat(∇⃗, partial_contraction(ξl, dag(ξr)))
       noprime!(ξl)
@@ -41,39 +57,45 @@ function rrule(::typeof(inner_circuit), ϕ::MPS, U::Vector{ITensor}, ψ::MPS; kw
     end
     return (NoTangent(), NoTangent(), ȳ .* ∇⃗, NoTangent())
   end
-  return y, inner_circuit_pullback
+  return y, inner_pullback
 end
 
 
-function rrule(::typeof(inner_circuit), ϕ::MPS, U::Vector{ITensor}, ψ::MPS, cmap::Vector; kwargs...)
+function inner(O::MPO, U::Vector{ITensor}, ψ::MPS; kwargs...)
+  Uψ = runcircuit(ψ, U; kwargs...)
+  return real(ITensors.inner(Uψ, O, Uψ))
+end
+
+inner(O::MPO, circuit::Vector{<:Tuple}, ψ::MPS; kwargs...) = 
+  inner(ϕ, O, buildcircuit(ψ, circuit), ψ; kwargs...)
+
+
+function rrule(::typeof(inner), O::MPO, U::Vector{ITensor}, ψ::MPS; kwargs...)
+  ϕl = runcircuit(ψ, U; kwargs...) 
+  ϕl = noprime(*(O, ϕl'; kwargs...))
+  
   Udag = reverse([dag(swapprime(u, 0=>1)) for u in U])
-  ξl = runcircuit(ϕ, Udag; kwargs...) 
-  y = inner(ξl, ψ)
-  function inner_circuit_pullback(ȳ)
+  ξ⃗ = MPS[ϕl]
+  for udag in Udag
+    ξ⃗  = vcat(ξ⃗, apply(udag, ξ⃗[end]; move_sites_back = true, kwargs...))
+  end
+  ξ⃗l = reverse(ξ⃗)
+  y = real(inner(ξ⃗l[1], ψ))
+
+  function inner_pullback(ȳ)
     ∇⃗ = ITensor[]
     ξr = copy(ψ)
-    gcnt = 1
-    for gloc in cmap
-      zero_tensors = [ITensors.itensor(zeros(size(U[k])),inds(U[k])) for k in gcnt:gloc-1]
-      ∇⃗ = vcat(∇⃗, zero_tensors)
-      ξl = apply(U[gcnt:gloc], ξl; move_sites_back = true, kwargs...) 
-      ξl = prime(ξl, inds(U[gloc], plev = 0))
-      if gcnt == 1
-        ξr = apply(U[gcnt:gloc-1], ξr; move_sites_back = true, kwargs...)
-      else
-        ξr = apply(U[gcnt-1:gloc-1], ξr; move_sites_back = true, kwargs...)
-      end
-      ∇⃗ = vcat(∇⃗, partial_contraction(ξl, dag(ξr)))
+    for (i,u) in enumerate(U)
+      ξl = ξ⃗l[i+1]
+      ξl = prime(ξl, inds(u, plev = 0))
+      ∇⃗ = vcat(∇⃗, 2 * partial_contraction(ξl, dag(ξr)))
       noprime!(ξl)
-      gcnt = gloc+1
+      ξr = apply(u, ξr; move_sites_back = true, kwargs...)
     end
-    ∇⃗ = vcat(∇⃗, U[gcnt:end])
-    return (NoTangent(), NoTangent(), ȳ .* ∇⃗, NoTangent(), NoTangent())
+    return (NoTangent(), NoTangent(), ȳ .* ∇⃗, NoTangent())
   end
-  return y, inner_circuit_pullback
+  return y, inner_pullback
 end
-
-
 
 
 # XXX: For some reason Zygote needs these definitions?
@@ -87,40 +109,36 @@ Base.:+(::Base.RefValue{Any}, g::NamedTuple{(:data,), Tuple{Vector{NamedTuple{(:
 
 
 
-#function rrule(::typeof(inner_circuit), ϕ::MPS, U::Vector{ITensor}, ψ::MPS; kwargs...)
-#  y = inner_circuit(ϕ, U, ψ) 
-#  function inner_circuit_pullback(ȳ)
-#    # build the environments
-#    ξr = Vector{MPS}(undef, length(U))
-#    ξr[1] = copy(ψ)
-#    for i in 1:length(U)-1
-#      u = U[i]
-#      ξ = apply(u, ξr[i]; move_sites_back = true, kwargs...)
-#      ξr[i+1] = ξ
-#    end
+#inner(ϕ::MPS, U::Vector{ITensor}, ψ::MPS, cmap::Vector; kwargs...) = 
+#  inner(ϕ, U, ψ; kwargs...)
 #
-#    ξl = Vector{MPS}(undef, length(U))
-#    ξl[end] = copy(ϕ)
-#    for i in reverse(1:length(U)-1)
-#      udag = dag(swapprime(U[i+1], 0=>1))
-#      ξl[i] = apply(udag, ξl[i+1]; move_sites_back = true, kwargs...)
-#    end
-#    #∇⃗ = [prod(ξl[1])' * prod(ξr[1])]
+#function rrule(::typeof(inner_circuit), ϕ::MPS, U::Vector{ITensor}, ψ::MPS, cmap::Vector; kwargs...)
+#  Udag = reverse([dag(swapprime(u, 0=>1)) for u in U])
+#  ξl = runcircuit(ϕ, Udag; kwargs...) 
+#  y = inner(ξl, ψ)
+#  function inner_circuit_pullback(ȳ)
 #    ∇⃗ = ITensor[]
-#    for i in 1:length(U)
-#      x  = inds(U[i], plev = 0)
-#      ξl[i] = prime(ξl[i],x)
-#      ∇ = ITensor(1)
-#      for n in 1:length(ψ)
-#        # TODO: figure out the dag
-#        ∇ = ∇ * ξl[i][n] * dag(ξr[i][n])
-#        #∇ = ∇ * dag(ξl[i][n]) * ξr[i][n]
+#    ξr = copy(ψ)
+#    gcnt = 1
+#    for gloc in cmap
+#      zero_tensors = [ITensors.itensor(zeros(size(U[k])),inds(U[k])) for k in gcnt:gloc-1]
+#      ∇⃗ = vcat(∇⃗, zero_tensors)
+#      ξl = apply(U[gcnt:gloc], ξl; move_sites_back = true, kwargs...) 
+#      ξl = prime(ξl, inds(U[gloc], plev = 0))
+#      if gcnt == 1
+#        ξr = apply(U[gcnt:gloc-1], ξr; move_sites_back = true, kwargs...)
+#      else
+#        ξr = apply(U[gcnt-1:gloc-1], ξr; move_sites_back = true, kwargs...)
 #      end
-#      ∇⃗ = vcat(∇⃗, ∇)
+#      ∇⃗ = vcat(∇⃗, partial_contraction(ξl, dag(ξr)))
+#      noprime!(ξl)
+#      gcnt = gloc+1
 #    end
-#    return (NoTangent(), NoTangent(), ȳ .* ∇⃗, NoTangent())
+#    ∇⃗ = vcat(∇⃗, U[gcnt:end])
+#    return (NoTangent(), NoTangent(), ȳ .* ∇⃗, NoTangent(), NoTangent())
 #  end
 #  return y, inner_circuit_pullback
 #end
-#
+
+
 

@@ -354,7 +354,7 @@ end
     H = hamiltonian(θ)
     circuit = variational_circuit(H)
     U = buildcircuit(ψ, circuit)
-    return -abs2(PastaQ.inner_circuit(ϕ, U, ψ))
+    return -abs2(inner(ϕ, U, ψ))
   end
   
   ∇ad = loss'(θ)
@@ -372,188 +372,113 @@ end
 end
 
 
-#@testset "fidelity optimization: 1-qubit gate" begin 
-#  function Rylayer(N, θ⃗)
-#    return [("Ry", (n,), (θ=θ⃗[n],)) for n in 1:N]
-#  end
-#  function Rxlayer(N, θ⃗)
-#    return [("Rx", (n,), (θ=θ⃗[n],)) for n in 1:N]
-#  end
-#  function CXlayer(N)
-#    return [("CX", (n, n + 1)) for n in 1:2:(N - 1)]
-#  end
-#  
-#  # The variational circuit we want to optimize
-#  function variational_circuit(θ⃗)
-#    N = length(θ⃗)
-#    return vcat(Rylayer(N, θ⃗),CXlayer(N), Rxlayer(N, θ⃗), Rylayer(N, θ⃗), CXlayer(N), Rxlayer(N, θ⃗))
-#  end
-#  
-#  Random.seed!(1234)
-#  N = 8
-#  θ⃗ = 2π .* rand(N)
-#  circuit = variational_circuit(θ⃗)
-#  
-#  q = qubits(N)
-#  ψ = productstate(q)
-#  ϕ = runcircuit(q, randomcircuit(N; depth = 2))
-#  
-#  function loss(θ⃗)
-#    circuit = variational_circuit(θ⃗)
-#    U = buildcircuit(ψ, circuit)
-#    return -abs2(PastaQ.inner_circuit(ϕ, U, ψ))
-#  end
-#  
-#  θ⃗ = randn!(θ⃗)
-#  ∇ad = loss'(θ⃗)
-#  
-#  ϵ = 1e-5
-#  for k in 1:length(θ⃗)
-#    θ⃗[k] += ϵ
-#    f₊ = loss(θ⃗) 
-#    θ⃗[k] -= 2*ϵ
-#    f₋ = loss(θ⃗) 
-#    ∇num = (f₊ - f₋)/(2ϵ)
-#    θ⃗[k] += ϵ
-#    @test ∇ad[k] ≈ ∇num atol = 1e-8 
-#  end 
-#end
-#
-#@testset "fidelity optimization: 1-qubit & 2-qubit gates" begin 
-#  function Rylayer(N, θ⃗)
-#    return [("Ry", (n,), (θ=θ⃗[n],)) for n in 1:N]
-#  end
-#  
-#  function RXXlayer(N, ϕ⃗)
-#    return [("RXX", (n, n + 1), (ϕ = ϕ⃗[n],)) for n in 1:(N÷2)]
-#  end
-#  
-#  # The variational circuit we want to optimize
-#  function variational_circuit(θ⃗,ϕ⃗)
-#    N = length(θ⃗)
-#    return vcat(Rylayer(N, θ⃗),RXXlayer(N,ϕ⃗), Rylayer(N, θ⃗), RXXlayer(N,ϕ⃗))
-#  end
-#  
-#  Random.seed!(1234)
-#  N = 8
-#  θ⃗ = 2π .* rand(N)
-#  ϕ⃗ = 2π .* rand(N÷2)
-#  circuit = variational_circuit(θ⃗,ϕ⃗)
-#  
-#  q = qubits(N)
-#  ψ = productstate(q)
-#  ϕ = runcircuit(q, randomcircuit(N; depth = 2))
-#  
-#  function loss(pars)
-#    θ⃗,ϕ⃗ = pars
-#    circuit = variational_circuit(θ⃗,ϕ⃗)
-#    U = buildcircuit(ψ, circuit)
-#    return -abs2(PastaQ.inner_circuit(ϕ, U, ψ))
-#  end
-#  
-#  θ⃗ = randn!(θ⃗)
-#  ϕ⃗ = randn!(ϕ⃗)
-#  ∇ad = loss'([θ⃗,ϕ⃗])
-#  
-#  ϵ = 1e-5
-#  for k in 1:length(θ⃗)
-#    θ⃗[k] += ϵ
-#    f₊ = loss([θ⃗,ϕ⃗]) 
-#    θ⃗[k] -= 2*ϵ
-#    f₋ = loss([θ⃗,ϕ⃗]) 
-#    ∇num = (f₊ - f₋)/(2ϵ)
-#    θ⃗[k] += ϵ
-#    @test ∇ad[1][k] ≈ ∇num atol = 1e-8 
-#  end 
-#  for k in 1:length(ϕ⃗)
-#    ϕ⃗[k] += ϵ
-#    f₊ = loss([θ⃗,ϕ⃗]) 
-#    ϕ⃗[k] -= 2*ϵ
-#    f₋ = loss([θ⃗,ϕ⃗]) 
-#    ∇num = (f₊ - f₋)/(2ϵ)
-#    ϕ⃗[k] += ϵ
-#    @test ∇ad[2][k] ≈ ∇num atol = 1e-8 
-#  end 
-#end
-#
-#
-##
-##@testset "trotter- 1-qubit with gate  + combination" begin
-##  N = 4
-##  function variational_circuit(θ⃗)
-##    H = OpSum()
-##    for n in 1:N
-##      H += θ⃗[n], "σˣ * σᶻ", n
-##      H += θ⃗[n], "H + S", n
-##    end
-##    return trottercircuit(H; δt=0.1, t=0.1, order = 1, layered = true)
-##  end
-##  
-##  Random.seed!(1234)
-##  θ⃗ = rand(N)
-##  circuit = variational_circuit(θ⃗)
-##  
-##  q = qubits(N)
-##  ψ = productstate(q)
-##  ϕ = (N == 1) ? productstate(q, [1]) : runcircuit(q, randomcircuit(N; depth = 2))
-##  
-##  function loss(θ⃗)
-##    circuit = variational_circuit(θ⃗)
-##    U = buildcircuit(ψ, circuit)
-##    return -abs2(PastaQ.inner_circuit(ϕ, U, ψ))
-##  end
-##  
-##  ∇ad = loss'(θ⃗)
-##  ϵ = 1e-5
-##  for k in 1:length(θ⃗)
-##    θ⃗[k] += ϵ
-##    f₊ = loss(θ⃗)
-##    θ⃗[k] -= 2*ϵ
-##    f₋ = loss(θ⃗)
-##    ∇num = (f₊ - f₋)/(2ϵ)
-##    θ⃗[k] += ϵ
-##    @test ∇ad[k] ≈ ∇num atol = 1e-7 
-##  end
-##
-##end
-###
-###
-###@testset "optimal control - 1-qudit gates" begin
-###  N = 4
-###  function variational_circuit(θ⃗)
-###    H = OpSum()
-###    for n in 1:N
-###      H += θ⃗[n], "a† * a", n
-###    end
-###    return trottercircuit(H; δt=0.1, t=1.0, order = 2, layered = true)
-###  end
-###  
-###  Random.seed!(1234)
-###  θ⃗ = rand(N)
-###  circuit = variational_circuit(θ⃗)
-###  
-###  q = qubits(N)
-###  ψ = productstate(q)
-###  U = buildcircuit(ψ, circuit)
-###  ϕ = (N == 1) ? productstate(q, [1]) : runcircuit(q, randomcircuit(N; depth = 2))
-###  
-###  function loss(θ⃗)
-###    circuit = variational_circuit(θ⃗)
-###    U = buildcircuit(ψ, circuit)
-###    return -abs2(PastaQ.inner_circuit(ϕ, U, ψ))
-###  end
-###  
-###  ∇ad = loss'(θ⃗)
-###  ϵ = 1e-5
-###  for k in 1:length(θ⃗)
-###    θ⃗[k] += ϵ
-###    f₊ = loss(θ⃗)
-###    θ⃗[k] -= 2*ϵ
-###    f₋ = loss(θ⃗)
-###    ∇num = (f₊ - f₋)/(2ϵ)
-###    θ⃗[k] += ϵ
-###    @test ∇ad[k] ≈ ∇num atol = 1e-8 
-###  end
-###
-###end
-###
+
+@testset "vqe style optimization: ⟨ψ|U† O U|ψ⟩" begin 
+  function Rylayer(N, θ⃗)
+    return [("Ry", (n,), (θ=θ⃗[n],)) for n in 1:N]
+  end
+  function Rxlayer(N, θ⃗)
+    return [("Rx", (n,), (θ=θ⃗[n],)) for n in 1:N]
+  end
+  function CXlayer(N)
+    return [("CX", (n, n + 1)) for n in 1:2:(N - 1)]
+  end
+  
+  # The variational circuit we want to optimize
+  function variational_circuit(θ⃗)
+    N = length(θ⃗)
+    return vcat(Rylayer(N, θ⃗),CXlayer(N), Rxlayer(N, θ⃗), Rylayer(N, θ⃗), CXlayer(N), Rxlayer(N, θ⃗))
+  end
+  
+  Random.seed!(1234)
+  N = 4
+  
+  q = qubits(N)
+  ψ = productstate(q)
+  
+  os = OpSum()
+  for k in 1:N-1
+    os += 1.0, "Z",k,"Z",k+1
+    os += 1.0,"X",k
+  end
+  O = MPO(os,q)
+  
+  function loss(θ⃗)
+    circuit = variational_circuit(θ⃗)
+    U = buildcircuit(ψ, circuit)
+    return inner(O, U, ψ)
+  end
+  θ⃗ = 2π .* rand(N)
+  
+  ∇ad = loss'(θ⃗)
+  
+  ϵ = 1e-5
+  for k in 1:length(θ⃗)
+    θ⃗[k] += ϵ
+    f₊ = loss(θ⃗) 
+    θ⃗[k] -= 2*ϵ
+    f₋ = loss(θ⃗) 
+    ∇num = (f₊ - f₋)/(2ϵ)
+    θ⃗[k] += ϵ
+    @test ∇ad[k] ≈ ∇num atol = 1e-8 
+  end 
+end
+
+@testset "fidelity optimization: 1-qubit & 2-qubit gates" begin 
+  function Rylayer(N, θ⃗)
+    return [("Ry", (n,), (θ=θ⃗[n],)) for n in 1:N]
+  end
+  
+  function RXXlayer(N, ϕ⃗)
+    return [("RXX", (n, n + 1), (ϕ = ϕ⃗[n],)) for n in 1:(N÷2)]
+  end
+  
+  # The variational circuit we want to optimize
+  function variational_circuit(θ⃗,ϕ⃗)
+    N = length(θ⃗)
+    return vcat(Rylayer(N, θ⃗),RXXlayer(N,ϕ⃗), Rylayer(N, θ⃗), RXXlayer(N,ϕ⃗))
+  end
+  
+  Random.seed!(1234)
+  N = 8
+  θ⃗ = 2π .* rand(N)
+  ϕ⃗ = 2π .* rand(N÷2)
+  circuit = variational_circuit(θ⃗,ϕ⃗)
+  
+  q = qubits(N)
+  ψ = productstate(q)
+  ϕ = runcircuit(q, randomcircuit(N; depth = 2))
+  
+  function loss(pars)
+    θ⃗,ϕ⃗ = pars
+    circuit = variational_circuit(θ⃗,ϕ⃗)
+    U = buildcircuit(ψ, circuit)
+    return -abs2(inner(ϕ, U, ψ))
+  end
+  
+  θ⃗ = randn!(θ⃗)
+  ϕ⃗ = randn!(ϕ⃗)
+  ∇ad = loss'([θ⃗,ϕ⃗])
+  
+  ϵ = 1e-5
+  for k in 1:length(θ⃗)
+    θ⃗[k] += ϵ
+    f₊ = loss([θ⃗,ϕ⃗]) 
+    θ⃗[k] -= 2*ϵ
+    f₋ = loss([θ⃗,ϕ⃗]) 
+    ∇num = (f₊ - f₋)/(2ϵ)
+    θ⃗[k] += ϵ
+    @test ∇ad[1][k] ≈ ∇num atol = 1e-8 
+  end 
+  for k in 1:length(ϕ⃗)
+    ϕ⃗[k] += ϵ
+    f₊ = loss([θ⃗,ϕ⃗]) 
+    ϕ⃗[k] -= 2*ϵ
+    f₋ = loss([θ⃗,ϕ⃗]) 
+    ∇num = (f₊ - f₋)/(2ϵ)
+    ϕ⃗[k] += ϵ
+    @test ∇ad[2][k] ≈ ∇num atol = 1e-8 
+  end 
+end
+
+

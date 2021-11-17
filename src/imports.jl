@@ -7,7 +7,8 @@ import ITensors:
   space,
   state,
   noise,
-  dag
+  dag,
+  inner
 
 import LinearAlgebra: normalize!, tr, norm
 

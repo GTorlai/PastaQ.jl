@@ -121,7 +121,6 @@ end
   ψ = runcircuit(sites, circuit; (observer!)=obs, move_sites_back_before_measurements=true,
                  outputpath = outputpath, savestate = true, outputlevel = 0)
   @test Ftest ≈ results(obs, "f")[end]
-  @show length(results(obs, "f"))
   @test length(results(obs, "f")) == depth+1
   
   obs2 = load("simulation_observer.jld2")

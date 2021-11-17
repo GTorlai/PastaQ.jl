@@ -170,9 +170,14 @@ If an `Observer` is provided as input, and `circuit` is made out of a sequence
 of layers of gates, performs a measurement of the observables contained in
 Observer, after the application of each layer.
 """
-runcircuit(M::Union{MPS, MPO,ITensor}, circuit::Union{Tuple,Vector{<:Any}};
-           noise = nothing, kwargs...) = 
+function runcircuit(M::Union{MPS, MPO,ITensor}, circuit::Union{Tuple,Vector{<:Any}};
+           full_representation::Bool = false, noise = nothing, kwargs...) 
+  if !(M isa ITensor)
+    M = full_representation ? prod(M) : M
+  end
   runcircuit(M, buildcircuit(M, circuit; noise = noise); kwargs...)
+end
+
 
 function runcircuit(
   M::Union{MPS,MPO},
