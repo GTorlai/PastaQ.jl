@@ -4,6 +4,7 @@ export
   siteinds,
   state,
   inner, 
+  rayleigh_quotient,
 
   # circuits/circuits.jl
   randomlayer,

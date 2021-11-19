@@ -17,7 +17,6 @@ function inner(ϕ::ITensor, U::Vector{ITensor}, ψ::ITensor)
 end
 
 
-
 function inner(ϕ::MPS, U::Vector{ITensor}, ψ::MPS; kwargs...)
   Uψ = runcircuit(ψ, U; kwargs...)
   return ITensors.inner(ϕ, Uψ)
@@ -61,16 +60,16 @@ function rrule(::typeof(inner), ϕ::MPS, U::Vector{ITensor}, ψ::MPS; cache::Boo
 end
 
 
-function inner(O::MPO, U::Vector{ITensor}, ψ::MPS; kwargs...)
+function rayleigh_quotient(O::MPO, U::Vector{ITensor}, ψ::MPS; kwargs...)
   Uψ = runcircuit(ψ, U; kwargs...)
   return real(ITensors.inner(Uψ, O, Uψ))
 end
 
-inner(O::MPO, circuit::Vector{<:Tuple}, ψ::MPS; kwargs...) = 
-  inner(ϕ, O, buildcircuit(ψ, circuit), ψ; kwargs...)
+rayleigh_quotient(O::MPO, circuit::Vector{<:Tuple}, ψ::MPS; kwargs...) = 
+  rayleigh_quotient(ϕ, O, buildcircuit(ψ, circuit), ψ; kwargs...)
 
 
-function rrule(::typeof(inner), O::MPO, U::Vector{ITensor}, ψ::MPS; kwargs...)
+function rrule(::typeof(rayleigh_quotient), O::MPO, U::Vector{ITensor}, ψ::MPS; kwargs...)
   ϕl = runcircuit(ψ, U; kwargs...) 
   ϕl = noprime(*(O, ϕl'; kwargs...))
   
@@ -82,7 +81,7 @@ function rrule(::typeof(inner), O::MPO, U::Vector{ITensor}, ψ::MPS; kwargs...)
   ξ⃗l = reverse(ξ⃗)
   y = real(inner(ξ⃗l[1], ψ))
 
-  function inner_pullback(ȳ)
+  function rayleigh_quotient_pullback(ȳ)
     ∇⃗ = ITensor[]
     ξr = copy(ψ)
     for (i,u) in enumerate(U)
@@ -94,7 +93,7 @@ function rrule(::typeof(inner), O::MPO, U::Vector{ITensor}, ψ::MPS; kwargs...)
     end
     return (NoTangent(), NoTangent(), ȳ .* ∇⃗, NoTangent())
   end
-  return y, inner_pullback
+  return y, rayleigh_quotient_pullback
 end
 
 
@@ -104,10 +103,8 @@ Base.adjoint(::Tuple{Nothing}) = nothing
 Base.adjoint(::Tuple{Nothing,Nothing}) = nothing
 (::ProjectTo{NoTangent})(::Nothing) = nothing
 
-# XXX Zygote: Delete once OpSum rules are better defined
-Base.:+(::Base.RefValue{Any}, g::NamedTuple{(:data,), Tuple{Vector{NamedTuple{(:coef, :ops), Tuple{ComplexF64, Nothing}}}}}) = g
-
-
+@non_differentiable gate(::GateName"a", ::Tuple)
+@non_differentiable ITensors.name(::Any)
 
 #inner(ϕ::MPS, U::Vector{ITensor}, ψ::MPS, cmap::Vector; kwargs...) = 
 #  inner(ϕ, U, ψ; kwargs...)

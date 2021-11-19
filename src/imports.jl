@@ -1,4 +1,10 @@
-import Base: copy, getindex, sqrt, length, push!, setindex!
+import Base: 
+  copy, 
+  getindex, 
+  sqrt, 
+  length, 
+  push!, 
+  setindex!
 
 import ITensors:
   # types
@@ -10,12 +16,18 @@ import ITensors:
   dag,
   inner
 
-import LinearAlgebra: normalize!, tr, norm
-
-import Optimisers.state as optimizerstate
+import LinearAlgebra: 
+  normalize!, 
+  tr, 
+  norm
 
 import Observers: update!
 
-import ChainRulesCore: rrule, NoTangent, ZeroTangent, ProjectTo
+import ChainRulesCore: 
+  rrule, 
+  NoTangent, 
+  ZeroTangent, 
+  ProjectTo,
+  @ignore_derivatives,
+  @non_differentiable
 
-import Zygote: ignore

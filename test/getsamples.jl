@@ -128,7 +128,6 @@ end
   gates = randomcircuit(N; depth =  4, layered=false)
 
   U = runcircuit(N, gates; process=true, full_representation = true)
-
   bases = randombases(N, ntrial)
   preps = randompreparations(N, ntrial)
 

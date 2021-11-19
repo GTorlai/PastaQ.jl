@@ -8,7 +8,7 @@ If noise is nontrivial, the corresponding Kraus operators are
 added to each gate as a tensor with an extra (Kraus) index.
 """
 function buildcircuit(
-  M::Union{MPS,MPO,ITensor},
+  hilbert::Vector{<:Index},
   circuit::Union{Tuple,Vector{<:Any}};
   noise::Union{Nothing, Tuple, NamedTuple} = nothing
 )
@@ -19,12 +19,22 @@ function buildcircuit(
   if !isnothing(noise)
     circuit = insertnoise(circuit, noise)
   end
-  circuit_tensors = isempty(circuit) ? ITensor[] : [gate(M, g) for g in circuit]
+  circuit_tensors = isempty(circuit) ? ITensor[] : [gate(hilbert, g) for g in circuit]
   return circuit_tensors
 end
 
-buildcircuit(M::Union{MPS,MPO,ITensor}, circuit::Vector{<:Vector{<:Any}}; kwargs...) = 
-  buildcircuit(M, vcat(circuit...); kwargs...)
+buildcircuit(hilbert::Vector{<:Index}, circuit::Vector{<:Vector{<:Any}}; kwargs...) = 
+  buildcircuit(hilbert, vcat(circuit...); kwargs...)
+
+
+buildcircuit(M::Union{MPS,MPO,ITensor}, args...; kwargs...) = 
+  buildcircuit(originalsiteinds(M), args...; kwargs...)
+
+#function buildcircuit(M::Union{MPS,MPO,ITensor}, args...; kwargs...)
+#  hilbert = (M isa MPS ? siteinds(M) : 
+#             M isa MPO ? firstsiteinds(M) : collect(inds(M, plev = 0)))
+#  return buildcircuit(hilbert, args...; kwargs...)
+#end
 
 
 """
@@ -296,7 +306,7 @@ function runcircuit(sites::Vector{<:Index},
 end
 
 runcircuit(N::Int, circuit::Any; kwargs...) = 
-  runcircuit(siteinds("Qubit", N), circuit; kwargs...)
+  runcircuit(qubits(N), circuit; kwargs...)
 
 runcircuit(circuit::Any; kwargs...) = 
   runcircuit(nqubits(circuit), circuit; kwargs...)

@@ -1,5 +1,5 @@
 PastaQ.state(optimizer, model::LPDO) = 
-  optimizerstate(optimizer, getparameters(model))
+  Optimisers.state(optimizer, getparameters(model))
 
 PastaQ.state(optimizer, model::MPS) = 
   PastaQ.state(optimizer, LPDO(model))

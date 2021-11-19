@@ -300,10 +300,8 @@ end
 Generate a random state with same Hilbert space (i.e. site indices)
 of a reference state `M`.
 """
-function randomstate(ElT::Type{<:Number}, M::Union{MPS,MPO,LPDO}; kwargs...)
-  hM = hilbertspace(M)
-  return randomstate(ElT, hM; kwargs...)
-end
+randomstate(ElT::Type{<:Number}, M::Union{MPS,MPO,LPDO}; kwargs...) = 
+  randomstate(ElT, originalsiteinds(M); kwargs...)
 
 randomstate(M::Union{MPS,MPO,LPDO}; kwargs...) = randomstate(ComplexF64, M; kwargs...)
 
