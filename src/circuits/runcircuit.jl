@@ -30,13 +30,6 @@ buildcircuit(hilbert::Vector{<:Index}, circuit::Vector{<:Vector{<:Any}}; kwargs.
 buildcircuit(M::Union{MPS,MPO,ITensor}, args...; kwargs...) = 
   buildcircuit(originalsiteinds(M), args...; kwargs...)
 
-#function buildcircuit(M::Union{MPS,MPO,ITensor}, args...; kwargs...)
-#  hilbert = (M isa MPS ? siteinds(M) : 
-#             M isa MPO ? firstsiteinds(M) : collect(inds(M, plev = 0)))
-#  return buildcircuit(hilbert, args...; kwargs...)
-#end
-
-
 """
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------

@@ -524,51 +524,6 @@ function ITensors.op(gn::GateName, ::SiteType"Qubit", s::Index...; kwargs...)
   return gate(gn, s...; kwargs...)
 end
 
-#"""
-#    gate(M::Union{MPS,MPO}, gatename::String, site::Int; kwargs...)
-#
-#Generate a gate tensor for a single-qubit gate identified by `gatename`
-#acting on site `site`, with indices identical to a reference state `M`.
-#"""
-#function gate(M::Union{MPS,MPO}, gatename::String, site::Int; kwargs...)
-#  site_ind = (typeof(M) == MPS ? siteind(M, site) : firstind(M[site]; tags="Site", plev=0))
-#  return gate(gatename, site_ind; kwargs...)
-#end
-#
-#"""
-#    gate(M::Union{MPS,MPO},gatename::String, site::Tuple; kwargs...)
-#
-#Generate a gate tensor for a two-qubit gate identified by `gatename`
-#acting on sites `(site[1],site[2])`, with indices identical to a 
-#reference state `M` (`MPS` or `MPO`).
-#"""
-#function gate(M::Union{MPS,MPO}, gatename::String, site::Tuple; kwargs...)
-#  site_inds = [typeof(M) == MPS ? siteind(M, s) : firstind(M[s]; tags="Site", plev=0) for s in site]
-#  return gate(gatename, site_inds...; kwargs...)
-#end
-#
-#gate(M::Union{MPS,MPO,ITensor}, gatedata::Tuple) =
-#  gate(M, gatedata...)
-#
-#gate(M::Union{MPS,MPO,ITensor},
-#     gatename::String,
-#     sites::Union{Int, Tuple},
-#     params::NamedTuple) =
-#  gate(M, gatename, sites; params...)
-#
-#
-#function gate(T::ITensor, gatename::String, site::Union{Int, Tuple}; kwargs...)
-#  tensor_indices = vcat(inds(T, plev = 0)...)
-#  tensor_tags = tags.(tensor_indices)
-#  X = [string.(tensor_tags[j]) for j in 1:length(tensor_tags)]
-#  sitenumber_position = findfirst(y -> y[1:2] == "n=", X[1])
-#  isnothing(sitenumber_position) && error("Qubit numbering not found")
-#  Y = [parse(Int,X[j][sitenumber_position][3:end]) for j in 1:length(X)]
-#  gateindices = [findfirst(x-> x == s, Y) for s in site] 
-#  site_inds = [tensor_indices[gateindex] for gateindex in gateindices]
-#  return gate(gatename, site_inds...; kwargs...)
-#end
-
 gate(hilbert::Vector{<:Index}, gatedata::Tuple) = 
   gate(hilbert, gatedata...)
 
@@ -584,7 +539,8 @@ gate(hilbert::Vector{<:Index}, gatename::String, site::Int; kwargs...) =
 gate(hilbert::Vector{<:Index}, gatename::String, site::Tuple; kwargs...) = 
   gate(gatename, hilbert[collect(site)]...; kwargs...)
 
-
+gate(M::Union{MPS,MPO,ITensor}, args...; kwargs...) =
+  gate(originalsiteinds(M), args...; kwargs...)
 
 """
 RANDOM GATE PARAMETERS
