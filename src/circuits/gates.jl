@@ -460,16 +460,20 @@ function combinegates(gn::GateName, s::Tuple; kwargs...)
   pluspos = findfirst("+", name)
   if !isnothing(pluspos)
     !isempty(kwargs) && error("Composition of parametric gates not allowed")
-    @ignore_derivatives gate1 = name[1:prevind(name, pluspos.start)]
-    @ignore_derivatives gate2 = name[nextind(name, pluspos.start):end]
+    @ignore_derivatives begin
+      gate1 = name[1:prevind(name, pluspos.start)]
+      gate2 = name[nextind(name, pluspos.start):end]
+    end
     return combinegates(GateName(gate1), dim.(s); kwargs...) + combinegates(GateName(gate2), dim.(s); kwargs...)
   end
   # next check for multiplication
   starpos = findfirst("*", name)
   if !isnothing(starpos)
     !isempty(kwargs) && error("Composition of parametric gates not allowed")
-    @ignore_derivatives gate1 = name[1:prevind(name, starpos.start)]
-    @ignore_derivatives gate2 = name[nextind(name, starpos.start):end]
+    @ignore_derivatives begin
+      gate1 = name[1:prevind(name, starpos.start)]
+      gate2 = name[nextind(name, starpos.start):end]
+    end
     return combinegates(GateName(gate1), dim.(s); kwargs...) * combinegates(GateName(gate2), dim.(s); kwargs...)
   end
   return gate(gn, dim.(s); kwargs...)
@@ -520,9 +524,12 @@ end
 # definitions of the "Qubit" site type
 #
 
-function ITensors.op(gn::GateName, ::SiteType"Qubit", s::Index...; kwargs...)
-  return gate(gn, s...; kwargs...)
-end
+ITensors.op(gn::GateName, ::SiteType"Qubit", s::Index...; kwargs...) = 
+  gate(gn, s...; kwargs...)
+
+ITensors.op(gn::GateName, ::SiteType"Qudit", s::Index...; kwargs...) = 
+  gate(gn, s...; kwargs...)
+
 
 gate(hilbert::Vector{<:Index}, gatedata::Tuple) = 
   gate(hilbert, gatedata...)

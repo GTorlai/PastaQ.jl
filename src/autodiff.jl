@@ -106,36 +106,3 @@ Base.adjoint(::Tuple{Nothing,Nothing}) = nothing
 @non_differentiable gate(::GateName"a", ::Tuple)
 @non_differentiable ITensors.name(::Any)
 
-#inner(ϕ::MPS, U::Vector{ITensor}, ψ::MPS, cmap::Vector; kwargs...) = 
-#  inner(ϕ, U, ψ; kwargs...)
-#
-#function rrule(::typeof(inner_circuit), ϕ::MPS, U::Vector{ITensor}, ψ::MPS, cmap::Vector; kwargs...)
-#  Udag = reverse([dag(swapprime(u, 0=>1)) for u in U])
-#  ξl = runcircuit(ϕ, Udag; kwargs...) 
-#  y = inner(ξl, ψ)
-#  function inner_circuit_pullback(ȳ)
-#    ∇⃗ = ITensor[]
-#    ξr = copy(ψ)
-#    gcnt = 1
-#    for gloc in cmap
-#      zero_tensors = [ITensors.itensor(zeros(size(U[k])),inds(U[k])) for k in gcnt:gloc-1]
-#      ∇⃗ = vcat(∇⃗, zero_tensors)
-#      ξl = apply(U[gcnt:gloc], ξl; move_sites_back = true, kwargs...) 
-#      ξl = prime(ξl, inds(U[gloc], plev = 0))
-#      if gcnt == 1
-#        ξr = apply(U[gcnt:gloc-1], ξr; move_sites_back = true, kwargs...)
-#      else
-#        ξr = apply(U[gcnt-1:gloc-1], ξr; move_sites_back = true, kwargs...)
-#      end
-#      ∇⃗ = vcat(∇⃗, partial_contraction(ξl, dag(ξr)))
-#      noprime!(ξl)
-#      gcnt = gloc+1
-#    end
-#    ∇⃗ = vcat(∇⃗, U[gcnt:end])
-#    return (NoTangent(), NoTangent(), ȳ .* ∇⃗, NoTangent(), NoTangent())
-#  end
-#  return y, inner_circuit_pullback
-#end
-
-
-
