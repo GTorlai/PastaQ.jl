@@ -245,7 +245,7 @@ function getsamples(M0::Union{MPS,MPO,ITensor}, bases::Matrix{<:String}, nshots:
   Threads.@threads for n in 1:size(bases, 1)
     nthread = Threads.threadid()
     meas_gates = measurementgates(bases[n, :])
-    M_meas = runcircuit(copy(M), meas_gates)
+    M_meas = runcircuit(M, meas_gates)
     measurements = getsamples(M_meas, nshots; kwargs...)
     basisdata = [[bases[n,j] => measurements[k,j] for j in 1:N] for k in 1:nshots]
     append!(data[nthread], basisdata)

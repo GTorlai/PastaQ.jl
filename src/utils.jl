@@ -1,9 +1,16 @@
 # TODO: turn this into an ITensors.jl function `originalsiteinds`
 # that generically returns the site indices that would be used to
 # make an object of the same type with the same indices.
-hilbertspace(M::MPS)  = siteinds(first, M; plev=0)
-hilbertspace(M::MPO)  = dag.(siteinds(first, M; plev=0))
-hilbertspace(L::LPDO) = dag.(siteinds(first, L.X; plev=0, tags=!purifier_tags(L)))
+originalsiteinds(M::MPS)  = siteinds(first, M; plev=0)
+originalsiteinds(M::MPO)  = dag.(siteinds(first, M; plev=0))
+originalsiteinds(L::LPDO) = dag.(siteinds(first, L.X; plev=0, tags=!purifier_tags(L)))
+
+function originalsiteinds(M::ITensor)
+  s = inds(M; plev = 0)
+  sp = sortperm(collect(string.(tags.(s))))
+  return collect(s[sp])
+end
+
 
 """
     convertdatapoint(datapoint::Array,basis::Array;state::Bool=false)

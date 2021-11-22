@@ -10,9 +10,9 @@ using Random
   ρ = MPO(productstate(ψ))
   Λ = randomstate(ψ; mixed=true)
 
-  @test PastaQ.hilbertspace(ψ) == siteinds(ψ)
-  @test PastaQ.hilbertspace(ψ) == PastaQ.hilbertspace(ρ)
-  @test PastaQ.hilbertspace(ψ) == PastaQ.hilbertspace(Λ)
+  @test PastaQ.originalsiteinds(ψ) == siteinds(ψ)
+  @test PastaQ.originalsiteinds(ψ) == PastaQ.originalsiteinds(ρ)
+  @test PastaQ.originalsiteinds(ψ) == PastaQ.originalsiteinds(Λ)
 end
 
 @testset "choi tags and MPO/MPS conversion" begin
@@ -20,7 +20,7 @@ end
   circuit = randomcircuit(4; depth =  4)
 
   U = runcircuit(circuit; process=true)
-  ρ = PastaQ.choimatrix(PastaQ.hilbertspace(U), circuit; noise=("DEP", (p=0.01,)))
+  ρ = PastaQ.choimatrix(PastaQ.originalsiteinds(U), circuit; noise=("DEP", (p=0.01,)))
   Λ = randomprocess(4; mixed=true)
 
   @test PastaQ.ischoi(ρ) == true

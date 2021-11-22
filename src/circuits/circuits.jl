@@ -93,7 +93,7 @@ gatelayer(gatename::AbstractString, N::Int; kwargs...) = gatelayer(gatename, 1:N
 
 Create a uniform layer of multi-qubit gates over a set of `bonds`.
 """
-function gatelayer(gatename::AbstractString, bonds::Vector{Tuple}; kwargs...)
+function gatelayer(gatename::AbstractString, bonds::Vector{<:Tuple}; kwargs...)
   return [
     isempty(kwargs) ? (gatename, bonds[n]) : (gatename, bonds[n], values(kwargs)) for
     n in 1:length(bonds)

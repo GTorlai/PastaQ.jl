@@ -13,11 +13,6 @@ end
 # 1-qubit gates
 #
 
-gate(::GateName"Id") = [
-  1 0
-  0 1
-]
-
 gate(::GateName"I") = gate("Id")
 
 gate(::GateName"X") = [
@@ -26,8 +21,10 @@ gate(::GateName"X") = [
 ]
 
 gate(::GateName"σx") = gate("X")
+gate(::GateName"σˣ") = gate("X")
 
 gate(::GateName"σ1") = gate("X")
+gate(::GateName"σ¹") = gate("X")
 
 gate(::GateName"√NOT") = [
   (1 + im)/2 (1 - im)/2
@@ -42,8 +39,10 @@ gate(::GateName"Y") = [
 ]
 
 gate(::GateName"σy") = gate("Y")
+gate(::GateName"σʸ") = gate("Y")
 
 gate(::GateName"σ2") = gate("Y")
+gate(::GateName"σ²") = gate("Y")
 
 gate(::GateName"iY") = [
   0 1
@@ -51,8 +50,10 @@ gate(::GateName"iY") = [
 ]
 
 gate(::GateName"iσy") = gate("iY")
+gate(::GateName"iσʸ") = gate("iY")
 
 gate(::GateName"iσ2") = gate("iY")
+gate(::GateName"iσ²") = gate("iY")
 
 # Rϕ with ϕ = π
 gate(::GateName"Z") = [
@@ -61,8 +62,10 @@ gate(::GateName"Z") = [
 ]
 
 gate(::GateName"σz") = gate("Z")
+gate(::GateName"σᶻ") = gate("Z")
 
 gate(::GateName"σ3") = gate("Z")
+gate(::GateName"σ³") = gate("Z")
 
 gate(::GateName"H") = [
   1/sqrt(2) 1/sqrt(2)
@@ -107,8 +110,8 @@ gate(::GateName"RY"; kwargs...) =
 
 # Rotation around Z-axis
 gate(::GateName"Rz"; ϕ::Number) = [
-  1 0
-  0 exp(im * ϕ)
+  exp(im * ϕ / 2)  0
+  0          exp(-im * ϕ / 2)
 ]
 
 gate(::GateName"RZ"; kwargs...) = 
@@ -150,6 +153,25 @@ gate(::GateName"CZ") = [
   0 0 1 0
   0 0 0 -1
 ]
+
+gate(::GateName"CRx"; θ::Number) = [
+  1 0 0 0 
+  0 1 0 0 
+  0 0 cos(θ / 2) -im*sin(θ / 2)
+  0 0 -im*sin(θ / 2) cos(θ / 2)
+]
+
+gate(::GateName"CRX"; kwargs...) = 
+  gate("CRx"; kwargs...)
+
+gate(::GateName"CRy"; θ::Number) = [
+  1 0 0 0   
+  0 1 0 0 
+  0 0 cos(θ / 2) -sin(θ / 2)
+  0 0 sin(θ / 2) cos(θ / 2)
+]
+gate(::GateName"CRY"; kwargs...) = 
+  gate("CRy"; kwargs...)
 
 # Same as CRn with (θ = 0, λ = 0)
 gate(::GateName"CRz"; ϕ::Real) = [
@@ -325,6 +347,18 @@ gate(::GateName"RandomUnitary", dims::Tuple = (2,); kwargs...) =
 # qudit gates
 #
 
+function gate(::GateName"Id", dims::Tuple = (2,))
+  g = 1.0
+  for k in 1:length(dims)
+    g = kron(g, Matrix(I,dims[k],dims[k]))
+  end
+  return g
+end
+
+gate(::GateName"Φ", dims::Tuple = (2,); Φ::Number) =
+  exp(im * Φ) * gate("Id", dims)
+
+
 function gate(::GateName"a", dims::Tuple = (2,))
   @assert length(dims) == 1
   dim = dims[1]
@@ -338,23 +372,24 @@ end
 gate(::GateName"a†", dims::Tuple = (2,)) = 
   Array(gate("a", dims)')
 
+gate(::GateName"n", dims::Tuple = (2,)) = 
+  gate("a†", dims) * gate("a", dims)
+
 gate(::GateName"adag", dims::Tuple) = 
   gate("a†", dims::Tuple)
 
 
-function gate(::GateName"a†a", dims::Tuple = (2,))
-  # single-qubit gate (i.e. chemical potential)
-  length(dims) == 1 && return gate("a†",dims) * gate("a", dims)
-  length(dims) == 2 && return kron(gate("a†", (dims[1],)),gate("a", (dims[2],)))
-  error("gate `a†a` only acting on one or two qubits")
-end
+gate(::GateName"a†a", dims::Tuple = (2,2)) = 
+  kron(gate("a†", (dims[1],)),gate("a", (dims[2],)))
 
-function gate(::GateName"aa†", dims::Tuple = (2,))
-  # single-qubit gate (i.e. chemical potential)
-  length(dims) == 1 && return gate("a",dims) * gate("a†", dims)
-  length(dims) == 2 && return kron(gate("a", (dims[1],)),gate("a†", (dims[2],)))
-  error("gate `aa†` only acting on one or two qubits")
-end
+gate(::GateName"aa†", dims::Tuple = (2,2)) = 
+  kron(gate("a", (dims[1],)),gate("a†", (dims[2],)))
+
+gate(::GateName"aa", dims::Tuple = (2,2)) = 
+  kron(gate("a", (dims[1],)),gate("a", (dims[2],)))
+
+gate(::GateName"a†a†", dims::Tuple = (2,2)) = 
+  kron(gate("a†", (dims[1],)),gate("a†", (dims[2],)))
 
 #
 # Basis definitions (eigenbases of measurement gates)
@@ -409,30 +444,36 @@ gate(s::String, args...; kwargs...) = gate(GateName(s), args...; kwargs...)
 # Version that accepts a dimension for the gate,
 gate(gn::GateName, dims::Tuple; kwargs...) = gate(gn; kwargs...)
 
-
 """
     combinegates(gn::GateName, s::Tuple; kwargs...)
 
 Generate a gate (matrix) given a set of operations in the gatename string
 """
 function combinegates(gn::GateName, s::Tuple; kwargs...)
+  gate1 = nothing
+  gate2 = nothing
+
   name = string(ITensors.name(gn))
-  name = filter(x -> !isspace(x), name)
+  @ignore_derivatives name = filter(x -> !isspace(x), name)
   
   # first check for addition
   pluspos = findfirst("+", name)
   if !isnothing(pluspos)
     !isempty(kwargs) && error("Composition of parametric gates not allowed")
-    gate1 = name[1:prevind(name, pluspos.start)]
-    gate2 = name[nextind(name, pluspos.start):end]
+    @ignore_derivatives begin
+      gate1 = name[1:prevind(name, pluspos.start)]
+      gate2 = name[nextind(name, pluspos.start):end]
+    end
     return combinegates(GateName(gate1), dim.(s); kwargs...) + combinegates(GateName(gate2), dim.(s); kwargs...)
   end
   # next check for multiplication
   starpos = findfirst("*", name)
   if !isnothing(starpos)
     !isempty(kwargs) && error("Composition of parametric gates not allowed")
-    gate1 = name[1:prevind(name, starpos.start)]
-    gate2 = name[nextind(name, starpos.start):end]
+    @ignore_derivatives begin
+      gate1 = name[1:prevind(name, starpos.start)]
+      gate2 = name[nextind(name, starpos.start):end]
+    end
     return combinegates(GateName(gate1), dim.(s); kwargs...) * combinegates(GateName(gate2), dim.(s); kwargs...)
   end
   return gate(gn, dim.(s); kwargs...)
@@ -450,12 +491,11 @@ function gate(gn::GateName, s1::Index, ss::Index...;
   # generate dense gate
   g = combinegates(gn, s; kwargs...)
   
+  ## apply a function if passed
+  g = !isnothing(f) ? f(g) : g
   # conjugate the gate if `dag=true`
   g = dag ? Array(g') : g
   
-  # apply a function if passed
-  g = !isnothing(f) ? f(g) : g
-    
   # generate itensor gate
   if ndims(g) == 1
     # TODO:
@@ -466,11 +506,12 @@ function gate(gn::GateName, s1::Index, ss::Index...;
   elseif ndims(g) == 3
     kraus = Index(size(g, 3); tags="kraus")
     return ITensors.itensor(g, prime.(rs)..., ITensors.dag.(rs)..., kraus)
-  end
+  end  
   return error(
     "Gate definitions must be either Vector{T} (for a state), Matrix{T} (for a gate) or Array{T,3} (for a noise model). For gate name $gn, gate size is $(size(g)).",
   )
 end
+
 
 gate(gn::String, s::Index...; kwargs...) = gate(GateName(gn), s...; kwargs...)
 
@@ -483,56 +524,30 @@ end
 # definitions of the "Qubit" site type
 #
 
-function ITensors.op(gn::GateName, ::SiteType"Qubit", s::Index...; kwargs...)
-  return gate(gn, s...; kwargs...)
-end
+ITensors.op(gn::GateName, ::SiteType"Qubit", s::Index...; kwargs...) = 
+  gate(gn, s...; kwargs...)
 
-"""
-    gate(M::Union{MPS,MPO}, gatename::String, site::Int; kwargs...)
+ITensors.op(gn::GateName, ::SiteType"Qudit", s::Index...; kwargs...) = 
+  gate(gn, s...; kwargs...)
 
-Generate a gate tensor for a single-qubit gate identified by `gatename`
-acting on site `site`, with indices identical to a reference state `M`.
-"""
-function gate(M::Union{MPS,MPO}, gatename::String, site::Int; kwargs...)
-  site_ind = (typeof(M) == MPS ? siteind(M, site) : firstind(M[site]; tags="Site", plev=0))
-  return gate(gatename, site_ind; kwargs...)
-end
 
-"""
-    gate(M::Union{MPS,MPO},gatename::String, site::Tuple; kwargs...)
+gate(hilbert::Vector{<:Index}, gatedata::Tuple) = 
+  gate(hilbert, gatedata...)
 
-Generate a gate tensor for a two-qubit gate identified by `gatename`
-acting on sites `(site[1],site[2])`, with indices identical to a 
-reference state `M` (`MPS` or `MPO`).
-"""
-function gate(M::Union{MPS,MPO}, gatename::String, site::Tuple; kwargs...)
-  site_inds = [typeof(M) == MPS ? siteind(M, s) : firstind(M[s]; tags="Site", plev=0) for s in site]
-  return gate(gatename, site_inds...; kwargs...)
-end
-
-#gate(M::Union{MPS,MPO}, gatedata::Tuple) = gate(M, gatedata...)
-
-gate(M::Union{MPS,MPO,ITensor}, gatedata::Tuple) =
-  gate(M,gatedata...)
-
-gate(M::Union{MPS,MPO,ITensor},
+gate(hilbert::Vector{<:Index},
      gatename::String,
      sites::Union{Int, Tuple},
      params::NamedTuple) =
-  gate(M, gatename, sites; params...)
+  gate(hilbert, gatename, sites; params...)
 
+gate(hilbert::Vector{<:Index}, gatename::String, site::Int; kwargs...) = 
+  gate(gatename, hilbert[site]; kwargs...) 
 
-function gate(T::ITensor, gatename::String, site::Union{Int, Tuple}; kwargs...)
-  tensor_indices = vcat(inds(T, plev = 0)...)
-  tensor_tags = tags.(tensor_indices)
-  X = [string.(tensor_tags[j]) for j in 1:length(tensor_tags)]
-  sitenumber_position = findfirst(y -> y[1:2] == "n=", X[1])
-  isnothing(sitenumber_position) && error("Qubit numbering not found")
-  Y = [parse(Int,X[j][sitenumber_position][3:end]) for j in 1:length(X)]
-  gateindices = [findfirst(x-> x == s, Y) for s in site] 
-  site_inds = [tensor_indices[gateindex] for gateindex in gateindices]
-  return gate(gatename, site_inds...; kwargs...)
-end
+gate(hilbert::Vector{<:Index}, gatename::String, site::Tuple; kwargs...) = 
+  gate(gatename, hilbert[collect(site)]...; kwargs...)
+
+gate(M::Union{MPS,MPO,ITensor}, args...; kwargs...) =
+  gate(originalsiteinds(M), args...; kwargs...)
 
 """
 RANDOM GATE PARAMETERS

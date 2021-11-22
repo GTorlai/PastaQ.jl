@@ -6,9 +6,9 @@
 --------------------------------------------------------------------------------
 """
 
-qubits(N::Int) = siteinds("Qubit", N)
+qubits(N::Int; kwargs...) = siteinds("Qubit", N; kwargs...)
 
-qudits(N::Int; dim::Int = 3) = siteinds("Qudit",N; dim = dim)
+qudits(N::Int; dim::Int = 3, kwargs...) = siteinds("Qudit",N; dim = dim, kwargs...)
 
 
 #
@@ -108,7 +108,7 @@ productstate(sites::Vector{<:Index}) = productMPS(sites, "0")
 Initialize qubits on the Hilbert space of a reference state,
 given as `MPS`, `MPO` or `LPDO`.
 """
-productstate(M::Union{MPS,MPO,LPDO}) = productstate(hilbertspace(M))
+productstate(M::Union{MPS,MPO,LPDO}) = productstate(originalsiteinds(M))
 
 """
     productstate(N::Int, states::Vector{T})
@@ -134,7 +134,7 @@ function productstate(sites::Vector{<:Index}, states::Vector)
 end
 
 function productstate(M::Union{MPS,MPO,LPDO}, states::Vector)
-  return productstate(hilbertspace(M), states)
+  return productstate(originalsiteinds(M), states)
 end
 
 function productstate(sites::Vector{<:Index}, state::Union{String,Integer})
@@ -157,7 +157,7 @@ function productoperator(N::Int; dim::Int = 2, sitetype::String = "Qubit")
   return productoperator(siteinds(sitetype, N))
 end
 
-productoperator(M::Union{MPS,MPO,LPDO}) = productoperator(hilbertspace(M))
+productoperator(M::Union{MPS,MPO,LPDO}) = productoperator(originalsiteinds(M))
 
 productoperator(sites::Vector{<:Index}) = MPO([op("Id", s) for s in sites])
 

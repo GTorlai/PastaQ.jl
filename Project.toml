@@ -1,9 +1,10 @@
 name = "PastaQ"
 uuid = "30b07047-aa8b-4c78-a4e8-24d720215c19"
 authors = ["Giacomo Torlai <gttorlai@amazon.com>", "Matthew Fishman <mfishman@flatironinstitute.org>"]
-version = "0.0.16"
+version = "0.0.17"
 
 [deps]
+ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
 Convex = "f65535da-76fb-5f13-bab9-19810c17039a"
 HDF5 = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
 ITensors = "9136182c-28ba-11e9-034c-db9fb085ebd5"
@@ -15,16 +16,15 @@ Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 SCS = "c946c3f1-0d1f-5ce8-9dea-7daa1f7e2d13"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
-TupleTools = "9d95972d-f1c8-5527-a6e0-b4b365fa01f6"
 
 [compat]
+ChainRulesCore = "1.10"
 Convex = "0.14.16"
 HDF5 = "0.13.1, 0.14, 0.15"
 ITensors = "0.1.41, 0.2"
 JLD2 = "0.4.14"
-Observers = "0.0.3"
+Observers = ">=0.0.3"
 Optimisers = "0.1.0"
 SCS = "0.7.1"
 StatsBase = "0.33"
-TupleTools = "1.3.0"
 julia = "1.6"

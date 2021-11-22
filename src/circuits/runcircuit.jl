@@ -8,7 +8,7 @@ If noise is nontrivial, the corresponding Kraus operators are
 added to each gate as a tensor with an extra (Kraus) index.
 """
 function buildcircuit(
-  M::Union{MPS,MPO,ITensor},
+  hilbert::Vector{<:Index},
   circuit::Union{Tuple,Vector{<:Any}};
   noise::Union{Nothing, Tuple, NamedTuple} = nothing
 )
@@ -19,16 +19,16 @@ function buildcircuit(
   if !isnothing(noise)
     circuit = insertnoise(circuit, noise)
   end
-  for g in circuit
-    push!(circuit_tensors, gate(M, g))
-  end
+  circuit_tensors = isempty(circuit) ? ITensor[] : [gate(hilbert, g) for g in circuit]
   return circuit_tensors
 end
 
-function buildcircuit(M::Union{MPS,MPO,ITensor}, circuit::Vector{Vector{<:Any}}; kwargs...)
-  return buildcircuit(M, vcat(circuit...); kwargs...)
-end
+buildcircuit(hilbert::Vector{<:Index}, circuit::Vector{<:Vector{<:Any}}; kwargs...) = 
+  buildcircuit(hilbert, vcat(circuit...); kwargs...)
 
+
+buildcircuit(M::Union{MPS,MPO,ITensor}, args...; kwargs...) = 
+  buildcircuit(originalsiteinds(M), args...; kwargs...)
 
 """
 --------------------------------------------------------------------------------
@@ -169,9 +169,14 @@ If an `Observer` is provided as input, and `circuit` is made out of a sequence
 of layers of gates, performs a measurement of the observables contained in
 Observer, after the application of each layer.
 """
-runcircuit(M::Union{MPS, MPO,ITensor}, circuit::Union{Tuple,Vector{<:Any}};
-           noise = nothing, kwargs...) = 
+function runcircuit(M::Union{MPS, MPO,ITensor}, circuit::Union{Tuple,Vector{<:Any}};
+           full_representation::Bool = false, noise = nothing, kwargs...) 
+  if !(M isa ITensor)
+    M = full_representation ? prod(M) : M
+  end
   runcircuit(M, buildcircuit(M, circuit; noise = noise); kwargs...)
+end
+
 
 function runcircuit(
   M::Union{MPS,MPO},
@@ -201,6 +206,9 @@ function runcircuit(
   M0 = copy(M)
   # record the initial configuration of the indices
   s = siteinds(M)
+  if !isnothing(observer!)
+    update!(observer!, M; sites = s)
+  end
   for l in 1:length(circuit)
     layer = circuit[l]
     t = @elapsed begin
@@ -291,7 +299,7 @@ function runcircuit(sites::Vector{<:Index},
 end
 
 runcircuit(N::Int, circuit::Any; kwargs...) = 
-  runcircuit(siteinds("Qubit", N), circuit; kwargs...)
+  runcircuit(qubits(N), circuit; kwargs...)
 
 runcircuit(circuit::Any; kwargs...) = 
   runcircuit(nqubits(circuit), circuit; kwargs...)

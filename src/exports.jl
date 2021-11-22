@@ -3,6 +3,8 @@ export
   maxlinkdim,
   siteinds,
   state,
+  inner, 
+  rayleigh_quotient,
 
   # circuits/circuits.jl
   randomlayer,
@@ -14,6 +16,13 @@ export
   
   # circuits/trottersuzuki.jl
   trottercircuit,
+
+  # circuits/coherentcontrol.jl
+  optimize!,
+  
+  # circuits/variationalcircuit.jl
+  variationalgate,
+  variationalcircuit,
 
   # circuits/gates.jl
   # Methods
