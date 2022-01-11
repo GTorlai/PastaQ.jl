@@ -151,6 +151,7 @@ using ITensors
 using PastaQ
 using Printf
 using OptimKit
+using Zygote
 
 N = 10   # number of qubits
 J = 1.0  # Ising exchange interaction
@@ -161,7 +162,7 @@ hilbert = qubits(N)
 
 # define the Hamiltonian
 os = OpSum()
-for j in 1:n-1
+for j in 1:N-1
   os .+= (-J, "Z",j,"Z",j+1)
   os .+= (-h, "X", j)
 end
@@ -198,7 +199,7 @@ depth = 20
 function loss(θ⃗)
   circuit = variationalcircuit(N, depth, θ⃗)
   U = buildcircuit(ψ, circuit)
-  return inner(H, U, ψ; cutoff = 1e-8)
+  return rayleigh_quotient(H, U, ψ; cutoff = 1e-8)
 end
 
 # initialize parameters
