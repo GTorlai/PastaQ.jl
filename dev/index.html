@@ -89,6 +89,7 @@ circuit = randomcircuit(n; depth = depth,
 using PastaQ
 using Printf
 using OptimKit
+using Zygote
 
 N = 10   # number of qubits
 J = 1.0  # Ising exchange interaction
@@ -99,7 +100,7 @@ hilbert = qubits(N)
 
 # define the Hamiltonian
 os = OpSum()
-for j in 1:n-1
+for j in 1:N-1
   os .+= (-J, &quot;Z&quot;,j,&quot;Z&quot;,j+1)
   os .+= (-h, &quot;X&quot;, j)
 end
@@ -136,7 +137,7 @@ depth = 20
 function loss(θ⃗)
   circuit = variationalcircuit(N, depth, θ⃗)
   U = buildcircuit(ψ, circuit)
-  return inner(H, U, ψ; cutoff = 1e-8)
+  return rayleigh_quotient(H, U, ψ; cutoff = 1e-8)
 end
 
 # initialize parameters
@@ -166,4 +167,4 @@ loss_n_grad(x) = (loss(x), convert(Vector, loss&#39;(x)))
     author={Giacomo Torlai and Matthew Fishman},
     year={2020},
     url={https://github.com/GTorlai/PastaQ.jl/}
-}</code></pre></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="Circuits.html">Circuit Simulator »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Monday 22 November 2021 22:52">Monday 22 November 2021</span>. Using Julia version 1.6.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+}</code></pre></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="Circuits.html">Circuit Simulator »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Tuesday 11 January 2022 15:32">Tuesday 11 January 2022</span>. Using Julia version 1.6.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
