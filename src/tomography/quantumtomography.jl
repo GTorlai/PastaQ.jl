@@ -146,8 +146,8 @@ function tomography(
     end
     # add the standard early stop function to the observer
     if earlystop
-      stop_if(; loss::Vector) = stoptomography_ifloss(; loss = loss, ϵ = 1e-3, min_iter = 10)
-      observer!["earlystop"] = stopif
+      stop_if(; loss::Vector) = stoptomography_ifloss(; loss = loss, ϵ = 1e-3, min_iter = 50, window = 50)
+      observer!["earlystop"] = stop_if
     end 
   end
 
@@ -226,7 +226,7 @@ function tomography(
                                   !isqpt && (normalized_model isa LPDO{MPS}) ? normalized_model.X :
                                                                                normalized_model)
         update!(observer!, model_to_observe; train_loss = train_loss,
-                                             test_loss  = test_loss)
+                                             test_loss  = test_loss, loss = loss)
         tot_time += observe_time
         observe_time = 0.0
       end
@@ -289,9 +289,10 @@ EARLY STOPPING FUNCTIONS
 #stopif_fidelity(M1, M2; ϵ::Number, kwargs...) 
 #  fidelity(M1,M2) ≤ ϵ
 
-function stoptomography_ifloss(; loss::Vector, ϵ::Number, min_iter::Number)
+function stoptomography_ifloss(; loss::Vector, ϵ::Number, min_iter::Number, window::Number)
   length(loss) < min_iter+1 && return false
-  avgloss = StatsBase.mean(loss[end-size:end])
-  Δ = StatsBase.sem(historyloss[end-size:end])
+  length(loss) < window && return false
+  avgloss = StatsBase.mean(loss[end-window:end])
+  Δ = StatsBase.sem(loss[end-window:end])
   return Δ/avgloss < ϵ
 end
