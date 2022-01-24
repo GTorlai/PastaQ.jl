@@ -85,7 +85,7 @@ circuit = randomcircuit(n; depth = depth,
 # ------------------------------------------------------------------
 # Output:
 #  89.375383 seconds (5.25 M allocations: 64.781 GiB, 9.98% gc time)
-#  maxlinkdim(ψ) = 908</code></pre><h4 id="Variational-quantum-eingensolver-1"><a class="docs-heading-anchor" href="#Variational-quantum-eingensolver-1">Variational quantum eingensolver</a><a class="docs-heading-anchor-permalink" href="#Variational-quantum-eingensolver-1" title="Permalink"></a></h4><pre><code class="language-julia">using ITensors
+#  maxlinkdim(ψ) = 908</code></pre><h4 id="Variational-quantum-eingensolver-1"><a class="docs-heading-anchor" href="#Variational-quantum-eingensolver-1">Variational quantum eingensolver</a><a class="docs-heading-anchor-permalink" href="#Variational-quantum-eingensolver-1" title="Permalink"></a></h4><p>We show how to perform a ground state search of a many-body hamiltonian <span>$H$</span> using the variational quantum eigensolver (VQE). The VQE algorithm, based on the variational principle, consists of an iterative optimization of an objective function <span>$\langle \psi(\theta)|H|\psi(\theta)\rangle/\langle\psi(\theta)|\psi(\theta)\rangle$</span>, where <span>$|\psi(\theta)\rangle = U(\theta)|0\rangle$</span> is the output wavefunction of a parametrized quantum circuit <span>$U(\theta)$</span>. </p><p>In the following example, we consider a quantum Ising model with 10 spins, and perform the optimization by leveraging Automatic Differentiation techniques (AD), provided by the package Zygote.jl. Specifically, we build a variational circuit using built-in circuit-contruction functions, and optimize the expectation value of the Hamiltonian using a gradient-based approach and the LBFGS optimizer. The gradients are evaluated through AD, providing a flexible interface in defining custom variational circuit ansatze.</p><pre><code class="language-julia">using ITensors
 using PastaQ
 using Printf
 using OptimKit
@@ -162,9 +162,119 @@ loss_n_grad(x) = (loss(x), convert(Vector, loss&#39;(x)))
 #  ...
 #  [ Info: LBFGS: iter  498: f = -9.764686918396, ‖∇f‖ = 9.0752e-04, α = 1.00e+00, m = 8, nfg = 1
 #  [ Info: LBFGS: iter  499: f = -9.764687006358, ‖∇f‖ = 1.1905e-03, α = 1.00e+00, m = 8, nfg = 1
-#  Relative error: 8.360E-05</code></pre><h2 id="Citation-1"><a class="docs-heading-anchor" href="#Citation-1">Citation</a><a class="docs-heading-anchor-permalink" href="#Citation-1" title="Permalink"></a></h2><p>If you use PastaQ.jl in your work, for now please consider citing the Github page:</p><pre><code class="language-none">@misc{pastaq,
+#  Relative error: 8.360E-05</code></pre><h4 id="Monitored-quantum-circuits-1"><a class="docs-heading-anchor" href="#Monitored-quantum-circuits-1">Monitored quantum circuits</a><a class="docs-heading-anchor-permalink" href="#Monitored-quantum-circuits-1" title="Permalink"></a></h4><p>In this example we simulate a monitored quantum circuit, a circuit composed by entangling unitaries and probabilistic local projective measurements, with a rate <span>$p$</span>. The circuit has a brick-layer structure, where each layer consists of nearest-neighbor two-qubit random unitaries, followed by a layer of randomly-placed projective measurements in the computational basis. In the limit of <span>$p=0$</span>, the system displays a scrambling dynamics, exhibiting a volume-law entanglement entropy. When <span>$p$</span> grows large, the competition between the entangling unitaries and the (disentangling) projective measurements generates can induce an &#39;&#39;<em>entanglement phase transition</em>&quot; at a critical rate <span>$p_c$</span>, separating a volume law phase (low <span>$p$</span>) from an area-law phase (high <span>$p$</span>).</p><pre><code class="language-julia">using PastaQ
+using ITensors
+using Printf
+using LinearAlgebra
+using StatsBase: mean, sem 
+
+import PastaQ: gate
+
+# define the two measurement projectors
+gate(::GateName&quot;Π0&quot;) =
+  [1 0
+   0 0]
+gate(::GateName&quot;Π1&quot;) =
+  [0 0
+   0 1]
+
+# compute the Von Neumann entanglement entropy at the center bond 
+# of a linear chain of qubits
+function entanglemententropy(ψ₀::MPS)
+  ψ = normalize!(copy(ψ₀))
+  N = length(ψ)
+  bond = N ÷ 2
+  orthogonalize!(ψ, bond)
+
+  row_inds = (linkind(ψ, bond - 1), siteind(ψ, bond))
+  u, s, v = svd(ψ[bond], row_inds)
+
+  S = 0.0
+  for n in 1:dim(s, 1)
+    λ = s[n, n]^2
+    S -= λ * log(λ + 1e-20)
+  end
+  return S
+end
+
+# build a brick-layer circuit of random unitaries
+function entangling_layer(N::Int)
+  layer_odd  = randomlayer(&quot;RandomUnitary&quot;,[(j,j+1) for j in 1:2:N-1])
+  layer_even = randomlayer(&quot;RandomUnitary&quot;,[(j,j+1) for j in 2:2:N-1])
+  return [layer_odd..., layer_even...]
+end
+
+# perform a projective measurement in the computational basis
+# at a given site
+function projective_measurement!(ψ₀::MPS, site::Int)
+  ψ = orthogonalize!(ψ₀, site)
+  ϕ = ψ[site]
+  # 1-qubit reduced density matrix
+  ρ = prime(ϕ, tags=&quot;Site&quot;) * dag(ϕ)
+  # Outcome probabilities
+  prob = real.(diag(array(ρ)))
+  # Sample
+  σ = (rand() &lt; prob[1] ? 0 : 1)
+  # Projection
+  ψ = runcircuit(ψ, (&quot;Π&quot;*&quot;$(σ)&quot;, site))
+  normalize!(ψ)
+  ψ₀[:] = ψ
+  return ψ₀
+end
+
+# compute average Von Neumann entropy for an ensemble of random circuits
+# for a fixed local measurement probability rate `p`
+function monitored_circuits(circuits::Vector{&lt;:Vector}, p::Float64)
+  svn = []
+  N = nqubits(circuits[1])
+  for circuit in circuits
+    # initialize state ψ = |000…⟩
+    ψ = productstate(N)
+    # sweep over layers
+    for layer in circuit
+      # apply entangling unitary
+      ψ = runcircuit(ψ, layer; cutoff = 1e-8)
+      # perform measurements
+      for j in 1:N
+        p &gt; rand() &amp;&amp; projective_measurement!(ψ, j)
+      end
+    end
+    push!(svn, entanglemententropy(ψ))
+  end
+  return svn
+end
+
+let
+  Random.seed!(1234)
+  N = 10        # number of qubits
+  depth = 100   # circuit&#39;s depth
+  ntrials = 50  # number of random trials
+
+  # generate random circuits
+  circuits = [[entangling_layer(N) for _ in 1:depth] for _ in 1:ntrials]
+
+  # loop over projective measurement probability (per site)
+  for p in 0.0:0.02:0.2
+    t = @elapsed svn = monitored_circuits(circuits, p)
+    @printf(&quot;p = %.2f  S(ρ) = %.5f ± %.1E\t(elapsed = %.2fs)\n&quot;, p, mean(svn), sem(svn), t)
+  end
+end
+
+# ------------------------------------------------------------------
+# Output:
+#  p = 0.00  S(ρ) = 2.96398 ± 2.0E-03	(elapsed = 75.53s)
+#  p = 0.02  S(ρ) = 2.64681 ± 4.1E-02	(elapsed = 31.23s)
+#  p = 0.04  S(ρ) = 2.42949 ± 5.8E-02	(elapsed = 31.73s)
+#  p = 0.06  S(ρ) = 2.24704 ± 5.0E-02	(elapsed = 30.99s)
+#  p = 0.08  S(ρ) = 1.99610 ± 6.3E-02	(elapsed = 32.02s)
+#  p = 0.10  S(ρ) = 1.95011 ± 6.3E-02	(elapsed = 32.27s)
+#  p = 0.12  S(ρ) = 1.72640 ± 5.6E-02	(elapsed = 31.29s)
+#  p = 0.14  S(ρ) = 1.66021 ± 5.8E-02	(elapsed = 31.75s)
+#  p = 0.16  S(ρ) = 1.30065 ± 5.6E-02	(elapsed = 32.44s)
+#  p = 0.18  S(ρ) = 1.34038 ± 6.4E-02	(elapsed = 33.34s)
+#  p = 0.20  S(ρ) = 1.12428 ± 6.0E-02	(elapsed = 34.35s)</code></pre><h2 id="Citation-1"><a class="docs-heading-anchor" href="#Citation-1">Citation</a><a class="docs-heading-anchor-permalink" href="#Citation-1" title="Permalink"></a></h2><p>If you use PastaQ.jl in your work, for now please consider citing the Github page:</p><pre><code class="language-none">@misc{pastaq,
     title={\mbox{PastaQ}: A Package for Simulation, Tomography and Analysis of Quantum Computers},
     author={Giacomo Torlai and Matthew Fishman},
     year={2020},
     url={https://github.com/GTorlai/PastaQ.jl/}
-}</code></pre></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="Circuits.html">Circuit Simulator »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Monday 24 January 2022 21:01">Monday 24 January 2022</span>. Using Julia version 1.6.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+}</code></pre></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="Circuits.html">Circuit Simulator »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Monday 24 January 2022 22:33">Monday 24 January 2022</span>. Using Julia version 1.6.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
