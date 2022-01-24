@@ -1,6 +1,7 @@
 using PastaQ
 using ITensors
 using Random
+using Printf
 using LinearAlgebra
 using StatsBase: mean, sem
 
@@ -34,8 +35,8 @@ end
 # build a brick-layer of random unitaries covering all 
 # nearest-neighbors bonds
 function entangling_layer(N::Int)
-  layer_odd  = randomlayer("randU",[(j,j+1) for j in 1:2:N-1])
-  layer_even = randomlayer("randU",[(j,j+1) for j in 2:2:N-1])
+  layer_odd  = randomlayer("RandomUnitary",[(j,j+1) for j in 1:2:N-1])
+  layer_even = randomlayer("RandomUnitary",[(j,j+1) for j in 2:2:N-1])
   return [layer_odd..., layer_even...]
 end
 
@@ -56,38 +57,40 @@ function projective_measurement!(ψ₀::MPS, site::Int)
   return ψ₀
 end
 
+# compute average Von Neumann entropy for an ensemble of random circuits
+# at a given local measurement probability rate
+function monitored_circuits(circuits::Vector{<:Vector}, p::Float64) 
+  svn = []
+  N = nqubits(circuits[1])
+  for circuit in circuits
+    # initialize state ψ = |000…⟩
+    ψ = productstate(N)
+    # sweep over layers
+    for layer in circuit
+      # apply entangling unitary
+      ψ = runcircuit(ψ, layer; cutoff = 1e-8)
+      # perform measurements
+      for j in 1:N
+        p > rand() && projective_measurement!(ψ, j)
+      end
+    end
+    push!(svn, entanglemententropy(ψ))
+  end 
+  return svn
+end
+
 let 
   Random.seed!(1234)
-
   N = 10        # number of qubits
   depth = 100   # circuit's depth
   ntrials = 50  # number of random trials
 
-  # projective measurement probability per site
-  plist = [0.0, collect(0.01:0.01:0.2)...]
+  # generate random circuits
+  circuits = [[entangling_layer(N) for _ in 1:depth] for _ in 1:ntrials]
   
-  # define the Hilbert space
-  hilbert = qubits(N)
-  
-  for p in plist
-    svn = []
-    t = @elapsed begin
-      for n in 1:ntrials
-        # initialize state ψ = |000…⟩
-        ψ = productstate(hilbert)
-        for d in 1:depth
-          # apply entangling unitary
-          layer = entangling_layer(N)
-          ψ = runcircuit(ψ, layer; cutoff = 1e-8)
-          # perform measurements
-          for j in 1:N
-            p > rand() && (ψ = projective_measurement!(ψ, j))
-          end
-        end
-        # record Von Neumann entropy
-        push!(svn, entanglemententropy(ψ))
-      end 
-    end 
+  # loop over projective measurement probability (per site)
+  for p in 0.0:0.02:0.2
+    t = @elapsed svn = monitored_circuits(circuits, p)
     @printf("p = %.2f  S(ρ) = %.5f ± %.1E\t(elapsed = %.2fs)\n", p, mean(svn), sem(svn), t)
   end
 end

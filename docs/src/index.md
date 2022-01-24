@@ -144,7 +144,9 @@ circuit = randomcircuit(n; depth = depth,
 ```
 
 #### Variational quantum eingensolver
+We show how to perform a ground state search of a many-body hamiltonian $H$ using the variational quantum eigensolver (VQE). The VQE algorithm, based on the variational principle, consists of an iterative optimization of an objective function $\langle \psi(\theta)|H|\psi(\theta)\rangle/\langle\psi(\theta)|\psi(\theta)\rangle$, where $|\psi(\theta)\rangle = U(\theta)|0\rangle$ is the output wavefunction of a parametrized quantum circuit $U(\theta)$. 
 
+In the following example, we consider a quantum Ising model with 10 spins, and perform the optimization by leveraging Automatic Differentiation techniques (AD), provided by the package Zygote.jl. Specifically, we build a variational circuit using built-in circuit-contruction functions, and optimize the expectation value of the Hamiltonian using a gradient-based approach and the LBFGS optimizer. The gradients are evaluated through AD, providing a flexible interface in defining custom variational circuit ansatze.
 
 ```julia
 using ITensors
@@ -227,7 +229,123 @@ loss_n_grad(x) = (loss(x), convert(Vector, loss'(x)))
 #  Relative error: 8.360E-05
 ```
 
+#### Monitored quantum circuits
+In this example we simulate a monitored quantum circuit, a circuit composed by entangling unitaries and probabilistic local projective measurements, with a rate $p$. The circuit has a brick-layer structure, where each layer consists of nearest-neighbor two-qubit random unitaries, followed by a layer of randomly-placed projective measurements in the computational basis. In the limit of $p=0$, the system displays a scrambling dynamics, exhibiting a volume-law entanglement entropy. When $p$ grows large, the competition between the entangling unitaries and the (disentangling) projective measurements generates can induce an ''*entanglement phase transition*" at a critical rate $p_c$, separating a volume law phase (low $p$) from an area-law phase (high $p$).
 
+
+```julia
+using PastaQ
+using ITensors
+using Printf
+using LinearAlgebra
+using StatsBase: mean, sem 
+
+import PastaQ: gate
+
+# define the two measurement projectors
+gate(::GateName"Π0") =
+  [1 0
+   0 0]
+gate(::GateName"Π1") =
+  [0 0
+   0 1]
+
+# compute the Von Neumann entanglement entropy at the center bond 
+# of a linear chain of qubits
+function entanglemententropy(ψ₀::MPS)
+  ψ = normalize!(copy(ψ₀))
+  N = length(ψ)
+  bond = N ÷ 2
+  orthogonalize!(ψ, bond)
+
+  row_inds = (linkind(ψ, bond - 1), siteind(ψ, bond))
+  u, s, v = svd(ψ[bond], row_inds)
+
+  S = 0.0
+  for n in 1:dim(s, 1)
+    λ = s[n, n]^2
+    S -= λ * log(λ + 1e-20)
+  end
+  return S
+end
+
+# build a brick-layer circuit of random unitaries
+function entangling_layer(N::Int)
+  layer_odd  = randomlayer("RandomUnitary",[(j,j+1) for j in 1:2:N-1])
+  layer_even = randomlayer("RandomUnitary",[(j,j+1) for j in 2:2:N-1])
+  return [layer_odd..., layer_even...]
+end
+
+# perform a projective measurement in the computational basis
+# at a given site
+function projective_measurement!(ψ₀::MPS, site::Int)
+  ψ = orthogonalize!(ψ₀, site)
+  ϕ = ψ[site]
+  # 1-qubit reduced density matrix
+  ρ = prime(ϕ, tags="Site") * dag(ϕ)
+  # Outcome probabilities
+  prob = real.(diag(array(ρ)))
+  # Sample
+  σ = (rand() < prob[1] ? 0 : 1)
+  # Projection
+  ψ = runcircuit(ψ, ("Π"*"$(σ)", site))
+  normalize!(ψ)
+  ψ₀[:] = ψ
+  return ψ₀
+end
+
+# compute average Von Neumann entropy for an ensemble of random circuits
+# for a fixed local measurement probability rate `p`
+function monitored_circuits(circuits::Vector{<:Vector}, p::Float64)
+  svn = []
+  N = nqubits(circuits[1])
+  for circuit in circuits
+    # initialize state ψ = |000…⟩
+    ψ = productstate(N)
+    # sweep over layers
+    for layer in circuit
+      # apply entangling unitary
+      ψ = runcircuit(ψ, layer; cutoff = 1e-8)
+      # perform measurements
+      for j in 1:N
+        p > rand() && projective_measurement!(ψ, j)
+      end
+    end
+    push!(svn, entanglemententropy(ψ))
+  end
+  return svn
+end
+
+let
+  Random.seed!(1234)
+  N = 10        # number of qubits
+  depth = 100   # circuit's depth
+  ntrials = 50  # number of random trials
+
+  # generate random circuits
+  circuits = [[entangling_layer(N) for _ in 1:depth] for _ in 1:ntrials]
+
+  # loop over projective measurement probability (per site)
+  for p in 0.0:0.02:0.2
+    t = @elapsed svn = monitored_circuits(circuits, p)
+    @printf("p = %.2f  S(ρ) = %.5f ± %.1E\t(elapsed = %.2fs)\n", p, mean(svn), sem(svn), t)
+  end
+end
+
+# ------------------------------------------------------------------
+# Output:
+#  p = 0.00  S(ρ) = 2.96398 ± 2.0E-03	(elapsed = 75.53s)
+#  p = 0.02  S(ρ) = 2.64681 ± 4.1E-02	(elapsed = 31.23s)
+#  p = 0.04  S(ρ) = 2.42949 ± 5.8E-02	(elapsed = 31.73s)
+#  p = 0.06  S(ρ) = 2.24704 ± 5.0E-02	(elapsed = 30.99s)
+#  p = 0.08  S(ρ) = 1.99610 ± 6.3E-02	(elapsed = 32.02s)
+#  p = 0.10  S(ρ) = 1.95011 ± 6.3E-02	(elapsed = 32.27s)
+#  p = 0.12  S(ρ) = 1.72640 ± 5.6E-02	(elapsed = 31.29s)
+#  p = 0.14  S(ρ) = 1.66021 ± 5.8E-02	(elapsed = 31.75s)
+#  p = 0.16  S(ρ) = 1.30065 ± 5.6E-02	(elapsed = 32.44s)
+#  p = 0.18  S(ρ) = 1.34038 ± 6.4E-02	(elapsed = 33.34s)
+#  p = 0.20  S(ρ) = 1.12428 ± 6.0E-02	(elapsed = 34.35s)
+```
 
 ## Citation
 If you use PastaQ.jl in your work, for now please consider citing the Github page:
