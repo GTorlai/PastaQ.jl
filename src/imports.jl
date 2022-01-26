@@ -14,7 +14,8 @@ import ITensors:
   state,
   noise,
   dag,
-  inner
+  inner,
+  expect
 
 import LinearAlgebra: 
   normalize!, 

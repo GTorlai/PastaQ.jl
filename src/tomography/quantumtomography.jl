@@ -228,7 +228,6 @@ function tomography(
         update!(observer!, model_to_observe; train_loss = train_loss,
                                              test_loss  = test_loss, loss = loss)
         tot_time += observe_time
-        observe_time = 0.0
       end
 
       # printing
@@ -241,6 +240,7 @@ function tomography(
         # TODO: add the trace preserving cost function here for QPT
         !isnothing(observer!) && printobserver(observer!, print_metrics)
         @printf("elapsed = %-4.3fs", observe_time)
+        observe_time = 0.0
         println()
       end
       # saving
