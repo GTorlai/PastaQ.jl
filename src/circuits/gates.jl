@@ -81,7 +81,7 @@ gate(::GateName"Phase"; ϕ::Number = π/2) = [
 gate(::GateName"P"; kwargs...)     = gate("Phase"; kwargs...)
 gate(::GateName"PHASE"; kwargs...) = gate("Phase"; kwargs...)
 
-gate(::GateName"S"; kwargs...) = gate("Phase"; kwargs...)
+gate(::GateName"S") = gate("Phase"; ϕ = π/2)
 
 # Rϕ with ϕ = π/4
 gate(::GateName"π/8") = [
