@@ -5,6 +5,7 @@ export
   state,
   inner, 
   rayleigh_quotient,
+  expect,
 
   # circuits/circuits.jl
   randomlayer,

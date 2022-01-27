@@ -73,14 +73,15 @@ gate(::GateName"H") = [
 ]
 
 # Rϕ with ϕ = π/2
-gate(::GateName"Phase") = [
+gate(::GateName"Phase"; ϕ::Number = π/2) = [
   1 0
-  0 im
+  0 exp(im*ϕ)
 ]
 
-gate(::GateName"P") = gate("Phase")
+gate(::GateName"P"; kwargs...)     = gate("Phase"; kwargs...)
+gate(::GateName"PHASE"; kwargs...) = gate("Phase"; kwargs...)
 
-gate(::GateName"S") = gate("Phase")
+gate(::GateName"S") = gate("Phase"; ϕ = π/2)
 
 # Rϕ with ϕ = π/4
 gate(::GateName"π/8") = [
@@ -110,8 +111,8 @@ gate(::GateName"RY"; kwargs...) =
 
 # Rotation around Z-axis
 gate(::GateName"Rz"; ϕ::Number) = [
-  exp(im * ϕ / 2)  0
-  0          exp(-im * ϕ / 2)
+  exp(-im * ϕ / 2)  0
+  0          exp(im * ϕ / 2)
 ]
 
 gate(::GateName"RZ"; kwargs...) = 
@@ -173,16 +174,25 @@ gate(::GateName"CRy"; θ::Number) = [
 gate(::GateName"CRY"; kwargs...) = 
   gate("CRy"; kwargs...)
 
-# Same as CRn with (θ = 0, λ = 0)
 gate(::GateName"CRz"; ϕ::Real) = [
+  1   0   0   0
+  0   1   0   0
+  0   0   exp(-im * ϕ / 2)    0
+  0   0   0     exp(im * ϕ / 2)
+]
+
+gate(::GateName"CRZ"; kwargs...) = 
+  gate("CRz"; kwargs...)
+
+gate(::GateName"CPHASE"; ϕ::Real) = [
   1 0 0 0
   0 1 0 0
   0 0 1 0
   0 0 0 exp(im * ϕ)
 ]
 
-gate(::GateName"CRZ"; kwargs...) = 
-  gate("CRz"; kwargs...)
+gate(::GateName"Cphase"; kwargs...) = gate("CPHASE"; kwargs...) 
+gate(::GateName"CP"; kwargs...)     = gate("CPHASE"; kwargs...)
 
 function gate(::GateName"CRn"; θ::Real, ϕ::Real, λ::Real)
   return [

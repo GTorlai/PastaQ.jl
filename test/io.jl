@@ -9,10 +9,10 @@ using HDF5
 using Optimisers
 
 @testset "write and read samples" begin
-  N = 3
-  depth = 4
+  N = 4
+  depth = 2
   nshots = 100
-  circuit = randomcircuit(N; depth = depth)
+  circuit = randomcircuit(N; depth = depth, twoqubitgates = "CX", onequbitgates = "Rx")
   path = "test_data_writesamples.h5"
   
   X = runcircuit(circuit)
@@ -109,14 +109,13 @@ end
   Random.seed!(1234)
   circuit = randomcircuit(N; depth = depth)
   layer = Tuple[]
-
   sites = siteinds("Qubit", N)
   
   outputpath = "simulation"
   ϕ = randomstate(sites; χ = 10, normalize=true)
   ψ = runcircuit(sites, circuit)
   Ftest = fidelity(ψ,ϕ)
-  f(ψ::MPS; kwargs...) = fidelity(ψ, ϕ)#; kwargs...) = fidelity(ψ, ϕ)
+  f(ψ::MPS) = fidelity(ψ, ϕ)#; kwargs...) = fidelity(ψ, ϕ)
   obs = Observer(["f" => f])
   ψ = runcircuit(sites, circuit; (observer!)=obs, move_sites_back_before_measurements=true,
                  outputpath = outputpath, savestate = true, outputlevel = 0)

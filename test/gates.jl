@@ -360,12 +360,12 @@ end
   psi = productstate(1)
   gate_data = ("Rz", 1, (ϕ=ϕ,))
   psi = runcircuit(psi, gate_data)
-  @test PastaQ.array(psi[1]) ≈ [exp(im * ϕ /2), 0.0]
+  @test PastaQ.array(psi[1]) ≈ [exp(-im * ϕ /2), 0.0]
   psi = productstate(1)
   psi = runcircuit(psi, ("X", 1))
   gate_data = ("Rz", 1, (ϕ=ϕ,))
   psi = runcircuit(psi, gate_data)
-  @test PastaQ.array(psi[1]) ≈ [0.0, exp(-im * ϕ/2)]
+  @test PastaQ.array(psi[1]) ≈ [0.0, exp(im * ϕ/2)]
 end
 
 @testset "apply gate: Rn" begin

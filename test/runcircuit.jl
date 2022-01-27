@@ -4,6 +4,7 @@ using Test
 using LinearAlgebra
 using Random
 using Observers
+
 function state_to_int(state::Array)
   index = 0
   for j in 1:length(state)
@@ -87,6 +88,28 @@ end
   
 end
 
+@testset "runcircuit: noisy quantum circuit" begin
+  N = 5
+  depth = 4
+  gates = randomcircuit(N; depth =  depth, layered=false)
+  
+  ψ0 = productstate(N)
+  ρ = runcircuit(ψ0, gates; noise=("depolarizing", (p=0.1,)))
+  ρ0 = MPO(ψ0)
+  U = buildcircuit(ρ0, gates; noise=("depolarizing", (p=0.1,)))
+  @disable_warn_order begin
+    @test prod(ρ) ≈ runcircuit(prod(ρ0), U; apply_dag=true)
+
+    # Mixed state, noisy circuit
+    ρ0 = MPO(productstate(N))
+    ρ = runcircuit(ρ0, gates; noise=("depolarizing", (p=0.1,)))
+    U = buildcircuit(ρ0, gates; noise=("depolarizing", (p=0.1,)))
+    @test prod(ρ) ≈ runcircuit(prod(ρ0), U; apply_dag=true)
+    @test PastaQ.array(ρ) ≈ PastaQ.tomatrix(runcircuit(gates; noise = ("depolarizing", (p=0.1,)), full_representation = true))
+  end
+end
+
+
 @testset "choi matrix" begin
   N = 3
   depth = 4
@@ -111,7 +134,14 @@ end
   @test PastaQ.ischoi(Φ)
   @test PastaQ.array(Λ) ≈ PastaQ.array(Φ)
   @test Φ isa ITensor
-
+  
+  noisycircuit = insertnoise(circuit, (1 => ("DEP",(p=0.001,)), 2=> ("DEP",(p=0.01,))))
+  Φ = choimatrix(noisycircuit)
+  @test Φ isa MPO
+  @test PastaQ.ischoi(Φ)
+  Φ = runcircuit(noisycircuit; process = true)
+  @test Φ isa MPO
+  @test PastaQ.ischoi(Φ)
 end
 
 @testset "runcircuit: (n>2)-qubit gates" begin
@@ -130,27 +160,6 @@ end
   ρ0 = MPO(productstate(N))
   ρ = runcircuit(ρ0, gates)
   @test prod(ρ) ≈ runcircuit(prod(ρ0), buildcircuit(ρ0, gates); apply_dag=true)
-end
-
-@testset "runcircuit: noisy quantum circuit" begin
-  N = 5
-  depth = 4
-  gates = randomcircuit(N; depth =  depth, layered=false)
-  
-  ψ0 = productstate(N)
-  ρ = runcircuit(ψ0, gates; noise=("depolarizing", (p=0.1,)))
-  ρ0 = MPO(ψ0)
-  U = buildcircuit(ρ0, gates; noise=("depolarizing", (p=0.1,)))
-  @disable_warn_order begin
-    @test prod(ρ) ≈ runcircuit(prod(ρ0), U; apply_dag=true)
-
-    ## Mixed state, noisy circuit
-    ρ0 = MPO(productstate(N))
-    ρ = runcircuit(ρ0, gates; noise=("depolarizing", (p=0.1,)))
-    U = buildcircuit(ρ0, gates; noise=("depolarizing", (p=0.1,)))
-    @test prod(ρ) ≈ runcircuit(prod(ρ0), U; apply_dag=true)
-    @test PastaQ.array(ρ) ≈ PastaQ.tomatrix(runcircuit(gates; noise = ("depolarizing", (p=0.1,)), full_representation = true))
-  end
 end
 
 @testset "alternative noise definition" begin
@@ -221,6 +230,4 @@ end
   circuit = randomcircuit(N; depth = depth)
   @test prod(ρ) ≈ prod(runcircuit(ψ0, circuit; noise=("depolarizing", (p=0.1,))))
 end
-
-
 
