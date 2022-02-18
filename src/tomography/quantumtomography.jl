@@ -124,7 +124,6 @@ function tomography(
   trace_preserving_regularizer = get(kwargs, :trace_preserving_regularizer, 0.0)
   observe_step::Int64 = get(kwargs, :observe_step, 1)
   test_data = get(kwargs, :test_data, nothing)
-  outputpath = get(kwargs, :fout, nothing)
   print_metrics = get(kwargs, :print_metrics, [])
   outputpath = get(kwargs, :outputpath, nothing)
   outputlevel = get(kwargs, :outputlevel, 1)
@@ -136,7 +135,7 @@ function tomography(
   localnorm = isqpt ? 2.0 : 1.0
   
   # observer is not passed but earlystop is called
-  observer! = (isnothing(observer!) && earlystop) ? Observer() : observer!
+  observer! = (isnothing(observer!) || earlystop) ? Observer() : observer!
   
   # observer is defined
   if !isnothing(observer!)

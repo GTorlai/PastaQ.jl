@@ -10,7 +10,8 @@ qubits(N::Int; kwargs...) = siteinds("Qubit", N; kwargs...)
 
 qudits(N::Int; dim::Int = 3, kwargs...) = siteinds("Qudit",N; dim = dim, kwargs...)
 
-
+qudits(d⃗::Vector; kwargs...) = 
+  [addtags.(siteind("Qudit"; dim = d⃗[i]), "n = $i") for i in 1:length(d⃗)]
 #
 # State-like gates, used to define product input states
 #

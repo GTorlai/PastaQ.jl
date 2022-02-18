@@ -136,7 +136,7 @@ end
 [INTERNAL]: state fidelity between two density matrices
 """
 __fidelity(A::MPO, B::MPO; kwargs...) = 
-  fidelity(prod(A), prod(B))
+  fidelity(prod(A), prod(B); kwargs...)
 
 """
     __fidelity(A::MPS, B::MPS; kwargs...)

@@ -1,7 +1,7 @@
 name = "PastaQ"
 uuid = "30b07047-aa8b-4c78-a4e8-24d720215c19"
 authors = ["Giacomo Torlai <gttorlai@amazon.com>", "Matthew Fishman <mfishman@flatironinstitute.org>"]
-version = "0.0.18"
+version = "0.0.19"
 
 [deps]
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"

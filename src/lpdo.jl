@@ -156,7 +156,6 @@ in the future we will support approximate contraction.
 function MPO(L::LPDO{MPO}; kwargs...)
   X = L.X
   X′ = prime(X; tags=!purifier_tags(L))
-  X
   return *(X′, dag(X); kwargs...)
 end
 

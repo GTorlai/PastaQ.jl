@@ -2,6 +2,12 @@ using ITensors
 using PastaQ
 using Test
 
+@testset "qudits" begin
+  d⃗ = [2,3,4,5,6]
+  q = qudits(d⃗)
+  @test dim.(q) == d⃗
+end
+
 @testset "productstate" begin
   s = siteinds("Qubit", 4)
 

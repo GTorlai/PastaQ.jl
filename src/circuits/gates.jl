@@ -216,6 +216,7 @@ gate(::GateName"Sw") = gate("SWAP")
 
 gate(::GateName"Swap") = gate("SWAP")
 
+
 function gate(::GateName"√SWAP")
   return [
     1 0 0 0
@@ -240,6 +241,16 @@ gate(::GateName"iSw") = gate("iSWAP")
 
 gate(::GateName"iSwap") = gate("iSWAP")
 
+function gate(::GateName"√iSWAP")
+  return [
+    1 0 0 0
+    0 1/√2 im/√2 0
+    0 im/2 1/√2 0
+    0 0 0 1
+  ]
+end
+
+gate(::GateName"√iSwap") = gate("√iSWAP")
 # Ising (XX) coupling gate
 function gate(::GateName"Rxx"; ϕ::Number)
   return [

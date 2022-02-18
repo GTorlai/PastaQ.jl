@@ -127,7 +127,7 @@ function randomlayer(
     pars = randomparams(gatename, length(n); rng = rng) # the 2^n is for the Haar dimension
     gatepars = (isempty(pars) ? (isempty(kwargs) ? nothing : values(kwargs)) : merge(pars,values(kwargs)))
     g = (isnothing(gatepars) ? (gatename, n) : (gatename, n, gatepars))
-    push!(layer, g)
+    layer = vcat(layer, [g])
   end
   return layer
 end
@@ -159,7 +159,7 @@ function randomlayer(
     pars = randomparams(gate_id[i], length(n); rng = rng)
     gatepars = (isempty(pars) ? (isempty(kwargs) ? nothing : values(kwargs)) : merge(pars,values(kwargs)))
     g = (isnothing(gatepars) ? (gate_id[i], n) : (gate_id[i], n, gatepars))
-    push!(layer, g)
+    layer = vcat(layer, [g])
   end
   return layer
 end
@@ -206,7 +206,8 @@ function randomcircuit(
     if !isnothing(onequbitgates)
       append!(layer, randomlayer(onequbitgates, N; rng=rng))
     end
-    push!(circuit, layer)
+    circuit = vcat(circuit, [layer])
+    #push!(circuit, layer)
   end
   layered && return circuit
   return vcat(circuit...)
