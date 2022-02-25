@@ -34,36 +34,3 @@ function entanglemententropy(ρ0::LPDO; kwargs...)
   return error("Measurement of entanglement entropy for LPDOs not yet implemented")
 end
 
-function expect(T₀::ITensor, ops::AbstractString...; kwargs...)
-  T = copy(T₀)
-  N = nsites(T)
-  ElT = real(ITensors.promote_itensor_eltype([T]))
-  Nops = length(ops)
-
-  site_range::UnitRange{Int} = get(kwargs, :site_range, 1:N)
-  Ns = length(site_range)
-  start_site = first(site_range)
-  offset = start_site - 1
-
-  normalization = is_operator(T) ? tr(T) : norm(T)^2
-
-  ex = ntuple(n -> zeros(ElT, Ns), Nops)
-  for j in site_range
-    for n in 1:Nops
-      s = firstind(T, tags = "Site, n=$j", plev = 0)
-      if is_operator(T)
-        Top = replaceprime(T * op(ops[n], s'), 2 => 1, tags = "Site, n=$j")
-        ex[n][j - offset] = real(tr(Top) / normalization)
-      else
-        ex[n][j - offset] = real(scalar(dag(T) * noprime(op(ops[n], s) * T))) / normalization 
-      end
-    end
-  end
-
-  if Nops == 1
-    return Ns == 1 ? ex[1][1] : ex[1]
-  else
-    return Ns == 1 ? [x[1] for x in ex] : ex
-  end
-end
-

@@ -389,6 +389,7 @@ function gate(::GateName"a", dims::Tuple = (2,))
   end
   return mat
 end
+@non_differentiable gate(::GateName"a", ::Tuple)
 
 gate(::GateName"a†", dims::Tuple = (2,)) = 
   Array(gate("a", dims)')

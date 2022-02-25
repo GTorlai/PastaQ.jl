@@ -34,6 +34,29 @@ function trotter1(H::Vector{<:Tuple}, δτ::Number)
   return layer 
 end
 
+#function trotter1(H::OpSum, δt::Number)
+#  layer = Tuple[]
+#  for k in 1:length(H)
+#    coefficient = ITensors.coef(H[k])
+#    O⃗ = ITensors.ops(H[k])
+#    #single_site_ops = 
+#    #for O in O⃗
+#    ##@show coefficient, O, length(O)
+#    #  support = ITensors.sites(O)
+#    #  params = ITensors.params(O)
+#    #  localop = ITensors.name(O)
+#    #  X = (localop, support, (f = x -> exp(-δτ * coupling * x),))
+#    #  @show X
+#    #end
+#    #X = (localop, support, (f = x -> exp(-δτ * coupling * x),))
+#    #@show X
+#    #layer = vcat(layer, [(localop, support, (f = x -> exp(-δτ * coupling * x),))])
+#    #length(H[k]) > 3 && error("Only the format (coupling, opname, support) currently allowed")
+#    #coupling, localop, support = H[k]
+#    #layer = vcat(layer, [(localop, support, (f = x -> exp(-δτ * coupling * x),))]) 
+#  end
+#  return layer 
+#end
 
 """
     trotter2(H::OpSum; δt::Float64=0.1, δτ=im*δt)
