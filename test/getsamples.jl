@@ -81,20 +81,20 @@ end
   ψ0 = state("X+",s[1])
   gates = [("basisX",1,(dag=true,))]
   ψ = runcircuit(ψ0,gates)
-  @test PastaQ.array(ψ) ≈ state("Z+")
+  @test PastaQ.array(ψ) ≈ array(state("Z+", s[1]))
   ψ0 = state("X-",s[1])
   gates = [("basisX",1,(dag=true,))]
   ψ = runcircuit(ψ0,gates)
-  @test PastaQ.array(ψ) ≈ state("Z-")
+  @test PastaQ.array(ψ) ≈ array(state("Z-", s[1]))
 
   ψ0 = state("Y+",s[1])
   gates = [("basisY",1,(dag=true,))]
   ψ = runcircuit(ψ0,gates)
-  @test PastaQ.array(ψ) ≈ state("Z+")
+  @test PastaQ.array(ψ) ≈ array(state("Z+", s[1]))
   ψ0 = state("Y-",s[1])
   gates = [("basisY",1,(dag=true,))]
   ψ = runcircuit(ψ0,gates)
-  @test PastaQ.array(ψ) ≈ state("Z-")
+  @test PastaQ.array(ψ) ≈ array(state("Z-", s[1]))
 end
 
 

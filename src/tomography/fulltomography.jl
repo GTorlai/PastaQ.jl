@@ -113,16 +113,14 @@ If `return_probs=true`, return also the 1d vector of probabilities (i.e. the
 function design_matrix(probs::AbstractDict; process::Bool = false, return_probs::Bool = false)
   A = []
   p̂ = []
-  
-  for (basis,projectors) in probs
+  n = first(keys(probs))
+  q = siteind("Qubit")
+  for (basis, projectors) in probs
     for (outcome,probability) in projectors
       Π_list = []
       for j in 1:length(outcome)
-        if process && isodd(j)
-          Πj = 0.5 * transpose(gate("Id") + (1-2*outcome[j]) * gate(basis[j]))
-        else
-          Πj = 0.5 * (gate("Id") + (1-2*outcome[j]) * gate(basis[j]))
-        end
+        g = 0.5 * (array(gate("Id", q) + (1-2*outcome[j]) * gate(basis[j], q)))
+        Πj = process && isodd(j) ? g' : g 
         push!(Π_list,Πj)
       end
       Π = reduce(kron,Π_list)
