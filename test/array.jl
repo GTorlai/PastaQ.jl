@@ -76,7 +76,7 @@ end
   end
   
   # LPDO density matrix
-  ρ = normalize!(randomstate(qubits; χ = 4, ξ = 2))
+  ρ = PastaQ.normalize!(randomstate(qubits; χ = 4, ξ = 2))
   ρmat = PastaQ.array(ρ)
   
   ρmpo = MPO(ρ)
@@ -125,7 +125,7 @@ end
   
   # LPDO Choi matrix
   
-  Λ = normalize!(randomprocess(qubits; χ = 4, ξ = 2); localnorm = 2)
+  Λ = PastaQ.normalize!(randomprocess(qubits; χ = 4, ξ = 2); localnorm = 2)
   Λmat = PastaQ.array(Λ)
 
   Λmpo = MPO(Λ)
@@ -181,7 +181,7 @@ end
   @test ρtest ≈ ρmat
 
   # LPDO density matrix
-  ρ = normalize!(randomstate(qubits; χ = 4, ξ = 2))
+  ρ = PastaQ.normalize!(randomstate(qubits; χ = 4, ξ = 2))
   ρmat = PastaQ.array(ρ)
   ρprod = prod(ρ)
   ρtest = PastaQ.array(ρprod)
@@ -200,7 +200,7 @@ end
   @test Λmat ≈ Λtest
   
   # LPDO Choi matrix
-  Λ = normalize!(randomprocess(qubits; χ = 4, ξ = 2); localnorm = 2)
+  Λ = PastaQ.normalize!(randomprocess(qubits; χ = 4, ξ = 2); localnorm = 2)
   Λmat = PastaQ.array(Λ)
   Λprod = prod(Λ)
   Λtest = PastaQ.array(Λprod)

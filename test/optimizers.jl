@@ -102,7 +102,7 @@ end
 
   U = randomprocess(N; χ=χ)
   Φ = LPDO(PastaQ.unitary_mpo_to_choi_mps(U))
-  normalize!(Φ; localnorm=2)
+  PastaQ.normalize!(Φ; localnorm=2)
   
   opt = Optimisers.Descent(0.1) 
   st = PastaQ.state(opt, Φ)
@@ -128,7 +128,7 @@ end
   data = data_in .=> data_out
 
   Λ = randomprocess(N; χ=χ, ξ = 3)
-  normalize!(Λ; localnorm=2)
+  PastaQ.normalize!(Λ; localnorm=2)
   
   opt = Optimisers.Descent(0.1) 
   st = PastaQ.state(opt, Λ)

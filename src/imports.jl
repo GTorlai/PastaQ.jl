@@ -18,7 +18,6 @@ import ITensors:
   expect
 
 import LinearAlgebra: 
-  normalize!, 
   tr, 
   norm
 
