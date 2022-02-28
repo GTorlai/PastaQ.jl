@@ -11,7 +11,6 @@ ITensors.inner(ρ::MPO, σ::LPDO{MPO}) = inner(ρ, MPO(σ))
 
 ITensors.inner(ρ::MPO, σ::LPDO{MPS}) = inner(σ.X, ρ, σ.X)
 
-
 """
     fidelity(ψ::MPS, ϕ::MPS; kwargs...)
 
@@ -50,7 +49,6 @@ end
 
 fidelity(ρ::MPO, ψ::MPS; kwargs...) = fidelity(ψ, ρ)
 
-
 """
     fidelity(Ψ::MPS, ϱ::LPDO{MPO}; cutoff::Float64 = 1e-15)
     fidelity(ϱ::LPDO{MPO}, ψ::MPS; kwargs...)
@@ -60,17 +58,15 @@ LPDO density operator.
 
 F = ⟨ψ|ϱ|ψ⟩=|X†|ψ⟩|²
 """
-function fidelity(Ψ::MPS, ϱ::LPDO{MPO}; cutoff::Float64 = 1e-15)
+function fidelity(Ψ::MPS, ϱ::LPDO{MPO}; cutoff::Float64=1e-15)
   # TODO: fix exponential scaling
   #proj = bra(ϱ) * Ψ
-  proj = *(bra(ϱ), Ψ; cutoff = cutoff)
+  proj = *(bra(ϱ), Ψ; cutoff=cutoff)
   K = abs2(norm(Ψ)) * tr(ϱ)
   return inner(proj, proj) / K
 end
 
-fidelity(ϱ::LPDO{MPO}, ψ::MPS; kwargs...) = 
-  fidelity(ψ, ϱ; kwargs...)
-          
+fidelity(ϱ::LPDO{MPO}, ψ::MPS; kwargs...) = fidelity(ψ, ϱ; kwargs...)
 
 struct Choi{T}
   X::T
@@ -81,10 +77,10 @@ end
 
 Fidelity between two MPOs. If any is a Choi matrix, wrap them with the Choi type.
 """
-function fidelity(A::MPO, B::MPO; process::Bool = false, cutoff::Float64 = 1e-15)
+function fidelity(A::MPO, B::MPO; process::Bool=false, cutoff::Float64=1e-15)
   a = ischoi(A) ? Choi(A) : A
   b = ischoi(B) ? Choi(B) : B
-  return _fidelity(a, b; process = process, cutoff = cutoff)
+  return _fidelity(a, b; process=process, cutoff=cutoff)
 end
 
 """
@@ -93,19 +89,20 @@ end
 
 [INTERNAL]: process fidelity between a Choi matrix and a unitary MPO.
 """
-_fidelity(A::Choi, B::MPO; cutoff::Float64 = 1e-15, kwargs...) = 
-  fidelity(A.X, unitary_mpo_to_choi_mps(B); cutoff = cutoff)
+function _fidelity(A::Choi, B::MPO; cutoff::Float64=1e-15, kwargs...)
+  return fidelity(A.X, unitary_mpo_to_choi_mps(B); cutoff=cutoff)
+end
 
-_fidelity(A::MPO, B::Choi; cutoff::Float64 = 1e-15, kwargs...) = 
-  _fidelity(B, A; cutoff = cutoff)
+function _fidelity(A::MPO, B::Choi; cutoff::Float64=1e-15, kwargs...)
+  return _fidelity(B, A; cutoff=cutoff)
+end
 
 """
     _fidelity(A::Choi, B::Choi; kwargs...)
 
 [INTERNAL]: process fidelity between two Choi matrices
 """
-_fidelity(A::Choi, B::Choi; kwargs...) = 
-  fidelity(prod(A.X), prod(B.X); kwargs...)
+_fidelity(A::Choi, B::Choi; kwargs...) = fidelity(prod(A.X), prod(B.X); kwargs...)
 
 """
     _fidelity(A::MPO, B::MPO; process::Bool = false, kwargs...)
@@ -113,7 +110,7 @@ _fidelity(A::Choi, B::Choi; kwargs...) =
 [INTERNAL]: fidelity between two MPOs, which could be either two unitary MPOs
 or two density matrices.
 """
-function _fidelity(A::MPO, B::MPO; process::Bool = false, kwargs...)
+function _fidelity(A::MPO, B::MPO; process::Bool=false, kwargs...)
   # TODO: sub after implementing MPDO
   #A = !process ? MPDO(A) : A
   #B = !process ? MPDO(B) : B
@@ -135,40 +132,36 @@ end
 
 [INTERNAL]: state fidelity between two density matrices
 """
-__fidelity(A::MPO, B::MPO; kwargs...) = 
-  fidelity(prod(A), prod(B))
+__fidelity(A::MPO, B::MPO; kwargs...) = fidelity(prod(A), prod(B))
 
 """
     __fidelity(A::MPS, B::MPS; kwargs...)
 [INTERNAL]: process fidelity between two unitary MPOs
 """
-__fidelity(A::MPS, B::MPS; kwargs...) = 
-  fidelity(A, B)
-
+__fidelity(A::MPS, B::MPS; kwargs...) = fidelity(A, B)
 
 """
     fidelity(A::MPO, B::LPDO{MPO}; process::Bool=false, cutoff::Float64 = 1e-15)
 
 Fidelity between a MPO and a LPDO. Wrap the MPO in the Choi if so.
 """
-function fidelity(A::MPO, B::LPDO{MPO}; process::Bool=false, cutoff::Float64 = 1e-15)
+function fidelity(A::MPO, B::LPDO{MPO}; process::Bool=false, cutoff::Float64=1e-15)
   A = ischoi(A) ? Choi(A) : A
-  return _fidelity(A, B; process = process, cutoff = cutoff)
+  return _fidelity(A, B; process=process, cutoff=cutoff)
 end
 
-fidelity(A::LPDO{MPO}, B::MPO; kwargs...) = 
-  fidelity(B,A; kwargs...)
+fidelity(A::LPDO{MPO}, B::MPO; kwargs...) = fidelity(B, A; kwargs...)
 
 """
     _fidelity(A::Choi, B::LPDO{MPO}; process::Bool = false, kwargs...)
 
 [INTERNAL]: process fidelity between a Choi MPO and a Choi LPDO
 """
-_fidelity(A::Choi, B::LPDO{MPO}; process::Bool = false, kwargs...) = 
-  fidelity(A.X, MPO(B); kwargs...)
+function _fidelity(A::Choi, B::LPDO{MPO}; process::Bool=false, kwargs...)
+  return fidelity(A.X, MPO(B); kwargs...)
+end
 
-_fidelity(A::LPDO{MPO}, B::Choi; kwargs...) = 
-  _fidelity(B, A; kwargs...)
+_fidelity(A::LPDO{MPO}, B::Choi; kwargs...) = _fidelity(B, A; kwargs...)
 
 """
     _fidelity(A::MPO, B::LPDO{MPO}; process::Bool = false, kwargs...)
@@ -176,10 +169,10 @@ _fidelity(A::LPDO{MPO}, B::Choi; kwargs...) =
 If process: fidelity between a unitary MPO and a Choi LPDO
 if not: fidelity between a density  matrix and a LPDO density matrix.
 """
-function _fidelity(A::MPO, B::LPDO{MPO}; process::Bool = false, kwargs...)
+function _fidelity(A::MPO, B::LPDO{MPO}; process::Bool=false, kwargs...)
   A = !process ? A : unitary_mpo_to_choi_mps(A)
   B = !process ? MPO(B) : B
-  return fidelity(A,B; kwargs...)
+  return fidelity(A, B; kwargs...)
 end
 
 """
@@ -187,11 +180,7 @@ end
 
 Quantum fidelity between two LPDO density matrices.
 """
-fidelity(A::LPDO{MPO}, B::LPDO{MPO}; kwargs...) = 
-  fidelity(MPO(A), MPO(B); kwargs...)
-
-
-
+fidelity(A::LPDO{MPO}, B::LPDO{MPO}; kwargs...) = fidelity(MPO(A), MPO(B); kwargs...)
 
 struct ITensorState
   T::ITensor
@@ -203,15 +192,16 @@ end
 
 operator_or_state(A::ITensor) = is_operator(A) ? ITensorOperator(A) : ITensorState(A)
 
-
 """
     fidelity(A::ITensor, B::ITensor)
 
 Compute the quantum fidelity between two ITensors. Wrap each one in the ITensorState
 and the ITensorOperator according to the index structure to allow dispatch.
 """
-function fidelity(A::ITensor, B::ITensor; process::Bool = false, cutoff::Float64 = 1e-15)
-  return fidelity(operator_or_state(A), operator_or_state(B); process = process, cutoff = cutoff)
+function fidelity(A::ITensor, B::ITensor; process::Bool=false, cutoff::Float64=1e-15)
+  return fidelity(
+    operator_or_state(A), operator_or_state(B); process=process, cutoff=cutoff
+  )
 end
 
 """
@@ -235,16 +225,14 @@ function fidelity(A::ITensorState, B::ITensorOperator; kwargs...)
   return real((dag(A.T') * B.T * A.T)[] / K)
 end
 
-fidelity(A::ITensorOperator, B::ITensorState; kwargs...) = 
-  fidelity(B,A)
-
+fidelity(A::ITensorOperator, B::ITensorState; kwargs...) = fidelity(B, A)
 
 """
     fidelity(A::ITensorOperator, B::ITensorOperator; kwargs...)
 
 Fidelity between two operators. Wrap the Choi type as for the TN (above)
 """
-function fidelity(A::ITensorOperator, B::ITensorOperator; kwargs...) 
+function fidelity(A::ITensorOperator, B::ITensorOperator; kwargs...)
   A = ischoi(A.T) ? Choi(A) : A
   B = ischoi(B.T) ? Choi(B) : B
   return _fidelity(A, B; kwargs...)
@@ -256,26 +244,29 @@ end
 
 Fidelity between a Choi and a unitary
 """
-_fidelity(A::Choi, B::ITensorOperator; cutoff::Float64 = 1e-15, kwargs...) = 
-  fidelity(A.X, choitags(B); cutoff = cutoff, kwargs...)
+function _fidelity(A::Choi, B::ITensorOperator; cutoff::Float64=1e-15, kwargs...)
+  return fidelity(A.X, choitags(B); cutoff=cutoff, kwargs...)
+end
 
-_fidelity(A::ITensorOperator, B::Choi; kwargs...) = 
-  _fidelity(B, A; kwargs...)
+_fidelity(A::ITensorOperator, B::Choi; kwargs...) = _fidelity(B, A; kwargs...)
 
 """
     _fidelity(A::Choi{ITensorOperator}, B::Choi{ITensorOperator}; cutoff::Float64 = 1e-15, kwargs...)
 
 fidelity between two Choi matrices
 """
-_fidelity(A::Choi{ITensorOperator}, B::Choi{ITensorOperator}; cutoff::Float64 = 1e-15, kwargs...) = 
-  _fidelity(A.X, B.X; cutoff = cutoff)
+function _fidelity(
+  A::Choi{ITensorOperator}, B::Choi{ITensorOperator}; cutoff::Float64=1e-15, kwargs...
+)
+  return _fidelity(A.X, B.X; cutoff=cutoff)
+end
 
 """
     _fidelity(A::ITensorOperator, B::ITensorOperator; process::Bool = false, kwargs...)
 
 Fidelity betweeb two operators. If process, change the tags and make the unitary into a state (i.e. vectorization).
 """
-function _fidelity(A::ITensorOperator, B::ITensorOperator; process::Bool = false, kwargs...)
+function _fidelity(A::ITensorOperator, B::ITensorOperator; process::Bool=false, kwargs...)
   a = !process ? A : ITensorState(choitags(A).T)
   b = !process ? B : ITensorState(choitags(B).T)
   return __fidelity(a, b; kwargs...)
@@ -286,36 +277,30 @@ end
 
 Fidelity between two density matrices
 """
-function __fidelity(A::ITensorOperator, B::ITensorOperator; cutoff::Float64 = 1e-15)
+function __fidelity(A::ITensorOperator, B::ITensorOperator; cutoff::Float64=1e-15)
   a = copy(A.T)
   b = copy(B.T)
   @assert order(a) == order(b)
   a ./= tr(a)
   b ./= tr(b)
-  sqrt_a = sqrt_hermitian(a; cutoff = cutoff)
+  sqrt_a = sqrt_hermitian(a; cutoff=cutoff)
   F = product(product(sqrt_a, b), sqrt_a)
-  return real(tr(sqrt_hermitian(F; cutoff = cutoff)))^2
+  return real(tr(sqrt_hermitian(F; cutoff=cutoff)))^2
 end
 
 """
 Dummy function
 """
-__fidelity(A::ITensorState, B::ITensorState; kwargs...) =
-  fidelity(A,B)
-
+__fidelity(A::ITensorState, B::ITensorState; kwargs...) = fidelity(A, B)
 
 """
 Finally, the fidelity between TN and ITensors, which simply convert
 the TN into ITensors and call the ITensors fidelities.
 """
 
-fidelity(M::Union{MPS,MPO,LPDO}, T::ITensor; kwargs...) =
-  fidelity(prod(M), T; kwargs...)
+fidelity(M::Union{MPS,MPO,LPDO}, T::ITensor; kwargs...) = fidelity(prod(M), T; kwargs...)
 
-fidelity(T::ITensor, M::Union{MPS,MPO,LPDO}; kwargs...) =
-  fidelity(M, T; kwargs...)
-
-
+fidelity(T::ITensor, M::Union{MPS,MPO,LPDO}; kwargs...) = fidelity(M, T; kwargs...)
 
 """
     frobenius_distance(ρ::Union{MPO, LPDO}, σ::Union{MPO, LPDO})

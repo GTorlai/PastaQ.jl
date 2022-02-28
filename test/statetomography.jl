@@ -177,7 +177,7 @@ numgradsnll(M::MPS, args...; kwargs...) = numgradsnll(LPDO(M), args...; kwargs..
   @test length(ψ) == N
   logZ = lognorm(ψ)
   localZ = []
-  normalize!(ψ; (localnorms!)=localZ)
+  PastaQ.normalize!(ψ; (localnorms!)=localZ)
   @test logZ ≈ sum(log.(localZ))
   @test norm(ψ) ≈ 1
 end
@@ -196,7 +196,7 @@ end
 
   # 2. Globally normalized
   ψ = randomstate(N; χ=χ)
-  normalize!(ψ)
+  PastaQ.normalize!(ψ)
   @test norm(ψ)^2 ≈ 1
   alg_grad, _ = PastaQ.gradlogZ(ψ)
   num_grad = numgradslogZ(ψ)
@@ -209,7 +209,7 @@ end
   num_grad = numgradslogZ(ψ)
 
   localnorms = []
-  normalize!(ψ; (localnorms!)=localnorms)
+  PastaQ.normalize!(ψ; (localnorms!)=localnorms)
   @test norm(ψ) ≈ 1
   alg_grad, _ = PastaQ.gradlogZ(ψ; localnorms=localnorms)
   for j in 1:N
@@ -234,7 +234,7 @@ end
 
   # 2. Globally normalized
   ψ = randomstate(N; χ=χ)
-  normalize!(ψ)
+  PastaQ.normalize!(ψ)
   num_grad = numgradsnll(ψ, data)
   alg_grad, loss = PastaQ.gradnll(ψ, data)
   for j in 1:N
@@ -245,7 +245,7 @@ end
   ψ = randomstate(N; χ=χ)
   num_grad = numgradsnll(ψ, data)
   localnorms = []
-  normalize!(ψ; (localnorms!)=localnorms)
+  PastaQ.normalize!(ψ; (localnorms!)=localnorms)
   @test norm(ψ) ≈ 1
   alg_grad_localnorm, loss = PastaQ.gradnll(ψ, data; localnorms=localnorms)
   for j in 1:N
@@ -276,7 +276,7 @@ end
 
   # 2. Globally normalized
   ψ = randomstate(N; χ=χ)
-  normalize!(ψ)
+  PastaQ.normalize!(ψ)
   num_gradZ = numgradslogZ(ψ)
   num_gradNLL = numgradsnll(ψ, data)
   num_grads = num_gradZ + num_gradNLL
@@ -297,7 +297,7 @@ end
   num_grads = num_gradZ + num_gradNLL
 
   localnorms = []
-  normalize!(ψ; (localnorms!)=localnorms)
+  PastaQ.normalize!(ψ; (localnorms!)=localnorms)
   NLL = PastaQ.nll(ψ, data)
   ex_loss = NLL
   @test norm(ψ)^2 ≈ 1
@@ -319,7 +319,7 @@ end
   @test length(ρ) == N
   logZ = logtr(ρ)
   localZ = []
-  normalize!(ρ; (sqrt_localnorms!)=localZ)
+  PastaQ.normalize!(ρ; (sqrt_localnorms!)=localZ)
   @test logZ ≈ 2.0 * sum(log.(localZ))
   @test tr(ρ) ≈ 1
 end
@@ -345,7 +345,7 @@ end
 
   # 2. Globally normalized
   ρ = randomstate(N; mixed=true, χ=χ, ξ=ξ)
-  normalize!(ρ)
+  PastaQ.normalize!(ρ)
   @test tr(ρ) ≈ 1
   alg_grad, _ = PastaQ.gradlogZ(ρ)
   num_grad = numgradslogZ(ρ)
@@ -364,7 +364,7 @@ end
   num_grad = numgradslogZ(ρ)
 
   sqrt_localnorms = []
-  normalize!(ρ; (sqrt_localnorms!)=sqrt_localnorms)
+  PastaQ.normalize!(ρ; (sqrt_localnorms!)=sqrt_localnorms)
   @test tr(ρ) ≈ 1
   alg_grad, _ = PastaQ.gradlogZ(ρ; sqrt_localnorms=sqrt_localnorms)
 
@@ -404,7 +404,7 @@ end
 
   ## 2. Globally normalized
   ρ = randomstate(N; mixed=true, χ=χ, ξ=ξ)
-  normalize!(ρ)
+  PastaQ.normalize!(ρ)
   num_grad = numgradsnll(ρ, data)
   alg_grad, loss = PastaQ.gradnll(ρ, data)
 
@@ -421,7 +421,7 @@ end
   ρ = randomstate(N; mixed=true, χ=χ, ξ=ξ)
   num_grad = numgradsnll(ρ, data)
   sqrt_localnorms = []
-  normalize!(ρ; (sqrt_localnorms!)=sqrt_localnorms)
+  PastaQ.normalize!(ρ; (sqrt_localnorms!)=sqrt_localnorms)
   @test tr(ρ) ≈ 1
   alg_grad, loss = PastaQ.gradnll(ρ, data; sqrt_localnorms=sqrt_localnorms)
   alg_gradient = permutedims(ITensors.array(alg_grad[1]), [3, 1, 2])
@@ -433,5 +433,3 @@ end
   alg_gradient = permutedims(ITensors.array(alg_grad[N]), [3, 1, 2])
   @test alg_gradient ≈ num_grad[N] rtol = 1e-3
 end
-
-

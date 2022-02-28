@@ -96,4 +96,3 @@ function qubits(sites::Vector{<:Index}, states::Vector{String}; mixed::Bool=fals
   mixed && return MPO(ψ)
   return ψ
 end
-

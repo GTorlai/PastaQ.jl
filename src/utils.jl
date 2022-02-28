@@ -1,8 +1,8 @@
 # TODO: turn this into an ITensors.jl function `originalsiteinds`
 # that generically returns the site indices that would be used to
 # make an object of the same type with the same indices.
-hilbertspace(M::MPS)  = siteinds(first, M; plev=0)
-hilbertspace(M::MPO)  = dag.(siteinds(first, M; plev=0))
+hilbertspace(M::MPS) = siteinds(first, M; plev=0)
+hilbertspace(M::MPO) = dag.(siteinds(first, M; plev=0))
 hilbertspace(L::LPDO) = dag.(siteinds(first, L.X; plev=0, tags=!purifier_tags(L)))
 
 """
@@ -142,7 +142,7 @@ function ischoi(M::LPDO{MPO})
   return true
 end
 
-function ischoi(M::MPO) 
+function ischoi(M::MPO)
   !haschoitags(M) && return false
   for j in 1:length(M)
     length(inds(M[j], "Site")) != 4 && return false
@@ -151,7 +151,6 @@ function ischoi(M::MPO)
 end
 
 ischoi(M::ITensor) = haschoitags(M)
-
 
 """
     haschoitags(L::LPDO)
@@ -175,7 +174,7 @@ end
 function haschoitags(M::ITensor)
   N = nsites(M)
   for j in 1:N
-    !(hastags(M,"Input,n=$j") && hastags(M,"Output,n=$j")) && return false
+    !(hastags(M, "Input,n=$j") && hastags(M, "Output,n=$j")) && return false
   end
   return true
 end
@@ -206,8 +205,7 @@ function choitags(T::ITensor)
   return noprime(T)
 end
 
-choitags(O::ITensorOperator) = 
-  ITensorState(choitags(O.T))
+choitags(O::ITensorOperator) = ITensorState(choitags(O.T))
 
 """
     mpotags(U::MPO)
@@ -237,9 +235,8 @@ mpotags(M::Union{MPS,MPO}) = mpotags(LPDO(M)).X
 Transforms a unitary MPO into a Choi MPS with appropriate tags.
 """
 unitary_mpo_to_choi_mps(U::MPO) = convert(MPS, choitags(U))
-unitary_mpo_to_choi_mps(T::ITensor) = choitags(T) 
+unitary_mpo_to_choi_mps(T::ITensor) = choitags(T)
 unitary_mpo_to_choi_mps(L::LPDO{MPO}) = unitary_mpo_to_choi_mps(L.X)
-
 
 """
     unitary_mpo_to_choi_mpo(U::MPO)
@@ -265,20 +262,17 @@ Inverse of `unitary_mpo_to_choi_mps`.
 choi_mps_to_unitary_mpo(Ψ::MPS) = mpotags(convert(MPO, Ψ))
 choi_mps_to_unitary_mpo(L::LPDO{MPS}) = choi_mps_to_unitary_mpo(L.X)
 
-
 function nsites(T::ITensor)
-  s1 = inds(T,tags="Site,n=1")
+  s1 = inds(T; tags="Site,n=1")
   # Wavefunction
   if length(s1) == 1 || length(s1) == 2
-    return length(inds(T,plev=0))
-  # Choi matrix
+    return length(inds(T; plev=0))
+    # Choi matrix
   elseif length(s1) == 4
-    return length(inds(T,plev=0)) ÷ 2
+    return length(inds(T; plev=0)) ÷ 2
   else
     error("Indices not recognized")
   end
 end
 
-nsites(M::Union{MPS,MPO,LPDO}) = 
-  length(M)
-
+nsites(M::Union{MPS,MPO,LPDO}) = length(M)

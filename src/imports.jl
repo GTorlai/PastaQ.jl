@@ -9,11 +9,11 @@ import ITensors:
   noise,
   dag
 
-import LinearAlgebra: normalize!, tr, norm
+import LinearAlgebra: tr, norm
 
-import SCS
+using SCS: SCS
 
-import Convex
+using Convex: Convex
 
 import Optimisers.state as optimizerstate
 

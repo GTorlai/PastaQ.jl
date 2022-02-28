@@ -11,7 +11,7 @@ export
   qft,
   ghz,
   dag,
-  
+
   # circuits/trottersuzuki.jl
   trottercircuit,
 
@@ -29,10 +29,10 @@ export
   randombases,
   fullpreparations,
   randompreparations,
-  
+
   # noise.jl
   insertnoise,
-  
+
   # productstates.jl
   qubits,
   qudits,
@@ -50,7 +50,6 @@ export
 
   # lpdo.jl
   LPDO,
-  normalize!,
   logtr,
   tr,
 

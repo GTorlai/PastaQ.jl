@@ -1,7 +1,7 @@
 name = "PastaQ"
 uuid = "30b07047-aa8b-4c78-a4e8-24d720215c19"
 authors = ["Giacomo Torlai <gttorlai@amazon.com>", "Matthew Fishman <mfishman@flatironinstitute.org>"]
-version = "0.0.16"
+version = "0.0.17"
 
 [deps]
 Convex = "f65535da-76fb-5f13-bab9-19810c17039a"
@@ -22,7 +22,7 @@ Convex = "0.14.16"
 HDF5 = "0.13.1, 0.14, 0.15"
 ITensors = "0.1.41, 0.2"
 JLD2 = "0.4.14"
-Observers = "0.0.3"
+Observers = "0.0.6"
 Optimisers = "0.1.0"
 SCS = "0.7.1"
 StatsBase = "0.33"

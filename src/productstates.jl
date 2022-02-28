@@ -8,15 +8,13 @@
 
 qubits(N::Int) = siteinds("Qubit", N)
 
-qudits(N::Int; dim::Int = 3) = siteinds("Qudit",N; dim = dim)
-
+qudits(N::Int; dim::Int=3) = siteinds("Qudit", N; dim=dim)
 
 #
 # State-like gates, used to define product input states
 #
 
 # TODO: add an arbitrary state specified by angles
-
 
 state(sn::String) = state(StateName(sn))
 state(sn::String, dim::Int) = state(StateName(sn), dim)
@@ -52,7 +50,6 @@ state(::StateName"Z+") = [
   0
 ]
 
-
 state(::StateName"Z-") = [
   0
   1
@@ -65,26 +62,24 @@ state(::StateName"1") = state("Z-")
 
 state(::StateName"T1") = state("Z+")
 state(::StateName"T2") = [
-  1/√3
-  √2/√3
+  1 / √3
+  √2 / √3
 ]
 state(::StateName"T3") = [
-  1/√3
-  √2/√3 * exp(im*2π/3)
+  1 / √3
+  √2 / √3 * exp(im * 2π / 3)
 ]
 state(::StateName"T4") = [
-  1/√3
-  √2/√3 * exp(im*4π/3)
+  1 / √3
+  √2 / √3 * exp(im * 4π / 3)
 ]
-
 
 function state(::StateName{N}, dim::Int) where {N}
   n = parse(Int, String(N))
-  st = zeros(Int64,dim)
+  st = zeros(Int64, dim)
   st[n + 1] = 1
   return st
 end
-
 
 """
     productstate(N::Int)
@@ -95,9 +90,9 @@ end
 Initialize qubits to an MPS wavefunction in the 0 state (`|ψ⟩ = |0⟩ ⊗ |0⟩ ⊗ …`).
 """
 # TODO: add dimension to use qudit instead of qubit
-function productstate(N::Int; dim::Int = 2, sitetype::String = "Qubit")
-  dim > 2 && return productstate(siteinds("Qudit", N; dim = dim))
-  return productstate(siteinds(sitetype,N))
+function productstate(N::Int; dim::Int=2, sitetype::String="Qubit")
+  dim > 2 && return productstate(siteinds("Qudit", N; dim=dim))
+  return productstate(siteinds(sitetype, N))
 end
 
 productstate(sites::Vector{<:Index}) = productMPS(sites, "0")
@@ -120,8 +115,8 @@ productstate(M::Union{MPS,MPO,LPDO}) = productstate(hilbertspace(M))
 Initialize the qubits to a given product state, where the state `T` can be specified either
 with a Vector of states specified as Strings or bit values (0 and 1).
 """
-function productstate(N::Int, states::Vector; dim::Int = 2, sitetype::String = "Qubit")
-  dim > 2 && return productstate(siteinds("Qudit", N; dim = dim), states)
+function productstate(N::Int, states::Vector; dim::Int=2, sitetype::String="Qubit")
+  dim > 2 && return productstate(siteinds("Qudit", N; dim=dim), states)
   return productstate(siteinds(sitetype, N), states)
 end
 
@@ -152,12 +147,11 @@ end
 
 Initialize an MPO that is a product of identity operators.
 """
-function productoperator(N::Int; dim::Int = 2, sitetype::String = "Qubit")
-  dim > 2 && return productoperator(siteinds("Qudit", N; dim = dim))
+function productoperator(N::Int; dim::Int=2, sitetype::String="Qubit")
+  dim > 2 && return productoperator(siteinds("Qudit", N; dim=dim))
   return productoperator(siteinds(sitetype, N))
 end
 
 productoperator(M::Union{MPS,MPO,LPDO}) = productoperator(hilbertspace(M))
 
 productoperator(sites::Vector{<:Index}) = MPO([op("Id", s) for s in sites])
-
