@@ -17,8 +17,8 @@ using Random
   ρ1 = runcircuit(sites, circuit1; noise=("DEP", (p=0.01,)))
   ρ2 = runcircuit(sites, circuit2; noise=("DEP", (p=0.01,)))
   # LPDO density matrix
-  ϱ1 = normalize!(randomstate(sites; χ = 2, ξ = 3))
-  ϱ2 = normalize!(randomstate(sites; χ = 2, ξ = 3))
+  ϱ1 = PastaQ.normalize!(randomstate(sites; χ = 2, ξ = 3))
+  ϱ2 = PastaQ.normalize!(randomstate(sites; χ = 2, ξ = 3))
 
   ψ1vec = PastaQ.array(ψ1)
   ρ1mat = PastaQ.array(ρ1)
@@ -86,13 +86,13 @@ end
   ρ1 = MPO(ϱ1) 
   ρ2 = MPO(ϱ2)
 
-  ψ1vec = PastaQ.array(normalize!(copy(ψ1)))
-  ρ1mat = PastaQ.array(normalize!(copy(ρ1)))  
-  ϱ1mat = PastaQ.array(normalize!(copy(ϱ1)))
+  ψ1vec = PastaQ.array(PastaQ.normalize!(copy(ψ1)))
+  ρ1mat = PastaQ.array(PastaQ.normalize!(copy(ρ1)))  
+  ϱ1mat = PastaQ.array(PastaQ.normalize!(copy(ϱ1)))
 
-  ψ2vec = PastaQ.array(normalize!(copy(ψ2)))
-  ρ2mat = PastaQ.array(normalize!(copy(ρ2)))
-  ϱ2mat = PastaQ.array(normalize!(copy(ϱ2)))
+  ψ2vec = PastaQ.array(PastaQ.normalize!(copy(ψ2)))
+  ρ2mat = PastaQ.array(PastaQ.normalize!(copy(ρ2)))
+  ϱ2mat = PastaQ.array(PastaQ.normalize!(copy(ϱ2)))
 
   @test fidelity(ψ1, ψ2) ≈ abs2(ψ1vec' * ψ2vec)
   @test fidelity(ψ1, ρ2) ≈ ψ1vec' * ρ2mat * ψ1vec
@@ -151,12 +151,12 @@ end
   ρ1 = PastaQ.choimatrix(sites, circuit1; noise=("DEP", (p=0.01,)))
   ρ2 = PastaQ.choimatrix(sites, circuit2; noise=("DEP", (p=0.01,)))
   # LPDO Choi matrix
-  ϱ1 = normalize!(randomprocess(sites; mixed=true))
-  ϱ2 = normalize!(randomprocess(sites; mixed=true))
+  ϱ1 = PastaQ.normalize!(randomprocess(sites; mixed=true))
+  ϱ2 = PastaQ.normalize!(randomprocess(sites; mixed=true))
 
   @disable_warn_order begin
     ϕ1 = PastaQ.unitary_mpo_to_choi_mps(U1)
-    normalize!(ϕ1)
+    PastaQ.normalize!(ϕ1)
     ϕ1vec = PastaQ.array(ϕ1)
     ρ1mat = PastaQ.array(ρ1)
     ρ1mat = ρ1mat / tr(ρ1mat)
@@ -164,7 +164,7 @@ end
     ϱ1mat = ϱ1mat / tr(ϱ1mat)
     
     ϕ2 = PastaQ.unitary_mpo_to_choi_mps(U2)
-    normalize!(ϕ2)
+    PastaQ.normalize!(ϕ2)
     ϕ2vec = PastaQ.array(ϕ2)
     ρ2mat = PastaQ.array(ρ2)
     ρ2mat = ρ2mat / tr(ρ2mat)
@@ -221,13 +221,13 @@ end
 
   @disable_warn_order begin
     ϕ1 = PastaQ.unitary_mpo_to_choi_mps(U1)
-    normalize!(ϕ1)
+    PastaQ.normalize!(ϕ1)
     ϕ1vec = PastaQ.array(ϕ1)
     ϱ1mat = PastaQ.array(ϱ1)
     ϱ1mat = ϱ1mat / tr(ϱ1mat)
     
     ϕ2 = PastaQ.unitary_mpo_to_choi_mps(U2)
-    normalize!(ϕ2)
+    PastaQ.normalize!(ϕ2)
     ϕ2vec = PastaQ.array(ϕ2)
     ϱ2mat = PastaQ.array(ϱ2)
     ϱ2mat = ϱ2mat / tr(ϱ2mat)
