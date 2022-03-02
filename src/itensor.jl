@@ -128,5 +128,4 @@ function expect(T₀::ITensor, ops::AbstractString...; kwargs...)
 end
 
 @non_differentiable ITensors.name(::Any)
-inner(ϕ::ITensor, ψ::ITensor) = (dag(ϕ) * ψ)[]
 

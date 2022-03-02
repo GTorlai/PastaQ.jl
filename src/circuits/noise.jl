@@ -98,7 +98,6 @@ function insertnoise(circuit::Vector{<:Vector{<:Any}}, noisemodel::Tuple; gate =
   max_g_size = maxgatesize(circuit) 
   numqubits = nqubits(circuit)
   
-  check_inds = siteinds("Qubit", numqubits)
   # single noise model for all
   if noisemodel[1] isa String
     tmp = []

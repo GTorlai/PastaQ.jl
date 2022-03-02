@@ -114,12 +114,12 @@ function design_matrix(probs::AbstractDict; process::Bool = false, return_probs:
   A = []
   p̂ = []
   n = first(keys(probs))
-  q = siteind("Qubit")
+  st = SiteType("Qubit")
   for (basis, projectors) in probs
     for (outcome,probability) in projectors
       Π_list = []
       for j in 1:length(outcome)
-        g = 0.5 * (array(gate("Id", q) + (1-2*outcome[j]) * gate(basis[j], q)))
+        g = 0.5 * (gate("Id", st) + (1-2*outcome[j]) * gate(basis[j], st))
         Πj = process && isodd(j) ? g' : g 
         push!(Π_list,Πj)
       end

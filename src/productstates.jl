@@ -19,7 +19,7 @@ qudits(d⃗::Vector; kwargs...) =
 # TODO: add an arbitrary state specified by angles
 
 
-state(sn::String, i::Index) = state(i, sn)
+#state(sn::String, i::Index) = state(i, sn)
 
 #state(sn::String) = state(StateName(sn))
 #state(sn::String, dim::Int) = state(StateName(sn), dim)
