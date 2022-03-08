@@ -12,48 +12,6 @@ qudits(N::Int; dim::Int = 3, kwargs...) = siteinds("Qudit",N; dim = dim, kwargs.
 
 qudits(d⃗::Vector; kwargs...) = 
   [addtags.(siteind("Qudit"; dim = d⃗[i]), "n = $i") for i in 1:length(d⃗)]
-#
-# State-like gates, used to define product input states
-#
-
-# TODO: add an arbitrary state specified by angles
-
-
-#state(sn::String, i::Index) = state(i, sn)
-
-#state(sn::String) = state(StateName(sn))
-#state(sn::String, dim::Int) = state(StateName(sn), dim)
-#
-#function state(sn::String, i::Index)
-#  st = hastags(i, "Qubit") ? state(sn) : state(sn, dim(i))
-#  return ITensors.itensor(st, i)
-#end
-#
-## SIC-POVMs
-#
-#state(::StateName"T1") = state("Z+")
-#state(::StateName"T2") = [
-#  1/√3
-#  √2/√3
-#]
-#state(::StateName"T3") = [
-#  1/√3
-#  √2/√3 * exp(im*2π/3)
-#]
-#state(::StateName"T4") = [
-#  1/√3
-#  √2/√3 * exp(im*4π/3)
-#]
-#
-#
-#function state(::StateName{N}, dim::Int) where {N}
-#  n = parse(Int, String(N))
-#  st = zeros(Int64,dim)
-#  st[n + 1] = 1
-#  return st
-#end
-
-
 """
     productstate(N::Int)
     
