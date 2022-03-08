@@ -1,40 +1,52 @@
 function gate(::GateName"pauli_channel", ::SiteType"Qubit", s::Index...; 
               pauli_ops = ["Id","X","Y","Z"],
               error_probabilities = prepend!(zeros(length(pauli_ops)^length(dim.(s))-1),1))
-  dims = dim.(s)
-  @assert sum(error_probabilities) ≈ 1
-  @assert all(dims .== 2)
-  N = length(dims)
-  length(error_probabilities) > (1 << 10) && error("Hilbert space too large")
-  error_probabilities ./= sum(error_probabilities)
-  kraus = zeros(Complex{Float64},1<<N,1<<N,length(pauli_ops)^N)
-  krausind = Index(size(kraus, 3); tags="kraus")
-  
-  basis = vec(reverse.(Iterators.product(fill(pauli_ops,N)...)|>collect))
-  for (k,ops) in enumerate(basis)
-    kraus[:,:,k] = √error_probabilities[k] * reduce(kron, [gate(op, SiteType("Qubit")) for op in ops]) 
+  @ignore_derivatives begin
+    dims = dim.(s)
+    @assert sum(error_probabilities) ≈ 1
+    @assert all(dims .== 2)
+    N = length(dims)
+    length(error_probabilities) > (1 << 10) && error("Hilbert space too large")
+    error_probabilities ./= sum(error_probabilities)
+    kraus = zeros(Complex{Float64},1<<N,1<<N,length(pauli_ops)^N)
+    krausind = Index(size(kraus, 3); tags="kraus")
+    
+    basis = vec(reverse.(Iterators.product(fill(pauli_ops,N)...)|>collect))
+    for (k,ops) in enumerate(basis)
+      kraus[:,:,k] = √error_probabilities[k] * reduce(kron, [gate(op, SiteType("Qubit")) for op in ops]) 
+    end
+    return ITensors.itensor(kraus, prime.(s)..., ITensors.dag.(s)..., krausind)
   end
-  return ITensors.itensor(kraus, prime.(s)..., ITensors.dag.(s)..., krausind)
 end
 
 is_single_qubit_noise(::GateName"pauli_channel") = false
 
 
 
-# why not passing the t here again
-gate(::GateName"bit_flip", st::SiteType"Qubit", s::Index...; p::Number = 0.0) = 
-  gate(GateName("pauli_channel"), st, s...; error_probabilities = prepend!(p/(2^length(dim.(s))-1) * ones(2^length(dim.(s))-1), 1-p), pauli_ops = ["Id","X"])
+function gate(::GateName"bit_flip", st::SiteType"Qubit", s::Index...; p::Number = 0.0) 
+  @ignore_derivatives begin
+    error_probabilities = prepend!(p/(2^length(dim.(s))-1) * ones(2^length(dim.(s))-1), 1-p)
+    return gate(GateName("pauli_channel"), st, s...; error_probabilities = error_probabilities, pauli_ops = ["Id","X"])
+  end
+end
 is_single_qubit_noise(::GateName"bit_flip") = false
 
-gate(::GateName"phase_flip", st::SiteType"Qubit", s::Index...; p::Number = 0.0) = 
-  gate(GateName("pauli_channel"), st, s...; error_probabilities = prepend!(p/(2^length(dim.(s))-1) * ones(2^length(dim.(s))-1), 1-p), pauli_ops = ["Id","Z"])
+function gate(::GateName"phase_flip", st::SiteType"Qubit", s::Index...; p::Number = 0.0) 
+  @ignore_derivatives begin
+    error_probabilities = prepend!(p/(2^length(dim.(s))-1) * ones(2^length(dim.(s))-1), 1-p)
+    return gate(GateName("pauli_channel"), st, s...; error_probabilities = error_probabilities, pauli_ops = ["Id","Z"])
+  end
+end
 is_single_qubit_noise(::GateName"phase_flip") = false
 
 
 # make general n-qubit
-gate(::GateName"DEP", st::SiteType"Qubit", s::Index...; p::Number) =
-  gate(GateName("pauli_channel"), st, s...; 
-       error_probabilities = prepend!(p/(4^length(dim.(s))-1) * ones(4^length(dim.(s))-1), 1-p), pauli_ops = ["Id","X","Y","Z"])
+function gate(::GateName"DEP", st::SiteType"Qubit", s::Index...; p::Number)
+  @ignore_derivatives begin
+    error_probabilities = prepend!(p/(4^length(dim.(s))-1) * ones(4^length(dim.(s))-1), 1-p)
+    gate(GateName("pauli_channel"), st, s...; error_probabilities = error_probabilities, pauli_ops = ["Id","X","Y","Z"])
+  end
+end
 gate(::GateName"depolarizing", st::SiteType"Qubit", s::Index...; kwargs...) = 
   gate(GateName("DEP"), st, s...; kwargs...)
 is_single_qubit_noise(::GateName"DEP") = false
@@ -42,17 +54,19 @@ is_single_qubit_noise(::GateName"depolarizing") = false
 
 
 function gate(::GateName"AD", ::SiteType"Qubit", s::Index...; γ::Real = 0.0)
-  dims = dim.(s)
-  N = length(dims)
-  @assert all(dims .== 2)
-  
-  kraus = zeros(2,2,2)
-  kraus[:,:,1] = [1 0
-                  0 sqrt(1-γ)]
-  kraus[:,:,2] = [0 sqrt(γ)
-                  0 0]
-  krausind = Index(size(kraus, 3); tags="kraus")
-  return ITensors.itensor(kraus, prime.(s)..., ITensors.dag.(s)..., krausind)
+  @ignore_derivatives begin
+    dims = dim.(s)
+    N = length(dims)
+    @assert all(dims .== 2)
+    
+    kraus = zeros(2,2,2)
+    kraus[:,:,1] = [1 0
+                    0 sqrt(1-γ)]
+    kraus[:,:,2] = [0 sqrt(γ)
+                    0 0]
+    krausind = Index(size(kraus, 3); tags="kraus")
+    return ITensors.itensor(kraus, prime.(s)..., ITensors.dag.(s)..., krausind)
+  end
 end
 
 gate(::GateName"amplitude_damping", st::SiteType"Qubit", s::Index...; kwargs...) = 
@@ -63,17 +77,19 @@ is_single_qubit_noise(::GateName"amplitude_damping") = true
 
 
 function gate(::GateName"PD", ::SiteType"Qubit", s::Index...; γ::Real)
-  dims = dim.(s)
-  N = length(dims)
-  @assert all(dims .== 2)
-  kraus = zeros(2,2,2)
-  kraus[:,:,1] = [1 0
-                  0 sqrt(1-γ)]
-  kraus[:,:,2] = [0 0
-                  0 sqrt(γ)]
+  @ignore_derivatives begin
+    dims = dim.(s)
+    N = length(dims)
+    @assert all(dims .== 2)
+    kraus = zeros(2,2,2)
+    kraus[:,:,1] = [1 0
+                    0 sqrt(1-γ)]
+    kraus[:,:,2] = [0 0
+                    0 sqrt(γ)]
 
-  krausind = Index(size(kraus, 3); tags="kraus")
-  ITensors.itensor(kraus, prime.(s)..., ITensors.dag.(s)..., krausind)
+    krausind = Index(size(kraus, 3); tags="kraus")
+    return ITensors.itensor(kraus, prime.(s)..., ITensors.dag.(s)..., krausind)
+  end
 end
 
 gate(::GateName"phase_damping", st::SiteType"Qubit", s::Index...; kwargs...) = 
@@ -94,16 +110,15 @@ function insertnoise(circuit::Vector{<:Vector{<:Any}}, noisemodel::Tuple; gate =
   if noisemodel[1] isa String
     tmp = []
     for k in 1:max_g_size
-      push!(tmp, k => noisemodel)
+      tmp = vcat(tmp,  k => noisemodel)
     end
     noisemodel = Tuple(tmp)
   end
-  
   noisycircuit = []
   for layer in circuit
     noisylayer = []
     for g in layer
-      push!(noisylayer, g)
+      noisylayer = vcat(noisylayer, [g])
       applynoise = (isnothing(gate) ? true : 
                     gate isa String ? g[1] == gate : g[1] in gate)
       if applynoise
@@ -113,25 +128,25 @@ function insertnoise(circuit::Vector{<:Vector{<:Any}}, noisemodel::Tuple; gate =
           gatenoiseindex = findfirst(x -> x == length(nq), first.(noisemodel))
           isnothing(gatenoiseindex) && error("Noise model not defined for $(length(nq))-qubit gates!")
           gatenoise = last(noisemodel[gatenoiseindex])
-          
+          noisecheck = is_single_qubit_noise(GateName(gatenoise[1]))  
           if length(nq) > 1 && is_single_qubit_noise(GateName(gatenoise[1]))
-            @warn "Noise model not defined for $(length(nq))-qubit gates! Applying tensor-product noise instead."
+            @ignore_derivatives @warn "Noise model not defined for $(length(nq))-qubit gates! Applying tensor-product noise instead."
             for j in nq
-              push!(noisylayer,(gatenoise[1], j, gatenoise[2]))
+              noisylayer = vcat(noisylayer, [(gatenoise[1], j, gatenoise[2])])
             end
           else
-            push!(noisylayer,(gatenoise[1], nq, gatenoise[2]))
+            noisylayer = vcat(noisylayer, [(gatenoise[1], nq, gatenoise[2])])
           end
         # 1-qubit gate
         else
           gatenoiseindex = findfirst(x -> x == 1, first.(noisemodel))
           isnothing(gatenoiseindex) && error("Noise model not defined for 1-qubit gates!")
           gatenoise = last(noisemodel[gatenoiseindex])
-          push!(noisylayer, (gatenoise[1], nq, gatenoise[2]))  
+          noisylayer = vcat(noisylayer, [(gatenoise[1], nq, gatenoise[2])])
         end
       end
     end
-    push!(noisycircuit, noisylayer)
+    noisycircuit = vcat(noisycircuit, [noisylayer])
   end
   return noisycircuit
 end
@@ -152,63 +167,3 @@ end
 maxgatesize(circuit::Vector{<:Any}) = 
   maxgatesize([circuit])
 
-#function gate(::GateName"pauli_channel", ::SiteType"Qubit", N::Int; 
-#                pauli_ops = ["Id","X","Y","Z"],
-#                error_probabilities = prepend!(zeros(length(pauli_ops)^N-1),1)) 
-#  @assert sum(error_probabilities) ≈ 1
-#  length(error_probabilities) > (1 << 10) && error("Hilbert space too large")
-#  error_probabilities ./= sum(error_probabilities)
-#  kraus = zeros(Complex{Float64},1<<N,1<<N,length(pauli_ops)^N)
-#  krausind = Index(size(kraus, 3); tags="kraus")
-#  
-#  basis = vec(reverse.(Iterators.product(fill(pauli_ops,N)...)|>collect))
-#  for (k,ops) in enumerate(basis)
-#    kraus[:,:,k] = √error_probabilities[k] * reduce(kron, [gate(op, SiteType("Qubit")) for op in ops]) 
-#  end
-#  return kraus
-#end
-#
-#gate(gn::GateName"bit_flip", st::SiteType"Qubit", N::Int; p::Number = 0.0) = 
-#  gate(GateName("pauli_channel"), st, N; error_probabilities = prepend!(p/(2^N-1) * ones(2^N-1), 1-p), pauli_ops = ["Id","X"])
-#
-#gate(gn::GateName"phase_flip", st::SiteType"Qubit", N::Int; p::Number = 0.0) = 
-#  gate(GateName("pauli_channel"), st, N; error_probabilities = prepend!(p/(2^N-1) * ones(2^N-1), 1-p), pauli_ops = ["Id","Z"])
-#
-## make general n-qubit
-#gate(::GateName"DEP", st::SiteType"Qubit", N::Int; p::Number) =
-#  gate(GateName("pauli_channel"), st, N; error_probabilities = prepend!(p/(4^N-1) * ones(4^N-1), 1-p), pauli_ops = ["Id","X","Y","Z"])
-#
-#gate(::GateName"depolarizing", st::SiteType"Qubit", N::Int; kwargs...) = 
-#  gate(GateName("DEP"), st, N; kwargs...)
-#
-#function gate(::GateName"AD", ::SiteType"Qubit", N::Int; γ::Real = 0.0)
-#  kraus = zeros(2,2,2)
-#  kraus[:,:,1] = [1 0
-#                  0 sqrt(1-γ)]
-#  kraus[:,:,2] = [0 sqrt(γ)
-#                  0 0]
-#  return kraus
-#end
-#
-#gate(::GateName"amplitude_damping", t::SiteType"Qubit", N::Int; kwargs...) = 
-#  gate(GateName("AD"), t, N; kwargs...)
-#
-#
-#function gate(::GateName"PD", ::SiteType"Qubit", N::Int; γ::Real)
-#  kraus = zeros(2,2,2)
-#  kraus[:,:,1] = [1 0
-#                  0 sqrt(1-γ)]
-#  kraus[:,:,2] = [0 0
-#                  0 sqrt(γ)]
-#
-#  return kraus
-#end
-#
-#gate(::GateName"phase_damping", st::SiteType"Qubit", N::Int; kwargs...) = 
-#  gate(GateName("PD"), st, N; kwargs...)
-#gate(::GateName"dephasing", st::SiteType"Qubit", N::Int; kwargs...) = 
-#  gate(GateName("PD"), st, N; kwargs...)
-#
-#
-#gate(::GateName{gn}, ::SiteType{st}, N::Int; kwargs...) where{gn,st} = nothing
-#

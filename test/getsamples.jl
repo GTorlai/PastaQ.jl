@@ -64,7 +64,7 @@ end
   data_prob = empiricalprobability(samples)
   @test probs ≈ data_prob atol = 1e-2
   
-  ρ = runcircuit(N, gates; noise=("amplitude_damping", (γ=0.01,)))
+  ρ = runcircuit(N, gates; noise=("depolarizing", (p=0.01,)))
   ρ_mat = PastaQ.array(ρ)
   probs = real(diag(ρ_mat))
 
@@ -150,14 +150,14 @@ end
   ntrial = 100
   gates = randomcircuit(N; depth =  4, layered=false)
 
-  Λ = runcircuit(N, gates; process=true, noise=("amplitude_damping", (γ=0.1,)))
+  Λ = runcircuit(N, gates; process=true, noise=("depolarizing", (p=0.1,)))
 
   bases = randombases(N, ntrial)
   preps = PastaQ.randompreparations(N, ntrial)
   for n in 1:ntrial
     mgates = PastaQ.measurementgates(bases[n, :])
     ψ_in = productstate(N, preps[n, :])
-    ρ_out = runcircuit(ψ_in, gates; noise=("amplitude_damping", (γ=0.1,)))
+    ρ_out = runcircuit(ψ_in, gates; noise=("depolarizing", (p=0.1,)))
 
     Λ_out = PastaQ.projectchannel(Λ, preps[n, :])
     @test PastaQ.array(ρ_out) ≈ PastaQ.array(Λ_out) atol = 1e-6
@@ -174,14 +174,14 @@ end
   gates = randomcircuit(N; depth =  4, layered=false)
 
   @disable_warn_order begin
-    Λ = runcircuit(N, gates; process=true, noise=("amplitude_damping", (γ=0.1,)), full_representation = true)
+    Λ = runcircuit(N, gates; process=true, noise=("depolarizing", (p=0.1,)), full_representation = true)
 
     bases = randombases(N, ntrial)
     preps = PastaQ.randompreparations(N, ntrial)
     for n in 1:ntrial
       mgates = PastaQ.measurementgates(bases[n, :])
       ψ_in = productstate(N, preps[n, :])
-      ρ_out = runcircuit(ψ_in, gates; noise=("amplitude_damping", (γ=0.1,)))
+      ρ_out = runcircuit(ψ_in, gates; noise=("depolarizing", (p=0.1,)))
 
       Λ_out = PastaQ.projectchannel(Λ, preps[n, :])
       @test PastaQ.array(ρ_out) ≈ PastaQ.array(Λ_out) atol = 1e-6
@@ -204,7 +204,7 @@ end
   
   # quantum states
   ψ = runcircuit(N, circuit)
-  ρ = runcircuit(N, circuit; noise=("amplitude_damping", (γ=0.1,)))
+  ρ = runcircuit(N, circuit; noise=("depolarizing", (p=0.1,)))
   
   nbases = 11
   bases = randombases(N, nbases)
@@ -232,7 +232,7 @@ end
   
   # ITensors quantum states
   ψ = runcircuit(N, circuit; full_representation = true)
-  ρ = runcircuit(N, circuit; noise=("amplitude_damping", (γ=0.1,)), full_representation = true)
+  ρ = runcircuit(N, circuit; noise=("depolarizing", (p=0.1,)), full_representation = true)
   
   nbases = 11
   bases = randombases(N, nbases)
@@ -266,7 +266,7 @@ end
   
   # quantum processes
   U = runcircuit(N, circuit; process = true)
-  Λ = runcircuit(N, circuit; noise=("amplitude_damping", (γ=0.1,)), process = true)
+  Λ = runcircuit(N, circuit; noise=("depolarizing", (p=0.1,)), process = true)
   
   npreps = 5
   nbases = 7
@@ -326,7 +326,7 @@ end
 
   # full representation
   U = runcircuit(N, circuit; process = true, full_representation = true)
-  Λ = runcircuit(N, circuit; noise=("amplitude_damping", (γ=0.1,)), process = true,full_representation = true)
+  Λ = runcircuit(N, circuit; noise=("depolarizing", (p=0.1,)), process = true,full_representation = true)
   
   npreps = 5
   nbases = 7
