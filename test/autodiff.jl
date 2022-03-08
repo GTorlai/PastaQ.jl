@@ -34,7 +34,7 @@ function finite_difference(f, A, B, pars)
   end
 end
 
-@testset "fidelity optimization: 1-qubit & 2-qubit gates" begin 
+@testset "fidelity optimization with MPS" begin 
   Random.seed!(1234)
   N = 4
   
@@ -72,7 +72,7 @@ end
   finite_difference(f, ψ, ϕ, pars)
 end
 
-@testset "fidelity optimization w MPO & apply_dag = true: 1-qubit & 2-qubit gates" begin 
+@testset "fidelity optimization w MPO & apply_dag = true" begin 
   Random.seed!(1234)
   N = 4
   q = qubits(N)
@@ -109,6 +109,47 @@ end
   pars = [θ⃗, ϕ⃗]
   
   finite_difference(f, prod(ρ), prod(ϕ), pars)
+  finite_difference(f, ρ, ϕ, pars)
+  
+end
+
+@testset "fidelity optimization w MPO & apply_dag = false" begin 
+  Random.seed!(1234)
+  N = 4
+  q = qubits(N)
+  
+  Rylayer(θ⃗) = [("Ry", (n,), (θ=θ⃗[n],)) for n in 1:N]
+  Rxlayer(θ⃗) = [("Rx", (n,), (θ=θ⃗[n],)) for n in 1:N]
+  RYYlayer(ϕ⃗) = [("RYY", (n, n + 1), (ϕ = ϕ⃗[n],)) for n in 1:(N÷2)]
+  RXXlayer(ϕ⃗) = [("RXX", (n, n + 1), (ϕ = ϕ⃗[n],)) for n in 1:(N÷2)]
+  
+  
+  # The variational circuit we want to optimize
+  function variational_circuit(pars)
+    θ⃗, ϕ⃗ = pars
+    return [Rylayer(θ⃗);
+            Rxlayer(ϕ⃗); 
+            Rylayer(ϕ⃗);
+            Rxlayer(θ⃗);
+            RXXlayer(θ⃗[1:N÷2]);
+            RYYlayer(ϕ⃗[1:N÷2])]
+  end
+  
+  function f(ρ, ϕ, pars)
+    circuit = variational_circuit(pars)
+    U = buildcircuit(q, circuit)
+    ρθ = runcircuit(ρ, U; apply_dag = false)
+    return real(inner(ϕ', ρθ, ϕ))   
+  end
+
+  ψ = randomstate(q; χ = 10, normalize = true)
+  ρ = outer(ψ, ψ)
+  ϕ = randomstate(q; χ = 10, normalize = true)
+  
+  θ⃗ = 2π .* rand(N)
+  ϕ⃗ = 2π .* rand(N)
+  pars = [θ⃗, ϕ⃗]
+  #finite_difference(f, prod(ρ), prod(ϕ), pars)
   finite_difference(f, ρ, ϕ, pars)
   
 end
