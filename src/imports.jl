@@ -19,7 +19,6 @@ import ITensors:
   op
 
 import LinearAlgebra: 
-  normalize!, 
   tr, 
   norm
 

@@ -56,7 +56,6 @@ export
 
   # lpdo.jl
   LPDO,
-  normalize!,
   logtr,
   tr,
 
