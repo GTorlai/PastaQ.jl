@@ -149,11 +149,10 @@ end
   θ⃗ = 2π .* rand(N)
   ϕ⃗ = 2π .* rand(N)
   pars = [θ⃗, ϕ⃗]
-  #finite_difference(f, prod(ρ), prod(ϕ), pars)
+  finite_difference(f, prod(ρ), prod(ϕ), pars)
   finite_difference(f, ρ, ϕ, pars)
   
 end
-
 
 
 @testset "rayleigh_quotient" begin 
@@ -256,7 +255,7 @@ end
     U = buildcircuit(q, circuit)
     ρθ = runcircuit(ρ₀, U; apply_dag = true)
     X = replaceprime(ρθ' * O, 2 => 1)
-    return real(tr(X))
+    return real(tr(ρθ' * O; plev = 2 => 0))
   end
   f3_eval = f3(pars)
   f3_grad = f3'(pars)
@@ -264,89 +263,59 @@ end
   @test f2_eval ≈ f3_eval
   @test f1_grad ≈ f2_grad
   @test f2_grad ≈ f3_grad
-
   noisemodel = ("depolarizing", (p = 0.1,))
   function f(ρ₀, O, pars)
     circuit = variational_circuit(pars)
     circuit = insertnoise(circuit, noisemodel)
     U = buildcircuit(q, circuit)
     ρθ = runcircuit(ρ₀, U; apply_dag = true)
-    X = replaceprime(ρθ' * O, 2 => 1)
-    return real(tr(X))
+    return real(tr(ρθ' * O; plev = 2 => 0))
   end
+  #finite_difference(f, prod(ρ₀), prod(O), pars)
   finite_difference(f, ρ₀, O, pars)
 end
 
 
-#@testset "fidelity optimization - Trotter circuit" begin
-#  N = 4
-#  
-#  function hamiltonian(θ)
-#    H = Tuple[]
-#    for j in 1:N-1
-#      H = vcat(H, [(1.0, "ZZ", (j,j+1))])
-#    end
-#    for j in 1:N
-#      H = vcat(H, [(θ[j], "X", j)])
-#    end
-#    return H
-#  end
-#
-#  # ITensor
-#  Random.seed!(1234)
-#  θ = rand(N)
-#  
-#  #q = qubits(N)
-#  #ψ = prod(productstate(q))
-#  #ϕ = (N == 1) ? prod(productstate(q, [1])) : prod(runcircuit(q, randomcircuit(N; depth = 2)))
-#  #
-#  #ts = 0:0.1:1.0
-#  #f = function (θ)
-#  #  H = hamiltonian(θ)
-#  #  circuit = trottercircuit(H; ts = ts)
-#  #  U = buildcircuit(q, circuit)
-#  #  ψθ = runcircuit(ψ, U)
-#  #  return abs2(inner(ϕ, ψθ))
-#  #end
-#
-#  ## XXX: swap this in
-#  ##test_rrule(ZygoteRuleConfig(), f, θ...; rrule_f=rrule_via_ad, check_inferred=false)
-#  #∇ad = f'(θ)
-#  #ϵ = 1e-5
-#  #for k in 1:length(θ)
-#  #  θ[k] += ϵ
-#  #  f₊ = f(θ)
-#  #  θ[k] -= 2*ϵ
-#  #  f₋ = f(θ)
-#  #  ∇num = (f₊ - f₋)/(2ϵ)
-#  #  θ[k] += ϵ
-#  #  @test ∇ad[k] ≈ ∇num atol = 1e-6 
-#  #end
-#  
-#  q = qubits(N)
-#  ψ = productstate(q)
-#  ϕ = (N == 1) ? productstate(q, [1]) : runcircuit(q, randomcircuit(N; depth = 2))
-#  
-#  ts = 0:0.1:1.0
-#  f = function (θ)
-#    H = hamiltonian(θ)
-#    circuit = trottercircuit(H; ts = ts)
-#    U = buildcircuit(q, circuit)
-#    ψθ = runcircuit(ψ, U)
-#    return abs2(inner(ϕ, ψθ))
-#  end
-#
-#  # XXX: swap this in
-#  #test_rrule(ZygoteRuleConfig(), f, θ...; rrule_f=rrule_via_ad, check_inferred=false)
-#  ∇ad = f'(θ)
-#  ϵ = 1e-5
-#  for k in 1:length(θ)
-#    θ[k] += ϵ
-#    f₊ = f(θ)
-#    θ[k] -= 2*ϵ
-#    f₋ = f(θ)
-#    ∇num = (f₊ - f₋)/(2ϵ)
-#    θ[k] += ϵ
-#    @test ∇ad[k] ≈ ∇num atol = 1e-6 
-#  end
-#end
+@testset "fidelity optimization - Trotter circuit" begin
+  N = 4
+  
+  import PastaQ:gate 
+  @eval gate(::GateName"ZZ") = kron(gate("Z", SiteType("Qubit")), gate("Z", SiteType("Qubit")))
+  function hamiltonian(θ)
+    H = Tuple[]
+    for j in 1:N-1
+      H = vcat(H, [(1.0, "ZZ", (j,j+1))])
+    end
+    for j in 1:N
+      H = vcat(H, [(θ[j], "X", j)])
+    end
+    return H
+  end
+
+  function variationalcircuit(θ)
+    circuit = Tuple[]
+    for j in 1:N-1
+      circuit = vcat(circuit, [("ZZ", (j, j+1))])
+    end
+    for j in 1:N
+      circuit = vcat(circuit, [(x -> θ[j] * x, "X", j)])
+    end
+    return circuit
+  end
+  # ITensor
+  Random.seed!(1234)
+  pars = rand(N)
+  ts = 0:0.1:1.0
+  function f(ψ, ϕ, θ)
+    H = hamiltonian(θ)
+    circuit = trottercircuit(H; ts = ts)
+    ψθ = runcircuit(ψ, circuit)
+    return abs2(inner(ϕ, ψθ))
+  end
+  q = qubits(N)
+  ψ = productstate(q)
+  ϕ = randomstate(q; χ = 10, normalize = true)
+  H = hamiltonian(pars)
+  circuit = trottercircuit(H; ts = ts) 
+  finite_difference(f, ψ, ϕ, pars)
+end

@@ -27,8 +27,8 @@ function trotter1(H::Vector{<:Tuple}, δτ::Number)
   layer = Tuple[]
   for k in 1:length(H)
     length(H[k]) > 3 && error("Only the format (coupling, opname, support) currently allowed")
-    coupling, localop, support = H[k]
-    layer = vcat(layer, [(localop, support, (f = x -> exp(-δτ * coupling * x),))]) 
+    coupling, Hdata... = H[k]
+    layer=vcat(layer,[(x -> exp(-δτ * coupling * x), Hdata...)]) 
   end
   return layer 
 end

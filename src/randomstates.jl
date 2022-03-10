@@ -367,11 +367,11 @@ function randomprocess(ElT::Type{<:Number}, T::Type, sites::Vector{<:Index}; kwa
   end
   if normalize
     if M isa MPO
-      Φ = normalize!(unitary_mpo_to_choi_mps(M))
+      Φ = PastaQ.normalize!(unitary_mpo_to_choi_mps(M))
       Φ = Φ * √2^length(M)
       M = choi_mps_to_unitary_mpo(Φ)
     else
-      normalize!(M; localnorm = 2)
+      PastaQ.normalize!(M; localnorm = 2)
     end
   end
   return M

@@ -6,6 +6,7 @@ export
   inner, 
   rayleigh_quotient,
   expect,
+  dag,
 
   # circuits/circuits.jl
   randomlayer,
@@ -13,18 +14,13 @@ export
   randomcircuit,
   qft,
   ghz,
-  dag,
-  
+
   # circuits/trottersuzuki.jl
   trottercircuit,
 
   # circuits/coherentcontrol.jl
   optimize!,
   
-  # circuits/variationalcircuit.jl
-  variationalgate,
-  variationalcircuit,
-
   # circuits/gates.jl
   # Methods
   gate,
@@ -74,18 +70,12 @@ export
   tomography,
 
   # measurements.jl
-  measure,
   entanglemententropy,
 
   # distances.jl
   fidelity,
   fidelity_bound,
   frobenius_distance,
-
-  # observer.jl
-  Observer,
-  save,
-  results,
 
   # inputoutput.jl
   writesamples,

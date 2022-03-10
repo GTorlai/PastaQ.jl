@@ -666,20 +666,23 @@ end
 end
 
 
-#@testset "function applied to a gate" begin
-#  s = siteinds("Qubit", 2)
-#  
-#  θ = 0.1
-#  rx = array(gate("Rx", s[1]; θ = 0.1))
-#  exp_rx = exp(rx)
-#  gtest = gate(x -> exp(x), "Rx",s[1]; θ = 0.1)
-#  @test PastaQ.array(gtest) ≈ exp_rx
-#  
-#  cx = 0.1*reshape(array(gate("CX", s[1], s[2])),(4,4))
-#  exp_cx = exp(cx)
-#  gtest = gate(x -> exp(0.1*x), "CX",s[1],s[2])
-#  @test PastaQ.array(gtest) ≈ exp_cx
-#end
+@testset "function applied to a gate" begin
+  s = siteinds("Qubit", 2)
+  
+  θ = 0.1
+  rx = array(gate("Rx", s[1]; θ = 0.1))
+  exp_rx = exp(rx)
+  gtest = gate(x -> exp(x), "Rx",s[1]; θ = 0.1)
+  @test exp_rx ≈ array(gate(x -> exp(x), "Rx",s[1]; θ = 0.1))
+  @test exp_rx ≈ array(gate(x -> exp(x), ("Rx", 1, (θ = 0.1,)), s))
+  @test exp_rx ≈ array(gate((x -> exp(x), ("Rx", 1, (θ = 0.1,))), s))
+  
+  cx = 0.1*reshape(array(gate("CX", s[1], s[2])),(4,4))
+  exp_cx = reshape(exp(cx),(2,2,2,2))
+  @test exp_cx ≈ array(gate(x -> exp(0.1*x), "CX", s[1], s[2]))
+  @test exp_cx ≈ array(gate(x -> exp(0.1*x), ("CX", (1,2)), s))
+  @test exp_cx ≈ array(gate((x -> exp(0.1*x), ("CX", (1,2))), s))
+end
 
 
 

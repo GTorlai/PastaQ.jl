@@ -10,7 +10,7 @@ macro GateName_str(s)
 end
 const gate = op
 
-#
+
 # Random Haard unitary:
 # 
 # Reference: http://math.mit.edu/~edelman/publications/random_matrix_theory.pdf
