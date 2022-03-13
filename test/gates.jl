@@ -644,25 +644,24 @@ end
   cx = reshape(array(gate("CX", s[1], s[2])),(4,4))
   
   G = cx * cx * cx
-  gtest = gate("CX*CX*CX", s[1],s[2])
+  gtest = gate("CX * CX * CX", s[1],s[2])
   @test PastaQ.array(gtest) ≈ G 
   
-  # XXX: feature + not currently available
-  #G = array(gate("S", s[1])) + array(gate("T", s[1])) 
-  #gtest = gate("S + T", s[1])
-  #@test PastaQ.array(gtest) ≈ G
-  #
-  #G = array(gate("S", s[1])) + array(gate("T", s[1]))  * array(gate("X",s[1]))
-  #gtest = gate("S + T * X", s[1])
-  #@test PastaQ.array(gtest) ≈ G
-  #
-  #G = array(gate("S", s[1])) + array(gate("T", s[1]))  * array(gate("X",s[1])) * array(gate("Y",s[1]))
-  #gtest = gate("S + T * X * Y", s[1])
-  #@test PastaQ.array(gtest) ≈ G
-  #
-  #G = array(gate("Z", s[1])) * array(gate("S", s[1])) + array(gate("T", s[1]))  * array(gate("X",s[1])) * array(gate("Y",s[1]))
-  #gtest = gate("Z*S + T * X * Y", s[1])
-  #@test PastaQ.array(gtest) ≈ G
+  G = array(gate("S", s[1])) + array(gate("T", s[1])) 
+  gtest = gate("S + T", s[1])
+  @test PastaQ.array(gtest) ≈ G
+  
+  G = array(gate("S", s[1])) + array(gate("T", s[1]))  * array(gate("X",s[1]))
+  gtest = gate("S + T * X", s[1])
+  @test PastaQ.array(gtest) ≈ G
+  
+  G = array(gate("S", s[1])) + array(gate("T", s[1]))  * array(gate("X",s[1])) * array(gate("Y",s[1]))
+  gtest = gate("S + T * X * Y", s[1])
+  @test PastaQ.array(gtest) ≈ G
+  
+  G = array(gate("Z", s[1])) * array(gate("S", s[1])) + array(gate("T", s[1]))  * array(gate("X",s[1])) * array(gate("Y",s[1]))
+  gtest = gate("Z * S + T * X * Y", s[1])
+  @test PastaQ.array(gtest) ≈ G
 end
 
 
@@ -675,13 +674,11 @@ end
   gtest = gate(x -> exp(x), "Rx",s[1]; θ = 0.1)
   @test exp_rx ≈ array(gate(x -> exp(x), "Rx",s[1]; θ = 0.1))
   @test exp_rx ≈ array(gate(x -> exp(x), ("Rx", 1, (θ = 0.1,)), s))
-  @test exp_rx ≈ array(gate((x -> exp(x), ("Rx", 1, (θ = 0.1,))), s))
   
   cx = 0.1*reshape(array(gate("CX", s[1], s[2])),(4,4))
   exp_cx = reshape(exp(cx),(2,2,2,2))
   @test exp_cx ≈ array(gate(x -> exp(0.1*x), "CX", s[1], s[2]))
   @test exp_cx ≈ array(gate(x -> exp(0.1*x), ("CX", (1,2)), s))
-  @test exp_cx ≈ array(gate((x -> exp(0.1*x), ("CX", (1,2))), s))
 end
 
 

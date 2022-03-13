@@ -276,46 +276,46 @@ end
 end
 
 
-@testset "fidelity optimization - Trotter circuit" begin
-  N = 4
-  
-  import PastaQ:gate 
-  @eval gate(::GateName"ZZ") = kron(gate("Z", SiteType("Qubit")), gate("Z", SiteType("Qubit")))
-  function hamiltonian(θ)
-    H = Tuple[]
-    for j in 1:N-1
-      H = vcat(H, [(1.0, "ZZ", (j,j+1))])
-    end
-    for j in 1:N
-      H = vcat(H, [(θ[j], "X", j)])
-    end
-    return H
-  end
-
-  function variationalcircuit(θ)
-    circuit = Tuple[]
-    for j in 1:N-1
-      circuit = vcat(circuit, [("ZZ", (j, j+1))])
-    end
-    for j in 1:N
-      circuit = vcat(circuit, [(x -> θ[j] * x, "X", j)])
-    end
-    return circuit
-  end
-  # ITensor
-  Random.seed!(1234)
-  pars = rand(N)
-  ts = 0:0.1:1.0
-  function f(ψ, ϕ, θ)
-    H = hamiltonian(θ)
-    circuit = trottercircuit(H; ts = ts)
-    ψθ = runcircuit(ψ, circuit)
-    return abs2(inner(ϕ, ψθ))
-  end
-  q = qubits(N)
-  ψ = productstate(q)
-  ϕ = randomstate(q; χ = 10, normalize = true)
-  H = hamiltonian(pars)
-  circuit = trottercircuit(H; ts = ts) 
-  finite_difference(f, ψ, ϕ, pars)
-end
+#@testset "fidelity optimization - Trotter circuit" begin
+#  N = 4
+#  
+#  import PastaQ:gate 
+#  @eval gate(::GateName"ZZ") = kron(gate("Z", SiteType("Qubit")), gate("Z", SiteType("Qubit")))
+#  function hamiltonian(θ)
+#    H = Tuple[]
+#    for j in 1:N-1
+#      H = vcat(H, [(1.0, "ZZ", (j,j+1))])
+#    end
+#    for j in 1:N
+#      H = vcat(H, [(θ[j], "X", j)])
+#    end
+#    return H
+#  end
+#
+#  function variationalcircuit(θ)
+#    circuit = Tuple[]
+#    for j in 1:N-1
+#      circuit = vcat(circuit, [("ZZ", (j, j+1))])
+#    end
+#    for j in 1:N
+#      circuit = vcat(circuit, [(x -> θ[j] * x, "X", j)])
+#    end
+#    return circuit
+#  end
+#  # ITensor
+#  Random.seed!(1234)
+#  pars = rand(N)
+#  ts = 0:0.1:1.0
+#  function f(ψ, ϕ, θ)
+#    H = hamiltonian(θ)
+#    circuit = trottercircuit(H; ts = ts)
+#    ψθ = runcircuit(ψ, circuit)
+#    return abs2(inner(ϕ, ψθ))
+#  end
+#  q = qubits(N)
+#  ψ = productstate(q)
+#  ϕ = randomstate(q; χ = 10, normalize = true)
+#  H = hamiltonian(pars)
+#  circuit = trottercircuit(H; ts = ts) 
+#  finite_difference(f, ψ, ϕ, pars)
+#end
