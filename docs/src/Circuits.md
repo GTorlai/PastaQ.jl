@@ -1,7 +1,5 @@
 # Circuit Simulator 
 
-## Initialization
-
 ## Gates and circuits
 
 ```@docs
