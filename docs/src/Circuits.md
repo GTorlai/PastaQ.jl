@@ -2,11 +2,6 @@
 
 ## Initialization
 
-```@docs
-qubits
-resetqubits!
-```
-
 ## Gates and circuits
 
 ```@docs

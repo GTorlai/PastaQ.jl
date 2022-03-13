@@ -359,7 +359,7 @@ If you use PastaQ.jl in your work, for now please consider citing the Github pag
 }
 ```
 
-## Research papers using PastaQ
+## Research papers using PastaQr
 If you used PastaQ.jl and your paper does not appear in this list, please let us know at [info@pastaq.org](mailto:info@pastaq.org).
 
 **2022** </br>
