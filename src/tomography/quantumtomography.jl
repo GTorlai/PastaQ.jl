@@ -66,7 +66,33 @@ function tomography(probabilities::Dict{Tuple,<:Dict}, sites::Vector{<:Index};
   return PastaQ.itensor(ρ̂, sites)
 end
 
+@doc raw"""
+    tomography(data::Matrix{Pair{String, Int}}, sites::Vector{<:Index}; 
+               method::String = "linear_inversion", 
+               fillzeros::Bool = true, 
+               trρ::Number = 1.0,
+               max_iters::Int = 10000,
+               kwargs...)
+  
+    tomography(data::Matrix{Pair{String,Pair{String, Int}}}, sites::Vector{<:Index}; 
+               method::String="linear_inversion", kwargs...)
 
+Run full quantum tomography for a set of input measurement data `data`. If the input data 
+consists of a list of `Pair{String, Int}`, it is interpreted as quantum state tomography. Each
+data point is a single measurement outcome, e.g. `"X" => 1` to refer to a measurement in the `X` basis 
+with binary outcome `1`. If instead the input data is a collection of `Pair{String,Pair{String, Int}}`,
+it is interpreted as quantum process tomography, with each data-point corresponding to having input a 
+given state to the channel, followed by a measurement in a basis, e.g.  `"X+" => ("Z" => 0)` referring to an
+input ``|+\rangle`` state, followed by a measurement in the `Z` basis with outcome `0`.
+
+There are three methods to perform tomography (we show state tomography here as an example):
+1. `method = "linear_inversion"` (or `"LI"`): optimize a variational density matrix ``\rho`` (or Choi matrix)1
+
+
+2. `method = "least_squares"` (or `"LS"`): 
+
+3. `method = "maximum_likelihood"` (or `"ML"`): 
+"""
 tomography(data::Matrix{Pair{String, Int}}; method::String="linear_inversion", fillzeros::Bool=true, kwargs...) = 
   tomography(empirical_probabilities(data; fillzeros=fillzeros), siteinds("Qubit", size(data,2)); method = method, kwargs...)
 
@@ -76,7 +102,10 @@ tomography(data::Matrix{Pair{String, Int}}, sites::Vector{<:Index}; method::Stri
 tomography(data::Matrix{Pair{String,Pair{String, Int}}}; kwargs...) = 
   tomography(data, siteinds("Qubit", size(data,2)); kwargs...)
 
-function tomography(data::Matrix{Pair{String,Pair{String, Int}}}, sites::Vector{<:Index}; method::String="linear_inversion", fillzeros::Bool=true, kwargs...) 
+function tomography(data::Matrix{Pair{String,Pair{String, Int}}}, sites::Vector{<:Index};
+                    method::String="linear_inversion", 
+                    fillzeros::Bool=true, 
+                    kwargs...) 
   sites_in  = addtags.(sites, "Input")
   sites_out = addtags.(sites, "Output")
   process_sites = Index[]
@@ -88,31 +117,66 @@ function tomography(data::Matrix{Pair{String,Pair{String, Int}}}, sites::Vector{
 end
 
 
-
-
-
-
-"""
-    tomography(train_data::Matrix{Pair{String,Pair{String, Int}}}, L::LPDO;
+@doc raw"""
+    tomography(train_data::AbstractMatrix, L::LPDO;
                optimizer::Optimizer,
                observer! = nothing,
-               batchsize::Int64 = 100,
-               epochs::Int64 = 1000,
                kwargs...)
 
-Run quantum process tomography using a variational model `L` to fit `train_data`.
-The model can be either a unitary circuit (MPO) or a Choi matrix (LPDO).
+Run quantum process tomography using a variational model ``L`` to fit `train_data`. Depending
+on the type of `train_data`, run state or process tomography (see full tomography docs for the data format).
 
-# Arguments:
+For quantum state tomography, optimize the average Kullbach-Leibler (KL) divergence for projective
+measurements in a set of bases:
+
+```math
+C(\theta) = -\frac{1}{|D|}\sum_{k=1}^{|D|} \log P(x_k^{(b)})
+```
+where the cost function is computed as 
+```math
+C(\theta) = -\frac{1}{|D|}\sum_{k=1}^{|D|} \log |\langle x_k|U_b|\psi(\theta)\rangle|^2
+```
+for input MPS variational wavefunction, and 
+```math
+C(\theta) = -\frac{1}{|D|}\sum_{k=1}^{|D|} \log \langle x_k|U_b \rho(\theta) U_b^\dagger|x_k\rangle
+```
+for input LPDO variational density operators. Here ``U_b`` is the depth-1 unitary that rotates
+the variational state into the measurement basis ``b`` for outcome ``x^{(b)}``.
+
+
+For quantum process tomography, optimize the  KL divergence for the process probability distribution
+```math
+C(\theta) = -\frac{1}{|D|}\sum_{k=1}^{|D|} \log P(x_k^{(b)}|\xi)
+```
+where ``\xi`` is the input state to the channel. The cost function is computed as
+```math
+C(\theta) = -\frac{1}{|D|}\sum_{k=1}^{|D|} \log |\langle x_k|U_b|\tilde\Phi(\theta)\rangle|^2
+```
+for input MPO variational unitary operator (trated as a MPS ``|\Phi\rangle`` after appropriate
+vectorization), and 
+```math
+C(\theta) = -\frac{1}{|D|}\sum_{k=1}^{|D|} \log \langle x|U_b \tilde\Lambda(\theta) U_b^\dagger|x\rangle
+```
+for input LPDO variational Choi matrix. Here we refer to ``\tilde\Phi`` and ``\tilde\Lambda`` respectively as the
+projection of the unitary operator or Choi matrix into the input state ``|\xi\rangle`` to the channel.
+
+Keyword arguments:
 - `train_data`: pairs of preparation/ (basis/outcome): `("X+"=>"X"=>0, "Z-"=>"Y"=>1, "Y+"=>"Z"=>0, …)`.
- - `L`: variational model (MPO/LPDO).
- - `optimizer`: algorithm used to update the model parameters.
- - `observer!`: if provided, keep track of training metrics.
- - `batch_size`: number of samples used for one gradient update.
- - `epochs`: number of training iterations.
- - `target`: target quantum process (if provided, compute fidelities).
- - `test_data`: data for computing cross-validation.
- - `outputpath`: if provided, save metrics on file.
+- `L`: variational model (MPO/LPDO).
+- `optimizer`: optimizer object for stochastic optimization (from `Optimisers.jl`).
+- `observer!`: if provided, keep track of training metrics (from `Observers.jl`).
+- `batch_size`: number of samples used for one gradient update.
+- `epochs`: number of training iterations.
+- `target`: target quantum state/process for distance measures (e.g. fidelity).
+- `test_data`: data for computing cross-validation.
+- `observer_step = 1`: how often the Observer is called to record measurements.
+- `outputlevel = 1`: amount of information printed on screen during training.
+- `outputpath`: if provided, save metrics on file.
+- `savestate`: if `true`, save the variational state on file.
+- `print_metrics = []`: print these metrics on screen during training.
+- `earlystop`: if `true`, use pre-defined early-stop function. A function can also be passed
+   as `earlystop`, in which case if the function (evaluated at each iteration) returns `true`,
+   the training is halted.
 """
 function tomography(
   train_data::AbstractMatrix, L::LPDO; (observer!)=nothing, kwargs...

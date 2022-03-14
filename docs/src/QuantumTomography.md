@@ -1,16 +1,5 @@
-# Quantum tomography 
-
-## Tomography
+# Quantum Tomography 
 
 ```@docs
 tomography
-split_dataset
-```
-
-## Certification
-
-```@docs
-fidelity
-frobenius_distance
-fidelity_bound
 ```

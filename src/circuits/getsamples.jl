@@ -6,11 +6,12 @@
 --------------------------------------------------------------------------------
 """
 
-"""
-    fullbases(N::Int; local_basis = "Pauli")
+@doc raw"""
+    fullbases(n::Int; local_basis = "Pauli")
 
-Generate the full set of bases for a choice of local single-qubit basis set.
-Predefined option: "Pauli", # bases = 3^N
+Generate the full set of measurement bases for a choice of local single-qubit basis set.
+Predefined option:
++ `local_basis = "Pauli"`: set of ``3^n`` Pauli measurement bases
 """
 function fullbases(N::Int; local_basis = "Pauli")
   local_basis == "Pauli" && (local_basis = ["X","Y","Z"]) 
@@ -23,35 +24,64 @@ function fullbases(N::Int; local_basis = "Pauli")
   return  reduce(hcat, getindex.(B,i) for i in 1:N)
 end
 
-"""
-    fullpreparations(N::Int; local_input_states="Pauli")
+@doc raw"""
+    fullpreparations(n::Int; local_input_states = "Pauli")
 
-Generate the full set of input states to a channel. 
-Predefined option: "Pauli", 6^N
-                   "Tetra", 4^N
+Generate the full set of ``n``-qubit input states built out of a collection of 
+``D=M^n`` states out of ``M`` single-qubit states. Predefined options:
++ `local_input_states = "Pauli"`: ``D=6^n`` Pauli eigenstates
++ `local_input_states = "Tetra"`: ``D=4^n`` 1-qubit SIC-POVM 
 """
 function fullpreparations(N::Int; local_input_states="Pauli")
   if N > 5
     print("The $(N)-qubit set of Pauli eigenstates contains $(6^N) bases.\n This may take a while...\n\n")
   end
-  local_input_states == "Pauli" && (local_input_states = ["X+", "X-", "Y+", "Y-", "Z+", "Z-"])
-  local_input_states == "Tetra" && (local_input_states = ["T1","T2","T3","T4"]) 
+  local_input_states == "Pauli" && (local_input_states = ["X+","X-","Y+","Y-","Z+","Z-"])
+  local_input_states == "Tetra" && (local_input_states = ["Tetra1","Tetra2","Tetra3","Tetra4"]) 
   !(local_input_states isa AbstractArray) && error("States not recognized")
   A = Iterators.product(ntuple(i->local_input_states, N)...) |> collect
   B = reverse.(reshape(A,length(A),1))
   return  reduce(hcat, getindex.(B,i) for i in 1:N)
 end
 
-"""
-    randombases(N::Int, nbases::Int; local_basis = "Pauli")
+@doc raw"""
+    randombases(n::Int, nbases::Int; local_basis = "Pauli")
 
-Generate `nbases` measurement bases. By default, each
-local basis is randomly selected between `["X","Y","Z"]`, with
+Generate `nbases` measurement bases composed by ``n`` single-qubit bases. 
+By default, each local basis is randomly selected between Pauli bases `["X","Y","Z"]`, with
 `"Z"` being the default basis where the quantum state is written.
+
+The measurement bases can also be defined by the user, `local_basis = [O1, O2,...]`, 
+as long as the single-qubit Hermitian operators ``O_j`` are defined.  
 """
 function randombases(N::Int, nbases::Int; local_basis = "Pauli")
   local_basis == "Pauli" && (local_basis = ["X","Y","Z"]) 
   return rand(local_basis, nbases, N)
+end
+
+@doc raw"""
+    randompreparations(n::Int, npreps::Int;
+                       local_input_state = "Pauli")
+
+Generate `npreps` random input states to a quantum circuit. Each ``n``-qubit
+input state is selected according to the following options:
++ `local_input_states = "Pauli"`: ``D=6^n`` Pauli eigenstates
++ `local_input_states = "Tetra"`: ``D=4^n`` 1-qubit SIC-POVM 
+
+The input states can also be set to a user-defined set, 
+`local_input_states = ["A","B","C",...]`, assuming single-qubit states ``|A\rangle``, 
+``|B\rangle`` have been properly defined.
+"""
+function randompreparations(
+  N::Int,
+  npreps::Int;
+  local_input_states= "Pauli", 
+)
+ 
+  local_input_states == "Pauli" && (local_input_states = ["X+", "X-", "Y+", "Y-", "Z+", "Z-"])
+  local_input_states == "Tetra" && (local_input_states = ["T1","T2","T3","T4"]) 
+  # One shot per basis
+  return rand(local_input_states, npreps, N)
 end
 
 """
@@ -75,30 +105,6 @@ function measurementgates(basis::Vector)
     end
   end
   return gate_list
-end
-
-"""
-    randompreparations(N::Int, nshots::Int;
-                       local_input_state = ["X+","X-","Y+","Y-","Z+","Z-"],
-                       ndistinctstates = nothing)
-
-Generate `nshots` input states to a quantum circuit. By default, each
-single-qubit state is randomly selected between the 6 eigenstates of
-the Pauli matrices, `["X+","X-","Y+","Y-","Z+","Z-"]`.
-If `ndistinctstates` is provided, the output consist of `numprep`
-different input states, each being repeated `nshots÷ndistinctstates`
-times.
-"""
-function randompreparations(
-  N::Int,
-  npreps::Int;
-  local_input_states= "Pauli", 
-)
- 
-  local_input_states == "Pauli" && (local_input_states = ["X+", "X-", "Y+", "Y-", "Z+", "Z-"])
-  local_input_states == "Tetra" && (local_input_states = ["T1","T2","T3","T4"]) 
-  # One shot per basis
-  return rand(local_input_states, npreps, N)
 end
 
 """
@@ -132,12 +138,70 @@ end
 --------------------------------------------------------------------------------
 """
 
-"""
+
+@doc raw"""
+    getsamples(M::Union{MPS,MPO}, nshots::Int; kwargs...)
     getsamples(T::ITensor, nshots::Int)
 
-Generate `nshots` projective measurements for an input quantum state `T`,
-which can either be a wavefunction or density matrix (dense).
+Perform `nshots` projective measurements of a wavefunction 
+``|\psi\rangle`` or density operator ``\rho`` in the MPS/MPO reference basis. 
+Each measurement consists of a binary vector ``\sigma = (\sigma_1,\sigma_2,\dots)``, 
+drawn from the probabilty distributions:
+- ``P(\sigma) = |\langle\sigma|\psi\rangle|^2``,   if ``M`` is an `MPS`.
+- ``P(\sigma) = \langle\sigma|\rho|\sigma\rangle``   :  if ``M`` is an `MPO`.
 """
+function getsamples(M0::Union{MPS,MPO}, nshots::Int; kwargs...)
+  nthreads = Threads.nthreads()
+  data = [Vector{Vector{Int64}}(undef, 0) for _ in 1:nthreads]
+  M = orthogonalize!(copy(M0), 1)
+
+  Threads.@threads for j in 1:nshots
+    nthread = Threads.threadid()
+    sample_ = getsamples!(M; kwargs...)
+    push!(data[nthread], sample_)
+  end
+  return permutedims(hcat(vcat(data...)...))
+end
+
+@doc raw"""
+    getsamples(M::Union{MPS,MPO,ITensor}, bases::Matrix::Matrix{<:String}, nshots::int; kwargs...)
+    getsamples(M::Union{MPS,MPO,ITensor}, bases::Vector{<:Vector}, nshots::Int; kwargs...) = 
+
+Generate a set of measurements acccording to a set
+of input `bases`, performing `nshots` measurements per basis. 
+For a single measurement, a depth-1 unitary ``U`` is applied to the input
+state ``M`` according to the `basis`. The probability of recording outcome
+``\sigma = (\sigma_1,\sigma_2,\dots)`` in the basis defined by ``U`` is
+- ``P(\sigma) = |\langle\sigma|U\psi\rangle|^2``,   if ``M`` is an `MPS`.
+- ``P(\sigma) = \langle\sigma|U\rho U^\dagger|\sigma\rangle``,   if ``M`` is an `MPO`.
+"""
+function getsamples(M0::Union{MPS,MPO,ITensor}, bases::Matrix{<:String}, nshots::Int; kwargs...)
+  N = nsites(M0)
+  @assert N == size(bases)[2]
+  nthreads = Threads.nthreads()
+  data = [Vector{Vector{Pair{String,Int}}}(undef, 0) for _ in 1:nthreads]
+  M = copy(M0)
+  !(M isa ITensor) && orthogonalize!(M, 1)
+  
+  Threads.@threads for n in 1:size(bases, 1)
+    nthread = Threads.threadid()
+    meas_gates = measurementgates(bases[n, :])
+    M_meas = runcircuit(M, meas_gates)
+    measurements = getsamples(M_meas, nshots; kwargs...)
+    basisdata = [[bases[n,j] => measurements[k,j] for j in 1:N] for k in 1:nshots]
+    append!(data[nthread], basisdata)
+  end
+  return permutedims(hcat(vcat(data...)...))
+end
+
+getsamples(M::Union{MPS,MPO,ITensor}, bases::Vector{<:Vector}, nshots::Int; kwargs...) = 
+  getsamples(M, permutedims(hcat(bases...)), nshots; kwargs...)
+
+getsamples(M::Union{MPS,MPO,ITensor}, bases::Union{Matrix,Vector{<:Vector}}; kwargs...) = 
+  getsamples(M, bases, 1; kwargs...)
+
+
+
 function getsamples(T::ITensor, nshots::Int; 
     readout_errors = (p1given0 = nothing, p0given1 = nothing))
   
@@ -176,11 +240,8 @@ end
 getsamples(T::ITensor; kwargs...) = 
   vcat(getsamples!(T,1; kwargs...)...)
 
-
 """
-    getsamples!(M::Union{MPS,MPO};
-                readout_errors = (p1given0 = nothing,
-                                  p0given1 = nothing))
+    getsamples!(M::Union{MPS,MPO})
 
 Generate a single projective measurement in the MPS/MPO reference basis.
 If `readout_errors` is non-trivial, readout errors with given probabilities
@@ -201,74 +262,55 @@ function getsamples!(M::Union{MPS,MPO}; readout_errors=(p1given0=nothing, p0give
 end
 
 """
-    PastaQ.getsamples!(M::Union{MPS,MPO}, nshots::Int; kwargs...)
-
-Perform `nshots` projective measurements of a wavefunction 
-`|ψ⟩` or density operator `ρ` in the MPS/MPO reference basis. 
-Each measurement consists of a binary vector `σ = (σ₁,σ₂,…)`, 
-drawn from the probabilty distribution:
-- `P(σ) = |⟨σ|ψ⟩|²`  :  if `M = ψ is MPS`
-- `P(σ) = ⟨σ|ρ|σ⟩`   :  if `M = ρ is MPO`
-"""
-function getsamples(M0::Union{MPS,MPO}, nshots::Int; kwargs...)
-  nthreads = Threads.nthreads()
-  data = [Vector{Vector{Int64}}(undef, 0) for _ in 1:nthreads]
-  M = orthogonalize!(copy(M0), 1)
-
-  Threads.@threads for j in 1:nshots
-    nthread = Threads.threadid()
-    sample_ = getsamples!(M; kwargs...)
-    push!(data[nthread], sample_)
-  end
-  return permutedims(hcat(vcat(data...)...))
-end
-
-"""
-    getsamples(M::Union{MPS,MPO,ITensor}, bases::Matrix; kwargs...)
-
-Generate a dataset of measurements acccording to a set
-of input `bases`, performing `nshots` measurements per basis. 
-For a single measurement, `Û` is the depth-1 
-local circuit rotating each qubit, the  data-point `σ = (σ₁,σ₂,…)`
-is drawn from the probability distribution:
-- `P(σ) = |⟨σ|Û|ψ⟩|²`    :  if `M = ψ is MPS` 
-- `P(σ) = <σ|Û ρ Û†|σ⟩`  :  if `M = ρ is MPO`   
-"""
-function getsamples(M0::Union{MPS,MPO,ITensor}, bases::Matrix{<:String}, nshots::Int; kwargs...)
-  N = nsites(M0)
-  @assert N == size(bases)[2]
-  nthreads = Threads.nthreads()
-  data = [Vector{Vector{Pair{String,Int}}}(undef, 0) for _ in 1:nthreads]
-  M = copy(M0)
-  !(M isa ITensor) && orthogonalize!(M, 1)
-  
-  Threads.@threads for n in 1:size(bases, 1)
-    nthread = Threads.threadid()
-    meas_gates = measurementgates(bases[n, :])
-    M_meas = runcircuit(M, meas_gates)
-    measurements = getsamples(M_meas, nshots; kwargs...)
-    basisdata = [[bases[n,j] => measurements[k,j] for j in 1:N] for k in 1:nshots]
-    append!(data[nthread], basisdata)
-  end
-  return permutedims(hcat(vcat(data...)...))
-end
-
-getsamples(M::Union{MPS,MPO,ITensor}, bases::Vector{<:Vector}, nshots::Int; kwargs...) = 
-  getsamples(M, permutedims(hcat(bases...)), nshots; kwargs...)
-
-getsamples(M::Union{MPS,MPO,ITensor}, bases::Union{Matrix,Vector{<:Vector}}; kwargs...) = 
-  getsamples(M, bases, 1; kwargs...)
-
-
-
-
-"""
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
                             PROCESS TOMOGRAPHY DATA                                -
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 """
+
+
+@doc raw"""
+    getsamples(
+      M::Union{LPDO,MPO,ITensor},
+      preps::Matrix,
+      bases::Matrix,
+      nshots::Int;
+      kwargs...
+    )
+
+Generate a set of process measurement data acccording to a set
+of input states `preps` and measurement `bases`, performing `nshots` measurements per configuration. 
+For a single measurement, the input state ``|\phi\rangle`` is evolved according to the channel ``M``,
+and then measured in a given measurement basis. The probability that the final state returns outcome
+``\sigma = (\sigma_1,\sigma_2,\dots)`` in the basis defined by ``U`` is given by 
+
+```math
+P(\sigma|\phi) = \text{Tr}\big[(\rho_\phi^T\otimes 1)\Lambda_{M} \big]
+```
+where ``\rho_\phi = |\phi\rangle\langle\phi|`` and ``\Lambda_M`` is the Choi matrix.
+"""
+function getsamples(
+  M0::Union{LPDO,MPO,ITensor},
+  preps::Matrix,
+  bases::Matrix,
+  nshots::Int;
+  kwargs...
+)
+  
+  N = nsites(M0)
+  npreps = size(preps, 1)
+  nbases = size(bases, 1)
+  ntotal = npreps * nbases
+
+  preps_and_bases = Matrix{Pair{String,String}}(undef, 0, N)
+  for p in 1:npreps
+    x = [preps[p,:] .=> bases[b,:] for b in 1:nbases]
+    preps_and_bases = vcat(preps_and_bases, permutedims(hcat(x...))) 
+  end
+  return getsamples(M0, preps_and_bases, nshots; kwargs...) 
+end
+
 
 
 """
@@ -315,7 +357,6 @@ projectchannel(M::Union{MPO,ITensor}, prep::AbstractArray) =
 
 
 
-
 function getsamples(
   M0::Union{LPDO,MPO,ITensor},
   preps_and_bases::Matrix{<:Pair},
@@ -351,33 +392,9 @@ function getsamples(
   return vcat(data...)
 end
 
-
-function getsamples(
-  M0::Union{LPDO,MPO,ITensor},
-  preps::Matrix,
-  bases::Matrix,
-  nshots::Int;
-  kwargs...
-)
-  
-  N = nsites(M0)
-  npreps = size(preps, 1)
-  nbases = size(bases, 1)
-  ntotal = npreps * nbases
-
-  preps_and_bases = Matrix{Pair{String,String}}(undef, 0, N)
-  for p in 1:npreps
-    x = [preps[p,:] .=> bases[b,:] for b in 1:nbases]
-    preps_and_bases = vcat(preps_and_bases, permutedims(hcat(x...))) 
-  end
-  return getsamples(M0, preps_and_bases, nshots; kwargs...) 
-end
-
 getsamples(M::Union{LPDO,MPO, ITensor}, preps::Vector{<:Vector}, bases::Vector{<:Vector}, nshots::Int; kwargs...) = 
   getsamples(M, permutedims(hcat(preps...)), permutedims(hcat(bases...)), nshots; kwargs...)
 
 getsamples(M::Union{LPDO,MPO, ITensor}, preps::Union{Matrix,Vector{<:Vector}}, bases::Union{Matrix,Vector{<:Vector}}; kwargs...) = 
   getsamples(M, preps, bases, 1; kwargs...)
-
-
 

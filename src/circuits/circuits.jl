@@ -20,10 +20,10 @@ ngates(circuit::Vector{<:Vector{<:Any}}) = length(vcat(circuit...))
 --------------------------------------------------------------------------------
 """
 
-"""
-    qft(N::Int; inverse::Bool = false)
+@doc raw"""
+    qft(n::Int; inverse::Bool = false)
 
-Generate a list of gates for the quantum fourier transform circuit on `N` sites.
+Generate a list of gates for the quantum fourier transform circuit on ``n`` qubits.
 """
 function qft(N::Int; inverse::Bool=false)
   circuit = []
@@ -48,18 +48,16 @@ function qft(N::Int; inverse::Bool=false)
   return circuit
 end
 
-"""
-    ghz(N::Int)
+@doc raw"""
+    ghz(n::Int)
 
-Generate a list of gates for the GHZ state
+Generate a list of gates for the GHZ state.
 
-ψ = (|0,0,…,0⟩ + |1,1,…,1⟩)/√2
+``|\psi\rangle = (|0,0,\dots,0\rangle + |1,1,\dots,1\rangle)/\sqrt{2}``
 """
 function ghz(N::Int)
-  #gates = Tuple[("H",1)]
   circuit = []
   push!(circuit, ("H", 1))
-  #gates = [[("H",1)...],[("CX",(1,2))...]]
   for j in 1:(N - 1)
     push!(circuit, ("CX", (j, j + 1)))
   end
@@ -74,24 +72,46 @@ end
 --------------------------------------------------------------------------------
 """
 
-"""
-    gatelayer(gatename::AbstractString, N::Int; kwargs...)
+@doc raw"""
+    gatelayer(gatename::AbstractString, n::Int; kwargs...)
 
-Create a uniform layer containing `N` identical quantum gates, idenfitied by
+Create a uniform layer containing `n` identical quantum gates, idenfitied by
 `gatename`. If additional parameteres are provided, they are identically added to all gates.
+
+```julia
+gatelayer("H",3)
+# 3-element Vector{Tuple{String, Int64}}:
+#  ("H", 1)
+#  ("H", 2)
+#  ("H", 3)
+
+gatelayer("X",1:2:5)
+# 3-element Vector{Tuple{String, Int64}}:
+#  ("X", 1)
+#  ("X", 3)
+#  ("X", 5)
+```
 """
 function gatelayer(
-  gatename::AbstractString, support::Union{Vector{<:Int},AbstractRange}; kwargs...
+  gatename::AbstractString, support::Union{Vector{<:Int}, AbstractRange}; kwargs...
 )
   return [isempty(kwargs) ? (gatename, n) : (gatename, n, values(kwargs)) for n in support]
 end
 
 gatelayer(gatename::AbstractString, N::Int; kwargs...) = gatelayer(gatename, 1:N; kwargs...)
 
-"""
-    gatelayer(bonds::Vector{Vector{Int}}, gatename::AbstractString)
+@doc raw"""
+    gatelayer(gatename::AbstractString, bonds::Vector{Vector{Int}}; kwargs...)
 
 Create a uniform layer of multi-qubit gates over a set of `bonds`.
+
+```julia
+gatelayer("CX", [(j,j+1), j=1:2:5])
+# 3-element Vector{Tuple{String, Tuple{Int64, Int64}}}:
+#  ("CX", (1, 2))
+#  ("CX", (3, 4))
+#  ("CX", (5, 6))
+```
 """
 function gatelayer(gatename::AbstractString, bonds::Vector{<:Tuple}; kwargs...)
   return [
@@ -108,14 +128,26 @@ end
 --------------------------------------------------------------------------------
 """
 
-"""
-    randomlayer(gatename::AbstractString, support::Union{Int,Vector{<:Vector{Int}}}; rng = Random.GLOBAL_RNG) 
 
-Generate a random layer built out of a set one or two qubit gates If `support::Int = N`, generates 
-`N` single-qubit gates `gatename`. If `support::Vector=bonds`, generates a set of two-qubit
+@doc raw"""
+    randomlayer(
+      gatename::AbstractString, 
+      support::Union{Int, Vector{<:Tuple}, AbstractRange}; 
+      rng = Random.GLOBAL_RNG,
+      kwargs...
+    ) 
+
+Generate a random layer built out of a set one or two qubit gates If `support::Int = n`, generates 
+``n`` single-qubit gates `gatename`. If `support::Vector=bonds`, generates a set of two-qubit
 gates on the couplings contained in `support`.
+```julia
+randomlayer("Ry", 3)
+# 3-element Vector{Any}:
+#  ("Ry", 1, (θ = 0.5029516521736083,))
+#  ("Ry", 2, (θ = 2.5324545964433693,))
+#  ("Ry", 3, (θ = 2.0510824561219523,))
+```
 """
-
 function randomlayer(
   gatename::AbstractString,
   support::Union{Vector{<:Int},Vector{<:Tuple},AbstractRange};
@@ -136,16 +168,26 @@ function randomlayer(gatename::AbstractString, support::Int; kwargs...)
   return randomlayer(gatename, 1:support; kwargs...)
 end
 
-"""
-    randomlayer(gatenames::Vector{<:AbstractString}, support::Union{Int,Vector{<:Vector{Int}}}; 
-                rng = Random.GLOBAL_RNG, 
-                weights::Union{Nothing,Vector{Float64}} = ones(length(gatenames))/length(gatenames))
+@doc raw"""
+    randomlayer(
+      gatenames::Vector{<:AbstractString},
+      support::Union{Vector{<:Int}, AbstractRange, Vector{<:Tuple}};
+      rng=Random.GLOBAL_RNG,
+      weights::Union{Nothing,Vector{Float64}} = ones(length(gatenames)) / length(gatenames),
+      kwargs...,
+    ) 
 
 Generate a random layer built out of one or two qubit gates, where `gatenames` is a set of possible
 gates to choose from. By default, each single gate is sampled uniformaly over this set. If `weights`
 are provided, each gate is sampled accordingly.
+```julia
+randomlayer(["X","Y","Z"], 3)
+# 3-element Vector{Any}:
+#  ("Y", 1)
+#  ("Y", 2)
+#  ("X", 3)
+```
 """
-
 function randomlayer(
   gatenames::Vector{<:AbstractString},
   support::Union{Vector{<:Int}, AbstractRange, Vector{<:Tuple}};
@@ -168,15 +210,23 @@ function randomlayer(gatenames::Vector{<:AbstractString}, support::Int; kwargs..
   return randomlayer(gatenames, 1:support; kwargs...)
 end
 
-"""
-   randomcircuit(N::Int, depth::Int, coupling_sequence::Vector{<:Vector{<:Any}};
-                 twoqubitgates::Union{String,Vector{String}} = "Haar",
-                 onequbitgates::Union{Nothing,String,Vector{String}} = nothing,
-                 layered::Bool = true,
-                 rng = Random.GLOBAL_RNG)
-  
 
-Build a random quantum circuit with `N` qubits and depth `depth`.
+
+@doc raw"""
+    randomcircuit(
+      coupling_sequence::Vector;
+      depth::Int = 1,
+      twoqubitgates::Union{String,Vector{String}}="RandomUnitary",
+      onequbitgates::Union{Nothing,String,Vector{String}}=nothing,
+      layered::Bool=true,
+      rng=Random.GLOBAL_RNG)
+
+Build a circuit with given `depth`, where each layer consists of a set of 
+two-qubit gates applied on pairs of qubits in according to a set of `coupling_sequences`. Each layer also contains ``n`` single-qubit gates. IN both cases, the chosen gates are passed as keyword arguments `onequbitgates` and `twoqubitgates`. 
+
+The default configurations consists of two-qubit random Haar unitaries, and no single-qubit gates. 
+
+If `layered = true`, the object returned in a `Vector` of circuit layers, rather than the full collection  of quantum gates.
 """
 function randomcircuit(
   coupling_sequence::Vector;
@@ -213,19 +263,34 @@ function randomcircuit(
   return vcat(circuit...)
 end
 
-"""
-    randomcircuit(N::Int, depth::Int; kwargs...)
+@doc raw"""
+    randomcircuit(n::Int; kwargs...)
 
-Generate a 1D random quantum circuit
+One-dimensional random quantum circuit:
+```julia
+randomcircuit(4; depth = 2, twoqubitgates = "CX", onequbitgates = "Ry")
+# [("CX", (1, 2)), 
+#  ("CX", (3, 4)), 
+#  ("Ry", 1, (θ = 0.52446,)), 
+#  ("Ry", 2, (θ = 3.01059,)), 
+#  ("Ry", 3, (θ = 0.25144,)), 
+#  ("Ry", 4, (θ = 1.93356,))]
+# [("CX", (2, 3)), 
+#  ("Ry", 1, (θ = 2.15460,)), 
+#  ("Ry", 2, (θ = 2.52480,)), 
+#  ("Ry", 3, (θ = 1.85756,)), 
+#  ("Ry", 4, (θ = 0.02405,))]
+```
 """
 function randomcircuit(N::Int; kwargs...)
   return randomcircuit(lineararray(N); kwargs...)
 end
 
-"""
-    randomcircuit(Lx::Int, Ly::Int, depth::Int; rotated::Bool = false, kwargs...)
+@doc raw"""
+    randomcircuit(size::Tuple; rotated::Bool = false, kwargs...)
 
-Generate a 2D random quantum circuit
+Two-dimensional random quantum circuit on a square lattice. If
+`rotated = true`, use rotated lattice of 45 degrees.
 """
 function randomcircuit(size::Tuple; rotated::Bool=false, kwargs...)
   Lx, Ly = size
