@@ -5,18 +5,6 @@ using Plots
 
 DocMeta.setdocmeta!(PastaQ, :DocTestSetup, :(using PastaQ); recursive=true)
 
-
-#starts_and_ends_with(file, st, en) = startswith(file, st) && endswith(file, en)
-#starts_and_ends_with(st, en) = file -> starts_and_ends_with(file, st, en)
-#
-#test_path = joinpath(@__DIR__)
-#test_files = filter(starts_and_ends_with("test_", ".jl"), readdir(test_path))
-#@testset "$(last(splitpath(test_path)))" for file in test_files
-#  file_path = joinpath(test_path, file)
-#  println("Running test $(file_path)")
-#  include(file_path)
-#end
-
 INPUT_SRC_DIR = joinpath(@__DIR__, "..", "examples", "src")
 OUTPUT_JL_DIR = joinpath(@__DIR__, "..", "examples", "scripts")
 OUTPUT_NB_DIR = joinpath(@__DIR__, "..", "examples", "notebooks")
@@ -69,14 +57,14 @@ makedocs(
       ],
       "Tutorials" => [
         "Getting started"                    => "examples/getting-started.md",
-        "Quantum Fourier transform"          => "examples/getting-started.md",
-        "Simulated XEB experiment"           => "examples/getting-started.md",
-        "Monitored quantum circuits"         => "examples/getting-started.md",
-        "Trotter dynamics"                   => "examples/getting-started.md",
-        "Optimal coherent control"           => "examples/getting-started.md",
-        "Variational quantum eigensolver"    => "examples/getting-started.md",
-        "Many-body quantum state tomography" => "examples/getting-started.md",
-        "Noise characterization"             => "examples/getting-started.md",
+        #"Quantum Fourier transform"          => "examples/getting-started.md",
+        #"Simulated XEB experiment"           => "examples/getting-started.md",
+        #"Monitored quantum circuits"         => "examples/getting-started.md",
+        #"Trotter dynamics"                   => "examples/getting-started.md",
+        "Optimal coherent control"           => "examples/optimal-coherent-control.md",
+        #"Variational quantum eigensolver"    => "examples/getting-started.md",
+        #"Many-body quantum state tomography" => "examples/getting-started.md",
+        #"Noise characterization"             => "examples/getting-started.md",
       ]
     ],
     format = Documenter.HTML(; assets=["assets/favicon.ico"], prettyurls=false),
