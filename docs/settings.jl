@@ -1,21 +1,21 @@
-using Documenter, PastaQ
+using Documenter
+using PastaQ
 
 DocMeta.setdocmeta!(PastaQ, :DocTestSetup, :(using PastaQ); recursive=true)
 
-sitename = "PastaQ.jl"
-
 settings = Dict(
   :modules => [PastaQ],
-  :pages => [
-    "Introduction" => "index.md",
+  :sitename => "PastaQ.jl",
+  :pages => Any[
+    "Home" => "index.md",
     "Documentation" => [
-      "Circuit Simulator" => "Circuits.md",
-      "Generation of measurement data" => "GetSamples.md",
-      "Random states" => "RandomStates.md",
-      "Quantum Tomography" => "QuantumTomography.md",
+      "Quantum states"      => "quantumstates.md",
+      "Quantum circuits"    => "quantumcircuits.md",
+      "Measurements"        => "measurements.md",
+      "Quantum tomography"  => "quantumtomography.md",
     ],
   ],
   :format => Documenter.HTML(; assets=["assets/favicon.ico"], prettyurls=false),
   :doctest => true,
-  :checkdocs => :none,
+  :checkdocs => :none
 )

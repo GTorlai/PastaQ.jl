@@ -12,12 +12,14 @@ ITensors.inner(ρ::MPO, σ::LPDO{MPO}) = inner(ρ, MPO(σ))
 ITensors.inner(ρ::MPO, σ::LPDO{MPS}) = inner(σ.X, ρ, σ.X)
 
 
-"""
+@doc raw"""
     fidelity(ψ::MPS, ϕ::MPS; kwargs...)
 
-Quantum state fidelity between two wavefunctions.
+Quantum state fidelity between two wavefunctions:
 
-F = |⟨ψ|ϕ⟩|²
+```math 
+F(\psi,\phi) = |\langle\phi|\psi\rangle|^2.
+```
 """
 function fidelity(ψ::MPS, ϕ::MPS; kwargs...)
   log_F̃ = 2.0 * real(loginner(ψ, ϕ))
@@ -26,14 +28,17 @@ function fidelity(ψ::MPS, ϕ::MPS; kwargs...)
   return fidelity
 end
 
-"""
+@doc raw"""
     fidelity(ψ::MPS, ρ::MPO; kwargs...)
     fidelity(ρ::MPO, ψ::MPS; kwargs...)
 
-Quantum state fidelity between an MPS wavefunction and a 
-density operator.
+Quantum state fidelity between an MPS wavefunction and an MPO 
+density operator:
 
-F = ⟨ψ|ρ|ψ⟩
+```math 
+F(\psi,\rho) = \langle\psi|\rho|\psi\rangle.
+```
+
 """
 function fidelity(ψ::MPS, ρ::MPO; kwargs...)
   # TODO: replace with:
@@ -51,14 +56,17 @@ end
 fidelity(ρ::MPO, ψ::MPS; kwargs...) = fidelity(ψ, ρ)
 
 
-"""
+@doc raw"""
     fidelity(Ψ::MPS, ϱ::LPDO{MPO}; cutoff::Float64 = 1e-15)
     fidelity(ϱ::LPDO{MPO}, ψ::MPS; kwargs...)
 
 Quantum state fidelity between an MPS wavefunction and a 
-LPDO density operator.
+LPDO density operator ``\varrho=XX^\dagger``
 
-F = ⟨ψ|ϱ|ψ⟩=|X†|ψ⟩|²
+```math 
+F(\psi,\rho) = \langle\psi|\varrho|\psi\rangle = |X^\dagger|\psi\rangle|^2.
+```
+
 """
 function fidelity(Ψ::MPS, ϱ::LPDO{MPO}; cutoff::Float64 = 1e-15)
   # TODO: fix exponential scaling
@@ -76,10 +84,41 @@ struct Choi{T}
   X::T
 end
 
-"""
+@doc raw"""
     fidelity(A::MPO, B::MPO; process::Bool = false, cutoff::Float64 = 1e-15)
 
-Fidelity between two MPOs. If any is a Choi matrix, wrap them with the Choi type.
+Fidelity ``F`` between two MPOs ``A`` and ``B``. Implements the following:
+1. If ``A`` and ``B`` are density operators, ``F`` is the full quantum state fidelity
+
+```math 
+F(\rho,\sigma) = \Big(\text{Tr}\sqrt{\sqrt{\rho}\sigma\sqrt{\rho}}\Big)^2.
+```
+
+Note: this scales exponentially with the number ``n`` of qubits, as it involves a full
+diagonalization.
+
+2. If ``A`` and ``B`` are unitary operators (i.e. rank-1 channels) and `process = true`,
+``F`` is the process fidelity
+
+```math 
+F = 2^{-2n} \text{Tr}(A^\dagger B) = 2^{-2n} |\langle\Phi_A|\Phi_B\rangle|^2,
+```
+where ``|\Phi_j\rangle = |j\rangle\rangle`` is the MPS corresponding to the vectorization
+of the unitary operator.
+
+3. If ``A`` is a Choi matrix and `B` is a unitary operator (or viceversa), return the process fidelity
+
+```math 
+F = 2^{-2n} \text{Tr}(A |\Phi_B\rangle\langle\Phi_B|) = \langle\Phi_B|A|\Phi_B\rangle.
+```
+
+4. If ``A`` and ``B`` are both Choi matrices, return the full process fidelity
+
+```math 
+F(A,B) = 2^{-2n}\Big(\text{Tr}\sqrt{\sqrt{A}B\sqrt{A}}\Big)^2.
+```
+
+which, as above, scale exponentially with ``n``.
 """
 function fidelity(A::MPO, B::MPO; process::Bool = false, cutoff::Float64 = 1e-15)
   a = ischoi(A) ? Choi(A) : A
@@ -151,6 +190,7 @@ __fidelity(A::MPS, B::MPS; kwargs...) =
 
 Fidelity between a MPO and a LPDO. Wrap the MPO in the Choi if so.
 """
+
 function fidelity(A::MPO, B::LPDO{MPO}; process::Bool=false, cutoff::Float64 = 1e-15)
   A = ischoi(A) ? Choi(A) : A
   return _fidelity(A, B; process = process, cutoff = cutoff)
@@ -187,9 +227,9 @@ end
 
 Quantum fidelity between two LPDO density matrices.
 """
+
 fidelity(A::LPDO{MPO}, B::LPDO{MPO}; kwargs...) = 
   fidelity(MPO(A), MPO(B); kwargs...)
-
 
 
 
@@ -204,7 +244,7 @@ end
 operator_or_state(A::ITensor) = is_operator(A) ? ITensorOperator(A) : ITensorState(A)
 
 
-"""
+@doc raw"""
     fidelity(A::ITensor, B::ITensor)
 
 Compute the quantum fidelity between two ITensors. Wrap each one in the ITensorState
@@ -316,15 +356,14 @@ fidelity(T::ITensor, M::Union{MPS,MPO,LPDO}; kwargs...) =
   fidelity(M, T; kwargs...)
 
 
-
-"""
+@doc raw"""
     frobenius_distance(ρ::Union{MPO, LPDO}, σ::Union{MPO, LPDO})
 
-Compute the trace norm of the difference between two LPDOs and MPOs:
+Compute the trace norm of the difference between two LPDOs or MPOs:
 
-`T(ρ,σ) = sqrt(trace[(ρ̃-σ̃)†(ρ̃-σ̃)])`
-
-where `ρ̃` and `σ̃` are the normalized density matrices.
+```math 
+T(\rho,\sigma) = \sqrt{\text{Tr}\big[(\rho-\sigma)^\dagger(\rho-\sigma)\big]}
+```
 """
 function frobenius_distance(ρ::Union{MPO,LPDO{MPO}}, σ::Union{MPO,LPDO{MPO}})
   ρ̃ = copy(ρ)
