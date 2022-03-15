@@ -147,8 +147,8 @@ Perform `nshots` projective measurements of a wavefunction
 ``|\psi\rangle`` or density operator ``\rho`` in the MPS/MPO reference basis. 
 Each measurement consists of a binary vector ``\sigma = (\sigma_1,\sigma_2,\dots)``, 
 drawn from the probabilty distributions:
-- ``P(\sigma) = |\langle\sigma|\psi\rangle|^2``,   if ``M`` is an `MPS`.
-- ``P(\sigma) = \langle\sigma|\rho|\sigma\rangle``   :  if ``M`` is an `MPO`.
+- ``P(\sigma) = |\langle\sigma|\psi\rangle|^2``,   if ``M = |\psi\rangle`` is an `MPS`.
+- ``P(\sigma) = \langle\sigma|\rho|\sigma\rangle``   :  if ``M = \rho`` is an `MPO`.
 """
 function getsamples(M0::Union{MPS,MPO}, nshots::Int; kwargs...)
   nthreads = Threads.nthreads()
@@ -172,8 +172,8 @@ of input `bases`, performing `nshots` measurements per basis.
 For a single measurement, a depth-1 unitary ``U`` is applied to the input
 state ``M`` according to the `basis`. The probability of recording outcome
 ``\sigma = (\sigma_1,\sigma_2,\dots)`` in the basis defined by ``U`` is
-- ``P(\sigma) = |\langle\sigma|U\psi\rangle|^2``,   if ``M`` is an `MPS`.
-- ``P(\sigma) = \langle\sigma|U\rho U^\dagger|\sigma\rangle``,   if ``M`` is an `MPO`.
+- ``P(\sigma) = |\langle\sigma|U\psi\rangle|^2``,   if ``M = |\psi\rangle`` is an `MPS`.
+- ``P(\sigma) = \langle\sigma|U\rho U^\dagger|\sigma\rangle``,   if ``M = \rho`` is an `MPO`.
 """
 function getsamples(M0::Union{MPS,MPO,ITensor}, bases::Matrix{<:String}, nshots::Int; kwargs...)
   N = nsites(M0)
@@ -281,14 +281,14 @@ end
 
 Generate a set of process measurement data acccording to a set
 of input states `preps` and measurement `bases`, performing `nshots` measurements per configuration. 
-For a single measurement, the input state ``|\phi\rangle`` is evolved according to the channel ``M``,
+For a single measurement, the input state ``|\xi\rangle=\otimes_j|\xi_j\rangle`` is evolved according to the channel ``M``,
 and then measured in a given measurement basis. The probability that the final state returns outcome
 ``\sigma = (\sigma_1,\sigma_2,\dots)`` in the basis defined by ``U`` is given by 
 
 ```math
-P(\sigma|\phi) = \text{Tr}\big[(\rho_\phi^T\otimes 1)\Lambda_{M} \big]
+P(\sigma|\xi) = \text{Tr}\big[(\rho_\xi^T\otimes 1)\Lambda_{M} \big]
 ```
-where ``\rho_\phi = |\phi\rangle\langle\phi|`` and ``\Lambda_M`` is the Choi matrix.
+where ``\rho_\xi = |\xi\rangle\langle\xi|`` and ``\Lambda_M`` is the Choi matrix.
 """
 function getsamples(
   M0::Union{LPDO,MPO,ITensor},
