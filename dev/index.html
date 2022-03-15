@@ -1,280 +1,50 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Introduction · PastaQ.jl</title><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="assets/documenter.js"></script><script src="siteinfo.js"></script><script src="../versions.js"></script><link href="assets/favicon.ico" rel="icon" type="image/x-icon"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-dark.css" data-theme-name="documenter-dark"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="index.html"><img src="assets/logo.png" alt="PastaQ.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit">PastaQ.jl</span></div><form class="docs-search" action="search.html"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li class="is-active"><a class="tocitem" href="index.html">Introduction</a><ul class="internal"><li><a class="tocitem" href="#Install-1"><span>Install</span></a></li><li><a class="tocitem" href="#Documentation-1"><span>Documentation</span></a></li><li><a class="tocitem" href="#Examples-1"><span>Examples</span></a></li><li><a class="tocitem" href="#Citation-1"><span>Citation</span></a></li><li><a class="tocitem" href="#Research-papers-using-PastaQ-1"><span>Research papers using PastaQ</span></a></li></ul></li><li><span class="tocitem">Documentation</span><ul><li><a class="tocitem" href="Circuits.html">Circuit Simulator</a></li><li><a class="tocitem" href="GetSamples.html">Generation of measurement data</a></li><li><a class="tocitem" href="RandomStates.html">Random states</a></li><li><a class="tocitem" href="QuantumTomography.html">Quantum Tomography</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href="index.html">Introduction</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href="index.html">Introduction</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/GTorlai/PastaQ.jl/blob/master/docs/src/index.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><p><img src="assets/logo.png" alt="alt text"/></p><p><a href="https://github.com/GTorlai/PastaQ.jl/actions?query=workflow%3ATests"><img src="https://github.com/GTorlai/PastaQ.jl/workflows/Tests/badge.svg" alt="Tests"/></a> <a href="https://codecov.io/gh/GTorlai/PastaQ.jl"><img src="https://codecov.io/gh/GTorlai/PastaQ.jl/branch/master/graph/badge.svg" alt="codecov"/></a> <a href="https://gtorlai.github.io/PastaQ.jl/stable/"><img src="https://img.shields.io/badge/docs-stable-blue.svg" alt/></a> <a href="https://gtorlai.github.io/PastaQ.jl/dev/"><img src="https://img.shields.io/badge/docs-dev-blue.svg" alt/></a> <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License"/></a> <a href="https://www.pastaq.org/"><img src="https://img.shields.io/badge/website-pastaq.org-orange.svg" alt="website"/></a> <a href="https://arxiv.org/abs/"><img src="https://img.shields.io/badge/arXiv--b31b1b.svg" alt="arXiv"/></a></p><p>PLEASE NOTE THIS IS PRE-RELEASE SOFTWARE</p><h1 id="PastaQ.jl:-design-and-benchmarking-quantum-hardware-1"><a class="docs-heading-anchor" href="#PastaQ.jl:-design-and-benchmarking-quantum-hardware-1">PastaQ.jl: design and benchmarking quantum hardware</a><a class="docs-heading-anchor-permalink" href="#PastaQ.jl:-design-and-benchmarking-quantum-hardware-1" title="Permalink"></a></h1><p>PastaQ.jl is a Julia software toolbox providing a range of computational methods for quantum computing applications. Some examples are the simulation of quancum circuits, the design of quantum gates, noise characterization and performance benchmarking. PastaQ relies on tensor-network representations of quantum states and processes, and borrows well-refined techniques from the field of machine learning and data science, such as probabilistic modeling and automatic differentiation.</p><p><img src="assets/readme_summary.jpg" alt="alt text"/></p><hr/><h2 id="Install-1"><a class="docs-heading-anchor" href="#Install-1">Install</a><a class="docs-heading-anchor-permalink" href="#Install-1" title="Permalink"></a></h2><p>The PastaQ package can be installed with the Julia package manager. From the Julia REPL, type ] to enter the Pkg REPL mode and run:</p><pre><code class="language-julia">julia&gt; ]
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Home · PastaQ.jl</title><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="assets/documenter.js"></script><script src="siteinfo.js"></script><script src="../versions.js"></script><link href="assets/favicon.ico" rel="icon" type="image/x-icon"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-dark.css" data-theme-name="documenter-dark"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="index.html"><img src="assets/logo.png" alt="PastaQ.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit">PastaQ.jl</span></div><form class="docs-search" action="search.html"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li class="is-active"><a class="tocitem" href="index.html">Home</a><ul class="internal"><li><a class="tocitem" href="#Install-1"><span>Install</span></a></li><li><a class="tocitem" href="#Getting-started-1"><span>Getting started</span></a></li><li><a class="tocitem" href="#Citation-1"><span>Citation</span></a></li><li><a class="tocitem" href="#Research-papers-using-PastaQ-1"><span>Research papers using PastaQ</span></a></li></ul></li><li><span class="tocitem">Documentation</span><ul><li><a class="tocitem" href="quantumstates.html">Quantum states</a></li><li><a class="tocitem" href="quantumcircuits.html">Quantum circuits</a></li><li><a class="tocitem" href="measurements.html">Measurements</a></li><li><a class="tocitem" href="quantumtomography.html">Quantum tomography</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href="index.html">Home</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href="index.html">Home</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/GTorlai/PastaQ.jl/blob/master/docs/src/index.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="PastaQ:-design-and-benchmarking-quantum-hardware-1"><a class="docs-heading-anchor" href="#PastaQ:-design-and-benchmarking-quantum-hardware-1">PastaQ: design and benchmarking quantum hardware</a><a class="docs-heading-anchor-permalink" href="#PastaQ:-design-and-benchmarking-quantum-hardware-1" title="Permalink"></a></h1><p>PastaQ.jl is a Julia software toolbox providing a range of computational  methods for quantum computing applications. Some examples are the simulation of quancum circuits, the design of quantum gates, noise characterization and performance benchmarking. PastaQ relies on tensor-network representations of quantum states and processes, and borrows well-refined techniques from the field of machine learning and data science, such as probabilistic modeling and automatic differentiation.</p><hr/><h2 id="Install-1"><a class="docs-heading-anchor" href="#Install-1">Install</a><a class="docs-heading-anchor-permalink" href="#Install-1" title="Permalink"></a></h2><p>The PastaQ package can be installed with the Julia package manager. From the Julia REPL, type ] to enter the Pkg REPL mode and run:</p><pre><code class="language-julia">julia&gt; ]
 
-pkg&gt; add PastaQ</code></pre><p>PastaQ.jl relies on the following packages: <a href="https://github.com/ITensor/ITensors.jl">ITensors.jl</a> for low-level tensor-network algorithms, <a href="https://github.com/FluxML/Optimisers.jl">Optimisers.jl</a> for stochastic optimization methods, <a href="https://github.com/FluxML/Zygote.jl">Zygote.jl</a> for automatic differentiation, and <a href="https://github.com/GTorlai/Observers.jl">Observers.jl</a> for tracking/recording metrics and observables. Please note that right now, PastaQ.jl requires that you use Julia v1.6 or later. </p><hr/><h2 id="Documentation-1"><a class="docs-heading-anchor" href="#Documentation-1">Documentation</a><a class="docs-heading-anchor-permalink" href="#Documentation-1" title="Permalink"></a></h2><ul><li><a href="https://gtorlai.github.io/PastaQ.jl/stable/"><strong>STABLE</strong></a> –  <strong>documentation of the most recently tagged version.</strong></li><li><a href="https://gtorlai.github.io/PastaQ.jl/dev/"><strong>DEVEL</strong></a> – <em>documentation of the in-development version.</em></li></ul><h2 id="Examples-1"><a class="docs-heading-anchor" href="#Examples-1">Examples</a><a class="docs-heading-anchor-permalink" href="#Examples-1" title="Permalink"></a></h2><p>We briefly showcase some of the functionalities provided by PastaQ.jl. For more in-depth discussion, please refer to the tutorials folder.</p><h4 id="Simulating-quantum-circuits-1"><a class="docs-heading-anchor" href="#Simulating-quantum-circuits-1">Simulating quantum circuits</a><a class="docs-heading-anchor-permalink" href="#Simulating-quantum-circuits-1" title="Permalink"></a></h4><p>The vast majority of tasks related to designing and benchmarking quantum computers relies on the capability of simulating quantum circuits, built out of a collection of elementary quantum gates. In PastaQ, a quantum gates is described by a data structure <code>g = (&quot;gatename&quot;, support, params)</code>, consisting of a gate identifier <code>gatename</code> (a <code>String</code>), a <code>support</code> (an <code>Int</code> for single-qubit gates or a <code>Tuple</code> for multi-qubit gates), and a set of gate parameters, such as rotations angles, whenever needed. A comprehensive set of elementary gates is provided, including Pauli operations, phase and T gates, single-qubit rotations, controlled gates, Toffoli gate and others. Additional user-specific gates can be easily added to this collection. Once a circuit is defined, it can be executed using the <code>runcircuit</code> function:</p><pre><code class="language-julia">using PastaQ
-
-# a quantum circuit in PastaQ
-gates = [(&quot;X&quot; , 1),                              # Pauli X on qubit 1
-         (&quot;CX&quot;, (1, 3)),                         # Controlled-X on qubits [1,3]
-         (&quot;Rx&quot;, 2, (θ = 0.5,)),                  # Rotation of θ around X
-         (&quot;Rn&quot;, 3, (θ = 0.5, ϕ = 0.2, λ = 1.2)), # Arbitrary rotation with angles (θ,ϕ,λ)
-         (&quot;√SWAP&quot;, (3, 4)),                      # Sqrt Swap on qubits [2,3]
-         (&quot;T&quot; , 4)]                              # T gate on qubit 4
-         
-# run the circuit
-ψ = runcircuit(gates)
-# returns the MPS at the output of the quantum circuit: `|ψ⟩ = Û|0,0,…,0⟩`
-# first the gate (&quot;X&quot; , 1) is applied, then (&quot;CX&quot;, (1, 3)), etc.
-
-# ------------------------------------------------------------------
-# Output:
-#  ITensors.MPS
-#  [1] ((dim=2|id=456|&quot;Qubit,Site,n=1&quot;), (dim=1|id=760|&quot;Link,n=1&quot;))
-#  [2] ((dim=1|id=760|&quot;Link,n=1&quot;), (dim=2|id=613|&quot;Qubit,Site,n=2&quot;), (dim=1|id=362|&quot;Link,n=1&quot;))
-#  [3] ((dim=2|id=9|&quot;Qubit,Site,n=3&quot;), (dim=2|id=357|&quot;Link,n=1&quot;), (dim=1|id=362|&quot;Link,n=1&quot;))
-#  [4] ((dim=2|id=980|&quot;Qubit,Site,n=4&quot;), (dim=2|id=357|&quot;Link,n=1&quot;))</code></pre><p>In this next example, we create a circuit to prepare the GHZ state, and sample projective measurements in the computational basis. We then execture the circuit in the presence of noise, where a local noise channel is applied to each gate. A noise model is described as <code>noisemodel = (&quot;noisename&quot;, (noiseparams...))</code>, in which case it is applied to each gate identically. To distinguish between one- and two-qubit gates, for example, the following syntax can be used: <code>noisemodel = (1 =&gt; noise1, 2 =&gt; noise2)</code>. For more sophisticated noise models (such as gate-dependent noise), please refer to the documentation. </p><pre><code class="language-julia">using PastaQ
-using ITensors
+pkg&gt; add PastaQ</code></pre><p>PastaQ.jl relies on the following packages: <a href="https://github.com/ITensor/ITensors.jl">ITensors.jl</a> for low-level tensor-network algorithms, <a href="https://github.com/FluxML/Optimisers.jl">Optimisers.jl</a> for stochastic optimization methods, <a href="https://github.com/FluxML/Zygote.jl">Zygote.jl</a> for automatic differentiation, and <a href="https://github.com/GTorlai/Observers.jl">Observers.jl</a> for tracking/recording metrics and observables. Please note that right now, PastaQ.jl requires that you use Julia v1.6 or later. </p><hr/><h2 id="Getting-started-1"><a class="docs-heading-anchor" href="#Getting-started-1">Getting started</a><a class="docs-heading-anchor-permalink" href="#Getting-started-1" title="Permalink"></a></h2><p>In this simple example, we show how to build and run a quantum circuit to generate the <span>$n$</span>-qubit GHZ state</p><div>\[|GHZ\rangle = \frac{1}{\sqrt{2}}(|0,0,\dots,0\rangle + |1,1,\dots,1\rangle).\]</div><p>The circuit consists of a single Hadamard gate on qubit <code>1</code>, followed by a set of  controlled-NOT gates between pairs of qubits.</p><p>In PastaQ, a quantum gates is described by a data structure <code>g = (&quot;gatename&quot;, support, params)</code>,  consisting of a gate identifier gatename (<code>String</code>), a support (an <code>Int</code> for single-qubit gates  or a <code>Tuple</code> for multi-qubit gates), and a set of gate parameters, such as rotations angles, whenever needed.  A comprehensive set of elementary gates is provided, including Pauli operations, phase and T gates,  single-qubit rotations, controlled gates, Toffoli gate and others.  Additional user-specific gates can be easily added to this collection.</p><pre><code class="language-julia">using PastaQ
 
 # number of qubits
 n = 20
 
 # manually create a circuit to prepare GHZ state,
-# or use built-in call `circuit = ghz(n)` 
-circuit = Tuple[(&quot;H&quot;, 1)]
+# or use built-in call `circuit = ghz(n)`
+circuit = [(&quot;H&quot;, 1),]
 for j in 1:n-1
-  push!(circuit, (&quot;CX&quot;, (j, j+1)))
-end
-
-# run the circuit to obtain the output MPS
+  circuit = [circuit; (&quot;CX&quot;, (j, j+1))]
+end</code></pre><pre><code class="language-julia">20-element Vector{Tuple{String, Any}}:
+ (&quot;H&quot;, 1)
+ (&quot;CX&quot;, (1, 2))
+ (&quot;CX&quot;, (2, 3))
+ ...
+ (&quot;CX&quot;, (18, 19))
+ (&quot;CX&quot;, (19, 20))</code></pre><p>In order to execute a circuit, we first define the Hilbert space of  our system, and then run the circuit using the <code>runcircuit</code> function. While the first step is not strictly necessary (i.e. the Hilbert space is generated internally if not provided, it is best practice to do so, so that various objects can be defined on the same Hilbert space, a  requirement to be able to perform calculations (such as inner products, expectation values etc). The <code>runcircuit</code> function in this case generates an output MPS wavefunction corresponding to the GHZ state. </p><pre><code class="language-julia"># run the circuit to obtain the output MPS
 hilbert = qubits(n)
-ψ = runcircuit(hilbert, circuit)
-
-
-# sample projective measurements in the computational basis
-@show getsamples(ψ, 5)
-
-# define a noise model with different error rates for
+ψ = runcircuit(hilbert, circuit)</code></pre><pre><code class="language-julia">ITensors.MPS
+[1] ((dim=2|id=187|&quot;Qubit,Site,n=1&quot;), (dim=2|id=980|&quot;Link,n=1&quot;))
+[2] ((dim=2|id=845|&quot;Qubit,Site,n=2&quot;), (dim=2|id=980|&quot;Link,n=1&quot;), (dim=2|id=245|&quot;Link,n=1&quot;))
+[3] ((dim=2|id=559|&quot;Qubit,Site,n=3&quot;), (dim=2|id=245|&quot;Link,n=1&quot;), (dim=2|id=175|&quot;Link,n=1&quot;))
+...
+[19] ((dim=2|id=903|&quot;Qubit,Site,n=19&quot;), (dim=2|id=639|&quot;Link,n=1&quot;), (dim=2|id=66|&quot;Link,n=1&quot;))
+[20] ((dim=2|id=66|&quot;Link,n=1&quot;), (dim=2|id=212|&quot;Qubit,Site,n=20&quot;))</code></pre><p>We can then perform a set of operations on the output MPS, such as generating a set of projective measurements in the computational basis:</p><pre><code class="language-julia"># sample projective measurements in the computational basis
+getsamples(ψ, 5)</code></pre><pre><code class="language-julia">5×20 Matrix{Int64}:
+1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1
+1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1
+0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1</code></pre><p>PastaQ also supports circuit with noisy gates. A noise model is defined in a  similar way to quantum gates, by a <code>String</code> identifier of the specific noise model, and additional parameters (such as noise strength etc). Here we define a depolarizing Kraus channel with different strengths for one- and two-qubit gates. By running the circuit with the keyword argument <code>noise = noisemodel</code>,  the corresponding Kraus operators are attached to each gate in the circuit. The output is a MPO density operator:</p><pre><code class="language-julia"># define a noise model with different error rates for
 # one- and two-qubit gates
 noisemodel = (1 =&gt; (&quot;depolarizing&quot;, (p = 0.01,)), 
               2 =&gt; (&quot;depolarizing&quot;, (p = 0.05,)))
 
 # run a noisy circuit
-ρ = runcircuit(hilbert, circuit; noise = noisemodel)
-@show fidelity(ψ, ρ)
-@show getsamples(ρ, 5)
-
-# quantum processes can also be obtained.
-# unitary MPO
-U = runcircuit(circuit; process = true)
-# Choi matrix
-Λ = runcircuit(circuit; process = true, noise = noisemodel)
-
-# ------------------------------------------------------------------
-# Output:
-#  5×20 Matrix{Int64}:
-#  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1
-#  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1
-#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
-#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
-#  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1
-# 
-#  fidelity(ψ, ρ) = 0.40840853095498975
-# 
-#  5×20 Matrix{Int64}:
-#  1  1  1  1  1  1  0  0  0  0  0  0  1  0  0  0  1  1  1  1
-#  1  1  1  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
-#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  1  1  1  1  1  1
-#  0  0  0  0  0  0  0  0  0  0  0  0  1  1  1  1  1  1  1  1
-#  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1</code></pre><p>There is a number of built-in circuits available, one examples being random circuits. In the following, we generate a one-dimensional random quantum circuits built out with a brick-layer geometry of alternative <code>CX</code> gates and layers of random single-qubit rotations:</p><pre><code class="language-julia">n = 100 
-depth = 20
-circuit = randomcircuit(n; depth = depth, 
-                           twoqubitgates = &quot;CX&quot;, 
-                           onequbitgates = &quot;Rn&quot;)
-@time ψ = runcircuit(circuit; cutoff = 1e-10)
-@show maxlinkdim(ψ)
-# ------------------------------------------------------------------
-# Output:
-#  89.375383 seconds (5.25 M allocations: 64.781 GiB, 9.98% gc time)
-#  maxlinkdim(ψ) = 908</code></pre><h4 id="Variational-quantum-eingensolver-1"><a class="docs-heading-anchor" href="#Variational-quantum-eingensolver-1">Variational quantum eingensolver</a><a class="docs-heading-anchor-permalink" href="#Variational-quantum-eingensolver-1" title="Permalink"></a></h4><p>We show how to perform a ground state search of a many-body hamiltonian <span>$H$</span> using the variational quantum eigensolver (VQE). The VQE algorithm, based on the variational principle, consists of an iterative optimization of an objective function <span>$\langle \psi(\theta)|H|\psi(\theta)\rangle/\langle\psi(\theta)|\psi(\theta)\rangle$</span>, where <span>$|\psi(\theta)\rangle = U(\theta)|0\rangle$</span> is the output wavefunction of a parametrized quantum circuit <span>$U(\theta)$</span>. </p><p>In the following example, we consider a quantum Ising model with 10 spins, and perform the optimization by leveraging Automatic Differentiation techniques (AD), provided by the package Zygote.jl. Specifically, we build a variational circuit using built-in circuit-contruction functions, and optimize the expectation value of the Hamiltonian using a gradient-based approach and the LBFGS optimizer. The gradients are evaluated through AD, providing a flexible interface in defining custom variational circuit ansatze.</p><pre><code class="language-julia">using ITensors
-using PastaQ
-using Printf
-using OptimKit
-using Zygote
-
-N = 10   # number of qubits
-J = 1.0  # Ising exchange interaction
-h = 0.5  # transverse magnetic field
-
-# Hilbert space
-hilbert = qubits(N)
-
-# define the Hamiltonian
-os = OpSum()
-for j in 1:N-1
-  os .+= (-J, &quot;Z&quot;,j,&quot;Z&quot;,j+1)
-  os .+= (-h, &quot;X&quot;, j)
-end
-os .+= (-h, &quot;X&quot;,N)
-
-# build MPO &quot;cost function&quot;
-H = MPO(os, hilbert)
-Edmrg = -9.7655034665
-@printf(&quot;Exact energy from DMRG: %.8f\n&quot;, Edmrg)
-
-# layer of single-qubit Ry gates
-Rylayer(N, θ) =
-  [(&quot;Ry&quot;, j, (θ = θ[j],)) for j in 1:N]
-
-# brick-layer of CX gates
-CXlayer(N,Π) =
-  isodd(Π) ? [(&quot;CX&quot;, (j, j+1)) for j in 1:2:N-1] :
-             [(&quot;CX&quot;, (j, j+1)) for j in 2:2:N-1]
-
-# variational ansatz
-function variationalcircuit(N, depth, θ⃗)
-  circuit = Tuple[]
-  for d in 1:depth
-    circuit = vcat(circuit, CXlayer(N, d))
-    circuit = vcat(circuit, Rylayer(N, θ⃗[d]))
-  end
-  return circuit
-end
-
-depth = 20
-ψ = productstate(hilbert)
-
-# cost function
-function loss(θ⃗)
-  circuit = variationalcircuit(N, depth, θ⃗)
-  U = buildcircuit(ψ, circuit)
-  return rayleigh_quotient(H, U, ψ; cutoff = 1e-8)
-end
-
-# initialize parameters
-θ⃗₀ = [2π .* rand(N) for _ in 1:depth]
-
-# run VQE using BFGS optimization
-optimizer = LBFGS(maxiter = 500, verbosity=2)
-loss_n_grad(x) = (loss(x), convert(Vector, loss&#39;(x)))
-θ⃗, fs, gs, niter, normgradhistory = optimize(loss_n_grad, θ⃗₀,  optimizer)
-@printf(&quot;Relative error: %.3E&quot;, abs(Edmrg - fs[end]) / abs(Edmrg))
-
-# ------------------------------------------------------------------
-# Output:
-#  Exact energy from DMRG: -9.76550347
-# 
-#  [ Info: LBFGS: initializing with f = -0.182090597122, ‖∇f‖ = 2.3297e+00
-#  [ Info: LBFGS: iter    1: f = -2.157995740330, ‖∇f‖ = 2.4305e+00, α = 1.00e+00, m = 0, nfg = 1
-#  [ Info: LBFGS: iter    2: f = -2.397853058857, ‖∇f‖ = 4.5561e+00, α = 1.00e+00, m = 1, nfg = 1
-#  [ Info: LBFGS: iter    3: f = -4.141376142741, ‖∇f‖ = 3.0358e+00, α = 1.00e+00, m = 2, nfg = 1
-#  [ Info: LBFGS: iter    4: f = -4.850744631864, ‖∇f‖ = 2.7316e+00, α = 1.00e+00, m = 3, nfg = 1
-#  [ Info: LBFGS: iter    5: f = -5.522683055280, ‖∇f‖ = 2.3480e+00, α = 1.00e+00, m = 4, nfg = 1
-#  ...
-#  [ Info: LBFGS: iter  498: f = -9.764686918396, ‖∇f‖ = 9.0752e-04, α = 1.00e+00, m = 8, nfg = 1
-#  [ Info: LBFGS: iter  499: f = -9.764687006358, ‖∇f‖ = 1.1905e-03, α = 1.00e+00, m = 8, nfg = 1
-#  Relative error: 8.360E-05</code></pre><h4 id="Monitored-quantum-circuits-1"><a class="docs-heading-anchor" href="#Monitored-quantum-circuits-1">Monitored quantum circuits</a><a class="docs-heading-anchor-permalink" href="#Monitored-quantum-circuits-1" title="Permalink"></a></h4><p>In this example we simulate a monitored quantum circuit, a circuit composed by entangling unitaries and probabilistic local projective measurements, with a rate <span>$p$</span>. The circuit has a brick-layer structure, where each layer consists of nearest-neighbor two-qubit random unitaries, followed by a layer of randomly-placed projective measurements in the computational basis. In the limit of <span>$p=0$</span>, the system displays a scrambling dynamics, exhibiting a volume-law entanglement entropy. When <span>$p$</span> grows large, the competition between the entangling unitaries and the (disentangling) projective measurements generates can induce an &#39;&#39;<em>entanglement phase transition</em>&quot; at a critical rate <span>$p_c$</span>, separating a volume law phase (low <span>$p$</span>) from an area-law phase (high <span>$p$</span>).</p><pre><code class="language-julia">using PastaQ
-using ITensors
-using Printf
-using LinearAlgebra
-using StatsBase: mean, sem 
-
-import PastaQ: gate
-
-# define the two measurement projectors
-gate(::GateName&quot;Π0&quot;) =
-  [1 0
-   0 0]
-gate(::GateName&quot;Π1&quot;) =
-  [0 0
-   0 1]
-
-# compute the Von Neumann entanglement entropy at the center bond 
-# of a linear chain of qubits
-function entanglemententropy(ψ₀::MPS)
-  ψ = normalize!(copy(ψ₀))
-  N = length(ψ)
-  bond = N ÷ 2
-  orthogonalize!(ψ, bond)
-
-  row_inds = (linkind(ψ, bond - 1), siteind(ψ, bond))
-  u, s, v = svd(ψ[bond], row_inds)
-
-  S = 0.0
-  for n in 1:dim(s, 1)
-    λ = s[n, n]^2
-    S -= λ * log(λ + 1e-20)
-  end
-  return S
-end
-
-# build a brick-layer circuit of random unitaries
-function entangling_layer(N::Int)
-  layer_odd  = randomlayer(&quot;RandomUnitary&quot;,[(j,j+1) for j in 1:2:N-1])
-  layer_even = randomlayer(&quot;RandomUnitary&quot;,[(j,j+1) for j in 2:2:N-1])
-  return [layer_odd..., layer_even...]
-end
-
-# perform a projective measurement in the computational basis
-# at a given site
-function projective_measurement!(ψ₀::MPS, site::Int)
-  ψ = orthogonalize!(ψ₀, site)
-  ϕ = ψ[site]
-  # 1-qubit reduced density matrix
-  ρ = prime(ϕ, tags=&quot;Site&quot;) * dag(ϕ)
-  # Outcome probabilities
-  prob = real.(diag(array(ρ)))
-  # Sample
-  σ = (rand() &lt; prob[1] ? 0 : 1)
-  # Projection
-  ψ = runcircuit(ψ, (&quot;Π&quot;*&quot;$(σ)&quot;, site))
-  normalize!(ψ)
-  ψ₀[:] = ψ
-  return ψ₀
-end
-
-# compute average Von Neumann entropy for an ensemble of random circuits
-# for a fixed local measurement probability rate `p`
-function monitored_circuits(circuits::Vector{&lt;:Vector}, p::Float64)
-  svn = []
-  N = nqubits(circuits[1])
-  for circuit in circuits
-    # initialize state ψ = |000…⟩
-    ψ = productstate(N)
-    # sweep over layers
-    for layer in circuit
-      # apply entangling unitary
-      ψ = runcircuit(ψ, layer; cutoff = 1e-8)
-      # perform measurements
-      for j in 1:N
-        p &gt; rand() &amp;&amp; projective_measurement!(ψ, j)
-      end
-    end
-    push!(svn, entanglemententropy(ψ))
-  end
-  return svn
-end
-
-let
-  Random.seed!(1234)
-  N = 10        # number of qubits
-  depth = 100   # circuit&#39;s depth
-  ntrials = 50  # number of random trials
-
-  # generate random circuits
-  circuits = [[entangling_layer(N) for _ in 1:depth] for _ in 1:ntrials]
-
-  # loop over projective measurement probability (per site)
-  for p in 0.0:0.02:0.2
-    t = @elapsed svn = monitored_circuits(circuits, p)
-    @printf(&quot;p = %.2f  S(ρ) = %.5f ± %.1E\t(elapsed = %.2fs)\n&quot;, p, mean(svn), sem(svn), t)
-  end
-end
-
-# ------------------------------------------------------------------
-# Output:
-#  p = 0.00  S(ρ) = 2.96398 ± 2.0E-03	(elapsed = 75.53s)
-#  p = 0.02  S(ρ) = 2.64681 ± 4.1E-02	(elapsed = 31.23s)
-#  p = 0.04  S(ρ) = 2.42949 ± 5.8E-02	(elapsed = 31.73s)
-#  p = 0.06  S(ρ) = 2.24704 ± 5.0E-02	(elapsed = 30.99s)
-#  p = 0.08  S(ρ) = 1.99610 ± 6.3E-02	(elapsed = 32.02s)
-#  p = 0.10  S(ρ) = 1.95011 ± 6.3E-02	(elapsed = 32.27s)
-#  p = 0.12  S(ρ) = 1.72640 ± 5.6E-02	(elapsed = 31.29s)
-#  p = 0.14  S(ρ) = 1.66021 ± 5.8E-02	(elapsed = 31.75s)
-#  p = 0.16  S(ρ) = 1.30065 ± 5.6E-02	(elapsed = 32.44s)
-#  p = 0.18  S(ρ) = 1.34038 ± 6.4E-02	(elapsed = 33.34s)
-#  p = 0.20  S(ρ) = 1.12428 ± 6.0E-02	(elapsed = 34.35s)</code></pre><h2 id="Citation-1"><a class="docs-heading-anchor" href="#Citation-1">Citation</a><a class="docs-heading-anchor-permalink" href="#Citation-1" title="Permalink"></a></h2><p>If you use PastaQ.jl in your work, for now please consider citing the Github page:</p><pre><code class="language-none">@misc{pastaq,
+ρ = runcircuit(hilbert, circuit; noise = noisemodel)</code></pre><pre><code class="language-julia">ITensors.MPO
+[1] ((dim=2|id=187|&quot;Qubit,Site,n=1&quot;)&#39;, (dim=2|id=187|&quot;Qubit,Site,n=1&quot;), (dim=4|id=104|&quot;Link,n=1&quot;))
+[2] ((dim=2|id=845|&quot;Qubit,Site,n=2&quot;)&#39;, (dim=4|id=104|&quot;Link,n=1&quot;), (dim=2|id=845|&quot;Qubit,Site,n=2&quot;), (dim=4|id=668|&quot;Link,n=1&quot;))
+...
+[19] ((dim=2|id=903|&quot;Qubit,Site,n=19&quot;)&#39;, (dim=4|id=792|&quot;Link,n=1&quot;), (dim=2|id=903|&quot;Qubit,Site,n=19&quot;), (dim=4|id=982|&quot;Link,n=1&quot;))
+[20] ((dim=4|id=982|&quot;Link,n=1&quot;), (dim=2|id=212|&quot;Qubit,Site,n=20&quot;)&#39;, (dim=2|id=212|&quot;Qubit,Site,n=20&quot;))</code></pre><hr/><h2 id="Citation-1"><a class="docs-heading-anchor" href="#Citation-1">Citation</a><a class="docs-heading-anchor-permalink" href="#Citation-1" title="Permalink"></a></h2><p>If you use PastaQ.jl in your work, for now please consider citing the Github page:</p><pre><code class="language-none">@misc{pastaq,
     title={\mbox{PastaQ}: A Package for Simulation, Tomography and Analysis of Quantum Computers},
     author={Giacomo Torlai and Matthew Fishman},
     year={2020},
     url={https://github.com/GTorlai/PastaQ.jl/}
-}</code></pre><h2 id="Research-papers-using-PastaQ-1"><a class="docs-heading-anchor" href="#Research-papers-using-PastaQ-1">Research papers using PastaQ</a><a class="docs-heading-anchor-permalink" href="#Research-papers-using-PastaQ-1" title="Permalink"></a></h2><p>If you used PastaQ.jl and your paper does not appear in this list, please let us know at <a href="mailto:info@pastaq.org">info@pastaq.org</a>.</p><p><strong>2022</strong> &lt;/br&gt; - <a href="https://arxiv.org/abs/2203.04948">2203.04948</a> <em>Fragile boundaries of tailored surface codes</em>, O Higgott, TC Bohdanowicz, A Kubica, ST Flammia, ET Campbell.</p><p><strong>2021</strong> &lt;/br&gt; - <a href="https://arxiv.org/abs/2106.12627">2106.12627</a> <em>Provably efficient machine learning for quantum many-body problems</em>, H-Y Huang, R Kueng, G Torlai, VV Albert, J Preskill. &lt;/br&gt; - <a href="https://arxiv.org/abs/2106.03769">2106.03769</a> <em>Measurement-induced phase transition in trapped-ion circuits</em>, S Czischek, G Torlai, S Ray, R Islam, RG Melko, <em>Phys. Rev. A 104, 062405</em>. &lt;/br&gt; - <a href="https://arxiv.org/abs/2101.11099">2101.11099</a> <em>How To Use Neural Networks To Investigate Quantum Many-Body Physics</em>, J Carrasquilla and G Torlai, <em>PRX Quantum, 2, 040201</em>.</p><p><strong>2020</strong> &lt;/br&gt; - <a href="https://arxiv.org/abs/2009.01760">2009.01760</a> <em>Classical variational simulation of the Quantum Approximation Optimization Algorithm</em>, M Medvidovic and G Carleo, <em>Nature Communication, 7, 101</em>.&lt;/br&gt; - <a href="https://arxiv.org/abs/2006.02424">2006.02424</a> <em>Quantum process tomography with unsupervised learning and tensor networks</em>, G Torlai, CJ Wood, A Acharya, G Carleo, J Carrasquilla, L Aolita. &lt;/br&gt;</p></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="Circuits.html">Circuit Simulator »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Tuesday 15 March 2022 18:25">Tuesday 15 March 2022</span>. Using Julia version 1.6.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+}</code></pre><hr/><h2 id="Research-papers-using-PastaQ-1"><a class="docs-heading-anchor" href="#Research-papers-using-PastaQ-1">Research papers using PastaQ</a><a class="docs-heading-anchor-permalink" href="#Research-papers-using-PastaQ-1" title="Permalink"></a></h2><p>If you used PastaQ.jl and your paper does not appear in this list, please let us know at <a href="mailto:info@pastaq.org">info@pastaq.org</a>.</p><p><strong>2022</strong>   </p><ul><li><a href="https://arxiv.org/abs/2203.04948">2203.04948</a> <em>Fragile boundaries of tailored surface codes</em>, O Higgott, TC Bohdanowicz, A Kubica, ST Flammia, ET Campbell.     </li></ul><p><strong>2021</strong>   </p><ul><li><a href="https://arxiv.org/abs/2106.12627">2106.12627</a> <em>Provably efficient machine learning for quantum many-body problems</em>, H-Y Huang, R Kueng, G Torlai, VV Albert, J Preskill.     </li><li><a href="https://arxiv.org/abs/2106.03769">2106.03769</a> <em>Measurement-induced phase transition in trapped-ion circuits</em>, S Czischek, G Torlai, S Ray, R Islam, RG Melko, <em>Phys. Rev. A 104, 062405</em>.       </li></ul><p><strong>2020</strong>    </p><ul><li><a href="https://arxiv.org/abs/2009.01760">2009.01760</a> <em>Classical variational simulation of the Quantum Approximation Optimization Algorithm</em>, M Medvidovic and G Carleo, <em>Nature Communication, 7, 101</em>.    </li><li><a href="https://arxiv.org/abs/2006.02424">2006.02424</a> <em>Quantum process tomography with unsupervised learning and tensor networks</em>, G Torlai, CJ Wood, A Acharya, G Carleo, J Carrasquilla, L Aolita.   </li></ul></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="quantumstates.html">Quantum states »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Tuesday 15 March 2022 19:46">Tuesday 15 March 2022</span>. Using Julia version 1.6.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
