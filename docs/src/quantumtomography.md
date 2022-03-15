@@ -1,5 +1,6 @@
-# Quantum Tomography 
+# Quantum Tomography
 
 ```@docs
 tomography
 ```
+
