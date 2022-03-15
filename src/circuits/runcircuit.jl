@@ -25,7 +25,8 @@ end
 function buildcircuit(hilbert::Vector{<:Index}, circuit::Vector{<:Vector{<:Any}}; kwargs...) 
   circuit_tensors = Vector{Vector{ITensor}}()
   for layer in circuit
-    push!(circuit_tensors, buildcircuit(hilbert, layer; kwargs...))
+    circuit_tensors = vcat(circuit_tensors, [buildcircuit(hilbert, layer; kwargs...)])
+    #push!(circuit_tensors, buildcircuit(hilbert, layer; kwargs...))
   end
   return circuit_tensors
 end
@@ -121,7 +122,12 @@ function runcircuit(
     # Noisy evolution: MPS/MPO -> MPO
     if noiseflag
       # If M is an MPS, |ψ⟩ -> ρ = |ψ⟩⟨ψ| (MPS -> MPO)
-      ρ = (typeof(M) == MPS ? outer(M, M) : M)
+      #XXX to be differentiated
+      if typeof(M) == MPS
+        ρ = outer(M, M)
+      else
+        ρ = M
+      end
       # ρ -> ε(ρ) (MPO -> MPO, conjugate evolution)
       return apply(
         circuit_tensors,

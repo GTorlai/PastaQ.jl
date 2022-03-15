@@ -239,11 +239,11 @@ function randomcircuit(L::Int, depth::Int; rotated::Bool=false, kwargs...)
 end
 
 ITensors.dag(single_gate::Tuple{String,Union{Int,Tuple}}) = 
-  (single_gate[1], single_gate[2], (dag = true,))
+  (single_gate[1], single_gate[2], (adjoint = true,))
 
 function ITensors.dag(single_gate::Tuple{String,Union{Int,Tuple},NamedTuple})
-  prev_dag = get(single_gate[3], :dag, false)
-  nt = Base.setindex(single_gate[3], !prev_dag, :dag)
+  prev_dag = get(single_gate[3], :adjoint, false)
+  nt = Base.setindex(single_gate[3], !prev_dag, :adjoint)
   return (single_gate[1], single_gate[2], nt)
 end
 

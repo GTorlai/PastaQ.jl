@@ -88,6 +88,78 @@ end
   
 end
 
+@testset "runcircuit: (n>2)-qubit gates" begin
+  N = 3
+  depth = 4
+  gates = randomcircuit(N; depth =  depth, layered=false)
+  push!(gates, ("Toffoli",(1,2,3)))
+  #Pure state, noiseless circuit
+  ψ0 = productstate(N)
+  ψ = runcircuit(ψ0, gates)
+  @test prod(ψ) ≈ runcircuit(prod(ψ0), buildcircuit(ψ0, gates))
+  @test PastaQ.array(prod(ψ)) ≈ PastaQ.array(prod(runcircuit(N, gates)))
+  @test PastaQ.array(prod(ψ)) ≈ PastaQ.array(prod(runcircuit(gates)))
+
+  # Mixed state, noiseless circuit
+  ρ0 = MPO(productstate(N))
+  ρ = runcircuit(ρ0, gates)
+  @test prod(ρ) ≈ runcircuit(prod(ρ0), buildcircuit(ρ0, gates); apply_dag=true)
+end
+
+@testset "runcircuit: inverted gate order" begin
+  N = 8
+  gates = randomcircuit(N; depth = 3, layered=false)
+
+  for n in 1:10
+    s1 = rand(2:N)
+    s2 = s1 - 1
+    push!(gates, ("CX", (s1, s2)))
+  end
+  ψ0 = productstate(N)
+  ψ = runcircuit(ψ0, gates)
+  @test prod(ψ) ≈ runcircuit(prod(ψ0), buildcircuit(ψ0, gates))
+end
+
+@testset "runcircuit: long range gates" begin
+  N = 8
+  gates = randomcircuit(N; depth =  2, layered=false)
+
+  for n in 1:10
+    s1 = rand(1:N)
+    s2 = rand(1:N)
+    while s2 == s1
+      s2 = rand(1:N)
+    end
+    push!(gates, ("CX", (s1, s2)))
+  end
+  ψ0 = productstate(N)
+  ψ = runcircuit(ψ0, gates)
+  @test prod(ψ) ≈ runcircuit(prod(ψ0), buildcircuit(ψ0, gates))
+end
+
+@testset "layered circuit" begin
+  N = 4
+  depth = 10
+  ψ0 = productstate(N)
+
+  Random.seed!(1234)
+  circuit = randomcircuit(N; depth = depth)
+  ψ = runcircuit(ψ0, circuit)
+  Random.seed!(1234)
+  circuit = randomcircuit(N; depth = depth)
+  @test prod(ψ) ≈ prod(runcircuit(ψ0, circuit))
+  @test PastaQ.array(ψ) ≈ PastaQ.tovector(runcircuit(circuit; full_representation = true))
+
+  Random.seed!(1234)
+  circuit = randomcircuit(N; depth = depth)
+  ρ = runcircuit(ψ0, circuit; noise=("depolarizing", (p=0.1,)))
+  Random.seed!(1234)
+  circuit = randomcircuit(N; depth = depth)
+  @test prod(ρ) ≈ prod(runcircuit(ψ0, circuit; noise=("depolarizing", (p=0.1,))))
+end
+
+
+
 @testset "runcircuit: noisy quantum circuit" begin
   N = 5
   depth = 4
@@ -144,24 +216,6 @@ end
   @test PastaQ.ischoi(Φ)
 end
 
-@testset "runcircuit: (n>2)-qubit gates" begin
-  N = 3
-  depth = 4
-  gates = randomcircuit(N; depth =  depth, layered=false)
-  push!(gates, ("Toffoli",(1,2,3)))
-  #Pure state, noiseless circuit
-  ψ0 = productstate(N)
-  ψ = runcircuit(ψ0, gates)
-  @test prod(ψ) ≈ runcircuit(prod(ψ0), buildcircuit(ψ0, gates))
-  @test PastaQ.array(prod(ψ)) ≈ PastaQ.array(prod(runcircuit(N, gates)))
-  @test PastaQ.array(prod(ψ)) ≈ PastaQ.array(prod(runcircuit(gates)))
-
-  # Mixed state, noiseless circuit
-  ρ0 = MPO(productstate(N))
-  ρ = runcircuit(ρ0, gates)
-  @test prod(ρ) ≈ runcircuit(prod(ρ0), buildcircuit(ρ0, gates); apply_dag=true)
-end
-
 @testset "alternative noise definition" begin
   N = 5
   depth = 4
@@ -179,55 +233,4 @@ end
   @test PastaQ.array(ρ0) ≈ PastaQ.array(ρ)
 end
 
-@testset "runcircuit: inverted gate order" begin
-  N = 8
-  gates = randomcircuit(N; depth = 3, layered=false)
-
-  for n in 1:10
-    s1 = rand(2:N)
-    s2 = s1 - 1
-    push!(gates, ("CX", (s1, s2)))
-  end
-  ψ0 = productstate(N)
-  ψ = runcircuit(ψ0, gates)
-  @test prod(ψ) ≈ runcircuit(prod(ψ0), buildcircuit(ψ0, gates))
-end
-
-@testset "runcircuit: long range gates" begin
-  N = 8
-  gates = randomcircuit(N; depth =  2, layered=false)
-
-  for n in 1:10
-    s1 = rand(1:N)
-    s2 = rand(1:N)
-    while s2 == s1
-      s2 = rand(1:N)
-    end
-    push!(gates, ("CX", (s1, s2)))
-  end
-  ψ0 = productstate(N)
-  ψ = runcircuit(ψ0, gates)
-  @test prod(ψ) ≈ runcircuit(prod(ψ0), buildcircuit(ψ0, gates))
-end
-
-@testset "layered circuit" begin
-  N = 4
-  depth = 10
-  ψ0 = productstate(N)
-
-  Random.seed!(1234)
-  circuit = randomcircuit(N; depth = depth)
-  ψ = runcircuit(ψ0, circuit)
-  Random.seed!(1234)
-  circuit = randomcircuit(N; depth = depth)
-  @test prod(ψ) ≈ prod(runcircuit(ψ0, circuit))
-  @test PastaQ.array(ψ) ≈ PastaQ.tovector(runcircuit(circuit; full_representation = true))
-
-  Random.seed!(1234)
-  circuit = randomcircuit(N; depth = depth)
-  ρ = runcircuit(ψ0, circuit; noise=("depolarizing", (p=0.1,)))
-  Random.seed!(1234)
-  circuit = randomcircuit(N; depth = depth)
-  @test prod(ρ) ≈ prod(runcircuit(ψ0, circuit; noise=("depolarizing", (p=0.1,))))
-end
 

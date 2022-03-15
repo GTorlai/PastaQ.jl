@@ -71,7 +71,7 @@ function measurementgates(basis::Vector)
   gate_list = Tuple[]
   for j in 1:length(basis)
     if basis[j] ≠ "Z"
-      push!(gate_list, ("basis$(basis[j])", j, (dag=true,)))
+      push!(gate_list, ("basis$(basis[j])", j, (adjoint=true,)))
     end
   end
   return gate_list

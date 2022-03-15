@@ -28,7 +28,6 @@ using Random
   ρ2mat = PastaQ.array(ρ2)
   ϱ2mat = PastaQ.array(ϱ2)
 
-  @test fidelity(ψ1, ψ2) ≈ abs2(ψ1vec' * ψ2vec)
   @test fidelity(ψ1, ρ2) ≈ ψ1vec' * ρ2mat * ψ1vec
   @test fidelity(ψ1, ϱ2) ≈ real((ψ1vec' * ϱ2mat * ψ1vec))
 
@@ -178,7 +177,7 @@ end
 
     @test fidelity(ρ1, ρ2; process=true) ≈
           real(tr(sqrt(sqrt(ρ1mat) * ρ2mat * sqrt(ρ1mat))))^2 atol = 1e-7
-    @test fidelity(ρ1, ϱ2; process=true) ≈
+    @test fidelity(ρ1, ϱ2; process=true, cutoff = 1e-10) ≈
           real(tr(sqrt(sqrt(ρ1mat) * ϱ2mat * sqrt(ρ1mat))))^2 atol = 1e-7
     @test fidelity(ϱ1, ϱ2; process=true, cutoff = 1e-10) ≈
           real(tr(sqrt(sqrt(ϱ1mat) * ϱ2mat * sqrt(ϱ1mat))))^2 atol = 1e-7

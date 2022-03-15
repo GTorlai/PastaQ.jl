@@ -19,7 +19,6 @@ sort_gates(gates) =
 
 
 """
-
 WORKING WITH TUPLES  (TEMPORARY)
 """
 
@@ -28,8 +27,8 @@ function trotter1(H::Vector{<:Tuple}, δτ::Number)
   layer = Tuple[]
   for k in 1:length(H)
     length(H[k]) > 3 && error("Only the format (coupling, opname, support) currently allowed")
-    coupling, localop, support = H[k]
-    layer = vcat(layer, [(localop, support, (f = x -> exp(-δτ * coupling * x),))]) 
+    coupling, Hdata... = H[k]
+    layer=vcat(layer,[(x -> exp(-δτ * coupling * x), Hdata...)]) 
   end
   return layer 
 end
@@ -37,7 +36,6 @@ end
 
 """
     trotter2(H::OpSum; δt::Float64=0.1, δτ=im*δt)
-
 Generate a single layer of gates for one step of 2nd order TEBD.
 """
 function trotter2(H::Vector{<:Tuple}, δτ::Number)
@@ -61,7 +59,6 @@ end
 
 """
     trotterlayer(H::OpSum; order::Int = 2, kwargs...) 
-
 Generate a single layer of gates for one step of TEBD.
 """
 function trotterlayer(H::Vector{<:Tuple}, δτ::Number; order::Int = 2)
@@ -133,5 +130,4 @@ get_times(δt::Nothing,  δτ::Nothing, t::Number, τ::Nothing, ts::Nothing, τs
 
 get_times(δt::Nothing,  δτ::Nothing, t::Nothing, τ::Number, ts::Nothing, τs::Nothing)   =
   error("Imaginary Trotter step `δτ` not set.")
-
 

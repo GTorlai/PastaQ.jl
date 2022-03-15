@@ -9,424 +9,150 @@ using Zygote: ZygoteRuleConfig
 
 include("chainrulestestutils.jl")
 
-@testset "one-qubit gate gradients" begin 
-  Random.seed!(1234)
-  
-  q = qubits(2)
-
-  args = (π/3,)
-  for σ′ in [1,2]
-    for σ in [1,2]
-      f = function (x)
-        u = gate(q, "Rx", 1, (θ = x,))
-        return abs(u[σ,σ′])
+function finite_difference(f, A, B, pars)
+  g(pars) = f(A, B, pars)
+  ∇ad = g'(pars)
+  ϵ = 1e-8
+  for k in 1:length(pars)
+    if pars[k] isa AbstractArray
+      for j in 1:length(pars[k])
+        g₀ = g(pars)
+        pars[k][j] += ϵ
+        gϵ = g(pars)
+        pars[k][j] -= ϵ
+        ∇num = (gϵ - g₀)/ϵ
+        @test ∇ad[k][j] ≈  ∇num atol = 1e-6
       end
-      test_rrule(ZygoteRuleConfig(), f, args...; rrule_f=rrule_via_ad, check_inferred=false)
-    end
-  end
-
-  args = (π/3,)
-  for σ′ in [1,2]
-    for σ in [1,2]
-      f = function (x)
-        u = gate(q, "Ry", 1, (θ = x,))
-        return abs(u[σ,σ′])
-      end
-      test_rrule(ZygoteRuleConfig(), f, args...; rrule_f=rrule_via_ad, check_inferred=false)
-    end
-  end
-  
-  args = (π/3,)
-  for σ′ in [1,2]
-    for σ in [1,2]
-      f = function (x)
-        u = gate(q, "Rz", 1, (ϕ = x,))
-        return abs(u[σ,σ′])
-      end
-      test_rrule(ZygoteRuleConfig(), f, args...; rrule_f=rrule_via_ad, check_inferred=false)
-    end
-  end
- 
-  args = (π/3,π/5,π/7)
-  for σ′ in [1,2]
-    for σ in [1,2]
-      f = function (x,y,z)
-        u = gate(q, "Rn", 1, (ϕ = x, θ = y, λ= z))
-        return abs(u[σ,σ′])
-      end
-      test_rrule(ZygoteRuleConfig(), f, args...; rrule_f=rrule_via_ad, check_inferred=false)
-    end
-  end
- 
-end
-
-
-
-@testset "two-qubit gate gradients" begin 
-  Random.seed!(1234)
-  
-  q = qubits(2)
-
-  args = (π/3,)
-  
-
-  basis = [[1,1],[1,2],[2,1],[2,2]]
-  
-  args = (π/3,)
-  for σ′ in basis 
-    for σ in basis 
-      f = function (x)
-        u = gate(q, "CRx", (1,2), (θ = x,))
-        i = [σ[1],σ[2],σ′[1],σ′[2]]
-        return abs(u[i...])
-      end
-      test_rrule(ZygoteRuleConfig(), f, args...; rrule_f=rrule_via_ad, check_inferred=false)
-    end
-  end
-  
-  args = (π/3,)
-  for σ′ in basis 
-    for σ in basis 
-      f = function (x)
-        u = gate(q, "CRy", (1,2), (θ = x,))
-        i = [σ[1],σ[2],σ′[1],σ′[2]]
-        return abs(u[i...])
-      end
-      test_rrule(ZygoteRuleConfig(), f, args...; rrule_f=rrule_via_ad, check_inferred=false)
-    end
-  end
-  
-  args = (π/3,)
-  for σ′ in basis 
-    for σ in basis 
-      f = function (x)
-        u = gate(q, "CRz", (1,2), (ϕ = x,))
-        i = [σ[1],σ[2],σ′[1],σ′[2]]
-        return abs(u[i...])
-      end
-      test_rrule(ZygoteRuleConfig(), f, args...; rrule_f=rrule_via_ad, check_inferred=false)
-    end
-  end
-  
-  args = (π/3,)
-  for σ′ in basis 
-    for σ in basis 
-      f = function (x)
-        u = gate(q, "CRx", (2,1), (θ = x,))
-        i = [σ[1],σ[2],σ′[1],σ′[2]]
-        return abs(u[i...])
-      end
-      test_rrule(ZygoteRuleConfig(), f, args...; rrule_f=rrule_via_ad, check_inferred=false)
-    end
-  end
-  
-  args = (π/3,)
-  for σ′ in basis 
-    for σ in basis 
-      f = function (x)
-        u = gate(q, "CRy", (2,1), (θ = x,))
-        i = [σ[1],σ[2],σ′[1],σ′[2]]
-        return abs(u[i...])
-      end
-      test_rrule(ZygoteRuleConfig(), f, args...; rrule_f=rrule_via_ad, check_inferred=false)
-    end
-  end
-  
-  args = (π/3,)
-  for σ′ in basis 
-    for σ in basis 
-      f = function (x)
-        u = gate(q, "CRz", (2,1), (ϕ = x,))
-        i = [σ[1],σ[2],σ′[1],σ′[2]]
-        return abs(u[i...])
-      end
-      test_rrule(ZygoteRuleConfig(), f, args...; rrule_f=rrule_via_ad, check_inferred=false)
-    end
-  end
- 
-  args = (π/3,π/5,π/7)
-  for σ′ in basis 
-    for σ in basis 
-      f = function (x,y,z)
-        u = gate(q, "CRn", (1,2), (ϕ = x, θ = y, λ= z))
-        i = [σ[1],σ[2],σ′[1],σ′[2]]
-        return abs(u[i...])
-      end
-      test_rrule(ZygoteRuleConfig(), f, args...; rrule_f=rrule_via_ad, check_inferred=false)
-    end
-  end
- 
-  args = (π/3,π/5,π/7)
-  for σ′ in basis 
-    for σ in basis 
-      f = function (x,y,z)
-        u = gate(q, "CRn", (2,1), (ϕ = x, θ = y, λ= z))
-        i = [σ[1],σ[2],σ′[1],σ′[2]]
-        return abs(u[i...])
-      end
-      test_rrule(ZygoteRuleConfig(), f, args...; rrule_f=rrule_via_ad, check_inferred=false)
-    end
-  end
- 
-  args = (π/3,)
-  for σ′ in basis 
-    for σ in basis 
-      f = function (x)
-        u = gate(q, "RXX", (1,2), (ϕ = x,))
-        i = [σ[1],σ[2],σ′[1],σ′[2]]
-        return abs(u[i...])
-      end
-      test_rrule(ZygoteRuleConfig(), f, args...; rrule_f=rrule_via_ad, check_inferred=false)
-    end
-  end
-
-end
-
-
-@testset "functions applied to qudit gates + gate combination" begin 
-  Random.seed!(1234)
- 
-  N = 2
-  q = qudits(N; dim = 5)
-  basis = [1,2,3,4]
-  
-  args = (0.3,)
-  for σ′ in basis 
-    for σ in basis 
-      f = function (x)
-        u = gate(q, "a", 1, (f = x ->  exp(im * x),))
-        return abs(u[σ,σ′])
-      end
-      test_rrule(ZygoteRuleConfig(), f, args...; rrule_f=rrule_via_ad, check_inferred=false)
-    end
-  end
-
-  for σ′ in basis 
-    for σ in basis 
-      f = function (x)
-        u = gate(q, "a† * a", 1, (f = x ->  exp(im  * x),))
-        return abs(u[σ,σ′])
-      end
-      test_rrule(ZygoteRuleConfig(), f, args...; rrule_f=rrule_via_ad, check_inferred=false)
-    end
-  end
-
-  for σ′ in basis 
-    for σ in basis 
-      f = function (x)
-        u = gate(q, "a† * a + a† * a", 1, (f = x -> exp(im *x),))
-        return abs(u[σ,σ′])
-      end
-      test_rrule(ZygoteRuleConfig(), f, args...; rrule_f=rrule_via_ad, check_inferred=false)
-    end
-  end
-
-  basis = vec(Iterators.product(fill([1,2,3,4],2)...)|>collect)
-  for σ′ in basis 
-    for σ in basis 
-      f = function (x)
-        u = gate(q,"aa†", (1,2), (f = x ->  exp(im *x),))
-        i = [σ[1],σ[2],σ′[1],σ′[2]]
-        return abs(u[i...])
-      end
-      test_rrule(ZygoteRuleConfig(), f, args...; rrule_f=rrule_via_ad, check_inferred=false)
-    end
-  end
-  
-  for σ′ in basis 
-    for σ in basis 
-      f = function (x)
-        u = gate(q,"aa† + a†a", (1,2), (f = x ->  exp(im *x),))
-        i = [σ[1],σ[2],σ′[1],σ′[2]]
-        return abs(u[i...])
-      end
-      test_rrule(ZygoteRuleConfig(), f, args...; rrule_f=rrule_via_ad, check_inferred=false)
-    end
-  end
-  
-  basis = [1,2,3,4,5]
-  g(x) = x^2 * sin(x)
-  args = (0.3,)
-  for σ′ in basis 
-    for σ in basis 
-      f = function (x)
-        u = gate(q, "a", 1, (f = y ->  exp(im * g(x) * y),))
-        return abs(u[σ,σ′])
-      end
-      test_rrule(ZygoteRuleConfig(), f, args...; rrule_f=rrule_via_ad, check_inferred=false)
+    else
+      g₀ = g(pars)
+      pars[k] += ϵ
+      gϵ = g(pars)
+      pars[k] -= ϵ
+      ∇num = (gϵ - g₀)/ϵ
+      @test ∇ad[k] ≈  ∇num atol = 1e-6
     end
   end
 end
 
-
-@testset "fidelity optimization: 1-qubit & 2-qubit gates" begin 
-  function Rylayer(N, θ⃗)
-    return [("Ry", (n,), (θ=θ⃗[n],)) for n in 1:N]
+@testset "fidelity optimization with MPS" begin 
+  Random.seed!(1234)
+  N = 4
+  
+  function Rylayer(θ⃗)
+    return [("Rx", (n,), (θ=θ⃗[n],)) for n in 1:N]
   end
   
-  function RXXlayer(N, ϕ⃗)
+  function RXXlayer(ϕ⃗)
     return [("RXX", (n, n + 1), (ϕ = ϕ⃗[n],)) for n in 1:(N÷2)]
   end
   
   # The variational circuit we want to optimize
-  function variational_circuit(θ⃗,ϕ⃗)
-    N = length(θ⃗)
-    return vcat(Rylayer(N, θ⃗),RXXlayer(N,ϕ⃗), Rylayer(N, θ⃗), RXXlayer(N,ϕ⃗))
+  function variational_circuit(pars)
+    θ⃗, ϕ⃗ = pars
+    return vcat(Rylayer(θ⃗),RXXlayer(ϕ⃗), Rylayer(θ⃗), RXXlayer(ϕ⃗))
   end
   
-  Random.seed!(1234)
-  N = 8
+  function f(ψ, ϕ, pars)
+    circuit = variational_circuit(pars)
+    U = buildcircuit(ψ, circuit)
+    ψθ = runcircuit(ψ, U)
+    return abs2(inner(ϕ, ψθ))
+  end
+  
   θ⃗ = 2π .* rand(N)
   ϕ⃗ = 2π .* rand(N÷2)
-  
+  pars = [θ⃗, ϕ⃗]  
   # ITensor
-  Random.seed!(1234)
-  
   q = qubits(N)
-  ψ = prod(productstate(q))
-  ϕ = (N == 1) ? prod(productstate(q, [1])) : prod(runcircuit(q, randomcircuit(N; depth = 2)))
+  ψ = productstate(q)
+  ϕ = randomstate(q; χ = 10, normalize = true)
   
-  ts = 0:0.1:1.0
-  f = function (pars)
-    θ⃗,ϕ⃗ = pars
-    circuit = variational_circuit(θ⃗,ϕ⃗)
-    U = buildcircuit(q, circuit)
-    return abs2(inner(ϕ, U, ψ))
-  end
-
-  # XXX: swap this in
-  #test_rrule(ZygoteRuleConfig(), f, θ...; rrule_f=rrule_via_ad, check_inferred=false)
-  ∇ad = f'([θ⃗,ϕ⃗])
-  ϵ = 1e-5
-  for k in 1:length(θ⃗)
-    θ⃗[k] += ϵ
-    f₊ = f([θ⃗,ϕ⃗]) 
-    θ⃗[k] -= 2*ϵ
-    f₋ = f([θ⃗,ϕ⃗]) 
-    ∇num = (f₊ - f₋)/(2ϵ)
-    θ⃗[k] += ϵ
-    @test ∇ad[1][k] ≈ ∇num atol = 1e-8 
-  end 
-  for k in 1:length(ϕ⃗)
-    ϕ⃗[k] += ϵ
-    f₊ = f([θ⃗,ϕ⃗]) 
-    ϕ⃗[k] -= 2*ϵ
-    f₋ = f([θ⃗,ϕ⃗]) 
-    ∇num = (f₊ - f₋)/(2ϵ)
-    ϕ⃗[k] += ϵ
-    @test ∇ad[2][k] ≈ ∇num atol = 1e-8 
-  end 
-  
+  finite_difference(f, prod(ψ), prod(ϕ), pars)
   # MPS
-  Random.seed!(1234)
-  
-  q = qubits(N)
-  ψ = productstate(q)
-  ϕ = (N == 1) ? productstate(q, [1]) : runcircuit(q, randomcircuit(N; depth = 2))
-  
-  ts = 0:0.1:1.0
-  f = function (pars)
-    θ⃗,ϕ⃗ = pars
-    circuit = variational_circuit(θ⃗,ϕ⃗)
-    U = buildcircuit(q, circuit)
-    return abs2(inner(ϕ, U, ψ))
-  end
-
-  # XXX: swap this in
-  #test_rrule(ZygoteRuleConfig(), f, θ...; rrule_f=rrule_via_ad, check_inferred=false)
-  ∇ad = f'([θ⃗,ϕ⃗])
-  ϵ = 1e-5
-  for k in 1:length(θ⃗)
-    θ⃗[k] += ϵ
-    f₊ = f([θ⃗,ϕ⃗]) 
-    θ⃗[k] -= 2*ϵ
-    f₋ = f([θ⃗,ϕ⃗]) 
-    ∇num = (f₊ - f₋)/(2ϵ)
-    θ⃗[k] += ϵ
-    @test ∇ad[1][k] ≈ ∇num atol = 1e-8 
-  end 
-  for k in 1:length(ϕ⃗)
-    ϕ⃗[k] += ϵ
-    f₊ = f([θ⃗,ϕ⃗]) 
-    ϕ⃗[k] -= 2*ϵ
-    f₋ = f([θ⃗,ϕ⃗]) 
-    ∇num = (f₊ - f₋)/(2ϵ)
-    ϕ⃗[k] += ϵ
-    @test ∇ad[2][k] ≈ ∇num atol = 1e-8 
-  end 
+  finite_difference(f, ψ, ϕ, pars)
 end
 
-@testset "fidelity optimization - Trotter circuit" begin
+@testset "fidelity optimization w MPO & apply_dag = true" begin 
+  Random.seed!(1234)
   N = 4
-  
-  function hamiltonian(θ)
-    H = Tuple[]
-    for j in 1:N-1
-      H = vcat(H, [(1.0, "ZZ", (j,j+1))])
-    end
-    for j in 1:N
-      H = vcat(H, [(θ[j], "X", j)])
-    end
-    return H
-  end
-
-  # ITensor
-  Random.seed!(1234)
-  θ = rand(N)
-  
   q = qubits(N)
-  ψ = prod(productstate(q))
-  ϕ = (N == 1) ? prod(productstate(q, [1])) : prod(runcircuit(q, randomcircuit(N; depth = 2)))
   
-  ts = 0:0.1:1.0
-  f = function (θ)
-    H = hamiltonian(θ)
-    circuit = trottercircuit(H; ts = ts)
+  Rylayer(θ⃗) = [("Ry", (n,), (θ=θ⃗[n],)) for n in 1:N]
+  Rxlayer(θ⃗) = [("Rx", (n,), (θ=θ⃗[n],)) for n in 1:N]
+  RYYlayer(ϕ⃗) = [("RYY", (n, n + 1), (ϕ = ϕ⃗[n],)) for n in 1:(N÷2)]
+  RXXlayer(ϕ⃗) = [("RXX", (n, n + 1), (ϕ = ϕ⃗[n],)) for n in 1:(N÷2)]
+  
+  
+  # The variational circuit we want to optimize
+  function variational_circuit(pars)
+    θ⃗, ϕ⃗ = pars
+    return [Rylayer(θ⃗);
+            Rxlayer(ϕ⃗); 
+            Rylayer(ϕ⃗);
+            Rxlayer(θ⃗);
+            RXXlayer(θ⃗[1:N÷2]);
+            RYYlayer(ϕ⃗[1:N÷2])]
+  end
+  function f(ρ, ϕ, pars)
+    circuit = variational_circuit(pars)
     U = buildcircuit(q, circuit)
-    return abs2(inner(ϕ, U, ψ))
+    ρθ = runcircuit(ρ, U)
+    return real(inner(ϕ', ρθ, ϕ))
   end
 
-  # XXX: swap this in
-  #test_rrule(ZygoteRuleConfig(), f, θ...; rrule_f=rrule_via_ad, check_inferred=false)
-  ∇ad = f'(θ)
-  ϵ = 1e-5
-  for k in 1:length(θ)
-    θ[k] += ϵ
-    f₊ = f(θ)
-    θ[k] -= 2*ϵ
-    f₋ = f(θ)
-    ∇num = (f₊ - f₋)/(2ϵ)
-    θ[k] += ϵ
-    @test ∇ad[k] ≈ ∇num atol = 1e-6 
-  end
+  ψ = randomstate(q; χ = 10, normalize = true)
+  ρ = outer(ψ, ψ)
+  ϕ = randomstate(q; χ = 1, normalize = true)
   
-  q = qubits(N)
-  ψ = productstate(q)
-  ϕ = (N == 1) ? productstate(q, [1]) : runcircuit(q, randomcircuit(N; depth = 2))
+  θ⃗ = 2π .* rand(N)
+  ϕ⃗ = 2π .* rand(N)
+  pars = [θ⃗, ϕ⃗]
   
-  ts = 0:0.1:1.0
-  f = function (θ)
-    H = hamiltonian(θ)
-    circuit = trottercircuit(H; ts = ts)
-    U = buildcircuit(q, circuit)
-    return abs2(inner(ϕ, U, ψ))
-  end
-
-  # XXX: swap this in
-  #test_rrule(ZygoteRuleConfig(), f, θ...; rrule_f=rrule_via_ad, check_inferred=false)
-  ∇ad = f'(θ)
-  ϵ = 1e-5
-  for k in 1:length(θ)
-    θ[k] += ϵ
-    f₊ = f(θ)
-    θ[k] -= 2*ϵ
-    f₋ = f(θ)
-    ∇num = (f₊ - f₋)/(2ϵ)
-    θ[k] += ϵ
-    @test ∇ad[k] ≈ ∇num atol = 1e-6 
-  end
+  finite_difference(f, prod(ρ), prod(ϕ), pars)
+  finite_difference(f, ρ, ϕ, pars)
+  
 end
 
+@testset "fidelity optimization w MPO & apply_dag = false" begin 
+  Random.seed!(1234)
+  N = 4
+  q = qubits(N)
+  
+  Rylayer(θ⃗) = [("Ry", (n,), (θ=θ⃗[n],)) for n in 1:N]
+  Rxlayer(θ⃗) = [("Rx", (n,), (θ=θ⃗[n],)) for n in 1:N]
+  RYYlayer(ϕ⃗) = [("RYY", (n, n + 1), (ϕ = ϕ⃗[n],)) for n in 1:(N÷2)]
+  RXXlayer(ϕ⃗) = [("RXX", (n, n + 1), (ϕ = ϕ⃗[n],)) for n in 1:(N÷2)]
+  
+  
+  # The variational circuit we want to optimize
+  function variational_circuit(pars)
+    θ⃗, ϕ⃗ = pars
+    return [Rylayer(θ⃗);
+            Rxlayer(ϕ⃗); 
+            Rylayer(ϕ⃗);
+            Rxlayer(θ⃗);
+            RXXlayer(θ⃗[1:N÷2]);
+            RYYlayer(ϕ⃗[1:N÷2])]
+  end
+  
+  function f(ρ, ϕ, pars)
+    circuit = variational_circuit(pars)
+    U = buildcircuit(q, circuit)
+    ρθ = runcircuit(ρ, U; apply_dag = false)
+    return real(inner(ϕ', ρθ, ϕ))   
+  end
+
+  ψ = randomstate(q; χ = 10, normalize = true)
+  ρ = outer(ψ, ψ)
+  ϕ = randomstate(q; χ = 10, normalize = true)
+  
+  θ⃗ = 2π .* rand(N)
+  ϕ⃗ = 2π .* rand(N)
+  pars = [θ⃗, ϕ⃗]
+  finite_difference(f, prod(ρ), prod(ϕ), pars)
+  finite_difference(f, ρ, ϕ, pars)
+  
+end
 
 
 @testset "rayleigh_quotient" begin 
@@ -458,48 +184,127 @@ end
   end
   O = MPO(os,q)
   
-  # ITensor
-  ψ = productstate(q)
-  f = function (θ⃗)
-    circuit = variational_circuit(θ⃗)
-    U = buildcircuit(ψ, circuit)
-    return rayleigh_quotient(O, U, ψ)
+  function f(ψ, O, pars)
+    circuit = variational_circuit(pars)
+    ψθ = runcircuit(ψ, circuit)
+    return real(inner(ψθ', O, ψθ))
   end
-  θ⃗ = 2π .* rand(N)
-  
-  ∇ad = f'(θ⃗)
-  
-  ϵ = 1e-5
-  for k in 1:length(θ⃗)
-    θ⃗[k] += ϵ
-    f₊ = f(θ⃗) 
-    θ⃗[k] -= 2*ϵ
-    f₋ = f(θ⃗) 
-    ∇num = (f₊ - f₋)/(2ϵ)
-    θ⃗[k] += ϵ
-    @test ∇ad[k] ≈ ∇num atol = 1e-8 
-  end 
-  # MPS
+  pars = 2π .* rand(N)
   ψ = productstate(q)
-  f = function (θ⃗)
-    circuit = variational_circuit(θ⃗)
-    U = buildcircuit(ψ, circuit)
-    return rayleigh_quotient(O, U, ψ)
-  end
-  θ⃗ = 2π .* rand(N)
-  
-  ∇ad = f'(θ⃗)
-  
-  ϵ = 1e-5
-  for k in 1:length(θ⃗)
-    θ⃗[k] += ϵ
-    f₊ = f(θ⃗) 
-    θ⃗[k] -= 2*ϵ
-    f₋ = f(θ⃗) 
-    ∇num = (f₊ - f₋)/(2ϵ)
-    θ⃗[k] += ϵ
-    @test ∇ad[k] ≈ ∇num atol = 1e-8 
-  end 
+  finite_difference(f, prod(ψ), prod(O), pars)
+  finite_difference(f, ψ, O, pars)
 end
 
 
+
+
+@testset "rayleigh_quotient with noise" begin 
+  function Rylayer(N, θ⃗)
+    return [("Ry", n, (θ=θ⃗[n],)) for n in 1:N]
+  end
+  function Rxlayer(N, θ⃗)
+    return [("Rx", n, (θ=θ⃗[n],)) for n in 1:N]
+  end
+  function CXlayer(N)
+    return [("CX", (n, n + 1)) for n in 1:2:(N - 1)]
+  end
+  
+  # The variational circuit we want to optimize
+  function variational_circuit(θ⃗)
+    N = length(θ⃗)
+    return vcat(Rylayer(N, θ⃗),CXlayer(N), Rxlayer(N, θ⃗), CXlayer(N))
+  end
+  
+  Random.seed!(1234)
+  N = 2
+  q = qubits(N)
+  
+  os = OpSum()
+  for k in 1:N-1
+    os += -1.0, "Z",k,"Z",k+1
+    os += -1.0,"X",k
+  end
+  os += -1.0,"X",N
+  O = MPO(os,q)
+ 
+  pars = 2π .* rand(N)
+  ψ₀ = productstate(q)
+  ρ₀ = outer(ψ₀, ψ₀)
+  
+  function f1(pars)
+    circuit = variational_circuit(pars)
+    U = buildcircuit(q, circuit)
+    ψθ = runcircuit(ψ₀, U)
+    return real(inner(ψθ', O, ψθ))
+  end
+  f1_eval = f1(pars)
+  f1_grad = f1'(pars)
+  
+  function f2(pars)
+    circuit = variational_circuit(pars)
+    U = buildcircuit(q, circuit)
+    U = [swapprime(dag(u), 0 => 1) for u in reverse(U)]
+    Oθ = runcircuit(O, U; apply_dag = true)
+    return real(inner(ψ₀', Oθ, ψ₀))
+  end
+  f2_eval = f2(pars)
+  f2_grad = f2'(pars)
+
+  function f3(pars)
+    circuit = variational_circuit(pars)
+    U = buildcircuit(q, circuit)
+    ρθ = runcircuit(ρ₀, U; apply_dag = true)
+    X = replaceprime(ρθ' * O, 2 => 1)
+    return real(tr(ρθ' * O; plev = 2 => 0))
+  end
+  f3_eval = f3(pars)
+  f3_grad = f3'(pars)
+  @test f1_eval ≈ f2_eval
+  @test f2_eval ≈ f3_eval
+  @test f1_grad ≈ f2_grad
+  @test f2_grad ≈ f3_grad
+  noisemodel = ("depolarizing", (p = 0.1,))
+  function f(ρ₀, O, pars)
+    circuit = variational_circuit(pars)
+    circuit = insertnoise(circuit, noisemodel)
+    U = buildcircuit(q, circuit)
+    ρθ = runcircuit(ρ₀, U; apply_dag = true)
+    return real(tr(ρθ' * O; plev = 2 => 0))
+  end
+  #finite_difference(f, prod(ρ₀), prod(O), pars)
+  finite_difference(f, ρ₀, O, pars)
+end
+
+
+@testset "fidelity optimization - Trotter circuit" begin
+  N = 4
+  
+  import PastaQ:gate 
+  @eval gate(::GateName"ZZ") = kron(gate("Z", SiteType("Qubit")), gate("Z", SiteType("Qubit")))
+  function hamiltonian(θ)
+    H = Tuple[]
+    for j in 1:N-1
+      H = vcat(H, [(1.0, "ZZ", (j,j+1))])
+    end
+    for j in 1:N
+      H = vcat(H, [(θ[j], "X", j)])
+    end
+    return H
+  end
+
+  Random.seed!(1234)
+  pars = rand(N)
+  ts = 0:0.1:1.0
+  function f(ψ, ϕ, θ)
+    H = hamiltonian(θ)
+    circuit = trottercircuit(H; ts = ts)
+    ψθ = runcircuit(ψ, circuit)
+    return abs2(inner(ϕ, ψθ))
+  end
+  q = qubits(N)
+  ψ = productstate(q)
+  ϕ = randomstate(q; χ = 10, normalize = true)
+  H = hamiltonian(pars)
+  circuit = trottercircuit(H; ts = ts) 
+  finite_difference(f, ψ, ϕ, pars)
+end

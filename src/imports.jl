@@ -15,7 +15,9 @@ import ITensors:
   noise,
   dag,
   inner,
-  expect
+  expect,
+  op,
+  _op
 
 import LinearAlgebra: 
   tr, 

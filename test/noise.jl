@@ -6,99 +6,78 @@ using Random
 
 
 @testset "noise models: pauli channel" begin
-  E = gate("pauli_channel") 
+  q = siteind("Qubit")
+  E = array(gate("pauli_channel", q))
   K = [E[:,:,k] for k in 1:size(E,3)]
   @test size(E,3) == 4
   @test sum([E[:,:,k]' * E[:,:,k] for k in 1:size(E,3)]) ≈ Matrix{Float64}(I,2,2)
   for N in 2:5
+    q = siteinds("Qubit", N)
     probs = rand(4^N)
     probs = probs ./ sum(probs)
-    E = gate("pauli_channel", Tuple(repeat([2],N)); error_probabilities = probs)
+    E = array(gate("pauli_channel", q...; error_probabilities = probs))
+    E = reshape(E, 2^N, 2^N, length(probs))
     @test size(E,3) == 4^N
     @test sum([E[:,:,k]' * E[:,:,k] for k in 1:size(E,3)]) ≈ Matrix{Float64}(I,1<<N,1<<N)
   end
 end
 
 @testset "noise models: bitflip" begin
-  E = gate("bit_flip"; p = 0.1) 
+  q = siteind("Qubit")
+  E = array(gate("bit_flip", q; p = 0.1))
   K = [E[:,:,k] for k in 1:size(E,3)]
   @test size(E,3) == 2
   @test sum([E[:,:,k]' * E[:,:,k] for k in 1:size(E,3)]) ≈ Matrix{Float64}(I,2,2)
   for N in 2:5
-    E = gate("bit_flip", Tuple(repeat([2],N)); p = 0.1)
-    @test size(E,3) == 2^N
+    q = siteinds("Qubit", N)
+    E = array(gate("bit_flip", q...; p = 0.1))
+    E = reshape(E, 2^N, 2^N, 2^N)
     @test sum([E[:,:,k]' * E[:,:,k] for k in 1:size(E,3)]) ≈ Matrix{Float64}(I,1<<N,1<<N)
   end
 end
 
 @testset "noise models: phaseflip" begin
-  E = gate("phase_flip"; p = 0.1) 
+  q = siteind("Qubit")
+  E = array(gate("phase_flip", q; p = 0.1))
   K = [E[:,:,k] for k in 1:size(E,3)]
   @test size(E,3) == 2
   @test sum([E[:,:,k]' * E[:,:,k] for k in 1:size(E,3)]) ≈ Matrix{Float64}(I,2,2)
   for N in 2:5
-    E = gate("phase_flip", Tuple(repeat([2],N)); p = 0.1)
-    @test size(E,3) == 2^N
+    q = siteinds("Qubit", N)
+    E = array(gate("phase_flip", q...; p = 0.1))
+    E = reshape(E, 2^N, 2^N, 2^N)
     @test sum([E[:,:,k]' * E[:,:,k] for k in 1:size(E,3)]) ≈ Matrix{Float64}(I,1<<N,1<<N)
   end
 end
 
 @testset "noise models: amplitude damping" begin
-  E = gate("AD"; γ = 0.1) 
+  q = siteind("Qubit")
+  E = array(gate("AD", q; γ = 0.1)) 
   K = [E[:,:,k] for k in 1:size(E,3)]
   @test size(E,3) == 2
   @test sum([E[:,:,k]' * E[:,:,k] for k in 1:size(E,3)]) ≈ Matrix{Float64}(I,2,2)
-  for N in 2:5
-    E = gate("AD", Tuple(repeat([2],N)); γ = 0.1)
-    @test size(E,3) == 2^N
-    @test sum([E[:,:,k]' * E[:,:,k] for k in 1:size(E,3)]) ≈ Matrix{Float64}(I,1<<N,1<<N)
-  end
-
-  N = 2
-  circuit1 = randomcircuit(N; depth = 3, layered = false)
-  circuit2 = copy(circuit1)
-  push!(circuit1, ("AD",1,(γ=0.1,)))
-  push!(circuit1, ("AD",2,(γ=0.1,)))
-  push!(circuit2, ("AD",(1,2),(γ=0.1,)))
-  ρ₀ = MPO(productstate(N))
-  ρ1 = runcircuit(ρ₀, circuit1) 
-  ρ2 = runcircuit(ρ₀, circuit2)
-  @test PastaQ.array(ρ1) ≈ PastaQ.array(ρ2)
 end
 
 
 @testset "noise models: phase damping" begin
-  E = gate("PD"; γ = 0.1) 
+  q = siteind("Qubit")
+  E = array(gate("PD", q; γ = 0.1)) 
   K = [E[:,:,k] for k in 1:size(E,3)]
   @test size(E,3) == 2
   @test sum([E[:,:,k]' * E[:,:,k] for k in 1:size(E,3)]) ≈ Matrix{Float64}(I,2,2)
-  for N in 2:5
-    E = gate("PD", Tuple(repeat([2],N)); γ = 0.1)
-    @test size(E,3) == 2^N
-    @test sum([E[:,:,k]' * E[:,:,k] for k in 1:size(E,3)]) ≈ Matrix{Float64}(I,1<<N,1<<N)
-  end
-  
-  N = 2
-  circuit1 = randomcircuit(N; depth = 3, layered = false)
-  circuit2 = copy(circuit1)
-  push!(circuit1, ("PD",1,(γ=0.1,)))
-  push!(circuit1, ("PD",2,(γ=0.1,)))
-  push!(circuit2, ("PD",(1,2),(γ=0.1,)))
-  ρ₀ = MPO(productstate(N))
-  ρ1 = runcircuit(ρ₀, circuit1) 
-  ρ2 = runcircuit(ρ₀, circuit2)
-  @test PastaQ.array(ρ1) ≈ PastaQ.array(ρ2)
 end
 
 
 @testset "noise models: depolarizing" begin
-  E = gate("DEP"; p = 0.1) 
+  q = siteind("Qubit")
+  E = array(gate("DEP", q; p = 0.1)) 
   K = [E[:,:,k] for k in 1:size(E,3)]
   @test size(E,3) == 4
   @test sum([E[:,:,k]' * E[:,:,k] for k in 1:size(E,3)]) ≈ Matrix{Float64}(I,2,2)
   for N in 2:5
-    E = gate("DEP", Tuple(repeat([2],N)); p = 0.1)
-    @test size(E,3) == 4^N
+    q = qubits(N)
+    E = array(gate("DEP", q...; p = 0.1))
+    E = reshape(E, 2^N, 2^N, 4^N)
     @test sum([E[:,:,k]' * E[:,:,k] for k in 1:size(E,3)]) ≈ Matrix{Float64}(I,1<<N,1<<N)
   end
 end
@@ -106,7 +85,7 @@ end
 @testset "insertnoise: iid noise" begin
   N = 6
   depth = 4
-  
+  #
   circuit = randomcircuit(N; depth = depth, twoqubitgates = ["CX","CZ"], onequbitgates = ["Rn","X"], layered = false)
   ngates = length(circuit)
   nCZ,nCX,nR,nX = 0,0,0,0
@@ -141,7 +120,6 @@ end
   @test length(noisycircuit) == ngates + nCX + nCZ
  
 end
-
 
 @testset "insertnoise: one and two qubit noise" begin
   N = 6

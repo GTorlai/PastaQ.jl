@@ -6,7 +6,7 @@ using LinearAlgebra
 @testset "Gate generation: 1-qubit gates" begin
   i = Index(2, tags = "Qubit")
   
-  g = gate("I", i)
+  g = gate("Id", i)
   @test plev(inds(g)[1]) == 1
   @test plev(inds(g)[2]) == 0
   ggdag = g * prime(dag(g), 1; plev=1)
@@ -114,20 +114,19 @@ using LinearAlgebra
 end
 
 @testset "Gate generation: 2-qubit gates" begin
-  i = Index(2)
-  j = Index(2)
+  q = siteinds("Qubit",2)
+  i,j=q
   angles = rand(3)
   θ = π * angles[1]
   ϕ = 2π * angles[2]
   λ = 2π * angles[3]
 
-  g = gate("SWAP", i, j)
+  g = gate("SWAP", i,j)
   @test plev(inds(g)[1]) == 1 && plev(inds(g)[2]) == 1
   @test plev(inds(g)[3]) == 0 && plev(inds(g)[4]) == 0
   ggdag = g * prime(dag(g), 1; plev=1)
   @test ITensors.array(ggdag) ≈ reshape(Matrix{ComplexF64}(I, 4, 4), (2, 2, 2, 2))
-  @test g ≈ gate("Swap", i, j)
-  @test g ≈ gate("Sw", i, j)
+  @test g ≈ gate("Swap", i,j)
 
   g = gate("√SWAP", i, j)
   @test plev(inds(g)[1]) == 1 && plev(inds(g)[2]) == 1
@@ -135,14 +134,12 @@ end
   ggdag = g * prime(dag(g), 1; plev=1)
   @test ITensors.array(ggdag) ≈ reshape(Matrix{ComplexF64}(I, 4, 4), (2, 2, 2, 2))
   @test g ≈ gate("√Swap", i, j)
-  @test g ≈ gate("√Sw", i, j)
   
   g = gate("iSWAP", i, j)
   @test plev(inds(g)[1]) == 1 && plev(inds(g)[2]) == 1
   @test plev(inds(g)[3]) == 0 && plev(inds(g)[4]) == 0
   ggdag = g * prime(dag(g), 1; plev=1)
   @test g ≈ gate("iSwap", i, j)
-  @test g ≈ gate("iSw", i, j)
 
   g = gate("CX", i, j)
   @test plev(inds(g)[1]) == 1 && plev(inds(g)[2]) == 1
@@ -177,10 +174,8 @@ end
 end 
   
 @testset "Gate generation: 3-qubit gates" begin
-  i = Index(2)
-  j = Index(2)
-  k = Index(2)
-  
+  q = qubits(3)
+  i,j,k = q
   g = gate("Toffoli", i, j, k)
   @test plev(inds(g)[1]) == 1 && plev(inds(g)[2]) == 1 && plev(inds(g)[3]) == 1 
   @test plev(inds(g)[4]) == 0 && plev(inds(g)[5]) == 0 && plev(inds(g)[6]) == 0
@@ -197,16 +192,13 @@ end
   @test ITensors.array(ggdag) ≈ reshape(Matrix{ComplexF64}(I, 8, 8), (2, 2, 2, 2, 2, 2))
   @test g ≈ gate("CSWAP", i, j, k)
   @test g ≈ gate("CSwap", i, j, k)
-  @test g ≈ gate("CSw", i, j, k)
 
 end
 
 
 @testset "Gate generation: Haar gates" begin
-  i = Index(2)
-  j = Index(2)
-  
-  g = gate("randU", i)
+  i,j = qubits(2) 
+  g = gate("RandomUnitary", i)
   @test hasinds(g, i', i)
   Id = g * swapprime(dag(g)', 2 => 1)
   for n in 1:dim(i), n′ in 1:dim(i)
@@ -227,38 +219,7 @@ end
       @test Id[n, m, n′, m′] ≈ 0 atol = 1e-14
     end
   end
-
-@testset "Custom gate with long name" begin
-    PastaQ.gate(::GateName"my_favorite_gate") = [0.11 0.12; 0.21 0.22]
-    s = Index(2, "Qubit, Site")
-    gate("my_favorite_gate", s)
-    g = gate("my_favorite_gate", s)
-    @test g[s' => 1, s => 1] == 0.11
-    @test g[s' => 1, s => 2] == 0.12
-    @test g[s' => 2, s => 1] == 0.21
-    @test g[s' => 2, s => 2] == 0.22
-  end
 end
-
-@testset "Bases rotations" begin
-
-  zp = [1.0,0.0]
-  zm = [0.0,1.0]
-  xp = [1.0,1.0]/√2
-  xm = [1.0,-1.0]/√2
-  yp = [1.0,im]/√2
-  ym = [1.0,-im]/√2
-
-  Ux = gate("basisX"; dag = true)
-  @test Ux * xp ≈ zp
-  @test Ux * xm ≈ zm
-
-  Ux = gate("basisY"; dag = true)
-  @test Ux * yp ≈ zp
-  @test Ux * ym ≈ zm
-
-end
-
 
 @testset "apply gate: Id" begin
   psi = productstate(2)
@@ -405,39 +366,6 @@ end
   @test PastaQ.array(psi) ≈ [1.0, 0.0]
 
   psi = productstate(1, ["Z-"])
-  @test PastaQ.array(psi) ≈ [0.0, 1.0]
-end
-
-@testset "apply gate: meas X" begin
-  psi = productstate(1, ["X+"])
-  gate_data = ("basisX", 1, (dag=true,))
-  psi = runcircuit(psi, gate_data)
-  @test PastaQ.array(psi) ≈ [1.0, 0.0]
-  psi = productstate(1, ["X-"])
-  gate_data = ("basisX", 1, (dag=true,))
-  psi = runcircuit(psi, gate_data)
-  @test PastaQ.array(psi) ≈ [0.0, 1.0]
-end
-
-@testset "apply gate: meas Y" begin
-  psi = productstate(1, ["Y+"])
-  gate_data = ("basisY", 1, (dag=true,))
-  psi = runcircuit(psi, gate_data)
-  @test PastaQ.array(psi) ≈ [1.0, 0.0]
-  psi = productstate(1, ["Y-"])
-  gate_data = ("basisY", 1, (dag=true,))
-  psi = runcircuit(psi, gate_data)
-  @test PastaQ.array(psi) ≈ [0.0, 1.0]
-end
-
-@testset "apply gate: meas Z" begin
-  psi = productstate(1)
-  gate_data = ("basisZ", 1, (dag=true,))
-  psi = runcircuit(psi, gate_data)
-  @test PastaQ.array(psi) ≈ [1.0, 0.0]
-  psi = productstate(1, ["Z-"])
-  gate_data = ("basisZ", 1, (dag=true,))
-  psi = runcircuit(psi, gate_data)
   @test PastaQ.array(psi) ≈ [0.0, 1.0]
 end
 
@@ -632,11 +560,11 @@ end
   @test psi_vec ≈ [0.0, 0.0, 0.0, -1.0]
 end
 
-@testset "apply gate: Sw" begin
+@testset "apply gate: Swap" begin
   # CONTROL - TARGET
   psi = productstate(2)
   # |00> -> |00> = (1 0 0 0) (natural order)
-  gate_data = ("Sw", (1, 2))
+  gate_data = ("Swap", (1, 2))
   psi = runcircuit(psi, gate_data)
   psi_vec = PastaQ.array(psi)
   @test psi_vec ≈ [1.0, 0.0, 0.0, 0.0]
@@ -645,7 +573,7 @@ end
   # |10> -> |01> = (0 1 0 0) (natural order)
   gate_data = ("X", 1)
   psi = runcircuit(psi, gate_data)
-  gate_data = ("Sw", (1, 2))
+  gate_data = ("Swap", (1, 2))
   psi = runcircuit(psi, gate_data)
   psi_vec = PastaQ.array(psi)
   @test psi_vec ≈ [0.0, 1.0, 0.0, 0.0]
@@ -654,7 +582,7 @@ end
   # |01> -> |10> = (0 0 1 0) (natural order)
   gate_data = ("X", 2)
   psi = runcircuit(psi, gate_data)
-  gate_data = ("Sw", (1, 2))
+  gate_data = ("Swap", (1, 2))
   psi = runcircuit(psi, gate_data)
   psi_vec = PastaQ.array(psi)
   @test psi_vec ≈ [0.0, 0.0, 1.0, 0.0]
@@ -665,10 +593,75 @@ end
   psi = runcircuit(psi, gate_data)
   gate_data = ("X", 2)
   psi = runcircuit(psi, gate_data)
-  gate_data = ("Sw", (1, 2))
+  gate_data = ("Swap", (1, 2))
   psi = runcircuit(psi, gate_data)
   psi_vec = PastaQ.array(psi)
   @test psi_vec ≈ [0.0, 0.0, 0.0, 1.0]
+end
+
+
+@testset "apply gate: meas X" begin
+  psi = productstate(1, ["X+"])
+  gate_data = ("basisX", 1, (dag=true,))
+  psi = runcircuit(psi, gate_data)
+  @test PastaQ.array(psi) ≈ [1.0, 0.0]
+  psi = productstate(1, ["X-"])
+  gate_data = ("basisX", 1, (dag=true,))
+  psi = runcircuit(psi, gate_data)
+  @test PastaQ.array(psi) ≈ [0.0, 1.0]
+end
+
+@testset "apply gate: meas Y" begin
+  psi = productstate(1, ["Y+"])
+  gate_data = ("basisY", 1, (dag=true,))
+  psi = runcircuit(psi, gate_data)
+  @test PastaQ.array(psi) ≈ [1.0, 0.0]
+  psi = productstate(1, ["Y-"])
+  gate_data = ("basisY", 1, (dag=true,))
+  psi = runcircuit(psi, gate_data)
+  @test PastaQ.array(psi) ≈ [0.0, 1.0]
+end
+
+@testset "apply gate: meas Z" begin
+  psi = productstate(1)
+  gate_data = ("basisZ", 1, (dag=true,))
+  psi = runcircuit(psi, gate_data)
+  @test PastaQ.array(psi) ≈ [1.0, 0.0]
+  psi = productstate(1, ["Z-"])
+  gate_data = ("basisZ", 1, (dag=true,))
+  psi = runcircuit(psi, gate_data)
+  @test PastaQ.array(psi) ≈ [0.0, 1.0]
+end
+
+@testset "gate built out of elementary gates" begin
+  
+  s = siteinds("Qubit", 2)
+  
+  G = array(gate("S", s[1])) * array(gate("S", s[1])) 
+  gtest = gate("S * S", s[1])
+  @test PastaQ.array(gtest) ≈ G 
+  
+  cx = reshape(array(gate("CX", s[1], s[2])),(4,4))
+  
+  G = cx * cx * cx
+  gtest = gate("CX * CX * CX", s[1],s[2])
+  @test PastaQ.array(gtest) ≈ G 
+  
+  G = array(gate("S", s[1])) + array(gate("T", s[1])) 
+  gtest = gate("S + T", s[1])
+  @test PastaQ.array(gtest) ≈ G
+  
+  G = array(gate("S", s[1])) + array(gate("T", s[1]))  * array(gate("X",s[1]))
+  gtest = gate("S + T * X", s[1])
+  @test PastaQ.array(gtest) ≈ G
+  
+  G = array(gate("S", s[1])) + array(gate("T", s[1]))  * array(gate("X",s[1])) * array(gate("Y",s[1]))
+  gtest = gate("S + T * X * Y", s[1])
+  @test PastaQ.array(gtest) ≈ G
+  
+  G = array(gate("Z", s[1])) * array(gate("S", s[1])) + array(gate("T", s[1]))  * array(gate("X",s[1])) * array(gate("Y",s[1]))
+  gtest = gate("Z * S + T * X * Y", s[1])
+  @test PastaQ.array(gtest) ≈ G
 end
 
 
@@ -676,82 +669,71 @@ end
   s = siteinds("Qubit", 2)
   
   θ = 0.1
-  rx = gate("Rx"; θ = 0.1)
+  rx = array(gate("Rx", s[1]; θ = 0.1))
   exp_rx = exp(rx)
-  gtest = gate("Rx",s[1]; θ = 0.1, f = x -> exp(x))
-  @test PastaQ.array(gtest) ≈ exp_rx
+  gtest = gate(x -> exp(x), "Rx",s[1]; θ = 0.1)
+  @test exp_rx ≈ array(gate(x -> exp(x), "Rx",s[1]; θ = 0.1))
+  @test exp_rx ≈ array(gate(x -> exp(x), ("Rx", 1, (θ = 0.1,)), s))
   
-  cx = 0.1*gate("CX")
-  exp_cx = exp(cx)
-  gtest = gate("CX",s[1],s[2]; f = x -> exp(0.1*x))
-  @test PastaQ.array(gtest) ≈ exp_cx
-
-end
-
-
-@testset "gate built out of elementary gates" begin
-  
-  s = siteinds("Qubit", 2)
-  
-  G = gate("S") * gate("S") 
-  gtest = gate("S * S", s[1])
-  @test PastaQ.array(gtest) ≈ G 
-  
-  cx = gate("CX")
-  
-  G = cx * cx * cx
-  gtest = gate("CX*CX*CX", s[1],s[2])
-  @test PastaQ.array(gtest) ≈ G 
-  
-  G = gate("S") + gate("T")
-  gtest = gate("S + T", s[1])
-  @test PastaQ.array(gtest) ≈ G
-  
-  G = gate("S") + gate("T") * gate("X")
-  gtest = gate("S + T * X", s[1])
-  @test PastaQ.array(gtest) ≈ G
-  
-  G = gate("S") + gate("T") * gate("X") * gate("Y")
-  gtest = gate("S + T * X * Y", s[1])
-  @test PastaQ.array(gtest) ≈ G
-  
-  G = gate("Z")*gate("S") + gate("T") * gate("X") * gate("Y")
-  gtest = gate("Z*S + T * X * Y", s[1])
-  @test PastaQ.array(gtest) ≈ G
-
-
-  exp_cx = exp(0.1*cx)
-  gtest = gate("CX",s[1],s[2]; f = x -> exp(0.1*x))
-  @test PastaQ.array(gtest) ≈ exp_cx
-  
+  cx = 0.1*reshape(array(gate("CX", s[1], s[2])),(4,4))
+  exp_cx = reshape(exp(cx),(2,2,2,2))
+  @test exp_cx ≈ array(gate(x -> exp(0.1*x), "CX", s[1], s[2]))
+  @test exp_cx ≈ array(gate(x -> exp(0.1*x), ("CX", (1,2)), s))
 end
 
 
 
-@testset "qudit gates" begin
-  dim = 3
-  s = siteinds("Qudit", 4; dim = dim)
-  dims = (dim,)
-  @test gate("a†", dims)      ≈ [0 0 0; 1 0 0; 0 √2 0] 
-  @test gate("a", dims)       ≈ [0 1 0; 0 0 √2; 0 0 0]  
-
-  @test gate("a†", dims) * gate("a", dims) ≈ [0 0 0; 0 1 0; 0 0 2] 
-
-  @test PastaQ.array(gate("a†", s[1])) ≈ [0 0 0; 1 0 0; 0 √2 0]
-  @test PastaQ.array(gate("a", s[1])) ≈ [0 1 0; 0 0 √2; 0 0 0] 
-  
-  @test PastaQ.array(gate("a† * a", s[1])) ≈ [0 0 0; 0 1 0; 0 0 2]
-  @test PastaQ.array(gate("a * a†", s[1])) ≈ [1 0 0; 0 2 0; 0 0 0]
-  
-
-  dim = 10
-  s = siteinds("Qudit", 4; dim = dim)
-  dims = (dim,)
-  @test PastaQ.array(gate("a† * a† * a * a", s[1])) ≈ gate("a†", dims)  * gate("a†", dims)  * gate("a", dims) * gate("a", dims)
-  
-  @test PastaQ.array(gate("a†a", s[1], s[2])) ≈ kron(gate("a†", dims), gate("a", dims))
-  @test PastaQ.array(gate("aa†", s[1], s[2])) ≈ kron(gate("a", dims), gate("a†", dims))
-  
-  @test PastaQ.array(gate("a†a+aa†", s[1], s[2])) ≈ kron(gate("a†", dims), gate("a", dims)) + kron(gate("a", dims), gate("a†", dims))
-end
-
+##@testset "qudit gates" begin
+##  dim = 3
+##  s = siteinds("Qudit", 4; dim = dim)
+##  dims = (dim,)
+##  @test gate("a†", dims)      ≈ [0 0 0; 1 0 0; 0 √2 0] 
+##  @test gate("a", dims)       ≈ [0 1 0; 0 0 √2; 0 0 0]  
+##
+##  @test gate("a†", dims) * gate("a", dims) ≈ [0 0 0; 0 1 0; 0 0 2] 
+##
+##  @test PastaQ.array(gate("a†", s[1])) ≈ [0 0 0; 1 0 0; 0 √2 0]
+##  @test PastaQ.array(gate("a", s[1])) ≈ [0 1 0; 0 0 √2; 0 0 0] 
+##  
+##  @test PastaQ.array(gate("a† * a", s[1])) ≈ [0 0 0; 0 1 0; 0 0 2]
+##  @test PastaQ.array(gate("a * a†", s[1])) ≈ [1 0 0; 0 2 0; 0 0 0]
+##  
+##
+##  dim = 10
+##  s = siteinds("Qudit", 4; dim = dim)
+##  dims = (dim,)
+##  @test PastaQ.array(gate("a† * a† * a * a", s[1])) ≈ gate("a†", dims)  * gate("a†", dims)  * gate("a", dims) * gate("a", dims)
+##  
+##  @test PastaQ.array(gate("a†a", s[1], s[2])) ≈ kron(gate("a†", dims), gate("a", dims))
+##  @test PastaQ.array(gate("aa†", s[1], s[2])) ≈ kron(gate("a", dims), gate("a†", dims))
+##  
+##  @test PastaQ.array(gate("a†a+aa†", s[1], s[2])) ≈ kron(gate("a†", dims), gate("a", dims)) + kron(gate("a", dims), gate("a†", dims))
+##end
+#
+##@testset "2q gates like itensor " begin
+##
+##  q = qubits(3)
+##
+##  g1 = gate(q, "X", 1)
+##  g2 = gate(q, "Y", 2)
+##  gtest = g1 * g2
+##  g = gate(q, "X", 1, "Y", 2)
+##  @test g ≈ gtest
+##
+##  ψ₀ = productstate(q)
+##  circuit = [("X",1), ("Y",2) , ("X",1,"Y",2)]
+##  ψ = runcircuit(ψ₀, circuit)
+##  @test ψ ≈ ψ₀
+##end
+#@testset "Custom gate with long name" begin
+#    PastaQ.gate(::GateName"my_favorite_gate") = [0.11 0.12; 0.21 0.22]
+#    s = Index(2, "Qubit, Site")
+#    gate("my_favorite_gate", s)
+#    g = gate("my_favorite_gate", s)
+#    @test g[s' => 1, s => 1] == 0.11
+#    @test g[s' => 1, s => 2] == 0.12
+#    @test g[s' => 2, s => 1] == 0.21
+#    @test g[s' => 2, s => 2] == 0.22
+#  end
+#end
+##

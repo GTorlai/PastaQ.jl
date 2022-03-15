@@ -1,106 +1,126 @@
-
-function gate(::GateName"pauli_channel", dims::Tuple = (2,); 
+function gate(::GateName"pauli_channel", ::SiteType"Qubit", s::Index...; 
               pauli_ops = ["Id","X","Y","Z"],
-              error_probabilities = prepend!(zeros(length(pauli_ops)^length(dims)-1),1))
-  @assert sum(error_probabilities) ≈ 1
-  @assert all(dims .== 2)
-  N = length(dims)
-  length(error_probabilities) > (1 << 10) && error("Hilbert space too large")
-  error_probabilities ./= sum(error_probabilities)
-  kraus = zeros(Complex{Float64},1<<N,1<<N,length(pauli_ops)^N)
-  basis = vec(reverse.(Iterators.product(fill(pauli_ops,N)...)|>collect))
-  for (k,ops) in enumerate(basis)
-    kraus[:,:,k] = √error_probabilities[k] * reduce(kron,gate.(ops)) 
+              error_probabilities = prepend!(zeros(length(pauli_ops)^length(dim.(s))-1),1))
+  @ignore_derivatives begin
+    dims = dim.(s)
+    @assert sum(error_probabilities) ≈ 1
+    @assert all(dims .== 2)
+    N = length(dims)
+    length(error_probabilities) > (1 << 10) && error("Hilbert space too large")
+    error_probabilities ./= sum(error_probabilities)
+    kraus = zeros(Complex{Float64},1<<N,1<<N,length(pauli_ops)^N)
+    krausind = Index(size(kraus, 3); tags="kraus")
+    
+    basis = vec(reverse.(Iterators.product(fill(pauli_ops,N)...)|>collect))
+    for (k,ops) in enumerate(basis)
+      kraus[:,:,k] = √error_probabilities[k] * reduce(kron, [gate(op, SiteType("Qubit")) for op in ops]) 
+    end
+    return ITensors.itensor(kraus, prime.(s)..., ITensors.dag.(s)..., krausind)
   end
-  return kraus
 end
 
-gate(::GateName"bit_flip", dims::Tuple = (2,); p::Number) = 
-  gate("pauli_channel", dims; error_probabilities = prepend!(p/(2^length(dims)-1) * ones(2^length(dims)-1), 1-p), pauli_ops = ["Id","X"])
+is_single_qubit_noise(::GateName"pauli_channel") = false
 
-gate(::GateName"phase_flip", dims::Tuple = (2,); p::Number) = 
-  gate("pauli_channel", dims; error_probabilities = prepend!(p/(2^length(dims)-1) * ones(2^length(dims)-1), 1-p), pauli_ops = ["Id","Z"])
 
-function gate(::GateName"AD", dims::Tuple = (2,); γ::Real)
-  N = length(dims)
-  @assert all(dims .== 2)
-  kraus = zeros(2,2,2)
-  kraus[:,:,1] = [1 0
-                  0 sqrt(1-γ)]
-  kraus[:,:,2] = [0 sqrt(γ)
-                  0 0]
-  N == 1 && return kraus 
-  k1 = kraus[:,:,1]
-  k2 = kraus[:,:,2]
-  T = vec(Iterators.product(fill([k1,k2],N)...)|>collect)
-  K = zeros(Float64,1<<N,1<<N,1<<N)
-  for x in 1:1<<N
-    K[:,:,x] = reduce(kron,T[x]) 
+
+function gate(::GateName"bit_flip", st::SiteType"Qubit", s::Index...; p::Number = 0.0) 
+  @ignore_derivatives begin
+    error_probabilities = prepend!(p/(2^length(dim.(s))-1) * ones(2^length(dim.(s))-1), 1-p)
+    return gate(GateName("pauli_channel"), st, s...; error_probabilities = error_probabilities, pauli_ops = ["Id","X"])
   end
-  return K
 end
-#
-# To accept the gate name "amplitude_damping"
-gate(::GateName"amplitude_damping", dims::Tuple = (2,); kwargs...) = gate("AD", dims; kwargs...)
+is_single_qubit_noise(::GateName"bit_flip") = false
 
-function gate(::GateName"PD", dims::Tuple = (2,); γ::Real)
-  N = length(dims)
-  @assert all(dims .== 2)
-  kraus = zeros(2,2,2)
-  kraus[:,:,1] = [1 0
-                  0 sqrt(1-γ)]
-  kraus[:,:,2] = [0 0
-                  0 sqrt(γ)]
-
-  N == 1 && return kraus 
-  k1 = kraus[:,:,1]
-  k2 = kraus[:,:,2]
-  T = vec(Iterators.product(fill([k1,k2],N)...)|>collect)
-  K = zeros(Float64,1<<N,1<<N,1<<N)
-  for x in 1:1<<N
-    K[:,:,x] = reduce(kron,T[x]) 
+function gate(::GateName"phase_flip", st::SiteType"Qubit", s::Index...; p::Number = 0.0) 
+  @ignore_derivatives begin
+    error_probabilities = prepend!(p/(2^length(dim.(s))-1) * ones(2^length(dim.(s))-1), 1-p)
+    return gate(GateName("pauli_channel"), st, s...; error_probabilities = error_probabilities, pauli_ops = ["Id","Z"])
   end
-  return K
 end
+is_single_qubit_noise(::GateName"phase_flip") = false
 
-# To accept the gate name "phase_damping"
-gate(::GateName"phase_damping", dims::Tuple = (2,); kwargs...) = gate("PD", dims; kwargs...)
-#
-# To accept the gate name "dephasing"
-gate(::GateName"dephasing", dims::Tuple = (2,); kwargs...) = gate("PD", dims; kwargs...)
 
 # make general n-qubit
-gate(::GateName"DEP", dims::Tuple = (2,); p::Number) =
-  gate("pauli_channel", dims; error_probabilities = prepend!(p/(4^length(dims)-1) * ones(4^length(dims)-1), 1-p), pauli_ops = ["Id","X","Y","Z"])
+function gate(::GateName"DEP", st::SiteType"Qubit", s::Index...; p::Number)
+  @ignore_derivatives begin
+    error_probabilities = prepend!(p/(4^length(dim.(s))-1) * ones(4^length(dim.(s))-1), 1-p)
+    gate(GateName("pauli_channel"), st, s...; error_probabilities = error_probabilities, pauli_ops = ["Id","X","Y","Z"])
+  end
+end
+gate(::GateName"depolarizing", st::SiteType"Qubit", s::Index...; kwargs...) = 
+  gate(GateName("DEP"), st, s...; kwargs...)
+is_single_qubit_noise(::GateName"DEP") = false
+is_single_qubit_noise(::GateName"depolarizing") = false
 
-# To accept the gate name "depolarizing"
-gate(::GateName"depolarizing", dims::Tuple = (2,); kwargs...) = 
-  gate("DEP", dims; kwargs...)
 
-function insertnoise(circuit::Vector{<:Vector{<:Any}}, noisemodel::Tuple; gate = nothing)#idlenoise::Bool = false) 
+function gate(::GateName"AD", ::SiteType"Qubit", s::Index...; γ::Real = 0.0)
+  @ignore_derivatives begin
+    dims = dim.(s)
+    N = length(dims)
+    @assert all(dims .== 2)
+    
+    kraus = zeros(2,2,2)
+    kraus[:,:,1] = [1 0
+                    0 sqrt(1-γ)]
+    kraus[:,:,2] = [0 sqrt(γ)
+                    0 0]
+    krausind = Index(size(kraus, 3); tags="kraus")
+    return ITensors.itensor(kraus, prime.(s)..., ITensors.dag.(s)..., krausind)
+  end
+end
+
+gate(::GateName"amplitude_damping", st::SiteType"Qubit", s::Index...; kwargs...) = 
+  gate(GateName("AD"), st, s...; kwargs...)
+
+is_single_qubit_noise(::GateName"AD") = true
+is_single_qubit_noise(::GateName"amplitude_damping") = true
+
+
+function gate(::GateName"PD", ::SiteType"Qubit", s::Index...; γ::Real)
+  @ignore_derivatives begin
+    dims = dim.(s)
+    N = length(dims)
+    @assert all(dims .== 2)
+    kraus = zeros(2,2,2)
+    kraus[:,:,1] = [1 0
+                    0 sqrt(1-γ)]
+    kraus[:,:,2] = [0 0
+                    0 sqrt(γ)]
+
+    krausind = Index(size(kraus, 3); tags="kraus")
+    return ITensors.itensor(kraus, prime.(s)..., ITensors.dag.(s)..., krausind)
+  end
+end
+
+gate(::GateName"phase_damping", st::SiteType"Qubit", s::Index...; kwargs...) = 
+  gate(GateName("PD"), st, s...; kwargs...)
+gate(::GateName"dephasing", st::SiteType"Qubit", s::Index...; kwargs...) = 
+  gate(GateName("PD"), st, s...; kwargs...)
+
+is_single_qubit_noise(::GateName"PD") = true
+is_single_qubit_noise(::GateName"phase_damping") = true
+is_single_qubit_noise(::GateName"dephasing") = true
+
+
+function insertnoise(circuit::Vector{<:Vector{<:Any}}, noisemodel::Tuple; gate = nothing)
   max_g_size = maxgatesize(circuit) 
-
+  numqubits = nqubits(circuit)
+  
   # single noise model for all
   if noisemodel[1] isa String
     tmp = []
     for k in 1:max_g_size
-      push!(tmp, k => noisemodel)
+      tmp = vcat(tmp,  k => noisemodel)
     end
-    #if idlenoise
-    #  push!(tmp, "idle" => noisemodel)
-    #end
     noisemodel = Tuple(tmp)
   end
-
   noisycircuit = []
   for layer in circuit
     noisylayer = []
     for g in layer
-      push!(noisylayer, g)
+      noisylayer = vcat(noisylayer, [g])
       applynoise = (isnothing(gate) ? true : 
                     gate isa String ? g[1] == gate : g[1] in gate)
-      #@applytogate = gate isa String ? g[1] == gate : g[1] in gate
-      #if isnothing(gate) || applytogate
       if applynoise
         nq = g[2]
         # n-qubit gate
@@ -108,40 +128,25 @@ function insertnoise(circuit::Vector{<:Vector{<:Any}}, noisemodel::Tuple; gate =
           gatenoiseindex = findfirst(x -> x == length(nq), first.(noisemodel))
           isnothing(gatenoiseindex) && error("Noise model not defined for $(length(nq))-qubit gates!")
           gatenoise = last(noisemodel[gatenoiseindex])
-          # Check whether the n-qubit Kraus channel has been defined
-          # n -qubit Kraus operator
-          noisecheck = PastaQ.gate(gatenoise[1], Tuple(repeat([2], length(nq))); gatenoise[2]...)
-          # if the single-qubit copy is return, use productnoise, and throw a warning
-          if size(noisecheck,1) < 1<<length(nq)
-            @warn "$(length(nq))-qubit Kraus operators for the $(gatenoise[1]) noise not defined. Applying tensor-product noise instead.\n"
-            # tensor-product noise
-            for q in nq
-              push!(noisylayer,(gatenoise[1], q, gatenoise[2]))
+          noisecheck = is_single_qubit_noise(GateName(gatenoise[1]))  
+          if length(nq) > 1 && is_single_qubit_noise(GateName(gatenoise[1]))
+            @ignore_derivatives @warn "Noise model not defined for $(length(nq))-qubit gates! Applying tensor-product noise instead."
+            for j in nq
+              noisylayer = vcat(noisylayer, [(gatenoise[1], j, gatenoise[2])])
             end
           else
-            # correlated n-qubit noise
-            push!(noisylayer,(gatenoise[1], nq, gatenoise[2]))
+            noisylayer = vcat(noisylayer, [(gatenoise[1], nq, gatenoise[2])])
           end
         # 1-qubit gate
         else
           gatenoiseindex = findfirst(x -> x == 1, first.(noisemodel))
           isnothing(gatenoiseindex) && error("Noise model not defined for 1-qubit gates!")
           gatenoise = last(noisemodel[gatenoiseindex])
-          push!(noisylayer, (gatenoise[1], nq, gatenoise[2]))  
+          noisylayer = vcat(noisylayer, [(gatenoise[1], nq, gatenoise[2])])
         end
       end
     end
-    #if idlenoise
-    #  gatenoiseindex = findfirst(x -> x == "idle", first.(noisemodel))
-    #  isnothing(gatenoiseindex) && error("Noise model not defined for idling qubits!")
-    #  gatenoise = last(noisemodel[gatenoiseindex])
-    #  busy_qubits = vcat([collect(g[2]) for g in layer]...)
-    #  idle_qubits = filter(y -> y ∉ busy_qubits, 1:nqubits(circuit))
-    #  for n in idle_qubits
-    #    push!(noisylayer, (gatenoise[1], n, gatenoise[2]))
-    #  end
-    #end
-    push!(noisycircuit, noisylayer)
+    noisycircuit = vcat(noisycircuit, [noisylayer])
   end
   return noisycircuit
 end
@@ -161,4 +166,4 @@ end
 
 maxgatesize(circuit::Vector{<:Any}) = 
   maxgatesize([circuit])
- 
+
