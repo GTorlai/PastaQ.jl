@@ -16,7 +16,8 @@ import ITensors:
   dag,
   inner,
   expect,
-  op
+  op,
+  _op
 
 import LinearAlgebra: 
   tr, 
