@@ -1,5 +1,5 @@
 include("settings.jl")
 
-makedocs(; sitename=sitename, settings...)
+makedocs(; settings...)
 
 deploydocs(; repo="github.com/GTorlai/PastaQ.jl")
