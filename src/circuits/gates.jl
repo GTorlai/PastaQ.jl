@@ -54,6 +54,7 @@ function op(on::OpName, st::SiteType"Qudit", s::Index...)
   return ITensors.itensor(opmat, prime.(rs)..., dag.(rs)...)
 end
 
+
 _op(::OpName"aa", st::SiteType"Qudit"; dim::Tuple = (2,2)) = 
   kron(_op(OpName("a"), st; dim = dim[1]), _op(OpName("a"), st; dim = dim[2]))
 _op(::OpName"aa†", st::SiteType"Qudit"; dim::Tuple = (2,2)) = 
@@ -65,6 +66,21 @@ _op(::OpName"a†a†", st::SiteType"Qudit"; dim::Tuple = (2,2)) =
 
 #gate(::GateName"Φ", dims::Tuple = (2,); Φ::Number) =
 #  exp(im * Φ) * gate("Id", dims)
+
+op(::OpName"a", st::SiteType"Qubit") = 
+  _op(OpName("a"), SiteType("Qudit"); dim = 2)
+op(::OpName"a†", st::SiteType"Qubit") = 
+  _op(OpName("a†"), SiteType("Qudit"); dim = 2)
+
+op(::OpName"aa", st::SiteType"Qubit") = 
+  _op(OpName("aa"), SiteType("Qudit"); dim = (2,2))
+op(::OpName"a†a", st::SiteType"Qubit") = 
+  _op(OpName("a†a"), SiteType("Qudit"); dim = (2,2))
+op(::OpName"aa†", st::SiteType"Qubit") = 
+  _op(OpName("aa†"), SiteType("Qudit"); dim = (2,2))
+op(::OpName"a†a†", st::SiteType"Qubit") = 
+  _op(OpName("a†a†"), SiteType("Qudit"); dim = (2,2))
+
 
 function phase(v::AbstractVector{ElT}) where {ElT<:Number}
   for x in v
