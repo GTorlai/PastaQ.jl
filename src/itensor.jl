@@ -94,38 +94,57 @@ end
 isapprox(x::AbstractMPS, y::ITensor; kwargs...) = isapprox(prod(x), y; kwargs...)
 isapprox(x::ITensor, y::AbstractMPS; kwargs...) = isapprox(y, x; kwargs...)
 
-function expect(T₀::ITensor, ops::AbstractString...; kwargs...)
+function expect(T₀::ITensor, ops; kwargs...)
   T = copy(T₀)
-  N = nsites(T)
-  ElT = real(ITensors.promote_itensor_eltype([T]))
-  Nops = length(ops)
+  s = inds(T, plev = 0)
+  N = length(s)
+  
+  ElT = ITensors.promote_itensor_eltype([T])
+  
+  is_operator = !isempty(inds(T, plev = 1))
 
-  site_range::UnitRange{Int} = get(kwargs, :site_range, 1:N)
+  if haskey(kwargs, :site_range)
+    @warn "The `site_range` keyword arg. to `expect` is deprecated: use the keyword `sites` instead"
+    sites = kwargs[:site_range]
+  else
+    sites = get(kwargs, :sites, 1:N)
+  end
+  
+  site_range = (sites isa AbstractRange) ? sites : collect(sites)
   Ns = length(site_range)
   start_site = first(site_range)
-  offset = start_site - 1
+  
+  el_types = map(o -> ishermitian(op(o, s[start_site])) ? real(ElT) : ElT, ops)
+   
+  normalization = is_operator ? tr(T) : norm(T)^2
 
-  normalization = is_operator(T) ? tr(T) : norm(T)^2
-
-  ex = ntuple(n -> zeros(ElT, Ns), Nops)
-  for j in site_range
-    for n in 1:Nops
-      s = firstind(T, tags = "Site, n=$j", plev = 0)
-      if is_operator(T)
-        Top = replaceprime(T * op(ops[n], s'), 2 => 1, tags = "Site, n=$j")
-        ex[n][j - offset] = real(tr(Top) / normalization)
+  ex = map((o, el_t) -> zeros(el_t, Ns), ops, el_types)
+  for (entry, j) in enumerate(site_range)
+    for (n, opname) in enumerate(ops)
+      if is_operator
+        val = replaceprime(op(opname, s[j])' * T, 2 => 1; inds = s[j]'')
+        val = tr(val)/normalization
       else
-        ex[n][j - offset] = real(scalar(dag(T) * noprime(op(ops[n], s) * T))) / normalization 
+        val = scalar(dag(T) * noprime(op(opname, s[j]) * T)) / normalization
       end
+      ex[n][entry] = (el_types[n] <: Real) ? real(val) : val
     end
   end
 
-  if Nops == 1
-    return Ns == 1 ? ex[1][1] : ex[1]
-  else
-    return Ns == 1 ? [x[1] for x in ex] : ex
+  if sites isa Number
+    return map(arr -> arr[1], ex)
   end
+  return ex
 end
+
+function expect(T::ITensor, op::AbstractString; kwargs...)
+  return first(expect(T, (op,); kwargs...))
+end
+
+function expect(T::ITensor, op1::AbstractString, ops::AbstractString...; kwargs...)
+  return expect(T, (op1, ops...); kwargs...)
+end
+
 
 @non_differentiable ITensors.name(::Any)
 

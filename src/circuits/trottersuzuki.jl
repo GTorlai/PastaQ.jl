@@ -28,7 +28,16 @@ function trotter1(H::Vector{<:Tuple}, δτ::Number)
   for k in 1:length(H)
     length(H[k]) > 3 && error("Only the format (coupling, opname, support) currently allowed")
     coupling, Hdata... = H[k]
-    layer=vcat(layer,[(x -> exp(-δτ * coupling * x), Hdata...)]) 
+    opname = first(Hdata)
+    if startswith(opname, "lindblad")
+      layer = vcat(layer, [Hdata])
+    elseif startswith(opname, "renorm")
+      op = opname[8:end]
+      site = Hdata[2]
+      layer = vcat(layer ,[(x -> exp(0.5 * im * δt * transpose(x) * conj(x)), op, site)])
+    else
+      layer=vcat(layer,[(x -> exp(-δτ * coupling * x), Hdata...)]) 
+    end
   end
   return layer 
 end
@@ -80,13 +89,45 @@ end
 
 
 #XXX simplified version for Zygote
-function _trottercircuit(H::Vector{<:Tuple}, τs::Vector; order::Int = 2, layered::Bool = false, kwargs...)
+function _trottercircuit(H::Vector{<:Tuple}, τs::Vector; order::Int = 2, layered::Bool = false, lindbladians = [], kwargs...)
   nlayers = length(τs) - 1
   # XXX: Zygote: this breaks (?) 
   #circuit = [trotterlayer(H, τ; order = order) for τ in τs]
   #!layered && return reduce(vcat, circuit)
   #return circuit
   Δ = τs[2] - τs[1]
+  if !isempty(lindbladians)
+    for (l, lindblad) in enumerate(lindbladians)
+      rate, opname, site = lindblad
+      !(site isa Int) && error("Only single-body lindblad operators allowed")
+      s_star = siteind("Qubit") 
+      s      = siteind("Qubit")
+      #Γ = 0.25 * γ 
+      #δt = 0.1
+      L     = gate(opname, s)      
+      Lstar = gate(opname, s_star)      
+      #Zstar = gate("Z",hilbert_star[1])
+      #Z     = gate("Z",hilbert[1])
+       
+      G = Δ * rate * Lstar * L
+      expG = exp(G)
+      λ,U=eigen(expG)
+      λsqrt = sqrt.(λ)
+      #XXX how do we make sure the kraus index is the 3rd one?
+      K = replacetags(noprime(U * λsqrt), "Link, eigen" => "kraus")
+      X = findfirst(x -> hastags(x, "kraus"), inds(K))
+      K = ITensors.array(K)
+      #if X ≠ 3
+      #  error()
+      #end
+      lname = "lindblad-$opname"
+      @eval gate(::(@GateName_str $lname), ::SiteType"Qubit") = $K
+      #@eval gate(::(@GateName_str $lname), ::SiteType"Qubit") =  
+      H = vcat(H, [(-0.5*im*rate, "renorm-$opname", site)])
+      H = vcat(H, [(1, "lindblad-$opname", site)])
+    end
+  end
+
   layer = trotterlayer(H, Δ; order = order)
   layered && return [layer for _ in 1:nlayers]
   return reduce(vcat, [layer for _ in 1:nlayers])
