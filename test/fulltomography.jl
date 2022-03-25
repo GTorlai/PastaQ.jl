@@ -4,6 +4,9 @@ using Test
 using LinearAlgebra
 using Random
 
+using SCS
+using Convex
+
 @testset " counts and frequencies" begin
   N = 3
   d = 1<<N

@@ -316,7 +316,7 @@ function runcircuit(
       # If M is an MPS, |ψ⟩ -> ρ = |ψ⟩⟨ψ| (MPS -> MPO)
       #XXX to be differentiated
       if typeof(M) == MPS
-        ρ = outer(M, M)
+        ρ = outer(M', M)
       else
         ρ = M
       end
@@ -381,7 +381,7 @@ function runcircuit(
         move_sites_back=move_sites_back,
       )
       if apply_dag
-        Mc = outer(Mc, Mc)
+        Mc = outer(Mc', Mc)
       end
       return Mc
     else
