@@ -33,25 +33,23 @@ function trotter1(δτ::Number, H::Vector{<:Tuple}; kwargs...)
   return layer 
 end
 
-function trotter1(δτ::Number, hilbert::Vector{<:Index}, H::Vector{<:Tuple}; lindbladians = [], kwargs...)
+function trotter1(δτ::Number, hilbert::Vector{<:Index}, H::Vector{<:Tuple}; lindbladians = [], atol = 1e-15, kwargs...)
   layer = buildcircuit(hilbert, trotter1(δτ, H))
   if !isempty(lindbladians)
     for lindblad in lindbladians
       rate, opname, site = lindblad
       !(site isa Int) && error("Only single-body lindblad operators allowed")
-      
       s = hilbert[site]
-      L     = array(gate(opname, s))
-      Lstar = array(dag(gate(opname, s)))
       
-      G = -im * δτ * rate * kron(Lstar, L)
+      L = array(gate(opname, s))
+      G = -im * δτ * rate * kron(conj(L), L)
       
-      expG = reshape(exp(G),(size(Lstar)...,size(L)...))
-      expG = permutedims(expG, (1,3,2,4))
-      expG = reshape(expG, size(G))
+      expG = reshape(exp(G),(size(L)..., size(L)...))
+      expG = reshape(permutedims(expG, (1,3,2,4)), size(G))
       @assert ishermitian(expG)
+      
       λ, U = eigen(expG)
-      λsqrt = diagm(sqrt.(λ .+ 1e-15))
+      λsqrt = diagm(sqrt.(λ .+ atol))
       K = U * λsqrt 
       K = reshape(K, (size(L)..., size(K)[2]))
       krausind = Index(size(K)[3]; tags="kraus")
