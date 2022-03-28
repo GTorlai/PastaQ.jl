@@ -77,7 +77,7 @@ end
   ϕ = runcircuit(ψ0, gates; apply_dag = false)
   @test ϕ ≈ ψ
   σ = runcircuit(ψ0, gates; apply_dag = true)
-  @test σ ≈ outer(ψ,ψ)
+  @test σ ≈ outer(ψ',ψ)
 
   # Mixed state, noiseless circuit
   ρ0 = MPO(productstate(N))
