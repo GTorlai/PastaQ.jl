@@ -73,7 +73,7 @@ function fidelity(Ψ::MPS, ϱ::LPDO{MPO}; cutoff::Float64 = 1e-15)
   #proj = bra(ϱ) * Ψ
   proj = *(bra(ϱ), Ψ; cutoff = cutoff)
   K = abs2(norm(Ψ)) * tr(ϱ)
-  return inner(proj, proj) / K
+  return inner(proj', proj) / K
 end
 
 fidelity(ϱ::LPDO{MPO}, ψ::MPS; kwargs...) = 
