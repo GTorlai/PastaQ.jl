@@ -7,7 +7,7 @@ using Plots # to not capture precompilation output
 
 INPUT_SRC_DIR = joinpath(@__DIR__, "..", "examples", "src")
 OUTPUT_JL_DIR = joinpath(@__DIR__, "..", "examples", "scripts")
-OUTPUT_NB_DIR = joinpath(@__DIR__, "..", "examples", "notebooks")
+#OUTPUT_NB_DIR = joinpath(@__DIR__, "..", "examples", "notebooks")
 OUTPUT_MD_DIR = joinpath(@__DIR__, "src","examples")
 
 examples_files = filter(x -> endswith(x, ".jl"), readdir(INPUT_SRC_DIR))
@@ -15,7 +15,7 @@ for file in examples_files
   EXAMPLE = joinpath(INPUT_SRC_DIR, file)
   Literate.markdown(EXAMPLE, OUTPUT_MD_DIR)
   Literate.script(EXAMPLE, OUTPUT_JL_DIR)
-  Literate.notebook(EXAMPLE, OUTPUT_NB_DIR)
+  #Literate.notebook(EXAMPLE, OUTPUT_NB_DIR)
 end
 
 settings = Dict(
