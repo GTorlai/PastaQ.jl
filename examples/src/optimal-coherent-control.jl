@@ -63,7 +63,7 @@ function hamiltonian(ω⃗::Vector, g::Number)
   ω₁, ω₂ = ω⃗
   H = vcat(H, [(ω₁, "a† * a", q₁)])
   H = vcat(H, [(ω₂, "a† * a", q₂)])
-  H = vcat(H, [(g,  "a†a + aa†", (q₁, q₂))])
+  H = vcat(H, [(g,  "a†b + ab†", (q₁, q₂))])
   return H
 end
 
@@ -208,7 +208,7 @@ function hamiltonian(θ⃗::Vector, ω⃗::Vector, g::Number, t::Float64)
   H = Tuple[]
   H = vcat(H, [(ω₁ + fourier_control(ϑ₁, t), "a† * a", q₁)])
   H = vcat(H, [(ω₂ + pulse_control(ϑ₂, t), "a† * a", q₂)])
-  H = vcat(H, [(g,   "a†a + aa†", (q₁, q₂))])
+  H = vcat(H, [(g,   "a†b + ab†", (q₁, q₂))])
   return H
 end
 
