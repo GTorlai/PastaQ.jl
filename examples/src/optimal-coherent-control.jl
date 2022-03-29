@@ -63,7 +63,7 @@ function hamiltonian(ω⃗::Vector, g::Number)
   ω₁, ω₂ = ω⃗
   H = vcat(H, [(ω₁, "a† * a", q₁)])
   H = vcat(H, [(ω₂, "a† * a", q₂)])
-  H = vcat(H, [(g,  "a†a + aa†", (q₁, q₂))])
+  H = vcat(H, [(g,  "a†b + ab†", (q₁, q₂))])
   return H
 end
 

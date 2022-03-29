@@ -26,6 +26,21 @@ gate(::GateName"randU", t::SiteType"Qubit", s::Index...; kwargs...) =
 
 gate(::OpName"Id", ::SiteType"Qubit") = [1 0; 0 1]
 
+op(::OpName"a", st::SiteType"Qubit") =
+  _op(OpName("a"), SiteType("Qudit"); dim = (2,))
+op(::OpName"a†", st::SiteType"Qubit") =
+  _op(OpName("a†"), SiteType("Qudit"); dim = (2,))
+
+op(::OpName"ab", st::SiteType"Qubit") =
+  _op(OpName("ab"), SiteType("Qudit"); dim = (2,2))
+op(::OpName"a†b", st::SiteType"Qubit") =
+  _op(OpName("a†b"), SiteType("Qudit"); dim = (2,2))
+op(::OpName"ab†", st::SiteType"Qubit") =
+  _op(OpName("ab†"), SiteType("Qudit"); dim = (2,2))
+op(::OpName"a†b†", st::SiteType"Qubit") =
+  _op(OpName("a†b†"), SiteType("Qudit"); dim = (2,2))
+
+
 function phase(v::AbstractVector{ElT}) where {ElT<:Number}
   for x in v
     absx = abs(x)
