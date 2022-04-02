@@ -41,7 +41,7 @@ end
   
   for (k,s) in enumerate(basis)
     σ = productstate(qubits, [s...])
-    ψσ = inner(σ,ψ)
+    ψσ = inner(σ',ψ)
     @test ψσ ≈ ψvec[k]
   end
   
@@ -55,7 +55,7 @@ end
     σ = productstate(qubits, [s...])
     for (kp,sp) in enumerate(basis)
       σp = productstate(qubits, [sp...])
-      Uσσp = inner(σ, U, σp)
+      Uσσp = inner(σ', U, σp)
       @test Uσσp ≈ Umat[k,kp]
     end
   end
@@ -70,7 +70,7 @@ end
     σ = productstate(qubits, [s...])
     for (kp,sp) in enumerate(basis)
       σp = productstate(qubits, [sp...])
-      ρσσp = inner(σ, ρ, σp)
+      ρσσp = inner(σ', ρ, σp)
       @test ρσσp ≈ ρmat[k,kp]
     end
   end
@@ -86,7 +86,7 @@ end
     σ = productstate(qubits, [s...])
     for (kp,sp) in enumerate(basis)
       σp = productstate(qubits, [sp...])
-      ρσσp = inner(σ, ρmpo, σp)
+      ρσσp = inner(σ', ρmpo, σp)
       @test ρσσp ≈ ρmat[k,kp]
     end
   end
@@ -118,7 +118,7 @@ end
       end
       σ  = productstate(qubits_out, [s_out...])
       σp = productstate(qubits_out, [sp_out...])
-      Λel = inner(σ, Λc, σp)
+      Λel = inner(σ', Λc, σp)
       @test Λel ≈ Λmat[k,kp]
     end   
   end
@@ -144,7 +144,7 @@ end
       end
       σ  = productstate(qubits_out, [s_out...])
       σp = productstate(qubits_out, [sp_out...])
-      Λel = inner(σ, Λc, σp)
+      Λel = inner(σ', Λc, σp)
       @test Λel ≈ Λmat[k,kp]
     end   
   end

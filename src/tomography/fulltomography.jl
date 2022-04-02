@@ -1,3 +1,72 @@
+function tomography(probabilities::Dict{Tuple,<:Dict}, sites::Vector{<:Index}; 
+                    method::String="linear_inversion", 
+                    fillzeros::Bool=true, 
+                    process::Bool = false,
+                    trρ::Number = 1.0,
+                    max_iters::Int=10000,
+                    kwargs...)
+  
+  # Generate the projector matrix corresponding to the probabilities.
+  A, p = design_matrix(probabilities; return_probs = true, process = process)
+  
+  if (method == "LI"  || method == "linear_inversion")
+    # Invert the Born rule and reshape
+    ρ_vec = pinv(A) * p
+    d = Int(sqrt(size(ρ_vec,1)))
+    ρ̂ = reshape(ρ_vec,(d,d))
+    
+    ρ̂ .= ρ̂ * (trρ / tr(ρ̂))
+    # Make PSD
+    ρ̂ = make_PSD(ρ̂)
+  else
+    d = Int(sqrt(size(A,2)))
+    N = Int(sqrt(d))
+    n = N ÷ 2
+    
+    # Variational density matrix
+    ρ = Convex.ComplexVariable(d,d)
+    
+    if (method == "LS"  || method == "least_squares") 
+      # Minimize the cost function C = ||A ρ⃗ - p̂||²
+      cost_function = Convex.norm(A * vec(ρ) - p) 
+    elseif (method == "MLE" || method == "maximum_likelihood")
+      # Minimize the negative log likelihood:
+      cost_function = - p' * Convex.log(real(A * vec(ρ)) + 1e-10)
+    else
+      error("Tomography method not recognized
+       Currently available methods: - LI  : linear inversion
+                                      LS  : least squares
+                                      MLS : maximum likelihood")
+    end
+
+    # Contrained the trace and enforce positivity and hermitianity 
+    if process 
+      function tracepreserving(ρ)
+        for j in 1:n
+          subsystem_dims = [2 for _ in 1:(N+1-j)]
+          ρ = Convex.partialtrace(ρ,j+1,subsystem_dims)
+        end
+        return ρ
+      end
+      
+      constraints = [Convex.tr(ρ) == (1<<n) * trρ
+                    Convex.isposdef(ρ)
+                    tracepreserving(ρ) == Matrix{Float64}(I,1<<n,1<<n)
+                    ρ == ρ']
+    else
+      constraints = [Convex.tr(ρ) == trρ 
+                     Convex.isposdef(ρ) 
+                     ρ == ρ']
+    end
+    # Use Convex.jl to solve the optimization
+    problem = Convex.minimize(cost_function,constraints)
+    Convex.solve!(problem, () -> SCS.Optimizer(verbose=false,max_iters=max_iters),verbose=false)
+    ρ̂ = ρ.value
+  end
+  return PastaQ.itensor(ρ̂, sites)
+end
+
+
 """
     measurement_counts(samples::Matrix{Pair{String, Int}}; fillzeros::Bool = true)
 

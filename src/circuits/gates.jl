@@ -10,27 +10,6 @@ macro GateName_str(s)
 end
 const gate = op
 
-op(os::Tuple{Function,AbstractString,Vararg}, s::Vector{<:Index}) = op(s, os...)
-op(f::Function, args...; kwargs...) = f(op(args...; kwargs...))
-
-function op(
-  s::Vector{<:Index},
-  f::Function,
-  opname::AbstractString,
-  ns::Tuple{Vararg{Integer}};
-  kwargs...,
-)
-  return f(op(opname, s, ns...; kwargs...))
-end
-
-function op(
-  s::Vector{<:Index}, f::Function, opname::AbstractString, ns::Integer...; kwargs...
-)
-  return f(op(opname, s, ns; kwargs...))
-end
-
-op(s::Vector{<:Index}, opdata::Tuple{Function,AbstractString,Vararg}) = op(s, opdata...)
-
 # Random Haard unitary:
 # 
 # Reference: http://math.mit.edu/~edelman/publications/random_matrix_theory.pdf
@@ -47,39 +26,19 @@ gate(::GateName"randU", t::SiteType"Qubit", s::Index...; kwargs...) =
 
 gate(::OpName"Id", ::SiteType"Qubit") = [1 0; 0 1]
 
-function op(on::OpName, st::SiteType"Qudit", s::Index...) 
-  rs = reverse(s)
-  d⃗ = dim.(rs)
-  opmat = _op(on, st; dim = d⃗)
-  return ITensors.itensor(opmat, prime.(rs)..., dag.(rs)...)
-end
+op(::OpName"a", st::SiteType"Qubit") =
+  _op(OpName("a"), SiteType("Qudit"); dim = (2,))
+op(::OpName"a†", st::SiteType"Qubit") =
+  _op(OpName("a†"), SiteType("Qudit"); dim = (2,))
 
-
-_op(::OpName"aa", st::SiteType"Qudit"; dim::Tuple = (2,2)) = 
-  kron(_op(OpName("a"), st; dim = dim[1]), _op(OpName("a"), st; dim = dim[2]))
-_op(::OpName"aa†", st::SiteType"Qudit"; dim::Tuple = (2,2)) = 
-  kron(_op(OpName("a†"), st; dim = dim[1]), _op(OpName("a"), st; dim = dim[2]))
-_op(::OpName"a†a", st::SiteType"Qudit"; dim::Tuple = (2,2)) = 
-  kron(_op(OpName("a"), st; dim = dim[1]), _op(OpName("a†"), st; dim = dim[2]))
-_op(::OpName"a†a†", st::SiteType"Qudit"; dim::Tuple = (2,2)) = 
-  kron(_op(OpName("a†"), st; dim = dim[1]), _op(OpName("a†"), st; dim = dim[2]))
-
-#gate(::GateName"Φ", dims::Tuple = (2,); Φ::Number) =
-#  exp(im * Φ) * gate("Id", dims)
-
-op(::OpName"a", st::SiteType"Qubit") = 
-  _op(OpName("a"), SiteType("Qudit"); dim = 2)
-op(::OpName"a†", st::SiteType"Qubit") = 
-  _op(OpName("a†"), SiteType("Qudit"); dim = 2)
-
-op(::OpName"aa", st::SiteType"Qubit") = 
-  _op(OpName("aa"), SiteType("Qudit"); dim = (2,2))
-op(::OpName"a†a", st::SiteType"Qubit") = 
-  _op(OpName("a†a"), SiteType("Qudit"); dim = (2,2))
-op(::OpName"aa†", st::SiteType"Qubit") = 
-  _op(OpName("aa†"), SiteType("Qudit"); dim = (2,2))
-op(::OpName"a†a†", st::SiteType"Qubit") = 
-  _op(OpName("a†a†"), SiteType("Qudit"); dim = (2,2))
+op(::OpName"ab", st::SiteType"Qubit") =
+  _op(OpName("ab"), SiteType("Qudit"); dim = (2,2))
+op(::OpName"a†b", st::SiteType"Qubit") =
+  _op(OpName("a†b"), SiteType("Qudit"); dim = (2,2))
+op(::OpName"ab†", st::SiteType"Qubit") =
+  _op(OpName("ab†"), SiteType("Qudit"); dim = (2,2))
+op(::OpName"a†b†", st::SiteType"Qubit") =
+  _op(OpName("a†b†"), SiteType("Qudit"); dim = (2,2))
 
 
 function phase(v::AbstractVector{ElT}) where {ElT<:Number}
