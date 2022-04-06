@@ -200,7 +200,8 @@ depth = 20
 function loss(θ⃗)
   circuit = variationalcircuit(N, depth, θ⃗)
   U = buildcircuit(ψ, circuit)
-  return rayleigh_quotient(H, U, ψ; cutoff = 1e-8)
+  Uψ = runcircuit(ψ, U; cutoff = 1e-8)
+  return inner(Uψ', H, Uψ)
 end
 
 # initialize parameters
