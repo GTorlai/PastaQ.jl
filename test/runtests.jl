@@ -8,7 +8,7 @@ using Test
     "distances.jl",
     "fulltomography.jl",
     "gates.jl",
-    "getsamples.jl", 
+    "getsamples.jl",
     "io.jl",
     "noise.jl",
     "optimizers.jl",

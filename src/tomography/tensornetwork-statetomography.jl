@@ -403,13 +403,15 @@ end
 Compute the gradients of the cost function:
 `C = log(Z) - ⟨log P(σ)⟩_data`
 """
-function gradients(L::LPDO, data::Matrix{Pair{String,Int}}; sqrt_localnorms=nothing, kwargs...)
+function gradients(
+  L::LPDO, data::Matrix{Pair{String,Int}}; sqrt_localnorms=nothing, kwargs...
+)
   g_logZ, logZ = gradlogZ(L; sqrt_localnorms=sqrt_localnorms)
   g_nll, nll = gradnll(L, data; sqrt_localnorms=sqrt_localnorms)
 
   grads = g_logZ + g_nll
   loss = logZ + nll
-  
+
   # TODO: check if this slows down the training
   # permute the gradients
   for j in 1:length(L)
@@ -419,6 +421,6 @@ function gradients(L::LPDO, data::Matrix{Pair{String,Int}}; sqrt_localnorms=noth
   return grads, loss
 end
 
-gradients(ψ::MPS, data::Matrix{Pair{String,Int}}; localnorms=nothing) = 
-  gradients(LPDO(ψ), data; sqrt_localnorms=localnorms)
-
+function gradients(ψ::MPS, data::Matrix{Pair{String,Int}}; localnorms=nothing)
+  return gradients(LPDO(ψ), data; sqrt_localnorms=localnorms)
+end

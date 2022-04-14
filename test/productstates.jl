@@ -3,7 +3,7 @@ using PastaQ
 using Test
 
 @testset "qudits" begin
-  d⃗ = [2,3,4,5,6]
+  d⃗ = [2, 3, 4, 5, 6]
   q = qudits(d⃗)
   @test dim.(q) == d⃗
 end
@@ -41,27 +41,26 @@ end
   @test productstate(s, fill("Y-", length(s))) ≈ prod(statesYm)
 
   @test productstate(s, n -> isodd(n) ? 1 : 0) ≈
-        states1[1] * states0[2] * states1[3] * states0[4]
+    states1[1] * states0[2] * states1[3] * states0[4]
   @test productstate(s, n -> isodd(n) ? "1" : "0") ≈
-        states1[1] * states0[2] * states1[3] * states0[4]
+    states1[1] * states0[2] * states1[3] * states0[4]
   @test productstate(s, n -> isodd(n) ? "Y-" : "X+") ≈
-        statesYm[1] * statesXp[2] * statesYm[3] * statesXp[4]
+    statesYm[1] * statesXp[2] * statesYm[3] * statesXp[4]
 
   ψ = runcircuit(s, ghz(4))
-  ϕ = productstate(ψ, fill("0", length(s))) ≈ ψ0 
-  
+  ϕ = productstate(ψ, fill("0", length(s))) ≈ ψ0
+
   n = 4
-  ψ = productstate(n; dim = 3)
+  ψ = productstate(n; dim=3)
   @test length(ψ) == n
   @test length(PastaQ.array(ψ)) == 3^n
-  
-  n = 2
-  s = qudits(n; dim = 3)
-  ψ = productstate(n, [0,2]; dim = 3)
-  @test PastaQ.array(ψ) == [0,0,1,0,0,0,0,0,0]
-  ψ = productstate(s, [2,1])
-  @test PastaQ.array(ψ) == [0,0,0,0,0,0,0,1,0]
 
+  n = 2
+  s = qudits(n; dim=3)
+  ψ = productstate(n, [0, 2]; dim=3)
+  @test PastaQ.array(ψ) == [0, 0, 1, 0, 0, 0, 0, 0, 0]
+  ψ = productstate(s, [2, 1])
+  @test PastaQ.array(ψ) == [0, 0, 0, 0, 0, 0, 0, 1, 0]
 end
 
 @testset "productoperator" begin
@@ -74,13 +73,12 @@ end
   @test prod(I) ≈ prod(gatesI)
   @test I ≈ prod(gatesI)
 
-  U = runcircuit(s, ghz(4); process = true)
+  U = runcircuit(s, ghz(4); process=true)
   X = productoperator(U)
   @test X ≈ I
 
-
-  s = qudits(3; dim = 3)
+  s = qudits(3; dim=3)
   X = productoperator(s)
-  @test PastaQ.array(X) ≈ PastaQ.array(productoperator(3; dim = 3))
-  @test PastaQ.array(X) ≈ Matrix(LinearAlgebra.I,27,27)
+  @test PastaQ.array(X) ≈ PastaQ.array(productoperator(3; dim=3))
+  @test PastaQ.array(X) ≈ Matrix(LinearAlgebra.I, 27, 27)
 end

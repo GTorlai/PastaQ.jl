@@ -504,4 +504,3 @@ end
     @test ITensors.array(alg_grads[j]) ≈ num_grads[j] rtol = 1e-3
   end
 end
-

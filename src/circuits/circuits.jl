@@ -92,7 +92,7 @@ gatelayer("X",1:2:5)
 ```
 """
 function gatelayer(
-  gatename::AbstractString, support::Union{Vector{<:Int}, AbstractRange}; kwargs...
+  gatename::AbstractString, support::Union{Vector{<:Int},AbstractRange}; kwargs...
 )
   return [isempty(kwargs) ? (gatename, n) : (gatename, n, values(kwargs)) for n in support]
 end
@@ -127,7 +127,6 @@ end
 --------------------------------------------------------------------------------
 """
 
-
 @doc raw"""
     randomlayer(
       gatename::AbstractString, 
@@ -155,8 +154,14 @@ function randomlayer(
 )
   layer = []
   for n in support
-    pars = randomparams(gatename, length(n); rng = rng) # the 2^n is for the Haar dimension
-    gatepars = (isempty(pars) ? (isempty(kwargs) ? nothing : values(kwargs)) : merge(pars,values(kwargs)))
+    pars = randomparams(gatename, length(n); rng=rng) # the 2^n is for the Haar dimension
+    gatepars = (
+      if isempty(pars)
+        (isempty(kwargs) ? nothing : values(kwargs))
+      else
+        merge(pars, values(kwargs))
+      end
+    )
     g = (isnothing(gatepars) ? (gatename, n) : (gatename, n, gatepars))
     layer = vcat(layer, [g])
   end
@@ -189,16 +194,22 @@ randomlayer(["X","Y","Z"], 3)
 """
 function randomlayer(
   gatenames::Vector{<:AbstractString},
-  support::Union{Vector{<:Int}, AbstractRange, Vector{<:Tuple}};
+  support::Union{Vector{<:Int},AbstractRange,Vector{<:Tuple}};
   rng=Random.GLOBAL_RNG,
   weights::Union{Nothing,Vector{Float64}}=ones(length(gatenames)) / length(gatenames),
   kwargs...,
 )
   gate_id = StatsBase.sample(gatenames, StatsBase.Weights(weights), length(support))
   layer = []
-  for (i,n) in enumerate(support)
-    pars = randomparams(gate_id[i], length(n); rng = rng)
-    gatepars = (isempty(pars) ? (isempty(kwargs) ? nothing : values(kwargs)) : merge(pars,values(kwargs)))
+  for (i, n) in enumerate(support)
+    pars = randomparams(gate_id[i], length(n); rng=rng)
+    gatepars = (
+      if isempty(pars)
+        (isempty(kwargs) ? nothing : values(kwargs))
+      else
+        merge(pars, values(kwargs))
+      end
+    )
     g = (isnothing(gatepars) ? (gate_id[i], n) : (gate_id[i], n, gatepars))
     layer = vcat(layer, [g])
   end
@@ -208,8 +219,6 @@ end
 function randomlayer(gatenames::Vector{<:AbstractString}, support::Int; kwargs...)
   return randomlayer(gatenames, 1:support; kwargs...)
 end
-
-
 
 @doc raw"""
     randomcircuit(
@@ -229,7 +238,7 @@ If `layered = true`, the object returned in a `Vector` of circuit layers, rather
 """
 function randomcircuit(
   coupling_sequence::Vector;
-  depth::Int = 1,
+  depth::Int=1,
   twoqubitgates::Union{String,Vector{String}}="RandomUnitary",
   onequbitgates::Union{Nothing,String,Vector{String}}=nothing,
   layered::Bool=true,
@@ -237,12 +246,13 @@ function randomcircuit(
 )
   #N = (coupling_sequence isa Vector{AbstractVector} ? maximum(vcat([maximum.(c) for c in coupling_sequence]...)) : 
   #                                            maximum([maximum(c) for c in coupling_sequence]))
-  
+
   N = 0
-  coupling_sequence = coupling_sequence isa Vector{<:Tuple} ? [coupling_sequence] : coupling_sequence
+  coupling_sequence =
+    coupling_sequence isa Vector{<:Tuple} ? [coupling_sequence] : coupling_sequence
   for seq in coupling_sequence
     for b in seq
-      N = max(N,b[1],b[2])
+      N = max(N, b[1], b[2])
     end
   end
   circuit = Vector[]
@@ -297,13 +307,16 @@ function randomcircuit(size::Tuple; rotated::Bool=false, kwargs...)
 end
 
 function randomcircuit(L::Int, depth::Int; rotated::Bool=false, kwargs...)
-  error("randomcircuit(N::Int, depth::Int; kwargs...) is depracated\n
-         - for a 1d random circuit: randomcircuit(N::Int; depth = depth, kwargs...)\n
-         - for a 2d random circuit: randomcircuit((Lx, Ly); depth = depth, kwargs...)")
+  return error(
+    "randomcircuit(N::Int, depth::Int; kwargs...) is depracated\n
+     - for a 1d random circuit: randomcircuit(N::Int; depth = depth, kwargs...)\n
+     - for a 2d random circuit: randomcircuit((Lx, Ly); depth = depth, kwargs...)"
+  )
 end
 
-ITensors.dag(single_gate::Tuple{String,Union{Int,Tuple}}) = 
-  (single_gate[1], single_gate[2], (adjoint = true,))
+function ITensors.dag(single_gate::Tuple{String,Union{Int,Tuple}})
+  return (single_gate[1], single_gate[2], (adjoint=true,))
+end
 
 function ITensors.dag(single_gate::Tuple{String,Union{Int,Tuple},NamedTuple})
   prev_dag = get(single_gate[3], :adjoint, false)
@@ -311,9 +324,6 @@ function ITensors.dag(single_gate::Tuple{String,Union{Int,Tuple},NamedTuple})
   return (single_gate[1], single_gate[2], nt)
 end
 
-ITensors.dag(layer::Vector{<:Any}) = 
-  [ITensors.dag(g) for g in reverse(layer)]
+ITensors.dag(layer::Vector{<:Any}) = [ITensors.dag(g) for g in reverse(layer)]
 
-ITensors.dag(circuit::Vector{<:Vector{<:Any}}) = 
-  [dag(layer) for layer in reverse(circuit)]
-
+ITensors.dag(circuit::Vector{<:Vector{<:Any}}) = [dag(layer) for layer in reverse(circuit)]

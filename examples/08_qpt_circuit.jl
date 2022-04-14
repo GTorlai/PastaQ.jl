@@ -2,7 +2,7 @@ using PastaQ
 using Random
 using ITensors
 using Observers
-import Optimisers
+using Optimisers: Optimisers
 
 Random.seed!(1234)
 

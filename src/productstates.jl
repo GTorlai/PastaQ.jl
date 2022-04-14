@@ -39,10 +39,9 @@ q = qudits([3,5,3])
 #  (dim=3|id=372|"Qudit,Site,n=3")
 ```
 """
-qudits(N::Int; dim::Int = 3, kwargs...) = siteinds("Qudit",N; dim = dim, kwargs...)
+qudits(N::Int; dim::Int=3, kwargs...) = siteinds("Qudit", N; dim=dim, kwargs...)
 
-qudits(d⃗::Vector) = 
-  [addtags.(siteind("Qudit"; dim = d⃗[i]), "n = $i") for i in 1:length(d⃗)]
+qudits(d⃗::Vector) = [addtags.(siteind("Qudit"; dim=d⃗[i]), "n = $i") for i in 1:length(d⃗)]
 
 @doc raw"""
     productstate(hilbert::Vector{<:Index})
@@ -56,11 +55,10 @@ It accepts both a Hilbert space or the number of modes and local dimension.
 """
 productstate(hilbert::Vector{<:Index}) = productMPS(hilbert, "0")
 
-function productstate(N::Int; dim::Int = 2, sitetype::String = "Qubit")
-  dim > 2 && return productstate(siteinds("Qudit", N; dim = dim))
-  return productstate(siteinds(sitetype,N))
+function productstate(N::Int; dim::Int=2, sitetype::String="Qubit")
+  dim > 2 && return productstate(siteinds("Qudit", N; dim=dim))
+  return productstate(siteinds(sitetype, N))
 end
-
 
 @doc raw"""
     productstate(N::Int, states::Vector{T})
@@ -80,12 +78,10 @@ or with `String` ``|\psi\rangle = |+\rangle\otimes|0\rangle\otimes|-i\rangle``
 ψ = productstate(q, ["X+","Z+","Y-"]);
 ```
 """
-function productstate(N::Int, states::Vector; dim::Int = 2, sitetype::String = "Qubit")
-  dim > 2 && return productstate(siteinds("Qudit", N; dim = dim), states)
+function productstate(N::Int, states::Vector; dim::Int=2, sitetype::String="Qubit")
+  dim > 2 && return productstate(siteinds("Qudit", N; dim=dim), states)
   return productstate(siteinds(sitetype, N), states)
 end
-
-
 
 function productstate(sites::Vector{<:Index}, states::Vector{<:Integer})
   return MPS(state.(string.(Int.(states)), sites))
@@ -109,17 +105,11 @@ function productstate(M::Union{MPS,MPO,LPDO}, states::Vector)
   return productstate(originalsiteinds(M), states)
 end
 
-
-
-
-
-
-function productoperator(N::Int; dim::Int = 2, sitetype::String = "Qubit")
-  dim > 2 && return productoperator(siteinds("Qudit", N; dim = dim))
+function productoperator(N::Int; dim::Int=2, sitetype::String="Qubit")
+  dim > 2 && return productoperator(siteinds("Qudit", N; dim=dim))
   return productoperator(siteinds(sitetype, N))
 end
 
 productoperator(M::Union{MPS,MPO,LPDO}) = productoperator(originalsiteinds(M))
 
 productoperator(sites::Vector{<:Index}) = MPO([op("Id", s) for s in sites])
-

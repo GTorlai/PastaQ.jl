@@ -203,6 +203,3 @@ function HDF5.read(
   X = read(g, "X", XT)
   return LPDO(X, ts"Purifier")
 end
-
-
-

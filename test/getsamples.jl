@@ -44,7 +44,7 @@ end
 
   bases = fullbases(N)
   @test bases isa Matrix{String}
-  @test size(bases) == (3^N,N)
+  @test size(bases) == (3^N, N)
 end
 
 @testset "measurements" begin
@@ -52,7 +52,7 @@ end
   N = 3
   depth = 4
   ψ0 = productstate(N)
-  gates = randomcircuit(N; depth =  depth)
+  gates = randomcircuit(N; depth=depth)
   ψ = runcircuit(ψ0, gates)
   ψ_vec = PastaQ.array(ψ)
   probs = abs2.(ψ_vec)
@@ -63,7 +63,7 @@ end
   @test size(samples)[2] == N
   data_prob = empiricalprobability(samples)
   @test probs ≈ data_prob atol = 1e-2
-  
+
   ρ = runcircuit(N, gates; noise=("depolarizing", (p=0.01,)))
   ρ_mat = PastaQ.array(ρ)
   probs = real(diag(ρ_mat))
@@ -76,32 +76,31 @@ end
 end
 
 @testset "basis rotations" begin
-  s = siteinds("Qubit",1)
+  s = siteinds("Qubit", 1)
   #ϕ = qubits(1)
-  ψ0 = state("X+",s[1])
-  gates = [("basisX",1,(dag=true,))]
-  ψ = runcircuit(ψ0,gates)
+  ψ0 = state("X+", s[1])
+  gates = [("basisX", 1, (dag=true,))]
+  ψ = runcircuit(ψ0, gates)
   @test PastaQ.array(ψ) ≈ array(state("Z+", s[1]))
-  ψ0 = state("X-",s[1])
-  gates = [("basisX",1,(dag=true,))]
-  ψ = runcircuit(ψ0,gates)
+  ψ0 = state("X-", s[1])
+  gates = [("basisX", 1, (dag=true,))]
+  ψ = runcircuit(ψ0, gates)
   @test PastaQ.array(ψ) ≈ array(state("Z-", s[1]))
 
-  ψ0 = state("Y+",s[1])
-  gates = [("basisY",1,(dag=true,))]
-  ψ = runcircuit(ψ0,gates)
+  ψ0 = state("Y+", s[1])
+  gates = [("basisY", 1, (dag=true,))]
+  ψ = runcircuit(ψ0, gates)
   @test PastaQ.array(ψ) ≈ array(state("Z+", s[1]))
-  ψ0 = state("Y-",s[1])
-  gates = [("basisY",1,(dag=true,))]
-  ψ = runcircuit(ψ0,gates)
+  ψ0 = state("Y-", s[1])
+  gates = [("basisY", 1, (dag=true,))]
+  ψ = runcircuit(ψ0, gates)
   @test PastaQ.array(ψ) ≈ array(state("Z-", s[1]))
 end
-
 
 @testset "project unitary MPO" begin
   N = 4
   ntrial = 100
-  gates = randomcircuit(N; depth =  4, layered=false)
+  gates = randomcircuit(N; depth=4, layered=false)
 
   U = runcircuit(N, gates; process=true)
 
@@ -125,9 +124,9 @@ end
 @testset "project unitary ITensor" begin
   N = 4
   ntrial = 100
-  gates = randomcircuit(N; depth =  4, layered=false)
+  gates = randomcircuit(N; depth=4, layered=false)
 
-  U = runcircuit(N, gates; process=true, full_representation = true)
+  U = runcircuit(N, gates; process=true, full_representation=true)
   bases = randombases(N, ntrial)
   preps = randompreparations(N, ntrial)
 
@@ -148,7 +147,7 @@ end
 @testset "project Choi MPO" begin
   N = 4
   ntrial = 100
-  gates = randomcircuit(N; depth =  4, layered=false)
+  gates = randomcircuit(N; depth=4, layered=false)
 
   Λ = runcircuit(N, gates; process=true, noise=("depolarizing", (p=0.1,)))
 
@@ -171,10 +170,12 @@ end
 @testset "project Choi ITensor" begin
   N = 4
   ntrial = 100
-  gates = randomcircuit(N; depth =  4, layered=false)
+  gates = randomcircuit(N; depth=4, layered=false)
 
   @disable_warn_order begin
-    Λ = runcircuit(N, gates; process=true, noise=("depolarizing", (p=0.1,)), full_representation = true)
+    Λ = runcircuit(
+      N, gates; process=true, noise=("depolarizing", (p=0.1,)), full_representation=true
+    )
 
     bases = randombases(N, ntrial)
     preps = PastaQ.randompreparations(N, ntrial)
@@ -193,178 +194,172 @@ end
   end
 end
 
-
-
-
-
-
 @testset "getsamples: states" begin
   N = 3
-  circuit = randomcircuit(N; depth = 3)
-  
+  circuit = randomcircuit(N; depth=3)
+
   # quantum states
   ψ = runcircuit(N, circuit)
   ρ = runcircuit(N, circuit; noise=("depolarizing", (p=0.1,)))
-  
+
   nbases = 11
   bases = randombases(N, nbases)
   data = getsamples(ψ, bases)
-  @test size(data) == (nbases,N)
+  @test size(data) == (nbases, N)
   nshots = 3
   data = getsamples(ψ, bases, nshots)
-  @test size(data) == (nbases*nshots,N)
+  @test size(data) == (nbases * nshots, N)
   for b in 1:nbases
     for k in 1:nshots
-      @test first.(data[(b-1)*nshots+k,:]) == bases[b,:]
+      @test first.(data[(b - 1) * nshots + k, :]) == bases[b, :]
     end
   end
 
   data = getsamples(ρ, bases)
-  @test size(data) == (nbases,N)
+  @test size(data) == (nbases, N)
   nshots = 3
   data = getsamples(ρ, bases, nshots)
-  @test size(data) == (nbases*nshots,N)
+  @test size(data) == (nbases * nshots, N)
   for b in 1:nbases
     for k in 1:nshots
-      @test first.(data[(b-1)*nshots+k,:]) == bases[b,:]
+      @test first.(data[(b - 1) * nshots + k, :]) == bases[b, :]
     end
   end
-  
+
   # ITensors quantum states
-  ψ = runcircuit(N, circuit; full_representation = true)
-  ρ = runcircuit(N, circuit; noise=("depolarizing", (p=0.1,)), full_representation = true)
-  
+  ψ = runcircuit(N, circuit; full_representation=true)
+  ρ = runcircuit(N, circuit; noise=("depolarizing", (p=0.1,)), full_representation=true)
+
   nbases = 11
   bases = randombases(N, nbases)
   data = getsamples(ψ, bases)
-  @test size(data) == (nbases,N)
+  @test size(data) == (nbases, N)
   nshots = 3
   data = getsamples(ψ, bases, nshots)
-  @test size(data) == (nbases*nshots,N)
+  @test size(data) == (nbases * nshots, N)
   for b in 1:nbases
     for k in 1:nshots
-      @test first.(data[(b-1)*nshots+k,:]) == bases[b,:]
+      @test first.(data[(b - 1) * nshots + k, :]) == bases[b, :]
     end
   end
 
   data = getsamples(ρ, bases)
-  @test size(data) == (nbases,N)
+  @test size(data) == (nbases, N)
   nshots = 3
   data = getsamples(ρ, bases, nshots)
-  @test size(data) == (nbases*nshots,N)
+  @test size(data) == (nbases * nshots, N)
   for b in 1:nbases
     for k in 1:nshots
-      @test first.(data[(b-1)*nshots+k,:]) == bases[b,:]
+      @test first.(data[(b - 1) * nshots + k, :]) == bases[b, :]
     end
   end
 end
 
 @testset "getsamples: channels" begin
-
   N = 3
-  circuit = randomcircuit(N; depth = 3)
-  
+  circuit = randomcircuit(N; depth=3)
+
   # quantum processes
-  U = runcircuit(N, circuit; process = true)
-  Λ = runcircuit(N, circuit; noise=("depolarizing", (p=0.1,)), process = true)
-  
+  U = runcircuit(N, circuit; process=true)
+  Λ = runcircuit(N, circuit; noise=("depolarizing", (p=0.1,)), process=true)
+
   npreps = 5
   nbases = 7
   preps = randompreparations(N, npreps)
   bases = randombases(N, nbases)
-  
+
   data = getsamples(U, preps, bases)
-  @test size(data) == (npreps*nbases,N)
+  @test size(data) == (npreps * nbases, N)
   nshots = 3
   data = getsamples(U, preps, bases, nshots)
-  @test size(data) == (npreps*nbases*nshots,N)
-  
+  @test size(data) == (npreps * nbases * nshots, N)
+
   for p in 1:npreps
     for b in 1:nbases
       for k in 1:nshots
-        pdata = first.(data[(p-1)*nbases*nshots+(b-1)*nshots+k,:])
-        bdata = first.(last.(data[(p-1)*nbases*nshots+(b-1)*nshots+k,:]))
-        @test pdata == preps[p,:]
-        @test bdata == bases[b,:]
+        pdata = first.(data[(p - 1) * nbases * nshots + (b - 1) * nshots + k, :])
+        bdata = first.(last.(data[(p - 1) * nbases * nshots + (b - 1) * nshots + k, :]))
+        @test pdata == preps[p, :]
+        @test bdata == bases[b, :]
       end
     end
   end
-  
+
   npreps = 5
   nbases = 5
   preps = randompreparations(N, npreps)
   bases = randombases(N, nbases)
-  
-  data = getsamples(U, preps .=> bases)
-  @test size(data) == (npreps,N)
 
+  data = getsamples(U, preps .=> bases)
+  @test size(data) == (npreps, N)
 
   data = getsamples(Λ, preps, bases)
-  @test size(data) == (npreps*nbases,N)
+  @test size(data) == (npreps * nbases, N)
   nshots = 3
   data = getsamples(Λ, preps, bases, nshots)
-  @test size(data) == (npreps*nbases*nshots,N)
-  
+  @test size(data) == (npreps * nbases * nshots, N)
+
   for p in 1:npreps
     for b in 1:nbases
       for k in 1:nshots
-        pdata = first.(data[(p-1)*nbases*nshots+(b-1)*nshots+k,:])
-        bdata = first.(last.(data[(p-1)*nbases*nshots+(b-1)*nshots+k,:]))
-        @test pdata == preps[p,:]
-        @test bdata == bases[b,:]
+        pdata = first.(data[(p - 1) * nbases * nshots + (b - 1) * nshots + k, :])
+        bdata = first.(last.(data[(p - 1) * nbases * nshots + (b - 1) * nshots + k, :]))
+        @test pdata == preps[p, :]
+        @test bdata == bases[b, :]
       end
     end
   end
-  
+
   npreps = 5
   nbases = 5
   preps = randompreparations(N, npreps)
   bases = randombases(N, nbases)
-  
+
   data = getsamples(Λ, preps .=> bases)
-  @test size(data) == (npreps,N)
+  @test size(data) == (npreps, N)
 
   # full representation
-  U = runcircuit(N, circuit; process = true, full_representation = true)
-  Λ = runcircuit(N, circuit; noise=("depolarizing", (p=0.1,)), process = true,full_representation = true)
-  
+  U = runcircuit(N, circuit; process=true, full_representation=true)
+  Λ = runcircuit(
+    N, circuit; noise=("depolarizing", (p=0.1,)), process=true, full_representation=true
+  )
+
   npreps = 5
   nbases = 7
   preps = randompreparations(N, npreps)
   bases = randombases(N, nbases)
-  
+
   data = getsamples(U, preps, bases)
-  @test size(data) == (npreps*nbases,N)
+  @test size(data) == (npreps * nbases, N)
   nshots = 3
   data = getsamples(U, preps, bases, nshots)
-  @test size(data) == (npreps*nbases*nshots,N)
-  
+  @test size(data) == (npreps * nbases * nshots, N)
+
   for p in 1:npreps
     for b in 1:nbases
       for k in 1:nshots
-        pdata = first.(data[(p-1)*nbases*nshots+(b-1)*nshots+k,:])
-        bdata = first.(last.(data[(p-1)*nbases*nshots+(b-1)*nshots+k,:]))
-        @test pdata == preps[p,:]
-        @test bdata == bases[b,:]
+        pdata = first.(data[(p - 1) * nbases * nshots + (b - 1) * nshots + k, :])
+        bdata = first.(last.(data[(p - 1) * nbases * nshots + (b - 1) * nshots + k, :]))
+        @test pdata == preps[p, :]
+        @test bdata == bases[b, :]
       end
     end
   end
-  
+
   data = getsamples(Λ, preps, bases)
-  @test size(data) == (npreps*nbases,N)
+  @test size(data) == (npreps * nbases, N)
   nshots = 3
   data = getsamples(Λ, preps, bases, nshots)
-  @test size(data) == (npreps*nbases*nshots,N)
-  
+  @test size(data) == (npreps * nbases * nshots, N)
+
   for p in 1:npreps
     for b in 1:nbases
       for k in 1:nshots
-        pdata = first.(data[(p-1)*nbases*nshots+(b-1)*nshots+k,:])
-        bdata = first.(last.(data[(p-1)*nbases*nshots+(b-1)*nshots+k,:]))
-        @test pdata == preps[p,:]
-        @test bdata == bases[b,:]
+        pdata = first.(data[(p - 1) * nbases * nshots + (b - 1) * nshots + k, :])
+        bdata = first.(last.(data[(p - 1) * nbases * nshots + (b - 1) * nshots + k, :]))
+        @test pdata == preps[p, :]
+        @test bdata == bases[b, :]
       end
     end
   end
 end
-
