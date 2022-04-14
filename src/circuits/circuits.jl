@@ -1,16 +1,15 @@
-function nqubits(g::Tuple)
-  s = g[2]
-  n = (s isa Number ? s : maximum(s))
-  return n
-end
+# This makes use of the `ITensors.Ops.Op` type, which
+# automatically parses a gate represented as a Tuple
+# into it's name, sites, and parameters.
+nqubits(gate::Tuple) = maximum(Ops.sites(Op(gate)))
 
-nqubits(gates::Vector{<:Any}) = maximum((nqubits(gate) for gate in gates))
+nqubits(gates::Vector) = maximum((nqubits(gate) for gate in gates))
 
-nlayers(circuit::Vector{<:Any}) = 1
-nlayers(circuit::Vector{<:Vector{<:Any}}) = length(circuit)
+nlayers(circuit::Vector) = 1
+nlayers(circuit::Vector{<:Vector}) = length(circuit)
 
-ngates(circuit::Vector{<:Any}) = length(circuit)
-ngates(circuit::Vector{<:Vector{<:Any}}) = length(vcat(circuit...))
+ngates(circuit::Vector) = length(circuit)
+ngates(circuit::Vector{<:Vector}) = sum(length, circuit)
 
 """
 --------------------------------------------------------------------------------
