@@ -1,3 +1,9 @@
+convert_eltype_function(T::Type) = x -> convert_leaf_eltype(T, x)
+convert_eltype_function(::Nothing) = identity
+
+insertnoise_function(noise) = x -> insertnoise(x, noise)
+insertnoise_function(::Nothing) = identity
+
 # TODO: turn this into an ITensors.jl function `originalsiteinds`
 # that generically returns the site indices that would be used to
 # make an object of the same type with the same indices.

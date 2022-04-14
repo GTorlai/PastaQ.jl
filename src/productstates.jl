@@ -39,10 +39,11 @@ q = qudits([3,5,3])
 #  (dim=3|id=372|"Qudit,Site,n=3")
 ```
 """
-qudits(N::Int; dim::Int = 3, kwargs...) = siteinds("Qudit",N; dim = dim, kwargs...)
+qudits(N::Int; dim::Int = 3, kwargs...) = siteinds("Qudit",N; dim, kwargs...)
 
-qudits(d⃗::Vector) = 
-  [addtags.(siteind("Qudit"; dim = d⃗[i]), "n = $i") for i in 1:length(d⃗)]
+function qudits(d⃗::Vector)
+  return [addtags.(siteind("Qudit"; dim = d⃗[i]), "n = $i") for i in 1:length(d⃗)]
+end
 
 @doc raw"""
     productstate(hilbert::Vector{<:Index})
@@ -54,11 +55,13 @@ Generate an MPS wavefunction correponsponding to the product state
 
 It accepts both a Hilbert space or the number of modes and local dimension. 
 """
-productstate(hilbert::Vector{<:Index}) = productMPS(hilbert, "0")
+function productstate(hilbert::Vector{<:Index}; eltype=nothing, device=identity)
+  return device(convert_eltype_function(eltype)(MPS(hilbert, "0")))
+end
 
-function productstate(N::Int; dim::Int = 2, sitetype::String = "Qubit")
-  dim > 2 && return productstate(siteinds("Qudit", N; dim = dim))
-  return productstate(siteinds(sitetype,N))
+function productstate(N::Int; dim::Int=2, sitetype::String="Qubit", kwargs...)
+  dim > 2 && return productstate(siteinds("Qudit", N; dim = dim); kwargs...)
+  return productstate(siteinds(sitetype,N); kwargs...)
 end
 
 
@@ -80,46 +83,42 @@ or with `String` ``|\psi\rangle = |+\rangle\otimes|0\rangle\otimes|-i\rangle``
 ψ = productstate(q, ["X+","Z+","Y-"]);
 ```
 """
-function productstate(N::Int, states::Vector; dim::Int = 2, sitetype::String = "Qubit")
-  dim > 2 && return productstate(siteinds("Qudit", N; dim = dim), states)
-  return productstate(siteinds(sitetype, N), states)
+function productstate(N::Int, states::Vector; dim::Int=2, sitetype::String="Qubit", kwargs...)
+  dim > 2 && return productstate(siteinds("Qudit", N; dim = dim), states; kwargs...)
+  return productstate(siteinds(sitetype, N), states; kwargs...)
 end
 
 
 
-function productstate(sites::Vector{<:Index}, states::Vector{<:Integer})
-  return MPS(state.(string.(Int.(states)), sites))
+function productstate(sites::Vector{<:Index}, states::Vector{<:Integer}; eltype=nothing, device=identity)
+  return device(convert_eltype_function(eltype)(MPS(state.(string.(Int.(states)), sites))))
 end
 
-function productstate(sites::Vector{<:Index}, states::Vector)
-  return MPS(state.(states, sites))
+function productstate(sites::Vector{<:Index}, states::Vector; eltype=nothing, device=identity)
+  return device(convert_eltype_function(eltype)(MPS(state.(states, sites))))
 end
 
-function productstate(sites::Vector{<:Index}, state::Union{String,Integer})
-  return productstate(sites, fill(state, length(sites)))
+function productstate(sites::Vector{<:Index}, state::Union{String,Integer}; kwargs...)
+  return productstate(sites, fill(state, length(sites)); kwargs...)
 end
 
-function productstate(sites::Vector{<:Index}, states::Function)
-  return productstate(sites, map(states, 1:length(sites)))
+function productstate(sites::Vector{<:Index}, states::Function; kwargs...)
+  return productstate(sites, map(states, 1:length(sites)); kwargs...)
 end
 
-productstate(M::Union{MPS,MPO,LPDO}) = productstate(originalsiteinds(M))
+productstate(M::Union{MPS,MPO,LPDO}; kwargs...) = productstate(originalsiteinds(M); kwargs...)
 
-function productstate(M::Union{MPS,MPO,LPDO}, states::Vector)
-  return productstate(originalsiteinds(M), states)
+function productstate(M::Union{MPS,MPO,LPDO}, states::Vector; kwargs...)
+  return productstate(originalsiteinds(M), states; kwargs...)
 end
 
-
-
-
-
-
-function productoperator(N::Int; dim::Int = 2, sitetype::String = "Qubit")
-  dim > 2 && return productoperator(siteinds("Qudit", N; dim = dim))
-  return productoperator(siteinds(sitetype, N))
+function productoperator(N::Int; dim::Int=2, sitetype::String="Qubit", kwargs...)
+  dim > 2 && return productoperator(siteinds("Qudit", N; dim); kwargs...)
+  return productoperator(siteinds(sitetype, N); kwargs...)
 end
 
-productoperator(M::Union{MPS,MPO,LPDO}) = productoperator(originalsiteinds(M))
+productoperator(M::Union{MPS,MPO,LPDO}; kwargs...) = productoperator(originalsiteinds(M); kwargs...)
 
-productoperator(sites::Vector{<:Index}) = MPO([op("Id", s) for s in sites])
-
+function productoperator(sites::Vector{<:Index}; eltype=nothing, device=identity)
+  return device(convert_eltype_function(eltype)(MPO([op("Id", s) for s in sites])))
+end

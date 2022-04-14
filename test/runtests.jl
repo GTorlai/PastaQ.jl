@@ -17,6 +17,7 @@ using Test
     "qubitarrays.jl",
     "randomstates.jl",
     "runcircuit.jl",
+    "gpu.jl",
     "statetomography.jl",
     "utils.jl",
   )

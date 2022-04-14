@@ -19,7 +19,7 @@ StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 [compat]
 ChainRulesCore = "1.10"
 HDF5 = "0.13.1, 0.14, 0.15"
-ITensors = "0.3"
+ITensors = "0.3.4"
 JLD2 = "0.4.14"
 Observers = "0.0"
 Optimisers = "0.1.0"

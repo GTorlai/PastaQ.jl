@@ -14,15 +14,16 @@ after the gates in the circuit.
 """
 function buildcircuit(
   hilbert::Vector{<:Index},
-  circuit::Union{Tuple, Vector{<:Any}};
-  noise::Union{Nothing, Tuple, NamedTuple} = nothing
+  circuit::Union{Tuple,Vector{<:Any}};
+  noise::Union{Nothing,Tuple,NamedTuple}=nothing,
+  eltype=nothing,
+  device=identity,
 )
   circuit_tensors = ITensor[]
   circuit = circuit isa Tuple ? [circuit] : circuit
-  if !isnothing(noise)
-    circuit = insertnoise(circuit, noise)
-  end
+  circuit = insertnoise_function(noise)(circuit)
   circuit_tensors = isempty(circuit) ? ITensor[] : [gate(hilbert, g) for g in circuit]
+  circuit_tensors = device(convert_eltype_function(eltype)(circuit_tensors))
   return circuit_tensors
 end
 
@@ -113,15 +114,17 @@ leading to an output object whose size scales exponentiall with ``n``
 """
 function runcircuit(hilbert::Vector{<:Index}, 
                     circuit::Vector;
-                    full_representation::Bool = false,
-                    process::Bool = false, 
-                    noise = nothing,
+                    full_representation::Bool=false,
+                    process::Bool=false, 
+                    noise=nothing,
+                    eltype=nothing,
+                    device=identity,
                     kwargs...)
   
   # this step is required to check whether there is already noise in the circuit
   # which was added using the `insertnoise` function. If so, one should call directly
   # the `choimatrix` function.
-  circuit_tensors = buildcircuit(hilbert, circuit; noise = noise)
+  circuit_tensors = buildcircuit(hilbert, circuit; noise, device, eltype)
   if circuit_tensors isa Vector{<:ITensor}
     inds_sizes = [length(inds(g)) for g in circuit_tensors]
   else
@@ -131,28 +134,36 @@ function runcircuit(hilbert::Vector{<:Index},
   
   # Unitary operator for the circuit
   if process && !noiseflag 
-    U₀ = full_representation ? prod(productoperator(hilbert)) : productoperator(hilbert)
+    U₀ = productoperator(hilbert; eltype, device)
+    if full_representation
+      U₀ = contract(U₀)
+    end
     return runcircuit(U₀, circuit_tensors; 
-                      apply_dag = false, 
+                      apply_dag=false, 
                       kwargs...) 
   end 
   # Choi matrix
   if process && noiseflag 
     return choimatrix(hilbert, vcat(circuit_tensors...); 
-                      full_representation = full_representation,
+                      full_representation,
+                      eltype,
+                      device,
                       kwargs...)
   end
   
-  M₀ = full_representation ? prod(productstate(hilbert)) : productstate(hilbert) 
+  M₀ = productstate(hilbert; eltype, device)
+  if full_representation
+    M₀ = contract(M₀)
+  end
   return runcircuit(M₀, circuit_tensors; kwargs...) 
 end
 
-function runcircuit(M::Union{MPS, MPO, ITensor}, circuit::Union{Tuple, AbstractVector};
-           full_representation::Bool = false, noise = nothing, kwargs...) 
-  if !(M isa ITensor)
-    M = full_representation ? prod(M) : M
+function runcircuit(M::Union{MPS,MPO,ITensor}, circuit::Union{Tuple,AbstractVector};
+           full_representation::Bool=false, noise=nothing, eltype=nothing, device=identity, kwargs...) 
+  if !(M isa ITensor) && full_representation
+    M = contract(M)
   end
-  runcircuit(M, buildcircuit(M, circuit; noise = noise); kwargs...)
+  return runcircuit(M, buildcircuit(M, circuit; noise, eltype, device); kwargs...)
 end
 
 
@@ -165,7 +176,7 @@ end
       noise = nothing,
       outputlevel = 1,
       outputpath = nothing,
-      savestate  = false,
+      savestate = false,
       print_metrics = [],
       kwargs...)
 
@@ -188,19 +199,23 @@ function runcircuit(
   circuit::Vector{<:Vector{<:ITensor}};
   (observer!)=nothing,
   move_sites_back_before_measurements::Bool=false,
-  noise = nothing,
-  outputlevel = 1,
-  outputpath = nothing,
-  savestate  = false,
-  print_metrics = [],
+  noise=nothing,
+  eltype=nothing,
+  device=identity,
+  outputlevel=1,
+  outputpath=nothing,
+  savestate=false,
+  print_metrics=[],
   kwargs...,
 )
+  M = device(convert_eltype_function(eltype)(M))
+  circuit = device(convert_eltype_function(eltype)(circuit))
 
   # is the observer is not provided, apply the vectorized circuit
-  isnothing(observer!) && return runcircuit(M, vcat(circuit...); noise=noise, kwargs...)
+  isnothing(observer!) && return runcircuit(M, vcat(circuit...); noise, kwargs...)
 
   # issue warning if there are custom functions and the sites are not being moved back
-  if !isnothing(observer!) && move_sites_back_before_measurements == false
+  if !isnothing(observer!) && !move_sites_back_before_measurements
     println("--------------")
     println(" WARNING")
     println(
@@ -212,7 +227,7 @@ function runcircuit(
   # record the initial configuration of the indices
   s = siteinds(M)
   if !isnothing(observer!)
-    update!(observer!, M; sites = s)
+    update!(observer!, M; sites=s)
   end
   for l in 1:length(circuit)
     layer = circuit[l]
@@ -221,7 +236,7 @@ function runcircuit(
                      move_sites_back=move_sites_back_before_measurements,
                      kwargs...)
       if !isnothing(observer!)
-        update!(observer!, M; sites = s)
+        update!(observer!, M; sites=s)
       end
     end
     if outputlevel ≥ 1
@@ -298,8 +313,12 @@ function runcircuit(
   maxdim=10_000,
   svd_alg="divide_and_conquer",
   move_sites_back::Bool=true,
+  eltype=nothing,
+  device=identity,
   kwargs...,
 )
+  M = device(convert_eltype_function(eltype)(M))
+  circuit_tensors = device(convert_eltype_function(eltype)(circuit_tensors))
 
   # Check if gate_tensors contains Kraus operators
   inds_sizes = [length(inds(g)) for g in circuit_tensors]
@@ -325,10 +344,10 @@ function runcircuit(
         circuit_tensors,
         ρ;
         apply_dag=true,
-        cutoff=cutoff,
-        maxdim=maxdim,
-        svd_alg=svd_alg,
-        move_sites_back=move_sites_back,
+        cutoff,
+        maxdim,
+        svd_alg,
+        move_sites_back,
       )
     # Pure state evolution
     else
@@ -338,20 +357,20 @@ function runcircuit(
         return apply(
           circuit_tensors,
           M;
-          cutoff=cutoff,
-          maxdim=maxdim,
-          svd_alg=svd_alg,
-          move_sites_back=move_sites_back,
+          cutoff,
+          maxdim,
+          svd_alg,
+          move_sites_back,
         )
       else
         return apply(
           circuit_tensors,
           M;
           apply_dag=true,
-          cutoff=cutoff,
-          maxdim=maxdim,
-          svd_alg=svd_alg,
-          move_sites_back=move_sites_back,
+          cutoff,
+          maxdim,
+          svd_alg,
+          move_sites_back,
         )
       end
     end
@@ -363,11 +382,11 @@ function runcircuit(
       return apply(
         circuit_tensors,
         M;
-        apply_dag=apply_dag,
-        cutoff=cutoff,
-        maxdim=maxdim,
-        svd_alg=svd_alg,
-        move_sites_back=move_sites_back,
+        apply_dag,
+        cutoff,
+        maxdim,
+        svd_alg,
+        move_sites_back,
       )
     elseif M isa MPS
       # apply_dag = true:  ψ -> U ψ -> ρ = (U ψ) (ψ† U†) (MPS -> MPO, conjugate)
@@ -375,10 +394,10 @@ function runcircuit(
       Mc = apply(
         circuit_tensors,
         M;
-        cutoff=cutoff,
-        maxdim=maxdim,
-        svd_alg=svd_alg,
-        move_sites_back=move_sites_back,
+        cutoff,
+        maxdim,
+        svd_alg,
+        move_sites_back,
       )
       if apply_dag
         Mc = outer(Mc', Mc)
@@ -421,17 +440,19 @@ choimatrix(circuit::Vector{<:Any}; kwargs...) =
 choimatrix(N::Int, circuit::Vector{<:Any}; kwargs...) = 
   choimatrix(qubits(N), circuit; kwargs...)
 
-choimatrix(sites::Vector{<:Index}, circuit::Vector{<:Any}; noise = nothing, kwargs...) = 
-  choimatrix(sites, buildcircuit(sites, circuit; noise = noise); kwargs...)
+choimatrix(sites::Vector{<:Index}, circuit::Vector{<:Any}; noise=nothing, kwargs...) = 
+  choimatrix(sites, buildcircuit(sites, circuit; noise); kwargs...)
 
 choimatrix(sites::Vector{<:Index}, circuit_tensors::Vector{<:Vector{<:ITensor}}; kwargs...) = 
   choimatrix(sites, vcat(circuit_tensors...); kwargs...)
 
 function choimatrix(sites::Vector{<:Index}, circuit_tensors::Vector{<:ITensor};
-                    full_representation = false,
+                    full_representation=false,
+                    eltype=nothing,
+                    device=identity,
                     kwargs...)
-  
   Λ₀ = unitary_mpo_to_choi_mpo(productoperator(sites))
+  Λ₀ = device(convert_eltype_function(eltype)(Λ₀))
   
   inds_sizes = [length(inds(g)) for g in circuit_tensors]
   noiseflag = any(x -> x % 2 == 1, inds_sizes)
@@ -441,8 +462,11 @@ function choimatrix(sites::Vector{<:Index}, circuit_tensors::Vector{<:ITensor};
     addtags!(tensor, "Output")
   end
   # contract to compute the Choi matrix
-  Λ = full_representation ? prod(Λ₀) : Λ₀
-  return runcircuit(Λ, circuit_tensors; apply_dag = true, kwargs...)
+  Λ = Λ₀
+  if full_representation
+    Λ = contract(Λ)
+  end
+  return runcircuit(Λ, circuit_tensors; apply_dag=true, kwargs...)
 end
 
 """
@@ -453,10 +477,15 @@ end
 --------------------------------------------------------------------------------
 """
 
-function runcircuit(T::ITensor, 
+function runcircuit(
+    T::ITensor, 
     circuit_tensors::Vector{<:ITensor}; 
-    apply_dag = nothing, kwargs...)
-  
+    eltype=nothing,
+    device=identity,
+    apply_dag=nothing, kwargs...)
+  T = device(convert_eltype_function(eltype)(T))
+  circuit_tensors = device(convert_eltype_function(eltype)(circuit_tensors))
+
   # Check if gate_tensors contains Kraus operators
   inds_sizes = [length(inds(g)) for g in circuit_tensors]
   noiseflag = any(x -> x % 2 == 1 , inds_sizes)
@@ -470,7 +499,7 @@ function runcircuit(T::ITensor,
     if noiseflag
       T = is_operator(T) ? T : prime(T, "Site") * dag(T)
       # ρ -> ε(ρ) (MPO -> MPO, conjugate evolution)
-      return apply(circuit_tensors, T; apply_dag = true)
+      return apply(circuit_tensors, T; apply_dag=true)
     # Pure state evolution
     else
       # |ψ⟩ -> U |ψ⟩ (MPS -> MPS)
@@ -478,12 +507,12 @@ function runcircuit(T::ITensor,
       if !is_operator(T)
         return apply(circuit_tensors, T)
       else
-        return apply(circuit_tensors, T; apply_dag = true)
+        return apply(circuit_tensors, T; apply_dag=true)
       end
     end
   # Custom mode (apply_dag = true / false)
   else
-    Tc = apply(circuit_tensors, T; apply_dag = apply_dag)
+    Tc = apply(circuit_tensors, T; apply_dag)
     !is_operator(T) && apply_dag && return prime(Tc, "Site") * dag(Tc)
     return Tc
   end
