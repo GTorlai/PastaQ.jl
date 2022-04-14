@@ -154,6 +154,8 @@ end
 insertnoise(circuit::Vector{<:Any}, noisemodel::Tuple; kwargs...) = 
   insertnoise([circuit], noisemodel; kwargs...)[1]
 
+insertnoise(circuit, noisemodel::Nothing; kwargs...) = circuit
+
 function maxgatesize(circuit::Vector{<:Vector{<:Any}})
   maxsize = 0
   for layer in circuit

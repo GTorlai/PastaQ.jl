@@ -1,8 +1,9 @@
-convert_eltype_function(T::Type) = x -> convert_leaf_eltype(T, x)
-convert_eltype_function(::Nothing) = identity
+_convert_leaf_eltype(T::Type, x) = convert_leaf_eltype(T, x)
+_convert_leaf_eltype(::Nothing, x) = x
 
-insertnoise_function(noise) = x -> insertnoise(x, noise)
-insertnoise_function(::Nothing) = identity
+convert_to_full_representation(M::ITensor) = M
+convert_to_full_representation(M::MPS) = prod(M)
+convert_to_full_representation(M::MPO) = prod(M)
 
 # TODO: turn this into an ITensors.jl function `originalsiteinds`
 # that generically returns the site indices that would be used to

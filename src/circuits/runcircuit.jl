@@ -21,9 +21,9 @@ function buildcircuit(
 )
   circuit_tensors = ITensor[]
   circuit = circuit isa Tuple ? [circuit] : circuit
-  circuit = insertnoise_function(noise)(circuit)
+  circuit = insertnoise(circuit, noise)
   circuit_tensors = isempty(circuit) ? ITensor[] : [gate(hilbert, g) for g in circuit]
-  circuit_tensors = device(convert_eltype_function(eltype)(circuit_tensors))
+  circuit_tensors = device(_convert_leaf_eltype(eltype, circuit_tensors))
   return circuit_tensors
 end
 
@@ -135,9 +135,7 @@ function runcircuit(hilbert::Vector{<:Index},
   # Unitary operator for the circuit
   if process && !noiseflag 
     U₀ = productoperator(hilbert; eltype, device)
-    if full_representation
-      U₀ = contract(U₀)
-    end
+    U₀ = full_representation ? convert_to_full_representation(U₀) : U₀
     return runcircuit(U₀, circuit_tensors; 
                       apply_dag=false, 
                       kwargs...) 
@@ -152,17 +150,13 @@ function runcircuit(hilbert::Vector{<:Index},
   end
   
   M₀ = productstate(hilbert; eltype, device)
-  if full_representation
-    M₀ = contract(M₀)
-  end
+  M₀ = full_representation ? convert_to_full_representation(M₀) : M₀
   return runcircuit(M₀, circuit_tensors; kwargs...) 
 end
 
 function runcircuit(M::Union{MPS,MPO,ITensor}, circuit::Union{Tuple,AbstractVector};
            full_representation::Bool=false, noise=nothing, eltype=nothing, device=identity, kwargs...) 
-  if !(M isa ITensor) && full_representation
-    M = contract(M)
-  end
+  M = full_representation ? convert_to_full_representation(M) : M
   return runcircuit(M, buildcircuit(M, circuit; noise, eltype, device); kwargs...)
 end
 
@@ -208,9 +202,8 @@ function runcircuit(
   print_metrics=[],
   kwargs...,
 )
-  M = device(convert_eltype_function(eltype)(M))
-  circuit = device(convert_eltype_function(eltype)(circuit))
-
+  M = device(_convert_leaf_eltype(eltype, M))
+  circuit = device(_convert_leaf_eltype(eltype, circuit))
   # is the observer is not provided, apply the vectorized circuit
   isnothing(observer!) && return runcircuit(M, vcat(circuit...); noise, kwargs...)
 
@@ -317,8 +310,8 @@ function runcircuit(
   device=identity,
   kwargs...,
 )
-  M = device(convert_eltype_function(eltype)(M))
-  circuit_tensors = device(convert_eltype_function(eltype)(circuit_tensors))
+  M = device(_convert_leaf_eltype(eltype, M))
+  circuit_tensors = device(_convert_leaf_eltype(eltype, circuit_tensors))
 
   # Check if gate_tensors contains Kraus operators
   inds_sizes = [length(inds(g)) for g in circuit_tensors]
@@ -452,7 +445,7 @@ function choimatrix(sites::Vector{<:Index}, circuit_tensors::Vector{<:ITensor};
                     device=identity,
                     kwargs...)
   Λ₀ = unitary_mpo_to_choi_mpo(productoperator(sites))
-  Λ₀ = device(convert_eltype_function(eltype)(Λ₀))
+  Λ₀ = device(_convert_leaf_eltype(eltype, Λ₀))
   
   inds_sizes = [length(inds(g)) for g in circuit_tensors]
   noiseflag = any(x -> x % 2 == 1, inds_sizes)
@@ -463,9 +456,7 @@ function choimatrix(sites::Vector{<:Index}, circuit_tensors::Vector{<:ITensor};
   end
   # contract to compute the Choi matrix
   Λ = Λ₀
-  if full_representation
-    Λ = contract(Λ)
-  end
+  Λ = full_representation ? convert_to_full_representation(Λ) : Λ
   return runcircuit(Λ, circuit_tensors; apply_dag=true, kwargs...)
 end
 
@@ -483,8 +474,8 @@ function runcircuit(
     eltype=nothing,
     device=identity,
     apply_dag=nothing, kwargs...)
-  T = device(convert_eltype_function(eltype)(T))
-  circuit_tensors = device(convert_eltype_function(eltype)(circuit_tensors))
+  T = device(_convert_leaf_eltype(eltype, T))
+  circuit_tensors = device(_convert_leaf_eltype(eltype, circuit_tensors))
 
   # Check if gate_tensors contains Kraus operators
   inds_sizes = [length(inds(g)) for g in circuit_tensors]

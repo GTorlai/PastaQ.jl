@@ -1,5 +1,5 @@
 using PastaQ
-#using ITensorGPU # Need to add support for testing on GPU
+using ITensorGPU
 using Test
 
 const eltypes = (

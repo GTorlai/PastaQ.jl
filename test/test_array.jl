@@ -41,7 +41,7 @@ end
   
   for (k,s) in enumerate(basis)
     σ = productstate(qubits, [s...])
-    ψσ = inner(σ',ψ)
+    ψσ = inner(σ,ψ)
     @test ψσ ≈ ψvec[k]
   end
   

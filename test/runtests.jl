@@ -1,27 +1,10 @@
 using Test
 
 @testset "PastaQ.jl" begin
-  @testset "$filename" for filename in (
-    "array.jl",
-    "autodiff.jl",
-    "circuits.jl",
-    "distances.jl",
-    "fulltomography.jl",
-    "gates.jl",
-    "getsamples.jl", 
-    "io.jl",
-    "noise.jl",
-    "optimizers.jl",
-    "processtomography.jl",
-    "productstates.jl",
-    "qubitarrays.jl",
-    "randomstates.jl",
-    "runcircuit.jl",
-    "gpu.jl",
-    "statetomography.jl",
-    "utils.jl",
-  )
-    println("Running $filename")
-    include(filename)
+  @testset "$filename" for filename in readdir()
+    if startswith(filename, "test_") && endswith(filename, ".jl")
+      println("Running $filename")
+      @time include(filename)
+    end
   end
 end

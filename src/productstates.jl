@@ -56,7 +56,9 @@ Generate an MPS wavefunction correponsponding to the product state
 It accepts both a Hilbert space or the number of modes and local dimension. 
 """
 function productstate(hilbert::Vector{<:Index}; eltype=nothing, device=identity)
-  return device(convert_eltype_function(eltype)(MPS(hilbert, "0")))
+  ψ = MPS(hilbert, "0")
+  ψ = device(_convert_leaf_eltype(eltype, ψ))
+  return ψ
 end
 
 function productstate(N::Int; dim::Int=2, sitetype::String="Qubit", kwargs...)
@@ -91,11 +93,15 @@ end
 
 
 function productstate(sites::Vector{<:Index}, states::Vector{<:Integer}; eltype=nothing, device=identity)
-  return device(convert_eltype_function(eltype)(MPS(state.(string.(Int.(states)), sites))))
+  ψ = MPS(state.(string.(Int.(states)), sites))
+  ψ = device(_convert_leaf_eltype(eltype, ψ))
+  return ψ
 end
 
 function productstate(sites::Vector{<:Index}, states::Vector; eltype=nothing, device=identity)
-  return device(convert_eltype_function(eltype)(MPS(state.(states, sites))))
+  ψ = MPS(state.(states, sites))
+  ψ = device(_convert_leaf_eltype(eltype, ψ))
+  return ψ
 end
 
 function productstate(sites::Vector{<:Index}, state::Union{String,Integer}; kwargs...)
@@ -120,5 +126,7 @@ end
 productoperator(M::Union{MPS,MPO,LPDO}; kwargs...) = productoperator(originalsiteinds(M); kwargs...)
 
 function productoperator(sites::Vector{<:Index}; eltype=nothing, device=identity)
-  return device(convert_eltype_function(eltype)(MPO([op("Id", s) for s in sites])))
+  ψ = MPO([op("Id", s) for s in sites])
+  ψ = device(_convert_leaf_eltype(eltype, ψ))
+  return ψ
 end

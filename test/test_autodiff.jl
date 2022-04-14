@@ -101,7 +101,7 @@ end
   end
 
   ψ = randomstate(q; χ = 10, normalize = true)
-  ρ = outer(ψ, ψ)
+  ρ = outer(ψ', ψ)
   ϕ = randomstate(q; χ = 1, normalize = true)
   
   θ⃗ = 2π .* rand(N)
@@ -143,7 +143,7 @@ end
   end
 
   ψ = randomstate(q; χ = 10, normalize = true)
-  ρ = outer(ψ, ψ)
+  ρ = outer(ψ', ψ)
   ϕ = randomstate(q; χ = 10, normalize = true)
   
   θ⃗ = 2π .* rand(N)
@@ -229,7 +229,7 @@ end
  
   pars = 2π .* rand(N)
   ψ₀ = productstate(q)
-  ρ₀ = outer(ψ₀, ψ₀)
+  ρ₀ = outer(ψ₀', ψ₀)
   
   function f1(pars)
     circuit = variational_circuit(pars)
