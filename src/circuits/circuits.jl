@@ -1,7 +1,7 @@
 # This makes use of the `ITensors.Ops.Op` type, which
 # automatically parses a gate represented as a Tuple
 # into it's name, sites, and parameters.
-nqubits(gate::Tuple) = maximum(sites(Op(gate)))
+nqubits(gate::Tuple) = maximum(Ops.sites(Op(gate)))
 
 nqubits(gates::Vector) = maximum((nqubits(gate) for gate in gates))
 

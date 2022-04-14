@@ -3,6 +3,15 @@ using ITensors
 using Test
 using LinearAlgebra
 
+@testset "nqubits" begin
+  @test nqubits(("X", 1, 2)) == 2
+  @test nqubits([("X", 1, 2), ("Y", 3, 2)]) == 3
+  @test nqubits(("X", (1, 2))) == 2
+  @test nqubits([("X", (1, 2)), ("Y", 3, 4)]) == 4
+  @test nqubits(("X", (1, 2), (; θ=π/2))) == 2
+  @test nqubits([("X", (1, 2)), ("Y", 3, 4, (; ϕ=2.3))]) == 4
+end
+
 @testset "Gate generation: 1-qubit gates" begin
   i = Index(2, tags = "Qubit")
   
