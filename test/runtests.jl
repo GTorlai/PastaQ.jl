@@ -23,13 +23,13 @@ filenames = [
   "test_qubitarrays.jl",
   "test_randomstates.jl",
   "test_runcircuit.jl",
-  "test_gpu.jl",
+#  "test_gpu.jl",
   "test_statetomography.jl",
   "test_utils.jl",
 ]
 
 @testset "PastaQ.jl" begin
-  @testset "$filename" for filename in readdir()
+  @testset "$filename" for filename in filenames
     if startswith(filename, "test_") && endswith(filename, ".jl")
       println("Running $filename")
       @time include(filename)
