@@ -17,7 +17,7 @@ end
 
 @testset "choi tags and MPO/MPS conversion" begin
   N = 4
-  circuit = randomcircuit(4; depth =  4)
+  circuit = randomcircuit(4; depth=4)
 
   U = runcircuit(circuit; process=true)
   ρ = PastaQ.choimatrix(PastaQ.originalsiteinds(U), circuit; noise=("DEP", (p=0.01,)))
@@ -56,4 +56,3 @@ end
   @test plev(inds(V[1]; tags="Qubit")[1]) == 1
   @test plev(inds(V[1]; tags="Qubit")[2]) == 0
 end
-

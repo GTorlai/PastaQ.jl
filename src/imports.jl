@@ -1,10 +1,4 @@
-import Base: 
-  copy, 
-  getindex, 
-  sqrt, 
-  length, 
-  push!, 
-  setindex!
+import Base: copy, getindex, sqrt, length, push!, setindex!
 
 import ITensors:
   # types
@@ -19,17 +13,9 @@ import ITensors:
   op,
   _op
 
-import LinearAlgebra: 
-  tr, 
-  norm
+import LinearAlgebra: tr, norm
 
 import Observers: update!
 
-import ChainRulesCore: 
-  rrule, 
-  NoTangent, 
-  ZeroTangent, 
-  ProjectTo,
-  @ignore_derivatives,
-  @non_differentiable
-
+import ChainRulesCore:
+  rrule, NoTangent, ZeroTangent, ProjectTo, @ignore_derivatives, @non_differentiable

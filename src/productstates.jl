@@ -39,10 +39,10 @@ q = qudits([3,5,3])
 #  (dim=3|id=372|"Qudit,Site,n=3")
 ```
 """
-qudits(N::Int; dim::Int = 3, kwargs...) = siteinds("Qudit",N; dim, kwargs...)
+qudits(N::Int; dim::Int=3, kwargs...) = siteinds("Qudit", N; dim, kwargs...)
 
 function qudits(d⃗::Vector)
-  return [addtags.(siteind("Qudit"; dim = d⃗[i]), "n = $i") for i in 1:length(d⃗)]
+  return [addtags.(siteind("Qudit"; dim=d⃗[i]), "n = $i") for i in 1:length(d⃗)]
 end
 
 @doc raw"""
@@ -62,10 +62,9 @@ function productstate(hilbert::Vector{<:Index}; eltype=nothing, device=identity)
 end
 
 function productstate(N::Int; dim::Int=2, sitetype::String="Qubit", kwargs...)
-  dim > 2 && return productstate(siteinds("Qudit", N; dim = dim); kwargs...)
-  return productstate(siteinds(sitetype,N); kwargs...)
+  dim > 2 && return productstate(siteinds("Qudit", N; dim=dim); kwargs...)
+  return productstate(siteinds(sitetype, N); kwargs...)
 end
-
 
 @doc raw"""
     productstate(N::Int, states::Vector{T})
@@ -85,20 +84,24 @@ or with `String` ``|\psi\rangle = |+\rangle\otimes|0\rangle\otimes|-i\rangle``
 ψ = productstate(q, ["X+","Z+","Y-"]);
 ```
 """
-function productstate(N::Int, states::Vector; dim::Int=2, sitetype::String="Qubit", kwargs...)
-  dim > 2 && return productstate(siteinds("Qudit", N; dim = dim), states; kwargs...)
+function productstate(
+  N::Int, states::Vector; dim::Int=2, sitetype::String="Qubit", kwargs...
+)
+  dim > 2 && return productstate(siteinds("Qudit", N; dim=dim), states; kwargs...)
   return productstate(siteinds(sitetype, N), states; kwargs...)
 end
 
-
-
-function productstate(sites::Vector{<:Index}, states::Vector{<:Integer}; eltype=nothing, device=identity)
+function productstate(
+  sites::Vector{<:Index}, states::Vector{<:Integer}; eltype=nothing, device=identity
+)
   ψ = MPS(state.(string.(Int.(states)), sites))
   ψ = device(_convert_leaf_eltype(eltype, ψ))
   return ψ
 end
 
-function productstate(sites::Vector{<:Index}, states::Vector; eltype=nothing, device=identity)
+function productstate(
+  sites::Vector{<:Index}, states::Vector; eltype=nothing, device=identity
+)
   ψ = MPS(state.(states, sites))
   ψ = device(_convert_leaf_eltype(eltype, ψ))
   return ψ
@@ -112,7 +115,9 @@ function productstate(sites::Vector{<:Index}, states::Function; kwargs...)
   return productstate(sites, map(states, 1:length(sites)); kwargs...)
 end
 
-productstate(M::Union{MPS,MPO,LPDO}; kwargs...) = productstate(originalsiteinds(M); kwargs...)
+function productstate(M::Union{MPS,MPO,LPDO}; kwargs...)
+  return productstate(originalsiteinds(M); kwargs...)
+end
 
 function productstate(M::Union{MPS,MPO,LPDO}, states::Vector; kwargs...)
   return productstate(originalsiteinds(M), states; kwargs...)
@@ -123,7 +128,9 @@ function productoperator(N::Int; dim::Int=2, sitetype::String="Qubit", kwargs...
   return productoperator(siteinds(sitetype, N); kwargs...)
 end
 
-productoperator(M::Union{MPS,MPO,LPDO}; kwargs...) = productoperator(originalsiteinds(M); kwargs...)
+function productoperator(M::Union{MPS,MPO,LPDO}; kwargs...)
+  return productoperator(originalsiteinds(M); kwargs...)
+end
 
 function productoperator(sites::Vector{<:Index}; eltype=nothing, device=identity)
   ψ = MPO([op("Id", s) for s in sites])

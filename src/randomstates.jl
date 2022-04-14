@@ -300,8 +300,9 @@ end
 Generate a random state with same Hilbert space (i.e. site indices)
 of a reference state `M`.
 """
-randomstate(ElT::Type{<:Number}, M::Union{MPS,MPO,LPDO}; kwargs...) = 
-  randomstate(ElT, originalsiteinds(M); kwargs...)
+function randomstate(ElT::Type{<:Number}, M::Union{MPS,MPO,LPDO}; kwargs...)
+  return randomstate(ElT, originalsiteinds(M); kwargs...)
+end
 
 randomstate(M::Union{MPS,MPO,LPDO}; kwargs...) = randomstate(ComplexF64, M; kwargs...)
 
@@ -371,7 +372,7 @@ function randomprocess(ElT::Type{<:Number}, T::Type, sites::Vector{<:Index}; kwa
       Φ = Φ * √2^length(M)
       M = choi_mps_to_unitary_mpo(Φ)
     else
-      PastaQ.normalize!(M; localnorm = 2)
+      PastaQ.normalize!(M; localnorm=2)
     end
   end
   return M

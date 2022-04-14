@@ -41,11 +41,11 @@ end
 # ITensor
 #
 
-function sqrt_hermitian(ρ::ITensor; cutoff::Float64 = 1e-15)
+function sqrt_hermitian(ρ::ITensor; cutoff::Float64=1e-15)
   if !isapprox(swapprime(dag(ρ), 0 => 1), ρ)
     error("matrix is not hermitian")
   end
-  D, U = eigen(ρ; ishermitian = true, cutoff = cutoff)
+  D, U = eigen(ρ; ishermitian=true, cutoff=cutoff)
   sqrtD = D
   sqrtD .= sqrt.(D)
   return U' * sqrtD * dag(U)
@@ -93,12 +93,13 @@ function expect(T₀::ITensor, ops::AbstractString...; kwargs...)
   ex = ntuple(n -> zeros(ElT, Ns), Nops)
   for j in site_range
     for n in 1:Nops
-      s = firstind(T, tags = "Site, n=$j", plev = 0)
+      s = firstind(T; tags="Site, n=$j", plev=0)
       if is_operator(T)
-        Top = replaceprime(T * op(ops[n], s'), 2 => 1, tags = "Site, n=$j")
+        Top = replaceprime(T * op(ops[n], s'), 2 => 1; tags="Site, n=$j")
         ex[n][j - offset] = real(tr(Top) / normalization)
       else
-        ex[n][j - offset] = real(scalar(dag(T) * noprime(op(ops[n], s) * T))) / normalization 
+        ex[n][j - offset] =
+          real(scalar(dag(T) * noprime(op(ops[n], s) * T))) / normalization
       end
     end
   end
@@ -111,4 +112,3 @@ function expect(T₀::ITensor, ops::AbstractString...; kwargs...)
 end
 
 @non_differentiable ITensors.name(::Any)
-

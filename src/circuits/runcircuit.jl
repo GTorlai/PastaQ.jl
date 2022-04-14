@@ -27,7 +27,7 @@ function buildcircuit(
   return circuit_tensors
 end
 
-function buildcircuit(hilbert::Vector{<:Index}, circuit::Vector{<:Vector{<:Any}}; kwargs...) 
+function buildcircuit(hilbert::Vector{<:Index}, circuit::Vector{<:Vector{<:Any}}; kwargs...)
   circuit_tensors = Vector{Vector{ITensor}}()
   for layer in circuit
     circuit_tensors = vcat(circuit_tensors, [buildcircuit(hilbert, layer; kwargs...)])
@@ -35,8 +35,9 @@ function buildcircuit(hilbert::Vector{<:Index}, circuit::Vector{<:Vector{<:Any}}
   return circuit_tensors
 end
 
-buildcircuit(M::Union{MPS,MPO,ITensor}, args...; kwargs...) = 
-  buildcircuit(originalsiteinds(M), args...; kwargs...)
+function buildcircuit(M::Union{MPS,MPO,ITensor}, args...; kwargs...)
+  return buildcircuit(originalsiteinds(M), args...; kwargs...)
+end
 
 """
 --------------------------------------------------------------------------------
@@ -51,21 +52,18 @@ buildcircuit(M::Union{MPS,MPO,ITensor}, args...; kwargs...) =
 
 Execute quantum circuit (see below).
 """
-runcircuit(circuit::Any; kwargs...) = 
-  runcircuit(nqubits(circuit), circuit; kwargs...)
+runcircuit(circuit::Any; kwargs...) = runcircuit(nqubits(circuit), circuit; kwargs...)
 
-
-runcircuit(N::Int, circuit::Any; kwargs...) = 
-  runcircuit(qubits(N), circuit; kwargs...)
+runcircuit(N::Int, circuit::Any; kwargs...) = runcircuit(qubits(N), circuit; kwargs...)
 
 @doc raw"""
     runcircuit(hilbert::Vector{<:Index}, circuit::Tuple; kwargs...)
 
 Execute quantum circuit on Hilbert space `hilbert` (see below).
 """
-runcircuit(hilbert::Vector{<:Index}, circuit::Tuple; kwargs...) = 
-  runcircuit(hilbert, [circuit]; kwargs...)
-
+function runcircuit(hilbert::Vector{<:Index}, circuit::Tuple; kwargs...)
+  return runcircuit(hilbert, [circuit]; kwargs...)
+end
 
 @doc raw"""
     runcircuit(hilbert::Vector{<:Index}, circuit::Vector;
@@ -112,15 +110,17 @@ we by default represent with its Choi matrix:
 If `full_representation = true`, the contraction is performed without approximation,
 leading to an output object whose size scales exponentiall with ``n``
 """
-function runcircuit(hilbert::Vector{<:Index}, 
-                    circuit::Vector;
-                    full_representation::Bool=false,
-                    process::Bool=false, 
-                    noise=nothing,
-                    eltype=nothing,
-                    device=identity,
-                    kwargs...)
-  
+function runcircuit(
+  hilbert::Vector{<:Index},
+  circuit::Vector;
+  full_representation::Bool=false,
+  process::Bool=false,
+  noise=nothing,
+  eltype=nothing,
+  device=identity,
+  kwargs...,
+)
+
   # this step is required to check whether there is already noise in the circuit
   # which was added using the `insertnoise` function. If so, one should call directly
   # the `choimatrix` function.
@@ -131,35 +131,37 @@ function runcircuit(hilbert::Vector{<:Index},
     inds_sizes = vcat([[length(inds(g)) for g in layer] for layer in circuit_tensors]...)
   end
   noiseflag = any(x -> x % 2 == 1, inds_sizes)
-  
+
   # Unitary operator for the circuit
-  if process && !noiseflag 
+  if process && !noiseflag
     U₀ = productoperator(hilbert; eltype, device)
     U₀ = full_representation ? convert_to_full_representation(U₀) : U₀
-    return runcircuit(U₀, circuit_tensors; 
-                      apply_dag=false, 
-                      kwargs...) 
-  end 
-  # Choi matrix
-  if process && noiseflag 
-    return choimatrix(hilbert, vcat(circuit_tensors...); 
-                      full_representation,
-                      eltype,
-                      device,
-                      kwargs...)
+    return runcircuit(U₀, circuit_tensors; apply_dag=false, kwargs...)
   end
-  
+  # Choi matrix
+  if process && noiseflag
+    return choimatrix(
+      hilbert, vcat(circuit_tensors...); full_representation, eltype, device, kwargs...
+    )
+  end
+
   M₀ = productstate(hilbert; eltype, device)
   M₀ = full_representation ? convert_to_full_representation(M₀) : M₀
-  return runcircuit(M₀, circuit_tensors; kwargs...) 
+  return runcircuit(M₀, circuit_tensors; kwargs...)
 end
 
-function runcircuit(M::Union{MPS,MPO,ITensor}, circuit::Union{Tuple,AbstractVector};
-           full_representation::Bool=false, noise=nothing, eltype=nothing, device=identity, kwargs...) 
+function runcircuit(
+  M::Union{MPS,MPO,ITensor},
+  circuit::Union{Tuple,AbstractVector};
+  full_representation::Bool=false,
+  noise=nothing,
+  eltype=nothing,
+  device=identity,
+  kwargs...,
+)
   M = full_representation ? convert_to_full_representation(M) : M
   return runcircuit(M, buildcircuit(M, circuit; noise, eltype, device); kwargs...)
 end
-
 
 @doc raw"""
     runcircuit(
@@ -189,7 +191,7 @@ Other than the keyword arguments of the high-level interface, here we can provid
 + `print_metrics = []`: the metrics in the `observed` to print at each depth.`
 """
 function runcircuit(
-  M::Union{MPS, MPO, ITensor},
+  M::Union{MPS,MPO,ITensor},
   circuit::Vector{<:Vector{<:ITensor}};
   (observer!)=nothing,
   move_sites_back_before_measurements::Bool=false,
@@ -225,9 +227,12 @@ function runcircuit(
   for l in 1:length(circuit)
     layer = circuit[l]
     t = @elapsed begin
-      M = runcircuit(M, layer; #noise = noise,
-                     move_sites_back=move_sites_back_before_measurements,
-                     kwargs...)
+      M = runcircuit(
+        M,
+        layer; #noise = noise,
+        move_sites_back=move_sites_back_before_measurements,
+        kwargs...,
+      )
       if !isnothing(observer!)
         update!(observer!, M; sites=s)
       end
@@ -259,7 +264,6 @@ function runcircuit(
   end
   return M
 end
-
 
 @doc raw"""
     runcircuit(
@@ -334,64 +338,30 @@ function runcircuit(
       end
       # ρ -> ε(ρ) (MPO -> MPO, conjugate evolution)
       return apply(
-        circuit_tensors,
-        ρ;
-        apply_dag=true,
-        cutoff,
-        maxdim,
-        svd_alg,
-        move_sites_back,
+        circuit_tensors, ρ; apply_dag=true, cutoff, maxdim, svd_alg, move_sites_back
       )
-    # Pure state evolution
+      # Pure state evolution
     else
       # |ψ⟩ -> U |ψ⟩ (MPS -> MPS)
       #  ρ  -> U ρ U† (MPO -> MPO, conjugate evolution)
       if M isa MPS
-        return apply(
-          circuit_tensors,
-          M;
-          cutoff,
-          maxdim,
-          svd_alg,
-          move_sites_back,
-        )
+        return apply(circuit_tensors, M; cutoff, maxdim, svd_alg, move_sites_back)
       else
         return apply(
-          circuit_tensors,
-          M;
-          apply_dag=true,
-          cutoff,
-          maxdim,
-          svd_alg,
-          move_sites_back,
+          circuit_tensors, M; apply_dag=true, cutoff, maxdim, svd_alg, move_sites_back
         )
       end
     end
-  # Custom mode (apply_dag = true / false)
+    # Custom mode (apply_dag = true / false)
   else
     if M isa MPO
       # apply_dag = true:  ρ -> U ρ U† (MPO -> MPO, conjugate evolution)
       # apply_dag = false: ρ -> U ρ (MPO -> MPO)
-      return apply(
-        circuit_tensors,
-        M;
-        apply_dag,
-        cutoff,
-        maxdim,
-        svd_alg,
-        move_sites_back,
-      )
+      return apply(circuit_tensors, M; apply_dag, cutoff, maxdim, svd_alg, move_sites_back)
     elseif M isa MPS
       # apply_dag = true:  ψ -> U ψ -> ρ = (U ψ) (ψ† U†) (MPS -> MPO, conjugate)
       # apply_dag = false: ψ -> U ψ (MPS -> MPS)
-      Mc = apply(
-        circuit_tensors,
-        M;
-        cutoff,
-        maxdim,
-        svd_alg,
-        move_sites_back,
-      )
+      Mc = apply(circuit_tensors, M; cutoff, maxdim, svd_alg, move_sites_back)
       if apply_dag
         Mc = outer(Mc', Mc)
       end
@@ -401,8 +371,6 @@ function runcircuit(
     end
   end
 end
-
-
 
 """
 --------------------------------------------------------------------------------
@@ -427,30 +395,41 @@ Compute the Choi matrix for a noisy channel
 If `full_representation = true`, the contraction is performed without approximation,
 leading to an output object whose size scales exponentiall with ``n``
 """
-choimatrix(circuit::Vector{<:Any}; kwargs...) = 
-  choimatrix(nqubits(circuit), circuit; kwargs...)
+function choimatrix(circuit::Vector{<:Any}; kwargs...)
+  return choimatrix(nqubits(circuit), circuit; kwargs...)
+end
 
-choimatrix(N::Int, circuit::Vector{<:Any}; kwargs...) = 
-  choimatrix(qubits(N), circuit; kwargs...)
+function choimatrix(N::Int, circuit::Vector{<:Any}; kwargs...)
+  return choimatrix(qubits(N), circuit; kwargs...)
+end
 
-choimatrix(sites::Vector{<:Index}, circuit::Vector{<:Any}; noise=nothing, kwargs...) = 
-  choimatrix(sites, buildcircuit(sites, circuit; noise); kwargs...)
+function choimatrix(
+  sites::Vector{<:Index}, circuit::Vector{<:Any}; noise=nothing, kwargs...
+)
+  return choimatrix(sites, buildcircuit(sites, circuit; noise); kwargs...)
+end
 
-choimatrix(sites::Vector{<:Index}, circuit_tensors::Vector{<:Vector{<:ITensor}}; kwargs...) = 
-  choimatrix(sites, vcat(circuit_tensors...); kwargs...)
+function choimatrix(
+  sites::Vector{<:Index}, circuit_tensors::Vector{<:Vector{<:ITensor}}; kwargs...
+)
+  return choimatrix(sites, vcat(circuit_tensors...); kwargs...)
+end
 
-function choimatrix(sites::Vector{<:Index}, circuit_tensors::Vector{<:ITensor};
-                    full_representation=false,
-                    eltype=nothing,
-                    device=identity,
-                    kwargs...)
+function choimatrix(
+  sites::Vector{<:Index},
+  circuit_tensors::Vector{<:ITensor};
+  full_representation=false,
+  eltype=nothing,
+  device=identity,
+  kwargs...,
+)
   Λ₀ = unitary_mpo_to_choi_mpo(productoperator(sites))
   Λ₀ = device(_convert_leaf_eltype(eltype, Λ₀))
-  
+
   inds_sizes = [length(inds(g)) for g in circuit_tensors]
   noiseflag = any(x -> x % 2 == 1, inds_sizes)
   !noiseflag && error("choi matrix requires noise")
-  
+
   for tensor in circuit_tensors
     addtags!(tensor, "Output")
   end
@@ -469,17 +448,19 @@ end
 """
 
 function runcircuit(
-    T::ITensor, 
-    circuit_tensors::Vector{<:ITensor}; 
-    eltype=nothing,
-    device=identity,
-    apply_dag=nothing, kwargs...)
+  T::ITensor,
+  circuit_tensors::Vector{<:ITensor};
+  eltype=nothing,
+  device=identity,
+  apply_dag=nothing,
+  kwargs...,
+)
   T = device(_convert_leaf_eltype(eltype, T))
   circuit_tensors = device(_convert_leaf_eltype(eltype, circuit_tensors))
 
   # Check if gate_tensors contains Kraus operators
   inds_sizes = [length(inds(g)) for g in circuit_tensors]
-  noiseflag = any(x -> x % 2 == 1 , inds_sizes)
+  noiseflag = any(x -> x % 2 == 1, inds_sizes)
 
   if apply_dag == false && noiseflag == true
     error("noise simulation requires apply_dag=true")
@@ -491,7 +472,7 @@ function runcircuit(
       T = is_operator(T) ? T : prime(T, "Site") * dag(T)
       # ρ -> ε(ρ) (MPO -> MPO, conjugate evolution)
       return apply(circuit_tensors, T; apply_dag=true)
-    # Pure state evolution
+      # Pure state evolution
     else
       # |ψ⟩ -> U |ψ⟩ (MPS -> MPS)
       #  ρ  -> U ρ U† (MPO -> MPO, conjugate evolution)
@@ -501,12 +482,10 @@ function runcircuit(
         return apply(circuit_tensors, T; apply_dag=true)
       end
     end
-  # Custom mode (apply_dag = true / false)
+    # Custom mode (apply_dag = true / false)
   else
     Tc = apply(circuit_tensors, T; apply_dag)
     !is_operator(T) && apply_dag && return prime(Tc, "Site") * dag(Tc)
     return Tc
   end
 end
-
-

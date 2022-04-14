@@ -8,7 +8,7 @@ using Plots # to not capture precompilation output
 INPUT_SRC_DIR = joinpath(@__DIR__, "..", "examples", "src")
 OUTPUT_JL_DIR = joinpath(@__DIR__, "..", "examples", "scripts")
 #OUTPUT_NB_DIR = joinpath(@__DIR__, "..", "examples", "notebooks")
-OUTPUT_MD_DIR = joinpath(@__DIR__, "src","examples")
+OUTPUT_MD_DIR = joinpath(@__DIR__, "src", "examples")
 
 examples_files = filter(x -> endswith(x, ".jl"), readdir(INPUT_SRC_DIR))
 for file in examples_files
@@ -24,19 +24,14 @@ settings = Dict(
   :pages => Any[
     "Home" => "index.md",
     "Documentation" => [
-      "Quantum states"      => "quantumstates.md",
-      "Quantum circuits"    => "quantumcircuits.md",
-      "Measurements"        => "measurements.md",
-      "Quantum tomography"  => "quantumtomography.md",
+      "Quantum states" => "quantumstates.md",
+      "Quantum circuits" => "quantumcircuits.md",
+      "Measurements" => "measurements.md",
+      "Quantum tomography" => "quantumtomography.md",
     ],
-    "Tutorials" => [
-      "Optimal coherent control" => "examples/optimal-coherent-control.md" 
-    ]
+    "Tutorials" => ["Optimal coherent control" => "examples/optimal-coherent-control.md"],
   ],
   :format => Documenter.HTML(; assets=["assets/favicon.ico"], prettyurls=false),
   :doctest => true,
-  :checkdocs => :none
+  :checkdocs => :none,
 )
-
-
-

@@ -1,6 +1,5 @@
 include("settings.jl")
 
-
 ## generate the example notebook for the documentation, keep in sync with outputformats.md
 #Literate.markdown(joinpath(@__DIR__, "src/outputformats.jl"), OUTPUT; credit = false, name = "name")
 #Literate.notebook(joinpath(@__DIR__, "src/outputformats.jl"), OUTPUT; name = "notebook")
