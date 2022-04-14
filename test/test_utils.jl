@@ -7,7 +7,8 @@ using Random
 @testset "hilbertspace" begin
   N = 5
   ψ = productstate(N)
-  ρ = MPO(productstate(ψ))
+  ψ̃ = productstate(ψ)
+  ρ = outer(ψ̃', ψ̃)
   Λ = randomstate(ψ; mixed=true)
 
   @test PastaQ.originalsiteinds(ψ) == siteinds(ψ)

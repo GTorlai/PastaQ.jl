@@ -42,7 +42,7 @@ end
   bases = fullbases(N)
   samples = getsamples(ψ, bases, 100)
 
-  ρ = MPO(ψ)
+  ρ = outer(ψ', ψ)
   ρmat = PastaQ.array(ρ)
   #ρ = projector(toarray(ψ))
   ρ_vec = vec(ρmat)
@@ -81,7 +81,7 @@ end
   bases = fullbases(N)
   samples = getsamples(ψ, bases, 100)
 
-  ϱ = PastaQ.array(MPO(ψ))
+  ϱ = PastaQ.array(outer(ψ', ψ))
 
   ρ = PastaQ.array(tomography(samples; method="LI"))
   λ = first(eigen(ρ))
@@ -105,7 +105,7 @@ end
   bases = fullbases(N)
   samples = getsamples(ψ, bases, 100)
 
-  ϱ = PastaQ.array(MPO(ψ))
+  ϱ = PastaQ.array(outer(ψ', ψ))
 
   ρ = PastaQ.array(tomography(samples; method="LI", trρ=2.0))
   @test tr(ρ) ≈ 2.0

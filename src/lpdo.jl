@@ -162,7 +162,7 @@ end
 # TODO: implement in terms of `outer(L.X', L.X; kwargs...)
 # It could also maybe just call `MPO(::LPDO{MPO})` if it
 # is generic enough.
-ITensors.MPO(L::LPDO{MPS}; kwargs...) = MPO(L.X; kwargs...)
+ITensors.MPO(L::LPDO{MPS}; kwargs...) = outer(L.X', L.X; kwargs...)
 
 """
     tr(L::LPDO, tag::String)

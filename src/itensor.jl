@@ -55,14 +55,6 @@ end
 # MPS
 #
 
-## # For |ψ⟩ and |ϕ⟩, return |ψ⟩⊗⟨ϕ|
-## function ITensors.outer(ψ::MPS, ϕ::MPS; kwargs...)
-##   # XXX: implement by converting to MPOs and
-##   # contracting the MPOs?
-##   @assert ψ == ϕ'
-##   return MPO(ϕ; kwargs...)
-## end
-
 eltype(ψ::MPS) = ITensor
 eltype(ψ::MPO) = ITensor
 

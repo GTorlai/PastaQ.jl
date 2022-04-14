@@ -9,7 +9,8 @@ using LinearAlgebra
   ψvec = PastaQ.array(ψ)
   @test size(ψvec) == (1 << N,)
 
-  ρ = MPO(productstate(N))
+  ψ = productstate(N)
+  ρ = outer(ψ', ψ)
   ρmat = PastaQ.array(ρ)
   @test size(ρmat) == (1 << N, 1 << N)
 

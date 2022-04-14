@@ -363,11 +363,11 @@ function frobenius_distance(ρ::Union{MPO,LPDO{MPO}}, σ::Union{MPO,LPDO{MPO}})
   return sqrt(distance)
 end
 
-frobenius_distance(ψ::MPS, ρ::Union{MPO,LPDO{MPO}}) = frobenius_distance(MPO(ψ), ρ)
+frobenius_distance(ψ::MPS, ρ::Union{MPO,LPDO{MPO}}) = frobenius_distance(outer(ψ', ψ), ρ)
 
 frobenius_distance(ρ::Union{MPO,LPDO{MPO}}, ψ::MPS) = frobenius_distance(ψ, ρ)
 
-frobenius_distance(ψ::MPS, ϕ::MPS) = frobenius_distance(MPO(ψ), MPO(ϕ))
+frobenius_distance(ψ::MPS, ϕ::MPS) = frobenius_distance(outer(ψ', ψ), outer(ϕ', ϕ))
 
 """
     fidelity_bound(ρ::Union{MPO, LPDO}, σ::Union{MPO, LPDO})

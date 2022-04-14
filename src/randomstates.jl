@@ -281,7 +281,7 @@ function randomstate(ElT::Type{<:Number}, T::Type, sites::Vector{<:Index}; kwarg
     if T == MPS
       # Build MPS by random parameter initialization
       alg == "rand" && (M = random_mps(ElT, sites, χ, σ))
-      alg == "circuit" && (M = randomMPS(ElT, sites, χ))
+      alg == "circuit" && (M = randomMPS(ElT, sites; linkdims=χ))
     elseif T == MPO
       error("initialization of random MPO density matrix not yet implemented.")
     elseif T == LPDO

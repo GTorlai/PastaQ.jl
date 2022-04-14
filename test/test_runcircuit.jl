@@ -51,11 +51,12 @@ end
 
 @testset "Density matrix initialization" begin
   N = 5
-  ρ1 = MPO(productstate(N))
+  ψ = productstate(N)
+  ρ1 = outer(ψ', ψ)
   @test length(ρ1) == N
   @test typeof(ρ1) == MPO
   ψ = productstate(N)
-  ρ2 = MPO(productstate(N))
+  ρ2 = outer(ψ', ψ)
   @test PastaQ.array(ρ1) ≈ PastaQ.array(ρ2)
   exact_mat = zeros(1 << N, 1 << N)
   exact_mat[1, 1] = 1.0
@@ -80,7 +81,7 @@ end
   @test σ ≈ outer(ψ', ψ)
 
   # Mixed state, noiseless circuit
-  ρ0 = MPO(productstate(N))
+  ρ0 = projector(productstate(N))
   ρ = runcircuit(ρ0, gates)
   X = runcircuit(prod(ρ0), buildcircuit(ρ0, gates); apply_dag=true)
   @test prod(ρ) ≈ runcircuit(prod(ρ0), buildcircuit(ρ0, gates); apply_dag=true)
@@ -101,7 +102,7 @@ end
   @test PastaQ.array(prod(ψ)) ≈ PastaQ.array(prod(runcircuit(gates)))
 
   # Mixed state, noiseless circuit
-  ρ0 = MPO(productstate(N))
+  ρ0 = projector(productstate(N))
   ρ = runcircuit(ρ0, gates)
   @test prod(ρ) ≈ runcircuit(prod(ρ0), buildcircuit(ρ0, gates); apply_dag=true)
 end
@@ -165,13 +166,13 @@ end
 
   ψ0 = productstate(N)
   ρ = runcircuit(ψ0, gates; noise=("depolarizing", (p=0.1,)))
-  ρ0 = MPO(ψ0)
+  ρ0 = projector(ψ0)
   U = buildcircuit(ρ0, gates; noise=("depolarizing", (p=0.1,)))
   @disable_warn_order begin
     @test prod(ρ) ≈ runcircuit(prod(ρ0), U; apply_dag=true)
 
     # Mixed state, noisy circuit
-    ρ0 = MPO(productstate(N))
+    ρ0 = projector(productstate(N))
     ρ = runcircuit(ρ0, gates; noise=("depolarizing", (p=0.1,)))
     U = buildcircuit(ρ0, gates; noise=("depolarizing", (p=0.1,)))
     @test prod(ρ) ≈ runcircuit(prod(ρ0), U; apply_dag=true)

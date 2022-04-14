@@ -203,7 +203,7 @@ end
   end
 
   U = randomprocess(N; χ=χ, normalize=true)
-  Λ = MPO(PastaQ.unitary_mpo_to_choi_mps(U))
+  Λ = projector(PastaQ.unitary_mpo_to_choi_mps(U); normalize=false)
   @test tr(Λ) ≈ 1 << N
   Λ = randomprocess(N; χ=χ, ξ=2, normalize=true)
   @test tr(Λ) ≈ 1 << N

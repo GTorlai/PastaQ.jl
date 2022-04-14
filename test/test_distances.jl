@@ -254,8 +254,8 @@ end
   Random.seed!(2222)
   ψ2 = randomstate(ψ1; χ=2)
 
-  ρ_mpo = MPO(ψ1)
-  σ_mpo = MPO(ψ2)
+  ρ_mpo = outer(ψ1', ψ1)
+  σ_mpo = outer(ψ2', ψ2)
 
   ρ_mat = PastaQ.array(ρ_mpo)
   σ_mat = PastaQ.array(σ_mpo)
@@ -276,7 +276,7 @@ end
   ρ = randomstate(ψ1; mixed=true, χ=2, ξ=2)
 
   ρ_mpo = MPO(ρ)
-  σ_mpo = MPO(ψ2)
+  σ_mpo = outer(ψ2', ψ2)
 
   ρ_mat = PastaQ.array(ρ_mpo)
   σ_mat = PastaQ.array(σ_mpo)
@@ -294,7 +294,7 @@ end
   Random.seed!(1111)
   σ = randomstate(ψ1; mixed=true, χ=2, ξ=2)
 
-  ρ_mpo = MPO(ψ1)
+  ρ_mpo = outer(ψ1', ψ1)
   σ_mpo = MPO(σ)
 
   ρ_mat = PastaQ.array(ρ_mpo)
@@ -338,8 +338,8 @@ end
   Random.seed!(2222)
   ψ2 = randomstate(ψ1; χ=2)
 
-  ρ_mpo = MPO(ψ1)
-  σ_mpo = MPO(ψ2)
+  ρ_mpo = outer(ψ1', ψ1)
+  σ_mpo = outer(ψ2', ψ2)
 
   ρ_mat = PastaQ.array(ρ_mpo)
   σ_mat = PastaQ.array(σ_mpo)
@@ -357,7 +357,7 @@ end
   ρ = randomstate(ψ1; mixed=true, χ=2, ξ=2)
 
   ρ_mpo = MPO(ρ)
-  σ_mpo = MPO(ψ2)
+  σ_mpo = outer(ψ2', ψ2)
 
   ρ_mat = PastaQ.array(ρ_mpo)
   σ_mat = PastaQ.array(σ_mpo)
@@ -372,7 +372,7 @@ end
   Random.seed!(1111)
   σ = randomstate(ψ1; mixed=true, χ=2, ξ=2)
 
-  ρ_mpo = MPO(ψ1)
+  ρ_mpo = outer(ψ1', ψ1)
   σ_mpo = MPO(σ)
 
   ρ_mat = PastaQ.array(ρ_mpo)

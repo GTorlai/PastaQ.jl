@@ -152,7 +152,7 @@ end
     g(ρ::MPO; kwargs...) = fidelity(ρ, ϱ)#; kwargs...) = fidelity(ψ, ϕ)
     obs = Observer(["g" => g])
     outputpath = "simulation"
-    ρ₀ = MPO(productstate(sites))
+    ρ₀ = projector(productstate(sites))
     ρ = runcircuit(
       ρ₀,
       circuit;
