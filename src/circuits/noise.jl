@@ -154,13 +154,15 @@ function insertnoise(circuit::Vector{<:Vector{<:Any}}, noisemodel::Tuple; gate=n
     noisylayer = []
     for g in layer
       noisylayer = vcat(noisylayer, [g])
-      applynoise = (if isnothing(gate)
-        true
-      elseif gate isa String
-        g[1] == gate
-      else
-        g[1] in gate
-      end)
+      applynoise = (
+        if isnothing(gate)
+          true
+        elseif gate isa String
+          g[1] == gate
+        else
+          g[1] in gate
+        end
+      )
       if applynoise
         nq = g[2]
         # n-qubit gate
