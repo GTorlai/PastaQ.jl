@@ -71,12 +71,12 @@ isapprox(x::ITensor, y::AbstractMPS; kwargs...) = isapprox(y, x; kwargs...)
 
 function expect(T₀::ITensor, ops; kwargs...)
   T = copy(T₀)
-  s = inds(T, plev = 0)
+  s = inds(T; plev=0)
   N = length(s)
-  
+
   ElT = ITensors.promote_itensor_eltype([T])
-  
-  is_operator = !isempty(inds(T, plev = 1))
+
+  is_operator = !isempty(inds(T; plev=1))
 
   if haskey(kwargs, :site_range)
     @warn "The `site_range` keyword arg. to `expect` is deprecated: use the keyword `sites` instead"
@@ -84,21 +84,21 @@ function expect(T₀::ITensor, ops; kwargs...)
   else
     sites = get(kwargs, :sites, 1:N)
   end
-  
+
   site_range = (sites isa AbstractRange) ? sites : collect(sites)
   Ns = length(site_range)
   start_site = first(site_range)
-  
+
   el_types = map(o -> ishermitian(op(o, s[start_site])) ? real(ElT) : ElT, ops)
-   
+
   normalization = is_operator ? tr(T) : norm(T)^2
 
   ex = map((o, el_t) -> zeros(el_t, Ns), ops, el_types)
   for (entry, j) in enumerate(site_range)
     for (n, opname) in enumerate(ops)
       if is_operator
-        val = replaceprime(op(opname, s[j])' * T, 2 => 1; inds = s[j]'')
-        val = tr(val)/normalization
+        val = replaceprime(op(opname, s[j])' * T, 2 => 1; inds=s[j]'')
+        val = tr(val) / normalization
       else
         val = scalar(dag(T) * noprime(op(opname, s[j]) * T)) / normalization
       end
@@ -119,6 +119,5 @@ end
 function expect(T::ITensor, op1::AbstractString, ops::AbstractString...; kwargs...)
   return expect(T, (op1, ops...); kwargs...)
 end
-
 
 @non_differentiable ITensors.name(::Any)
