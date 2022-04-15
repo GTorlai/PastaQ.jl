@@ -4,7 +4,6 @@ SAVE AND READ SAMPLES
 
 """
 
-
 """
     writesamples(data::Matrix{Int},
                  [model::Union{MPS, MPO, LPDO, Nothing},]
@@ -94,7 +93,6 @@ function writesamples(data::Matrix{Pair{String,Pair{String,Int}}}, output_path::
   end
 end
 
-
 """
     readsamples(input_path::String)
 
@@ -150,7 +148,6 @@ function readsamples(input_path::String)
   return data
 end
 
-
 """
 Various printing functionalities
 """
@@ -167,8 +164,7 @@ function printmetric(name::String, metric::Complex)
   end
 end
 
-function printobserver(observer::Observer, print_metrics::Union{String,AbstractArray}
-)
+function printobserver(observer::Observer, print_metrics::Union{String,AbstractArray})
   if !isempty(print_metrics)
     if print_metrics isa String
       printmetric(print_metrics, results(observer, print_metrics)[end])
@@ -178,7 +174,5 @@ function printobserver(observer::Observer, print_metrics::Union{String,AbstractA
       end
     end
   end
-  return
+  return nothing
 end
-
-

@@ -44,7 +44,9 @@ gates = randomcircuit(N; depth)
 println()
 
 # Build the circuit as tensors and move them to GPU
-gate_tensors = map(gate_layer -> device.(convert_eltype.(device_eltype, gate_layer)), buildcircuit(ψ₀, gates))
+gate_tensors = map(
+  gate_layer -> device.(convert_eltype.(device_eltype, gate_layer)), buildcircuit(ψ₀, gates)
+)
 
 # Obtain the approximate circuit evolution
 println("Approximating random circuit evolution Û|0,0,…,0⟩...")
