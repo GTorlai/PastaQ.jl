@@ -1,7 +1,7 @@
 name = "PastaQ"
 uuid = "30b07047-aa8b-4c78-a4e8-24d720215c19"
 authors = ["Giacomo Torlai <gttorlai@amazon.com>", "Matthew Fishman <mfishman@flatironinstitute.org>"]
-version = "0.0.20"
+version = "0.0.21"
 
 [deps]
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
@@ -19,7 +19,7 @@ StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 [compat]
 ChainRulesCore = "1.10"
 HDF5 = "0.13.1, 0.14, 0.15"
-ITensors = "0.3"
+ITensors = "0.3.6"
 JLD2 = "0.4.14"
 Observers = "0.0"
 Optimisers = "0.1.0"

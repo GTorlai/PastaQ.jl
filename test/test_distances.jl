@@ -6,9 +6,9 @@ using Random
 
 @testset "quantum state fidelity: normalized input states" begin
   N = 4
-  circuit1 = randomcircuit(N; depth = 3)
-  circuit2 = randomcircuit(N; depth = 3)
-  
+  circuit1 = randomcircuit(N; depth=3)
+  circuit2 = randomcircuit(N; depth=3)
+
   sites = siteinds("Qubit", N)
   # MPS wavefunction
   ψ1 = runcircuit(sites, circuit1)
@@ -17,8 +17,8 @@ using Random
   ρ1 = runcircuit(sites, circuit1; noise=("DEP", (p=0.01,)))
   ρ2 = runcircuit(sites, circuit2; noise=("DEP", (p=0.01,)))
   # LPDO density matrix
-  ϱ1 = PastaQ.normalize!(randomstate(sites; χ = 2, ξ = 3))
-  ϱ2 = PastaQ.normalize!(randomstate(sites; χ = 2, ξ = 3))
+  ϱ1 = PastaQ.normalize!(randomstate(sites; χ=2, ξ=3))
+  ϱ2 = PastaQ.normalize!(randomstate(sites; χ=2, ξ=3))
 
   ψ1vec = PastaQ.array(ψ1)
   ρ1mat = PastaQ.array(ρ1)
@@ -44,49 +44,47 @@ using Random
   ϱ1prod = prod(ϱ1)
   ϱ2prod = prod(ϱ2)
 
-  @test fidelity(ψ1prod, ψ2prod) ≈ fidelity(ψ1, ψ2)  
+  @test fidelity(ψ1prod, ψ2prod) ≈ fidelity(ψ1, ψ2)
   @test fidelity(ψ1prod, ψ2) ≈ fidelity(ψ1, ψ2)
   @test fidelity(ψ1, ψ2prod) ≈ fidelity(ψ1, ψ2)
 
-  @test fidelity(ψ1prod, ρ2prod) ≈ fidelity(ψ1, ρ2) 
-  @test fidelity(ψ1prod, ρ2) ≈ fidelity(ψ1, ρ2) 
-  @test fidelity(ψ1, ρ2prod) ≈ fidelity(ψ1, ρ2) 
-  
-  @test fidelity(ψ1prod, ϱ2prod) ≈ fidelity(ψ1, ϱ2) 
-  @test fidelity(ψ1prod, ϱ2) ≈ fidelity(ψ1, ϱ2) 
-  @test fidelity(ψ1, ϱ2prod) ≈ fidelity(ψ1, ϱ2) 
-                                           
-  @test fidelity(ρ1prod, ρ2prod) ≈ fidelity(ρ1, ρ2) 
-  @test fidelity(ρ1, ρ2prod) ≈ fidelity(ρ1, ρ2) 
-  @test fidelity(ρ1prod, ρ2) ≈ fidelity(ρ1, ρ2) 
-  
-  @test fidelity(ρ1prod, ϱ2prod) ≈ fidelity(ρ1, ϱ2) 
-  @test fidelity(ρ1, ϱ2prod) ≈ fidelity(ρ1, ϱ2) 
-  @test fidelity(ρ1prod, ϱ2) ≈ fidelity(ρ1, ϱ2) 
+  @test fidelity(ψ1prod, ρ2prod) ≈ fidelity(ψ1, ρ2)
+  @test fidelity(ψ1prod, ρ2) ≈ fidelity(ψ1, ρ2)
+  @test fidelity(ψ1, ρ2prod) ≈ fidelity(ψ1, ρ2)
 
-  @test fidelity(ϱ1prod, ϱ2prod) ≈ fidelity(ϱ1, ϱ2) 
-  @test fidelity(ϱ1prod, ϱ2) ≈ fidelity(ϱ1, ϱ2) 
-  @test fidelity(ϱ1, ϱ2prod) ≈ fidelity(ϱ1, ϱ2) 
+  @test fidelity(ψ1prod, ϱ2prod) ≈ fidelity(ψ1, ϱ2)
+  @test fidelity(ψ1prod, ϱ2) ≈ fidelity(ψ1, ϱ2)
+  @test fidelity(ψ1, ϱ2prod) ≈ fidelity(ψ1, ϱ2)
 
+  @test fidelity(ρ1prod, ρ2prod) ≈ fidelity(ρ1, ρ2)
+  @test fidelity(ρ1, ρ2prod) ≈ fidelity(ρ1, ρ2)
+  @test fidelity(ρ1prod, ρ2) ≈ fidelity(ρ1, ρ2)
+
+  @test fidelity(ρ1prod, ϱ2prod) ≈ fidelity(ρ1, ϱ2)
+  @test fidelity(ρ1, ϱ2prod) ≈ fidelity(ρ1, ϱ2)
+  @test fidelity(ρ1prod, ϱ2) ≈ fidelity(ρ1, ϱ2)
+
+  @test fidelity(ϱ1prod, ϱ2prod) ≈ fidelity(ϱ1, ϱ2)
+  @test fidelity(ϱ1prod, ϱ2) ≈ fidelity(ϱ1, ϱ2)
+  @test fidelity(ϱ1, ϱ2prod) ≈ fidelity(ϱ1, ϱ2)
 end
-
 
 @testset "quantum state fidelity: unnormalized input states" begin
   N = 4
-  sites = siteinds("Qubit",N)
+  sites = siteinds("Qubit", N)
   # MPS wavefunction
-  ψ1 = randomstate(sites; χ = 4) 
-  ψ2 = randomstate(sites; χ = 5) 
+  ψ1 = randomstate(sites; χ=4)
+  ψ2 = randomstate(sites; χ=5)
   # LPDO density matrix
-  ϱ1 = randomstate(sites; χ = 5, ξ = 2)
-  ϱ2 = randomstate(sites; χ = 5, ξ = 3)
-  
+  ϱ1 = randomstate(sites; χ=5, ξ=2)
+  ϱ2 = randomstate(sites; χ=5, ξ=3)
+
   # MPO density matrix
-  ρ1 = MPO(ϱ1) 
+  ρ1 = MPO(ϱ1)
   ρ2 = MPO(ϱ2)
 
   ψ1vec = PastaQ.array(PastaQ.normalize!(copy(ψ1)))
-  ρ1mat = PastaQ.array(PastaQ.normalize!(copy(ρ1)))  
+  ρ1mat = PastaQ.array(PastaQ.normalize!(copy(ρ1)))
   ϱ1mat = PastaQ.array(PastaQ.normalize!(copy(ϱ1)))
 
   ψ2vec = PastaQ.array(PastaQ.normalize!(copy(ψ2)))
@@ -110,38 +108,37 @@ end
   ϱ1prod = prod(ϱ1)
   ϱ2prod = prod(ϱ2)
 
-  @test fidelity(ψ1prod, ψ2prod) ≈ fidelity(ψ1, ψ2)  
+  @test fidelity(ψ1prod, ψ2prod) ≈ fidelity(ψ1, ψ2)
   @test fidelity(ψ1prod, ψ2) ≈ fidelity(ψ1, ψ2)
   @test fidelity(ψ1, ψ2prod) ≈ fidelity(ψ1, ψ2)
 
-  @test fidelity(ψ1prod, ρ2prod) ≈ fidelity(ψ1, ρ2) 
-  @test fidelity(ψ1prod, ρ2) ≈ fidelity(ψ1, ρ2) 
-  @test fidelity(ψ1, ρ2prod) ≈ fidelity(ψ1, ρ2) 
-  
-  @test fidelity(ψ1prod, ϱ2prod) ≈ fidelity(ψ1, ϱ2) 
-  @test fidelity(ψ1prod, ϱ2) ≈ fidelity(ψ1, ϱ2) 
-  @test fidelity(ψ1, ϱ2prod) ≈ fidelity(ψ1, ϱ2) 
-                                           
-  @test fidelity(ρ1prod, ρ2prod) ≈ fidelity(ρ1, ρ2) 
-  @test fidelity(ρ1, ρ2prod) ≈ fidelity(ρ1, ρ2) 
-  @test fidelity(ρ1prod, ρ2) ≈ fidelity(ρ1, ρ2) 
-  
-  @test fidelity(ρ1prod, ϱ2prod) ≈ fidelity(ρ1, ϱ2) 
-  @test fidelity(ρ1, ϱ2prod) ≈ fidelity(ρ1, ϱ2) 
-  @test fidelity(ρ1prod, ϱ2) ≈ fidelity(ρ1, ϱ2) 
+  @test fidelity(ψ1prod, ρ2prod) ≈ fidelity(ψ1, ρ2)
+  @test fidelity(ψ1prod, ρ2) ≈ fidelity(ψ1, ρ2)
+  @test fidelity(ψ1, ρ2prod) ≈ fidelity(ψ1, ρ2)
 
-  @test fidelity(ϱ1prod, ϱ2prod) ≈ fidelity(ϱ1, ϱ2) 
-  @test fidelity(ϱ1prod, ϱ2) ≈ fidelity(ϱ1, ϱ2) 
-  @test fidelity(ϱ1, ϱ2prod) ≈ fidelity(ϱ1, ϱ2) 
+  @test fidelity(ψ1prod, ϱ2prod) ≈ fidelity(ψ1, ϱ2)
+  @test fidelity(ψ1prod, ϱ2) ≈ fidelity(ψ1, ϱ2)
+  @test fidelity(ψ1, ϱ2prod) ≈ fidelity(ψ1, ϱ2)
 
+  @test fidelity(ρ1prod, ρ2prod) ≈ fidelity(ρ1, ρ2)
+  @test fidelity(ρ1, ρ2prod) ≈ fidelity(ρ1, ρ2)
+  @test fidelity(ρ1prod, ρ2) ≈ fidelity(ρ1, ρ2)
+
+  @test fidelity(ρ1prod, ϱ2prod) ≈ fidelity(ρ1, ϱ2)
+  @test fidelity(ρ1, ϱ2prod) ≈ fidelity(ρ1, ϱ2)
+  @test fidelity(ρ1prod, ϱ2) ≈ fidelity(ρ1, ϱ2)
+
+  @test fidelity(ϱ1prod, ϱ2prod) ≈ fidelity(ϱ1, ϱ2)
+  @test fidelity(ϱ1prod, ϱ2) ≈ fidelity(ϱ1, ϱ2)
+  @test fidelity(ϱ1, ϱ2prod) ≈ fidelity(ϱ1, ϱ2)
 end
 
 @testset "quantum process fidelity" begin
   N = 3
-  sites = siteinds("Qubit",N)
+  sites = siteinds("Qubit", N)
 
-  circuit1 = randomcircuit(N; depth =  3)
-  circuit2 = randomcircuit(N; depth =  3)
+  circuit1 = randomcircuit(N; depth=3)
+  circuit2 = randomcircuit(N; depth=3)
   # MPO unitary 
   U1 = runcircuit(sites, circuit1; process=true)
   U2 = randomprocess(sites)
@@ -161,7 +158,7 @@ end
     ρ1mat = ρ1mat / tr(ρ1mat)
     ϱ1mat = PastaQ.array(ϱ1)
     ϱ1mat = ϱ1mat / tr(ϱ1mat)
-    
+
     ϕ2 = PastaQ.unitary_mpo_to_choi_mps(U2)
     PastaQ.normalize!(ϕ2)
     ϕ2vec = PastaQ.array(ϕ2)
@@ -169,54 +166,53 @@ end
     ρ2mat = ρ2mat / tr(ρ2mat)
     ϱ2mat = PastaQ.array(ϱ2)
     ϱ2mat = ϱ2mat / tr(ϱ2mat)
-    
-    
+
     @test fidelity(U1, U2; process=true) ≈ abs2(ϕ1vec' * ϕ2vec)
     @test fidelity(U1, ρ2; process=true) ≈ ϕ1vec' * ρ2mat * ϕ1vec
     @test fidelity(U1, ϱ2; process=true) ≈ (ϕ1vec' * ϱ2mat * ϕ1vec)
 
     @test fidelity(ρ1, ρ2; process=true) ≈
-          real(tr(sqrt(sqrt(ρ1mat) * ρ2mat * sqrt(ρ1mat))))^2 atol = 1e-7
-    @test fidelity(ρ1, ϱ2; process=true, cutoff = 1e-10) ≈
-          real(tr(sqrt(sqrt(ρ1mat) * ϱ2mat * sqrt(ρ1mat))))^2 atol = 1e-7
-    @test fidelity(ϱ1, ϱ2; process=true, cutoff = 1e-10) ≈
-          real(tr(sqrt(sqrt(ϱ1mat) * ϱ2mat * sqrt(ϱ1mat))))^2 atol = 1e-7
+      real(tr(sqrt(sqrt(ρ1mat) * ρ2mat * sqrt(ρ1mat))))^2 atol = 1e-7
+    @test fidelity(ρ1, ϱ2; process=true, cutoff=1e-10) ≈
+      real(tr(sqrt(sqrt(ρ1mat) * ϱ2mat * sqrt(ρ1mat))))^2 atol = 1e-7
+    @test fidelity(ϱ1, ϱ2; process=true, cutoff=1e-10) ≈
+      real(tr(sqrt(sqrt(ϱ1mat) * ϱ2mat * sqrt(ϱ1mat))))^2 atol = 1e-7
 
     # ITensors
-    U1prod = prod(U1) 
-    U2prod = prod(U2) 
+    U1prod = prod(U1)
+    U2prod = prod(U2)
     ρ1prod = prod(ρ1)
     ρ2prod = prod(ρ2)
     ϱ1prod = prod(ϱ1)
     ϱ2prod = prod(ϱ2)
 
-    @test fidelity(U1prod, U2prod; process=true) ≈ fidelity(U1, U2; process=true)  
-    @test fidelity(U1, U2prod; process=true) ≈ fidelity(U1, U2; process=true)  
-    @test fidelity(U1prod, U2; process=true) ≈ fidelity(U1, U2; process=true)  
-    
-    @test fidelity(U1prod, ρ2prod; process=true) ≈ fidelity(U1, ρ2; process=true) 
-    @test fidelity(U1, ρ2prod; process=true) ≈ fidelity(U1, ρ2; process=true) 
-    @test fidelity(U1prod, ρ2; process=true) ≈ fidelity(U1, ρ2; process=true) 
-    
-    @test fidelity(U1prod, ϱ2prod; process=true) ≈ fidelity(U1, ϱ2; process=true) 
-    @test fidelity(U1prod, ϱ2; process=true) ≈ fidelity(U1, ϱ2; process=true) 
-    @test fidelity(U1, ϱ2prod; process=true) ≈ fidelity(U1, ϱ2; process=true) 
+    @test fidelity(U1prod, U2prod; process=true) ≈ fidelity(U1, U2; process=true)
+    @test fidelity(U1, U2prod; process=true) ≈ fidelity(U1, U2; process=true)
+    @test fidelity(U1prod, U2; process=true) ≈ fidelity(U1, U2; process=true)
+
+    @test fidelity(U1prod, ρ2prod; process=true) ≈ fidelity(U1, ρ2; process=true)
+    @test fidelity(U1, ρ2prod; process=true) ≈ fidelity(U1, ρ2; process=true)
+    @test fidelity(U1prod, ρ2; process=true) ≈ fidelity(U1, ρ2; process=true)
+
+    @test fidelity(U1prod, ϱ2prod; process=true) ≈ fidelity(U1, ϱ2; process=true)
+    @test fidelity(U1prod, ϱ2; process=true) ≈ fidelity(U1, ϱ2; process=true)
+    @test fidelity(U1, ϱ2prod; process=true) ≈ fidelity(U1, ϱ2; process=true)
   end
 end
 
 @testset "quantum process fidelity: unnormalized states" begin
   N = 3
-  sites = siteinds("Qubit",N)
+  sites = siteinds("Qubit", N)
 
-  circuit1 = randomcircuit(N; depth =  3)
-  circuit2 = randomcircuit(N; depth =  3)
+  circuit1 = randomcircuit(N; depth=3)
+  circuit2 = randomcircuit(N; depth=3)
   # MPO unitary 
-  U1 = randomprocess(sites; χ = 3) 
-  U2 = randomprocess(sites; χ = 4)
+  U1 = randomprocess(sites; χ=3)
+  U2 = randomprocess(sites; χ=4)
 
   # LPDO Choi matrix
-  ϱ1 = randomprocess(sites; ξ = 3, χ = 2)
-  ϱ2 = randomprocess(sites; ξ = 3, χ = 3)
+  ϱ1 = randomprocess(sites; ξ=3, χ=2)
+  ϱ2 = randomprocess(sites; ξ=3, χ=3)
 
   @disable_warn_order begin
     ϕ1 = PastaQ.unitary_mpo_to_choi_mps(U1)
@@ -224,30 +220,30 @@ end
     ϕ1vec = PastaQ.array(ϕ1)
     ϱ1mat = PastaQ.array(ϱ1)
     ϱ1mat = ϱ1mat / tr(ϱ1mat)
-    
+
     ϕ2 = PastaQ.unitary_mpo_to_choi_mps(U2)
     PastaQ.normalize!(ϕ2)
     ϕ2vec = PastaQ.array(ϕ2)
     ϱ2mat = PastaQ.array(ϱ2)
     ϱ2mat = ϱ2mat / tr(ϱ2mat)
-    
+
     @test fidelity(U1, U2; process=true) ≈ abs2(ϕ1vec' * ϕ2vec)
     @test fidelity(U1, ϱ2; process=true) ≈ (ϕ1vec' * ϱ2mat * ϕ1vec)
     @test fidelity(ϱ1, ϱ2; process=true) ≈
-          real(tr(sqrt(sqrt(ϱ1mat) * ϱ2mat * sqrt(ϱ1mat))))^2 atol = 1e-7
+      real(tr(sqrt(sqrt(ϱ1mat) * ϱ2mat * sqrt(ϱ1mat))))^2 atol = 1e-7
 
     ## ITensors
-    U1prod = prod(U1) 
-    U2prod = prod(U2) 
+    U1prod = prod(U1)
+    U2prod = prod(U2)
     ϱ1prod = prod(ϱ1)
     ϱ2prod = prod(ϱ2)
 
-    @test fidelity(U1prod, U2prod; process=true) ≈ fidelity(U1, U2; process=true)  
-    @test fidelity(U1, U2prod; process=true) ≈ fidelity(U1, U2; process=true)  
-    @test fidelity(U1prod, U2; process=true) ≈ fidelity(U1, U2; process=true)  
-    
-    @test fidelity(U1prod, ϱ2prod; process=true) ≈ fidelity(U1, ϱ2; process=true) 
-    @test fidelity(U1, ϱ2prod; process=true) ≈ fidelity(U1, ϱ2; process=true) 
+    @test fidelity(U1prod, U2prod; process=true) ≈ fidelity(U1, U2; process=true)
+    @test fidelity(U1, U2prod; process=true) ≈ fidelity(U1, U2; process=true)
+    @test fidelity(U1prod, U2; process=true) ≈ fidelity(U1, U2; process=true)
+
+    @test fidelity(U1prod, ϱ2prod; process=true) ≈ fidelity(U1, ϱ2; process=true)
+    @test fidelity(U1, ϱ2prod; process=true) ≈ fidelity(U1, ϱ2; process=true)
   end
 end
 
@@ -258,8 +254,8 @@ end
   Random.seed!(2222)
   ψ2 = randomstate(ψ1; χ=2)
 
-  ρ_mpo = MPO(ψ1)
-  σ_mpo = MPO(ψ2)
+  ρ_mpo = outer(ψ1', ψ1)
+  σ_mpo = outer(ψ2', ψ2)
 
   ρ_mat = PastaQ.array(ρ_mpo)
   σ_mat = PastaQ.array(σ_mpo)
@@ -280,7 +276,7 @@ end
   ρ = randomstate(ψ1; mixed=true, χ=2, ξ=2)
 
   ρ_mpo = MPO(ρ)
-  σ_mpo = MPO(ψ2)
+  σ_mpo = outer(ψ2', ψ2)
 
   ρ_mat = PastaQ.array(ρ_mpo)
   σ_mat = PastaQ.array(σ_mpo)
@@ -298,7 +294,7 @@ end
   Random.seed!(1111)
   σ = randomstate(ψ1; mixed=true, χ=2, ξ=2)
 
-  ρ_mpo = MPO(ψ1)
+  ρ_mpo = outer(ψ1', ψ1)
   σ_mpo = MPO(σ)
 
   ρ_mat = PastaQ.array(ρ_mpo)
@@ -342,8 +338,8 @@ end
   Random.seed!(2222)
   ψ2 = randomstate(ψ1; χ=2)
 
-  ρ_mpo = MPO(ψ1)
-  σ_mpo = MPO(ψ2)
+  ρ_mpo = outer(ψ1', ψ1)
+  σ_mpo = outer(ψ2', ψ2)
 
   ρ_mat = PastaQ.array(ρ_mpo)
   σ_mat = PastaQ.array(σ_mpo)
@@ -361,7 +357,7 @@ end
   ρ = randomstate(ψ1; mixed=true, χ=2, ξ=2)
 
   ρ_mpo = MPO(ρ)
-  σ_mpo = MPO(ψ2)
+  σ_mpo = outer(ψ2', ψ2)
 
   ρ_mat = PastaQ.array(ρ_mpo)
   σ_mat = PastaQ.array(σ_mpo)
@@ -376,7 +372,7 @@ end
   Random.seed!(1111)
   σ = randomstate(ψ1; mixed=true, χ=2, ξ=2)
 
-  ρ_mpo = MPO(ψ1)
+  ρ_mpo = outer(ψ1', ψ1)
   σ_mpo = MPO(σ)
 
   ρ_mat = PastaQ.array(ρ_mpo)

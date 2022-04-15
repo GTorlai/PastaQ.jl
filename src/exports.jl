@@ -3,7 +3,7 @@ export
   maxlinkdim,
   siteinds,
   state,
-  inner, 
+  inner,
   rayleigh_quotient,
   expect,
   dag,
@@ -20,7 +20,7 @@ export
 
   # circuits/coherentcontrol.jl
   optimize!,
-  
+
   # circuits/gates.jl
   # Methods
   gate,
@@ -35,10 +35,10 @@ export
   randombases,
   fullpreparations,
   randompreparations,
-  
+
   # noise.jl
   insertnoise,
-  
+
   # productstates.jl
   qubits,
   qudits,

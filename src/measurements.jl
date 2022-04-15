@@ -33,4 +33,3 @@ end
 function entanglemententropy(ρ0::LPDO; kwargs...)
   return error("Measurement of entanglement entropy for LPDOs not yet implemented")
 end
-

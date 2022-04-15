@@ -25,29 +25,58 @@ There are three methods to perform tomography (we show state tomography here as 
 
 3. `method = "maximum_likelihood"` (or `"ML"`): 
 """
-tomography(data::Matrix{Pair{String, Int}}; method::String="linear_inversion", fillzeros::Bool=true, kwargs...) = 
-  tomography(empirical_probabilities(data; fillzeros=fillzeros), siteinds("Qubit", size(data,2)); method = method, kwargs...)
-
-tomography(data::Matrix{Pair{String, Int}}, sites::Vector{<:Index}; method::String="linear_inversion", fillzeros::Bool=true, kwargs...) = 
-  tomography(empirical_probabilities(data; fillzeros=fillzeros), sites; method = method, kwargs...)
-
-tomography(data::Matrix{Pair{String,Pair{String, Int}}}; kwargs...) = 
-  tomography(data, siteinds("Qubit", size(data,2)); kwargs...)
-
-function tomography(data::Matrix{Pair{String,Pair{String, Int}}}, sites::Vector{<:Index};
-                    method::String="linear_inversion", 
-                    fillzeros::Bool=true, 
-                    kwargs...) 
-  sites_in  = addtags.(sites, "Input")
-  sites_out = addtags.(sites, "Output")
-  process_sites = Index[]
-  for j in 1:size(data,2) 
-    push!(process_sites, sites_in[j]) 
-    push!(process_sites, sites_out[j]) 
-  end
-  tomography(empirical_probabilities(data; fillzeros=fillzeros), process_sites; method = method, process = true, kwargs...)
+function tomography(
+  data::Matrix{Pair{String,Int}};
+  method::String="linear_inversion",
+  fillzeros::Bool=true,
+  kwargs...,
+)
+  return tomography(
+    empirical_probabilities(data; fillzeros=fillzeros),
+    siteinds("Qubit", size(data, 2));
+    method=method,
+    kwargs...,
+  )
 end
 
+function tomography(
+  data::Matrix{Pair{String,Int}},
+  sites::Vector{<:Index};
+  method::String="linear_inversion",
+  fillzeros::Bool=true,
+  kwargs...,
+)
+  return tomography(
+    empirical_probabilities(data; fillzeros=fillzeros), sites; method=method, kwargs...
+  )
+end
+
+function tomography(data::Matrix{Pair{String,Pair{String,Int}}}; kwargs...)
+  return tomography(data, siteinds("Qubit", size(data, 2)); kwargs...)
+end
+
+function tomography(
+  data::Matrix{Pair{String,Pair{String,Int}}},
+  sites::Vector{<:Index};
+  method::String="linear_inversion",
+  fillzeros::Bool=true,
+  kwargs...,
+)
+  sites_in = addtags.(sites, "Input")
+  sites_out = addtags.(sites, "Output")
+  process_sites = Index[]
+  for j in 1:size(data, 2)
+    push!(process_sites, sites_in[j])
+    push!(process_sites, sites_out[j])
+  end
+  return tomography(
+    empirical_probabilities(data; fillzeros=fillzeros),
+    process_sites;
+    method=method,
+    process=true,
+    kwargs...,
+  )
+end
 
 @doc raw"""
     tomography(train_data::AbstractMatrix, L::LPDO;
@@ -110,9 +139,7 @@ Keyword arguments:
    as `earlystop`, in which case if the function (evaluated at each iteration) returns `true`,
    the training is halted.
 """
-function tomography(
-  train_data::AbstractMatrix, L::LPDO; (observer!)=nothing, kwargs...
-)
+function tomography(train_data::AbstractMatrix, L::LPDO; (observer!)=nothing, kwargs...)
   # Read arguments
   opt = get(kwargs, :optimizer, Optimisers.Descent(0.01))
   batchsize::Int64 = get(kwargs, :batchsize, 100)
@@ -129,27 +156,29 @@ function tomography(
   model = copy(L)
   isqpt = train_data isa Matrix{Pair{String,Pair{String,Int}}}
   localnorm = isqpt ? 2.0 : 1.0
-  
+
   # observer is not passed but earlystop is called
   observer! = (isnothing(observer!) || earlystop) ? Observer() : observer!
-  
+
   # observer is defined
   if !isnothing(observer!)
-    observer!["train_loss"] = nothing 
+    observer!["train_loss"] = nothing
     if !isnothing(test_data)
       observer!["test_loss"] = nothing
     end
     # add the standard early stop function to the observer
     if earlystop
-      stop_if(; loss::Vector) = stoptomography_ifloss(; loss = loss, ϵ = 1e-3, min_iter = 50, window = 50)
+      function stop_if(; loss::Vector)
+        return stoptomography_ifloss(; loss=loss, ϵ=1e-3, min_iter=50, window=50)
+      end
       observer!["earlystop"] = stop_if
-    end 
+    end
   end
 
   # initialize optimizer
   st = PastaQ.state(opt, model)
   optimizer = (opt, st)
-  
+
   @assert size(train_data, 2) == length(model)
   !isnothing(test_data) && @assert size(test_data)[2] == length(model)
 
@@ -174,10 +203,10 @@ function tomography(
 
         normalized_model = copy(model)
         sqrt_localnorms = []
-        normalize!(normalized_model; 
-                   (sqrt_localnorms!)=sqrt_localnorms, 
-                   localnorm=localnorm)
-        
+        normalize!(
+          normalized_model; (sqrt_localnorms!)=sqrt_localnorms, localnorm=localnorm
+        )
+
         grads, loss = gradients(
           normalized_model,
           batch;
@@ -192,15 +221,13 @@ function tomography(
     end # end @elapsed
     !isnothing(observer!) && push!(last(observer!["train_loss"]), train_loss)
     observe_time += ep_time
-    
+
     # measurement stage
     if ep % observe_step == 0
       normalized_model = copy(model)
       sqrt_localnorms = []
-      normalize!(normalized_model; 
-                 (sqrt_localnorms!)=sqrt_localnorms, 
-                 localnorm=localnorm)
-      
+      normalize!(normalized_model; (sqrt_localnorms!)=sqrt_localnorms, localnorm=localnorm)
+
       if !isnothing(test_data)
         test_loss = nll(normalized_model, test_data)
         !isnothing(observer!) && push!(last(observer!["test_loss"]), test_loss)
@@ -214,22 +241,34 @@ function tomography(
 
       # update observer
       if !isnothing(observer!)
-        loss = (!isnothing(test_data) ? results(observer!, "test_loss") : 
-                                        results(observer!, "train_loss"))
-        
-        model_to_observe = (isqpt && (normalized_model isa LPDO{MPS}) ? choi_mps_to_unitary_mpo(normalized_model) : 
-                                  !isqpt && (normalized_model isa LPDO{MPS}) ? normalized_model.X :
-                                                                               normalized_model)
-        update!(observer!, model_to_observe; train_loss = train_loss,
-                                             test_loss  = test_loss, loss = loss)
+        loss = (
+          if !isnothing(test_data)
+            results(observer!, "test_loss")
+          else
+            results(observer!, "train_loss")
+          end
+        )
+
+        model_to_observe = (
+          if isqpt && (normalized_model isa LPDO{MPS})
+            choi_mps_to_unitary_mpo(normalized_model)
+          elseif !isqpt && (normalized_model isa LPDO{MPS})
+            normalized_model.X
+          else
+            normalized_model
+          end
+        )
+        update!(
+          observer!, model_to_observe; train_loss=train_loss, test_loss=test_loss, loss=loss
+        )
         tot_time += observe_time
       end
 
       # printing
-      if outputlevel ≥ 1 
+      if outputlevel ≥ 1
         @printf("%-4d  ", ep)
         @printf("⟨logP⟩ = %-4.4f  ", train_loss)
-        if !isnothing(test_data) 
+        if !isnothing(test_data)
           @printf("(%.4f)  ", test_loss)
         end
         # TODO: add the trace preserving cost function here for QPT
@@ -244,7 +283,8 @@ function tomography(
         save(observerpath, observer!)
         if savestate
           if isqpt
-            model_to_be_saved = model isa LPDO{MPS} ? choi_mps_to_unitary_mpo(best_model) : best_model
+            model_to_be_saved =
+              model isa LPDO{MPS} ? choi_mps_to_unitary_mpo(best_model) : best_model
           else
             model_to_be_saved = model isa LPDO{MPS} ? best_model.X : best_model
           end
@@ -255,27 +295,35 @@ function tomography(
         end
       end
     end
-    !isnothing(observer!) && haskey(observer!.data,"earlystop") && results(observer!, "earlystop")[end] && break
+    !isnothing(observer!) &&
+      haskey(observer!.data, "earlystop") &&
+      results(observer!, "earlystop")[end] &&
+      break
   end
   return best_model
 end
 
 # QST
-tomography(data::Matrix{Pair{String,Int}}, ψ::MPS; kwargs...) = 
-  tomography(data, LPDO(ψ); kwargs...).X
+function tomography(data::Matrix{Pair{String,Int}}, ψ::MPS; kwargs...)
+  return tomography(data, LPDO(ψ); kwargs...).X
+end
 
-tomography(train_data::Vector{<:Vector{Pair{String,Int}}}, args...; kwargs...) = 
-  tomography(permutedims(hcat(train_data...)), args...; kwargs...)
-
+function tomography(train_data::Vector{<:Vector{Pair{String,Int}}}, args...; kwargs...)
+  return tomography(permutedims(hcat(train_data...)), args...; kwargs...)
+end
 
 # QPT
-tomography(data::Matrix{Pair{String,Pair{String,Int}}}, U::MPO; kwargs...) = 
-  choi_mps_to_unitary_mpo(tomography(data, LPDO(unitary_mpo_to_choi_mps(U)); kwargs...))
+function tomography(data::Matrix{Pair{String,Pair{String,Int}}}, U::MPO; kwargs...)
+  return choi_mps_to_unitary_mpo(
+    tomography(data, LPDO(unitary_mpo_to_choi_mps(U)); kwargs...)
+  )
+end
 
-tomography(train_data::Vector{<:Vector{Pair{String,Pair{String,Int}}}}, args...; kwargs...) = 
-  tomography(permutedims(hcat(train_data...)), args...; kwargs...)
-
-
+function tomography(
+  train_data::Vector{<:Vector{Pair{String,Pair{String,Int}}}}, args...; kwargs...
+)
+  return tomography(permutedims(hcat(train_data...)), args...; kwargs...)
+end
 
 """
 EARLY STOPPING FUNCTIONS
@@ -285,9 +333,9 @@ EARLY STOPPING FUNCTIONS
 #  fidelity(M1,M2) ≤ ϵ
 
 function stoptomography_ifloss(; loss::Vector, ϵ::Number, min_iter::Number, window::Number)
-  length(loss) < min_iter+1 && return false
+  length(loss) < min_iter + 1 && return false
   length(loss) < window && return false
-  avgloss = StatsBase.mean(loss[end-window:end])
-  Δ = StatsBase.sem(loss[end-window:end])
-  return Δ/avgloss < ϵ
+  avgloss = StatsBase.mean(loss[(end - window):end])
+  Δ = StatsBase.sem(loss[(end - window):end])
+  return Δ / avgloss < ϵ
 end

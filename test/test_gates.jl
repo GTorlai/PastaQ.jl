@@ -3,15 +3,6 @@ using ITensors
 using Test
 using LinearAlgebra
 
-@testset "nqubits" begin
-  @test nqubits(("X", 1, 2)) == 2
-  @test nqubits([("X", 1, 2), ("Y", 3, 2)]) == 3
-  @test nqubits(("X", (1, 2))) == 2
-  @test nqubits([("X", (1, 2)), ("Y", 3, 4)]) == 4
-  @test nqubits(("X", (1, 2), (; θ=π / 2))) == 2
-  @test nqubits([("X", (1, 2)), ("Y", 3, 4, (; ϕ=2.3))]) == 4
-end
-
 @testset "Gate generation: 1-qubit gates" begin
   i = Index(2; tags="Qubit")
 
@@ -673,22 +664,21 @@ end
   @test PastaQ.array(gtest) ≈ G
 end
 
-#@testset "function applied to a gate" begin
-#  s = siteinds("Qubit", 2)
-#  
-#  θ = 0.1
-#  rx = array(gate("Rx", s[1]; θ = 0.1))
-#  exp_rx = exp(rx)
-#  gtest = gate(x -> exp(x), "Rx",s[1]; θ = 0.1)
-#  @test exp_rx ≈ array(gate(x -> exp(x), "Rx",s[1]; θ = 0.1))
-#  @test exp_rx ≈ array(gate(x -> exp(x), ("Rx", 1, (θ = 0.1,)), s))
-#  
-#  cx = 0.1*reshape(array(gate("CX", s[1], s[2])),(4,4))
-#  exp_cx = reshape(exp(cx),(2,2,2,2))
-#  @test exp_cx ≈ array(gate(x -> exp(0.1*x), "CX", s[1], s[2]))
-#  @test exp_cx ≈ array(gate(x -> exp(0.1*x), ("CX", (1,2)), s))
-#end
-#
+@testset "function applied to a gate" begin
+  s = siteinds("Qubit", 2)
+
+  θ = 0.1
+  rx = array(gate("Rx", s[1]; θ=0.1))
+  exp_rx = exp(rx)
+  gtest = gate(x -> exp(x), "Rx", s[1]; θ=0.1)
+  @test exp_rx ≈ array(gate(x -> exp(x), "Rx", s[1]; θ=0.1))
+  @test exp_rx ≈ array(gate(x -> exp(x), ("Rx", 1, (θ=0.1,)), s))
+
+  cx = 0.1 * reshape(array(gate("CX", s[1], s[2])), (4, 4))
+  exp_cx = reshape(exp(cx), (2, 2, 2, 2))
+  @test exp_cx ≈ array(gate(x -> exp(0.1 * x), "CX", s[1], s[2]))
+  @test exp_cx ≈ array(gate(x -> exp(0.1 * x), ("CX", (1, 2)), s))
+end
 
 ##@testset "qudit gates" begin
 ##  dim = 3

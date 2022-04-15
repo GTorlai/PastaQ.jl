@@ -41,11 +41,11 @@ end
 # ITensor
 #
 
-function sqrt_hermitian(ρ::ITensor; cutoff::Float64 = 1e-15)
+function sqrt_hermitian(ρ::ITensor; cutoff::Float64=1e-15)
   if !isapprox(swapprime(dag(ρ), 0 => 1), ρ)
     error("matrix is not hermitian")
   end
-  D, U = eigen(ρ; ishermitian = true, cutoff = cutoff)
+  D, U = eigen(ρ; ishermitian=true, cutoff=cutoff)
   sqrtD = D
   sqrtD .= sqrt.(D)
   return U' * sqrtD * dag(U)
@@ -54,14 +54,6 @@ end
 ######################################################
 # MPS
 #
-
-## # For |ψ⟩ and |ϕ⟩, return |ψ⟩⊗⟨ϕ|
-## function ITensors.outer(ψ::MPS, ϕ::MPS; kwargs...)
-##   # XXX: implement by converting to MPOs and
-##   # contracting the MPOs?
-##   @assert ψ == ϕ'
-##   return MPO(ϕ; kwargs...)
-## end
 
 eltype(ψ::MPS) = ITensor
 eltype(ψ::MPO) = ITensor
@@ -130,4 +122,3 @@ end
 
 
 @non_differentiable ITensors.name(::Any)
-
