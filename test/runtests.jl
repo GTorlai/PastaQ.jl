@@ -23,9 +23,9 @@ filenames = [
   "test_qubitarrays.jl",
   "test_randomstates.jl",
   "test_runcircuit.jl",
-#  "test_gpu.jl",
   "test_statetomography.jl",
   "test_utils.jl",
+  "test_gpu.jl",
 ]
 
 @testset "PastaQ.jl" begin
