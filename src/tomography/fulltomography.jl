@@ -42,7 +42,7 @@ function tomography(
                                       MLS : maximum likelihood")
     end
 
-    # Contrained the trace and enforce positivity and hermitianity 
+    # Contrained the trace and enforce positivity and hermitianity
     if process
       function tracepreserving(ρ)
         for j in 1:n
@@ -78,7 +78,7 @@ end
 """
     measurement_counts(samples::Matrix{Pair{String, Int}}; fillzeros::Bool = true)
 
-Generate a dictionary containing the measurement counts for a set 
+Generate a dictionary containing the measurement counts for a set
 of projectors, given a set of single-shot samples with different
 measurement bases (i.e. QST).
 """
@@ -127,7 +127,7 @@ end
 """
     measurement_counts(data::Matrix{Pair{String,Pair{String, Int}}}; fillzeros::Bool = true)
 
-Generate a dictionary containing the measurement counts for a set 
+Generate a dictionary containing the measurement counts for a set
 of input states and measurement projectors (i.e. QPT).
 """
 function measurement_counts(
@@ -184,7 +184,7 @@ end
     projector_matrix(probs::AbstractDict; process::Bool = false, return_probs::Bool = false)
 
 Return the projector matrix, where each row corresponds to the vectorized
-projector into different measurement bases contained into an input 
+projector into different measurement bases contained into an input
 probability dictionary.
 
 If `return_probs=true`, return also the 1d vector of probabilities (i.e. the

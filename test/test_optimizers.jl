@@ -26,14 +26,14 @@ end
   PastaQ.setparameters!(ϕ, θ)
   @test PastaQ.array(ψ) ≈ PastaQ.array(ϕ.X)
 
-  # LPDO (state) 
+  # LPDO (state)
   ρ = randomstate(sites; χ=4, ξ=3)
   θ = PastaQ.getparameters(ρ)
   σ = randomstate(sites; χ=4, ξ=3)
   PastaQ.setparameters!(σ, θ)
   @test PastaQ.array(ρ) ≈ PastaQ.array(σ)
 
-  # UNITARY 
+  # UNITARY
   U = LPDO(PastaQ.unitary_mpo_to_choi_mps(randomprocess(sites; χ=4)))
   θ = PastaQ.getparameters(U)
   V = LPDO(PastaQ.unitary_mpo_to_choi_mps(randomprocess(sites; χ=4)))

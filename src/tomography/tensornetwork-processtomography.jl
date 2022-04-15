@@ -1,5 +1,5 @@
 """
-    nll(L::LPDO{MPS},data::Matrix{Pair{String,Pair{String, Int}}}) 
+    nll(L::LPDO{MPS},data::Matrix{Pair{String,Pair{String, Int}}})
 
 Compute the negative log-likelihood of process data using a MPO ansatz
 for the vectorized unitary operator.
@@ -388,7 +388,7 @@ function gradnll(
 end
 
 """
-    gradTP(L::LPDO, gradlogZ::Vector{<:ITensor}, 
+    gradTP(L::LPDO, gradlogZ::Vector{<:ITensor},
            logZ::Float64; sqrt_localnorms = nothing)
 
 Compute the gradients of the trace-preserving regularization.

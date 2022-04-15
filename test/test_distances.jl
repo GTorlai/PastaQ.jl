@@ -139,11 +139,11 @@ end
 
   circuit1 = randomcircuit(N; depth=3)
   circuit2 = randomcircuit(N; depth=3)
-  # MPO unitary 
+  # MPO unitary
   U1 = runcircuit(sites, circuit1; process=true)
   U2 = randomprocess(sites)
 
-  # MPO Choi matrix 
+  # MPO Choi matrix
   ρ1 = PastaQ.choimatrix(sites, circuit1; noise=("DEP", (p=0.01,)))
   ρ2 = PastaQ.choimatrix(sites, circuit2; noise=("DEP", (p=0.01,)))
   # LPDO Choi matrix
@@ -206,7 +206,7 @@ end
 
   circuit1 = randomcircuit(N; depth=3)
   circuit2 = randomcircuit(N; depth=3)
-  # MPO unitary 
+  # MPO unitary
   U1 = randomprocess(sites; χ=3)
   U2 = randomprocess(sites; χ=4)
 

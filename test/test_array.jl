@@ -59,7 +59,7 @@ end
     end
   end
 
-  # MPO density matrix 
+  # MPO density matrix
   ρ = runcircuit(qubits, circuit; noise=("DEP", (p=0.01,)))
   ρmat = PastaQ.array(ρ)
 
@@ -90,7 +90,7 @@ end
     end
   end
 
-  # MPO Choi matrix 
+  # MPO Choi matrix
   N = 3
   depth = 3
   circuit = randomcircuit(N; depth=depth)
@@ -173,7 +173,7 @@ end
   Utest = PastaQ.array(Uprod)
   @test Umat ≈ Utest
 
-  # MPO density matrix 
+  # MPO density matrix
   ρ = runcircuit(qubits, circuit; noise=("DEP", (p=0.01,)))
   ρmat = PastaQ.array(ρ)
   ρprod = prod(ρ)
@@ -187,7 +187,7 @@ end
   ρtest = PastaQ.array(ρprod)
   @test ρtest ≈ ρmat
 
-  # MPO Choi matrix 
+  # MPO Choi matrix
   N = 3
   depth = 3
   circuit = randomcircuit(N; depth=depth)

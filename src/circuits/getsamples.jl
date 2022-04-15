@@ -29,10 +29,10 @@ end
 @doc raw"""
     fullpreparations(n::Int; local_input_states = "Pauli")
 
-Generate the full set of ``n``-qubit input states built out of a collection of 
+Generate the full set of ``n``-qubit input states built out of a collection of
 ``D=M^n`` states out of ``M`` single-qubit states. Predefined options:
 + `local_input_states = "Pauli"`: ``D=6^n`` Pauli eigenstates
-+ `local_input_states = "Tetra"`: ``D=4^n`` 1-qubit SIC-POVM 
++ `local_input_states = "Tetra"`: ``D=4^n`` 1-qubit SIC-POVM
 """
 function fullpreparations(N::Int; local_input_states="Pauli")
   if N > 5
@@ -53,12 +53,12 @@ end
 @doc raw"""
     randombases(n::Int, nbases::Int; local_basis = "Pauli")
 
-Generate `nbases` measurement bases composed by ``n`` single-qubit bases. 
+Generate `nbases` measurement bases composed by ``n`` single-qubit bases.
 By default, each local basis is randomly selected between Pauli bases `["X","Y","Z"]`, with
 `"Z"` being the default basis where the quantum state is written.
 
-The measurement bases can also be defined by the user, `local_basis = [O1, O2,...]`, 
-as long as the single-qubit Hermitian operators ``O_j`` are defined.  
+The measurement bases can also be defined by the user, `local_basis = [O1, O2,...]`,
+as long as the single-qubit Hermitian operators ``O_j`` are defined.
 """
 function randombases(N::Int, nbases::Int; local_basis="Pauli")
   local_basis == "Pauli" && (local_basis = ["X", "Y", "Z"])
@@ -72,10 +72,10 @@ end
 Generate `npreps` random input states to a quantum circuit. Each ``n``-qubit
 input state is selected according to the following options:
 + `local_input_states = "Pauli"`: ``D=6^n`` Pauli eigenstates
-+ `local_input_states = "Tetra"`: ``D=4^n`` 1-qubit SIC-POVM 
++ `local_input_states = "Tetra"`: ``D=4^n`` 1-qubit SIC-POVM
 
-The input states can also be set to a user-defined set, 
-`local_input_states = ["A","B","C",...]`, assuming single-qubit states ``|A\rangle``, 
+The input states can also be set to a user-defined set,
+`local_input_states = ["A","B","C",...]`, assuming single-qubit states ``|A\rangle``,
 ``|B\rangle`` have been properly defined.
 """
 function randompreparations(N::Int, npreps::Int; local_input_states="Pauli")
@@ -144,9 +144,9 @@ end
     getsamples(M::Union{MPS,MPO}, nshots::Int; kwargs...)
     getsamples(T::ITensor, nshots::Int)
 
-Perform `nshots` projective measurements of a wavefunction 
-``|\psi\rangle`` or density operator ``\rho`` in the MPS/MPO reference basis. 
-Each measurement consists of a binary vector ``\sigma = (\sigma_1,\sigma_2,\dots)``, 
+Perform `nshots` projective measurements of a wavefunction
+``|\psi\rangle`` or density operator ``\rho`` in the MPS/MPO reference basis.
+Each measurement consists of a binary vector ``\sigma = (\sigma_1,\sigma_2,\dots)``,
 drawn from the probabilty distributions:
 - ``P(\sigma) = |\langle\sigma|\psi\rangle|^2``,   if ``M = |\psi\rangle`` is an `MPS`.
 - ``P(\sigma) = \langle\sigma|\rho|\sigma\rangle``   :  if ``M = \rho`` is an `MPO`.
@@ -166,10 +166,10 @@ end
 
 @doc raw"""
     getsamples(M::Union{MPS,MPO,ITensor}, bases::Matrix::Matrix{<:String}, nshots::int; kwargs...)
-    getsamples(M::Union{MPS,MPO,ITensor}, bases::Vector{<:Vector}, nshots::Int; kwargs...) = 
+    getsamples(M::Union{MPS,MPO,ITensor}, bases::Vector{<:Vector}, nshots::Int; kwargs...) =
 
 Generate a set of measurements acccording to a set
-of input `bases`, performing `nshots` measurements per basis. 
+of input `bases`, performing `nshots` measurements per basis.
 For a single measurement, a depth-1 unitary ``U`` is applied to the input
 state ``M`` according to the `basis`. The probability of recording outcome
 ``\sigma = (\sigma_1,\sigma_2,\dots)`` in the basis defined by ``U`` is
@@ -223,8 +223,8 @@ function getsamples(
   # - Matrix with dim (2^N,2^N) for a density matrix ρ
   A = array(T)
 
-  # Compute the full probability distribution 
-  # P(σ) = |⟨σ|ψ⟩|² (Tr[ρ|σ⟩⟨σ|] 
+  # Compute the full probability distribution
+  # P(σ) = |⟨σ|ψ⟩|² (Tr[ρ|σ⟩⟨σ|]
   probs = (A isa Vector ? abs2.(A) : real(diag(A)))
   @assert sum(probs) ≈ 1
 
@@ -285,10 +285,10 @@ end
     )
 
 Generate a set of process measurement data acccording to a set
-of input states `preps` and measurement `bases`, performing `nshots` measurements per configuration. 
+of input states `preps` and measurement `bases`, performing `nshots` measurements per configuration.
 For a single measurement, the input state ``|\xi\rangle=\otimes_j|\xi_j\rangle`` is evolved according to the channel ``M``,
 and then measured in a given measurement basis. The probability that the final state returns outcome
-``\sigma = (\sigma_1,\sigma_2,\dots)`` in the basis defined by ``U`` is given by 
+``\sigma = (\sigma_1,\sigma_2,\dots)`` in the basis defined by ``U`` is given by
 
 ```math
 P(\sigma|\xi) = \text{Tr}\big[(\rho_\xi^T\otimes 1)\Lambda_{M} \big]
@@ -315,7 +315,7 @@ end
     projectchannel(U0::MPO,prep::Array)
     projectchannel(U::ITensor, prep::Array)
 
-Project the unitary circuit (MPO) into a state `prep` 
+Project the unitary circuit (MPO) into a state `prep`
 made out of single-qubit Pauli eigenstates (e.g. `|ϕ⟩ =|+⟩⊗|0⟩⊗|r⟩⊗…).
 The resulting MPS describes the quantum state obtained by applying
 the quantum circuit to `|ϕ⟩`. Same for a dense ITensors.

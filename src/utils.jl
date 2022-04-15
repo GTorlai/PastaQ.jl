@@ -1,4 +1,4 @@
-_convert_leaf_eltype(T::Type, x) = convert_leaf_eltype(T, x)
+x_convert_leaf_eltype(T::Type, x) = convert_leaf_eltype(T, x)
 _convert_leaf_eltype(::Nothing, x) = x
 
 convert_to_full_representation(M::ITensor) = M
@@ -40,7 +40,7 @@ end
 
 """
 
-(Z+, X-) -> (Z => 0), (X => 1)   
+(Z+, X-) -> (Z => 0), (X => 1)
 
 """
 function convertdatapoint(datapoint::Array{String})
@@ -126,8 +126,8 @@ end
 """
     split_dataset(data::Matrix; train_ratio::Float64 = 0.9, randomize::Bool = true)
 
-Split a data set into a `train` and `test` sets, given a `train_ratio` (i.e. the 
-percentage of data in `train_data`. If `randomize=true` (default), the `data` is 
+Split a data set into a `train` and `test` sets, given a `train_ratio` (i.e. the
+percentage of data in `train_data`. If `randomize=true` (default), the `data` is
 randomly shuffled before splitting.
 """
 function split_dataset(data::Matrix; train_ratio::Float64=0.9, randomize::Bool=true)
@@ -145,7 +145,7 @@ end
 """
     ischoi(M::LPDO)
 
-Check whether a given LPDO{MPO}  
+Check whether a given LPDO{MPO}
 """
 function ischoi(M::LPDO{MPO})
   !haschoitags(M) && return false
@@ -197,12 +197,12 @@ end
 
 Assign the input/output tags defined for a Choi matrix to an MPO.
 
-  σ₁ -o- σ₁′       σ₁ⁱ -o- σ₁ᴼ   
+  σ₁ -o- σ₁′       σ₁ⁱ -o- σ₁ᴼ
       |                 |
   σ₂ -o- σ₂′  ⟶    σ₂ⁱ -o- σ₂ᴼ
       |                 |
   σ₃ -o- σ₃′       σ₃ⁱ -o- σ₃ᴼ
-                  
+
 """
 function choitags(U::MPO)
   haschoitags(U) && return U
@@ -238,13 +238,13 @@ mpotags(M::Union{MPS,MPO}) = mpotags(LPDO(M)).X
     unitary_mpo_to_choi_mps(U::MPO)
 
 
-     MPO          MPS (vectorized MPO) 
-  σ₁ -o- σ₁′       o= (σ₁ⁱ,σ₁ᴼ)   
-      |            | 
+     MPO          MPS (vectorized MPO)
+  σ₁ -o- σ₁′       o= (σ₁ⁱ,σ₁ᴼ)
+      |            |
   σ₂ -o- σ₂′  ⟶    o= (σ₂ⁱ,σ₂′ᴼ)
-      |            | 
+      |            |
   σ₃ -o- σ₃′       o= (σ₃ⁱ,σ₃′ᴼ)
-                  
+
 Transforms a unitary MPO into a Choi MPS with appropriate tags.
 """
 unitary_mpo_to_choi_mps(U::MPO) = convert(MPS, choitags(U))
@@ -256,12 +256,12 @@ unitary_mpo_to_choi_mps(L::LPDO{MPO}) = unitary_mpo_to_choi_mps(L.X)
 
 
      MPO                   MPO
-  σ₁ -o- σ₁′     (σ₁ⁱ,σ₁ᴼ) =o= (σ₁′ⁱ,σ₁′ᴼ)   
-      |                     | 
+  σ₁ -o- σ₁′     (σ₁ⁱ,σ₁ᴼ) =o= (σ₁′ⁱ,σ₁′ᴼ)
+      |                     |
   σ₂ -o- σ₂′  ⟶  (σ₂ⁱ,σ₂ᴼ) =o= (σ₂′ⁱ,σ₂′ᴼ)
-      |                     | 
+      |                     |
   σ₃ -o- σ₃′     (σ₃ⁱ,σ₃ᴼ) =o= (σ₃′ⁱ,σ₃′ᴼ)
-                  
+
 Convert a unitary MPO to a Choi matrix represented as an MPO with 4 site indices.
 """
 unitary_mpo_to_choi_mpo(U::MPO) = MPO(LPDO(convert(MPS, choitags(U))))

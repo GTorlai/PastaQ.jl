@@ -55,7 +55,7 @@ function trotter4(H::Vector{<:Tuple}, δτ::Number)
 end
 
 """
-    trotterlayer(H::OpSum; order::Int = 2, kwargs...) 
+    trotterlayer(H::OpSum; order::Int = 2, kwargs...)
 Generate a single layer of gates for one step of TEBD.
 """
 function trotterlayer(H::Vector{<:Tuple}, δτ::Number; order::Int=2)
@@ -63,7 +63,7 @@ function trotterlayer(H::Vector{<:Tuple}, δτ::Number; order::Int=2)
   order == 2 && return trotter2(H, δτ)
   return error("Automated Trotter circuits with order > 2 not yet implemented")
   # TODO: understand weird behaviour of trotter4
-  #order == 4 && return trotter4(H, δτ) 
+  #order == 4 && return trotter4(H, δτ)
   #error("Automated Trotter circuits with order > 2 not yet implemented")
 end
 
@@ -82,7 +82,7 @@ function _trottercircuit(
   H::Vector{<:Tuple}, τs::Vector; order::Int=2, layered::Bool=false, kwargs...
 )
   nlayers = length(τs) - 1
-  # XXX: Zygote: this breaks (?) 
+  # XXX: Zygote: this breaks (?)
   #circuit = [trotterlayer(H, τ; order = order) for τ in τs]
   #!layered && return reduce(vcat, circuit)
   #return circuit
