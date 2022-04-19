@@ -1,4 +1,4 @@
-xusing PastaQ
+using PastaQ
 using PastaQ.ITensors
 using Test
 using LinearAlgebra
