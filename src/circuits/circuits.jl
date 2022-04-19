@@ -129,13 +129,13 @@ end
 
 @doc raw"""
     randomlayer(
-      gatename::AbstractString, 
-      support::Union{Int, Vector{<:Tuple}, AbstractRange}; 
+      gatename::AbstractString,
+      support::Union{Int, Vector{<:Tuple}, AbstractRange};
       rng = Random.GLOBAL_RNG,
       kwargs...
-    ) 
+    )
 
-Generate a random layer built out of a set one or two qubit gates If `support::Int = n`, generates 
+Generate a random layer built out of a set one or two qubit gates If `support::Int = n`, generates
 ``n`` single-qubit gates `gatename`. If `support::Vector=bonds`, generates a set of two-qubit
 gates on the couplings contained in `support`.
 ```julia
@@ -179,7 +179,7 @@ end
       rng=Random.GLOBAL_RNG,
       weights::Union{Nothing,Vector{Float64}} = ones(length(gatenames)) / length(gatenames),
       kwargs...,
-    ) 
+    )
 
 Generate a random layer built out of one or two qubit gates, where `gatenames` is a set of possible
 gates to choose from. By default, each single gate is sampled uniformaly over this set. If `weights`
@@ -229,10 +229,10 @@ end
       layered::Bool=true,
       rng=Random.GLOBAL_RNG)
 
-Build a circuit with given `depth`, where each layer consists of a set of 
-two-qubit gates applied on pairs of qubits in according to a set of `coupling_sequences`. Each layer also contains ``n`` single-qubit gates. IN both cases, the chosen gates are passed as keyword arguments `onequbitgates` and `twoqubitgates`. 
+Build a circuit with given `depth`, where each layer consists of a set of
+two-qubit gates applied on pairs of qubits in according to a set of `coupling_sequences`. Each layer also contains ``n`` single-qubit gates. IN both cases, the chosen gates are passed as keyword arguments `onequbitgates` and `twoqubitgates`.
 
-The default configurations consists of two-qubit random Haar unitaries, and no single-qubit gates. 
+The default configurations consists of two-qubit random Haar unitaries, and no single-qubit gates.
 
 If `layered = true`, the object returned in a `Vector` of circuit layers, rather than the full collection  of quantum gates.
 """
@@ -244,7 +244,7 @@ function randomcircuit(
   layered::Bool=true,
   rng=Random.GLOBAL_RNG,
 )
-  #N = (coupling_sequence isa Vector{AbstractVector} ? maximum(vcat([maximum.(c) for c in coupling_sequence]...)) : 
+  #N = (coupling_sequence isa Vector{AbstractVector} ? maximum(vcat([maximum.(c) for c in coupling_sequence]...)) :
   #                                            maximum([maximum(c) for c in coupling_sequence]))
 
   N = 0
@@ -278,16 +278,16 @@ end
 One-dimensional random quantum circuit:
 ```julia
 randomcircuit(4; depth = 2, twoqubitgates = "CX", onequbitgates = "Ry")
-# [("CX", (1, 2)), 
-#  ("CX", (3, 4)), 
-#  ("Ry", 1, (θ = 0.52446,)), 
-#  ("Ry", 2, (θ = 3.01059,)), 
-#  ("Ry", 3, (θ = 0.25144,)), 
+# [("CX", (1, 2)),
+#  ("CX", (3, 4)),
+#  ("Ry", 1, (θ = 0.52446,)),
+#  ("Ry", 2, (θ = 3.01059,)),
+#  ("Ry", 3, (θ = 0.25144,)),
 #  ("Ry", 4, (θ = 1.93356,))]
-# [("CX", (2, 3)), 
-#  ("Ry", 1, (θ = 2.15460,)), 
-#  ("Ry", 2, (θ = 2.52480,)), 
-#  ("Ry", 3, (θ = 1.85756,)), 
+# [("CX", (2, 3)),
+#  ("Ry", 1, (θ = 2.15460,)),
+#  ("Ry", 2, (θ = 2.52480,)),
+#  ("Ry", 3, (θ = 1.85756,)),
 #  ("Ry", 4, (θ = 0.02405,))]
 ```
 """

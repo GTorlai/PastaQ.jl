@@ -1,7 +1,7 @@
 """
     lineararray(N::Int)
 
-Return a vector of bonds for a open 1d lattice with 
+Return a vector of bonds for a open 1d lattice with
 `N` sites.
 """
 function lineararray(N::Int64)
@@ -29,7 +29,7 @@ end
 Return a vector containing 4 different "cycles" of bonds,
 corresponding to the different tiling of a square lattice
 with dimensions `Lx` and `Ly`.
-Return a vector of bonds for a open 1d lattice with 
+Return a vector of bonds for a open 1d lattice with
 `N` sites.
 """
 function squarearray(Lx::Int, Ly::Int; rotated::Bool=false)
@@ -40,21 +40,21 @@ function squarearray(Lx::Int, Ly::Int; rotated::Bool=false)
   if !rotated
     #
     #   Cycle A                Cycle B
-    #   o - o   o - o          o   o   o   o 
-    #                                        
+    #   o - o   o - o          o   o   o   o
+    #
     #   o - o   o - o          o   o   o   o
     #                          |   |   |   |
     #   o - o   o - o          o   o   o   o
-    #                                        
+    #
     #   o - o   o - o          o   o   o   o
     #
-    #   Cycle 3                Cycle 4       
+    #   Cycle 3                Cycle 4
     #   o   o   o   o          o   o - o   o
-    #   |   |   |   |             
+    #   |   |   |   |
     #   o   o   o   o          o   o - o   o
-    #                                       
+    #
     #   o   o   o   o          o   o - o   o
-    #   |   |   |   |                       
+    #   |   |   |   |
     #   o   o   o   o          o   o - o   o
     #
 
@@ -66,7 +66,7 @@ function squarearray(Lx::Int, Ly::Int; rotated::Bool=false)
       end
     end
     push!(couplings, cycle)
-    # B 
+    # B
     cycle = Vector{Tuple}(undef, 0)
     for y in 2:2:(Ly - 1)
       for x in 1:Lx
@@ -94,22 +94,22 @@ function squarearray(Lx::Int, Ly::Int; rotated::Bool=false)
   else
 
     #   Cycle A                Cycle B
-    #   o   o   o   o          o   o   o   o         
-    #    ╲   ╲   ╲   ╲            ╱   ╱   ╱           
-    #     o   o   o   o          o   o   o   o       
-    #                                               
-    #   o   o   o   o          o   o   o   o         
-    #    ╲   ╲   ╲   ╲            ╱   ╱   ╱          
+    #   o   o   o   o          o   o   o   o
+    #    ╲   ╲   ╲   ╲            ╱   ╱   ╱
+    #     o   o   o   o          o   o   o   o
+    #
+    #   o   o   o   o          o   o   o   o
+    #    ╲   ╲   ╲   ╲            ╱   ╱   ╱
     #     o   o   o   o          o   o   o   o
     #
     #   Cycle C                Cycle D
-    #   o   o   o   o          o   o   o   o          
-    #                          
+    #   o   o   o   o          o   o   o   o
+    #
     #     o   o   o   o          o   o   o   o
     #      ╲   ╲   ╲                ╱   ╱   ╱
-    #   o   o   o   o          o   o   o   o   
-    #                          
-    #     o   o   o   o          o   o   o   o 
+    #   o   o   o   o          o   o   o   o
+    #
+    #     o   o   o   o          o   o   o   o
 
     # A
     cycle = Vector{Tuple}(undef, 0)

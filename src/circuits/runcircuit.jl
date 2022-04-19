@@ -9,7 +9,7 @@
 Compile a circuit from a lazy representation into a vector of `ITensor`.
 For example, a gate element of `circuit`, `("gn", (i,j))` is turned into a rrank-4 tensor corresponding to the `i` and `j` element of `hilbert`.
 
-If `noise` is passed, the corresponding Kraus operator are inserted appropriately 
+If `noise` is passed, the corresponding Kraus operator are inserted appropriately
 after the gates in the circuit.
 """
 function buildcircuit(
@@ -42,13 +42,13 @@ end
 """
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
-                            TENSOR NETWORK SIMULATOR                                   
+                            TENSOR NETWORK SIMULATOR
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 """
 
 @doc raw"""
-    runcircuit(circuit::Any; kwargs...) 
+    runcircuit(circuit::Any; kwargs...)
 
 Execute quantum circuit (see below).
 """
@@ -68,16 +68,16 @@ end
 @doc raw"""
     runcircuit(hilbert::Vector{<:Index}, circuit::Vector;
                full_representation::Bool = false,
-               process::Bool = false, 
+               process::Bool = false,
                noise = nothing,
                kwargs...)
 
     runcircuit(M::Union{MPS, MPO, ITensor}, circuit::Union{Tuple, AbstractVector};
-               full_representation::Bool = false, noise = nothing, kwargs...) 
+               full_representation::Bool = false, noise = nothing, kwargs...)
 
 Run the circuit corresponding to a list of quantum gates on a system of ``n`` qubits,
-with input Hilbert space `hilbert`. The specific method of this general function is 
-specified by the keyword arguments `process` and `noise`. 
+with input Hilbert space `hilbert`. The specific method of this general function is
+specified by the keyword arguments `process` and `noise`.
 
 By default (`process = false` and `noise = nothing`), `runcircuit` returns an MPS
 wavefunction corresponding to the contraction of each quantum gate in `circuit` with
@@ -176,12 +176,12 @@ end
       print_metrics = [],
       kwargs...)
 
-Apply a quantum circuit to an input state `M`, where the circuit is built out of a 
+Apply a quantum circuit to an input state `M`, where the circuit is built out of a
 sequence of layers of quantum gates. The input state may be an MPS wavefunction
 ``|\psi\rangle``, an MPO density operator ``ρ`` (or unitary operator ``U``), etc.
 
 By feeding a "layered" circuit, we can enable measurement and keep track of metrics
-as a function of the circuit's depth. 
+as a function of the circuit's depth.
 
 Other than the keyword arguments of the high-level interface, here we can provide:
 + `(observer!)`: observer object (from Observers.jl).
@@ -276,7 +276,7 @@ end
       move_sites_back::Bool=true,
       kwargs...)
 
-Apply a set of "gate" tensors (alredy in the form of `ITensor`) to an input 
+Apply a set of "gate" tensors (alredy in the form of `ITensor`) to an input
 state `M`, with options:
 + `apply_dag = nothing`: whether to perform conjugate evolution.
 + `cutoff = 1e-15`: truncation cutoff in SVD.
@@ -284,10 +284,10 @@ state `M`, with options:
 + `svd_alg = "divide_and_conquer"`: SVD algorithm (see ITensors.jl).
 + `move_sites_back = true`: move sites back after long-range gate.
 
-By default, `apply_dag = nothing` and the interface is dictated by the input state, 
+By default, `apply_dag = nothing` and the interface is dictated by the input state,
 and whether or not the vector of `ITensor` containins rank-3 noisy tensors (i.e. Kraus operators).
 
-For an input MPS ``|\psi_0\rangle``, with a unitary circuit, the output is 
+For an input MPS ``|\psi_0\rangle``, with a unitary circuit, the output is
 ```math
 |\psi\rangle = U_M\dots U_2 U_1|\psi_0\rangle
 ```
@@ -375,13 +375,13 @@ end
 """
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
-                                  CHOI MATRIX                                   
+                                  CHOI MATRIX
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 """
 
 @doc raw"""
-    choimatrix(circuit::Vector{<:Any}; kwargs...) = 
+    choimatrix(circuit::Vector{<:Any}; kwargs...) =
     choimatrix(sites::Vector{<:Index}, circuit::Vector{<:Any}; kwargs...)
     choimatrix(sites::Vector{<:Index}, circuit_tensors::Vector{<:ITensor};
                full_representation = false,kwargs...)
@@ -442,7 +442,7 @@ end
 """
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
-                               EXACT SIMULATOR                                   
+                               EXACT SIMULATOR
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 """

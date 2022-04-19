@@ -11,7 +11,7 @@ end
 const gate = op
 
 # Random Haard unitary:
-# 
+#
 # Reference: http://math.mit.edu/~edelman/publications/random_matrix_theory.pdf
 function gate(
   ::GateName"RandomUnitary",

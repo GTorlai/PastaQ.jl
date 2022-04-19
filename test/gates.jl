@@ -693,26 +693,26 @@ end
 ##  dim = 3
 ##  s = siteinds("Qudit", 4; dim = dim)
 ##  dims = (dim,)
-##  @test gate("a†", dims)      ≈ [0 0 0; 1 0 0; 0 √2 0] 
-##  @test gate("a", dims)       ≈ [0 1 0; 0 0 √2; 0 0 0]  
+##  @test gate("a†", dims)      ≈ [0 0 0; 1 0 0; 0 √2 0]
+##  @test gate("a", dims)       ≈ [0 1 0; 0 0 √2; 0 0 0]
 ##
-##  @test gate("a†", dims) * gate("a", dims) ≈ [0 0 0; 0 1 0; 0 0 2] 
+##  @test gate("a†", dims) * gate("a", dims) ≈ [0 0 0; 0 1 0; 0 0 2]
 ##
 ##  @test PastaQ.array(gate("a†", s[1])) ≈ [0 0 0; 1 0 0; 0 √2 0]
-##  @test PastaQ.array(gate("a", s[1])) ≈ [0 1 0; 0 0 √2; 0 0 0] 
-##  
+##  @test PastaQ.array(gate("a", s[1])) ≈ [0 1 0; 0 0 √2; 0 0 0]
+##
 ##  @test PastaQ.array(gate("a† * a", s[1])) ≈ [0 0 0; 0 1 0; 0 0 2]
 ##  @test PastaQ.array(gate("a * a†", s[1])) ≈ [1 0 0; 0 2 0; 0 0 0]
-##  
+##
 ##
 ##  dim = 10
 ##  s = siteinds("Qudit", 4; dim = dim)
 ##  dims = (dim,)
 ##  @test PastaQ.array(gate("a† * a† * a * a", s[1])) ≈ gate("a†", dims)  * gate("a†", dims)  * gate("a", dims) * gate("a", dims)
-##  
+##
 ##  @test PastaQ.array(gate("a†a", s[1], s[2])) ≈ kron(gate("a†", dims), gate("a", dims))
 ##  @test PastaQ.array(gate("aa†", s[1], s[2])) ≈ kron(gate("a", dims), gate("a†", dims))
-##  
+##
 ##  @test PastaQ.array(gate("a†a+aa†", s[1], s[2])) ≈ kron(gate("a†", dims), gate("a", dims)) + kron(gate("a", dims), gate("a†", dims))
 ##end
 #
