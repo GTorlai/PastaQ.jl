@@ -1,4 +1,4 @@
-x_convert_leaf_eltype(T::Type, x) = convert_leaf_eltype(T, x)
+_convert_leaf_eltype(T::Type, x) = convert_leaf_eltype(T, x)
 _convert_leaf_eltype(::Nothing, x) = x
 
 convert_to_full_representation(M::ITensor) = M
