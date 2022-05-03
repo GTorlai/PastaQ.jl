@@ -25,4 +25,9 @@ include("settings.jl")
 
 makedocs(; settings...)
 
-deploydocs(; repo="github.com/GTorlai/PastaQ.jl")
+deploydocs(;
+  repo=repo="github.com/GTorlai/PastaQ.jl.git",
+  devbranch="master",
+  push_preview=true,
+  deploy_config=Documenter.GitHubActions(),
+)
