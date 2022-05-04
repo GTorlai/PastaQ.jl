@@ -221,7 +221,7 @@ end
 
 @testset "apply gate: Id" begin
   psi = productstate(2)
-  gate_data = ("I", 1)
+  gate_data = ("Id", 1)
   psi = runcircuit(psi, gate_data)
   @test PastaQ.array(psi) ≈ [1.0, 0.0, 0.0, 0.0]
 end
