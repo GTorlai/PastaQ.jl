@@ -1,3 +1,5 @@
+const MOI = SCS.MathOptInterface
+
 function tomography(
   probabilities::Dict{Tuple,<:Dict},
   sites::Vector{<:Index};
@@ -67,9 +69,10 @@ function tomography(
     end
     # Use Convex.jl to solve the optimization
     problem = Convex.minimize(cost_function, constraints)
-    Convex.solve!(
-      problem, () -> SCS.Optimizer(; verbose=false, max_iters=max_iters); verbose=false
-    )
+    optimizer = SCS.Optimizer()
+    MOI.set(optimizer, MOI.RawOptimizerAttribute("verbose"), false)
+    MOI.set(optimizer, MOI.RawOptimizerAttribute("max_iters"), max_iters)
+    Convex.solve!(problem, optimizer; verbose=false)
     ρ̂ = ρ.value
   end
   return PastaQ.itensor(ρ̂, sites)

@@ -89,11 +89,11 @@ end
 
   ρ = PastaQ.array(tomography(samples; method="LS"))
   λ = first(eigen(ρ))
-  @test all(real(λ) .≥ -1e-4)
+  @test all(real(λ) .≥ -1e-3)
 
   ρ = PastaQ.array(tomography(samples; method="MLE"))
   λ = first(eigen(ρ))
-  @test all(real(λ) .≥ -1e-4)
+  @test all(real(λ) .≥ -1e-2)
 end
 
 @testset "arbitrary trace in QST" begin
