@@ -195,7 +195,7 @@ function insertnoise(circuit::Vector{<:Vector{<:Any}}, noisemodel::Tuple; gate=n
 end
 
 function insertnoise(circuit::Vector{<:Any}, noisemodel::Tuple; kwargs...)
-  return insertnoise([circuit], noisemodel; kwargs...)[1]
+  return vcat(insertnoise([circuit], noisemodel; kwargs...)...)
 end
 
 insertnoise(circuit, noisemodel::Nothing; kwargs...) = circuit
