@@ -12,7 +12,8 @@ function gate(
     N = length(dims)
     length(error_probabilities) > (1 << 10) && error("Hilbert space too large")
     error_probabilities ./= sum(error_probabilities)
-    kraus = zeros(Complex{Float64}, 1 << N, 1 << N, length(pauli_ops)^N)
+    kraus_type = "Y" in pauli_ops ? Complex{Float64} : Float64
+    kraus = zeros(kraus_type, 1 << N, 1 << N, length(pauli_ops)^N)
     krausind = Index(size(kraus, 3); tags="kraus")
 
     basis = vec(reverse.(collect(Iterators.product(fill(pauli_ops, N)...))))
@@ -145,7 +146,7 @@ function insertnoise(circuit::Vector{<:Vector{<:Any}}, noisemodel::Tuple; gate=n
   if noisemodel[1] isa String
     tmp = []
     for k in 1:max_g_size
-      tmp = vcat(tmp, k => noisemodel)
+      tmp = vcat(tmp, [k => noisemodel])
     end
     noisemodel = Tuple(tmp)
   end
@@ -195,7 +196,7 @@ function insertnoise(circuit::Vector{<:Vector{<:Any}}, noisemodel::Tuple; gate=n
 end
 
 function insertnoise(circuit::Vector{<:Any}, noisemodel::Tuple; kwargs...)
-  return insertnoise([circuit], noisemodel; kwargs...)[1]
+  return vcat(insertnoise([circuit], noisemodel; kwargs...)...)
 end
 
 insertnoise(circuit, noisemodel::Nothing; kwargs...) = circuit

@@ -261,6 +261,7 @@ end
   @test f2_eval ≈ f3_eval
   @test f1_grad ≈ f2_grad
   @test f2_grad ≈ f3_grad
+
   noisemodel = ("depolarizing", (p=0.1,))
   function f(ρ₀, O, pars)
     circuit = variational_circuit(pars)
