@@ -1,7 +1,40 @@
+# Specialized PastaQ parsing of a gate
+# ITensors 0.3.14 (https://github.com/ITensor/ITensors.jl/pull/920)
+# introduced an Op redesign, such that:
+#
+# Op("O", (1, 2))
+#
+# get interpreted as an operator with one site with a multidimensional
+# index, for example the site `(1, 2)` on a square lattice.
+#
+# Op("O", 1, 2)
+#
+# is the way to indicate a two-site operator. This is at odds with
+# the PastaQ convention that:
+#
+# ("O", (1, 2))
+#
+# or
+#
+# ("O", 1, 2)
+#
+# get interpreted as a multi-site operator with support on sites 1 and 2.
+# `gate_to_op` is a wrapper around `Op` that fixes this discrepency.
+gate_to_op(gate::Tuple) = gate_to_op(gate...)
+gate_to_op(which_op, sites::Tuple) = Op(which_op, sites...)
+gate_to_op(which_op, sites::Tuple, params::NamedTuple) = Op(which_op, sites...; params...)
+gate_to_op(which_op, sites::Int...) = Op(which_op, sites...)
+gate_to_op(which_op, site::Int, params::NamedTuple) = Op(which_op, site; params...)
+function gate_to_op(which_op, sites_and_params::Union{Int,NamedTuple}...)
+  sites = Base.front(sites_and_params)
+  params = last(sites_and_params)
+  return Op(which_op, sites...; params...)
+end
+
 # This makes use of the `ITensors.Ops.Op` type, which
 # automatically parses a gate represented as a Tuple
 # into it's name, sites, and parameters.
-nqubits(gate::Tuple) = maximum(Ops.sites(Op(gate)))
+nqubits(gate::Tuple) = maximum(ITensors.sites(gate_to_op(gate)))
 
 nqubits(gates::Vector) = maximum((nqubits(gate) for gate in gates))
 
