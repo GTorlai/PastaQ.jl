@@ -61,7 +61,7 @@ depth = 20
 # cost function
 function loss(θ⃗)
   circuit = variationalcircuit(N, depth, θ⃗)
-  Uψ = runcircuit(ψ, circuit)
+  Uψ = runcircuit(ψ, circuit; cutoff=1e-8)
   return inner(Uψ', H, Uψ)
 end
 
