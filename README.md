@@ -199,15 +199,15 @@ depth = 20
 # cost function
 function loss(θ⃗)
   circuit = variationalcircuit(N, depth, θ⃗)
-  U = buildcircuit(ψ, circuit)
-  return rayleigh_quotient(H, U, ψ; cutoff = 1e-8)
+  Uψ = runcircuit(ψ, circuit)
+  return inner(Uψ', H, Uψ)
 end
 
 # initialize parameters
 θ⃗₀ = [2π .* rand(N) for _ in 1:depth]
 
 # run VQE using BFGS optimization
-optimizer = LBFGS(maxiter = 500, verbosity=2)
+optimizer = LBFGS(; maxiter=200, verbosity=2)
 loss_n_grad(x) = (loss(x), convert(Vector, loss'(x)))
 θ⃗, fs, gs, niter, normgradhistory = optimize(loss_n_grad, θ⃗₀,  optimizer)
 @printf("Relative error: %.3E", abs(Edmrg - fs[end]) / abs(Edmrg))
@@ -223,9 +223,9 @@ loss_n_grad(x) = (loss(x), convert(Vector, loss'(x)))
 #  [ Info: LBFGS: iter    4: f = -4.850744631864, ‖∇f‖ = 2.7316e+00, α = 1.00e+00, m = 3, nfg = 1
 #  [ Info: LBFGS: iter    5: f = -5.522683055280, ‖∇f‖ = 2.3480e+00, α = 1.00e+00, m = 4, nfg = 1
 #  ...
-#  [ Info: LBFGS: iter  498: f = -9.764686918396, ‖∇f‖ = 9.0752e-04, α = 1.00e+00, m = 8, nfg = 1
-#  [ Info: LBFGS: iter  499: f = -9.764687006358, ‖∇f‖ = 1.1905e-03, α = 1.00e+00, m = 8, nfg = 1
-#  Relative error: 8.360E-05
+# [ Info: LBFGS: iter  198: f = -9.764132445406, ‖∇f‖ = 7.3082e-03, α = 1.00e+00, m = 8, nfg = 1
+# [ Info: LBFGS: iter  199: f = -9.764136185319, ‖∇f‖ = 5.6363e-03, α = 1.00e+00, m = 8, nfg = 1
+#  Relative error: 1.392E-04
 ```
 
 #### Monitored quantum circuits

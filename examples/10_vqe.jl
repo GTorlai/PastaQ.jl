@@ -61,15 +61,15 @@ depth = 20
 # cost function
 function loss(θ⃗)
   circuit = variationalcircuit(N, depth, θ⃗)
-  U = buildcircuit(ψ, circuit)
-  return rayleigh_quotient(H, U, ψ; cutoff=1e-8)
+  Uψ = runcircuit(ψ, circuit)
+  return inner(Uψ', H, Uψ)
 end
 
 # initialize parameters
 θ⃗₀ = [2π .* rand(N) for _ in 1:depth]
 
 # run VQE using BFGS optimization
-optimizer = LBFGS(; maxiter=500, verbosity=2)
+optimizer = LBFGS(; maxiter=200, verbosity=2)
 loss_n_grad(x) = (loss(x), convert(Vector, loss'(x)))
 θ⃗, fs, gs, niter, normgradhistory = optimize(loss_n_grad, θ⃗₀, optimizer)
 @printf("Relative error: %.3E", abs(Edmrg - fs[end]) / abs(Edmrg))
