@@ -148,8 +148,9 @@ We show how to perform a ground state search of a many-body hamiltonian $H$ usin
 In the following example, we consider a quantum Ising model with 10 spins, and perform the optimization by leveraging Automatic Differentiation techniques (AD), provided by the package Zygote.jl. Specifically, we build a variational circuit using built-in circuit-contruction functions, and optimize the expectation value of the Hamiltonian using a gradient-based approach and the LBFGS optimizer. The gradients are evaluated through AD, providing a flexible interface in defining custom variational circuit ansatze.
 
 ```julia
-using ITensors
 using PastaQ
+using ITensors
+using Random
 using Printf
 using OptimKit
 using Zygote
@@ -161,27 +162,38 @@ h = 0.5  # transverse magnetic field
 # Hilbert space
 hilbert = qubits(N)
 
-# define the Hamiltonian
-os = OpSum()
-for j in 1:N-1
-  os .+= (-J, "Z",j,"Z",j+1)
-  os .+= (-h, "X", j)
+function ising_hamiltonian(N; J, h)
+  os = OpSum()
+  for j in 1:(N - 1)
+    os += -J, "Z", j, "Z", j + 1
+  end
+  for j in 1:N
+    os += -h, "X", j
+  end
+  return os
 end
-os .+= (-h, "X",N)
+
+# define the Hamiltonian
+os = ising_hamiltonian(N; J, h)
 
 # build MPO "cost function"
 H = MPO(os, hilbert)
-Edmrg = -9.7655034665
-@printf("Exact energy from DMRG: %.8f\n", Edmrg)
+# find ground state with DMRG
+
+nsweeps = 10
+maxdim = [10, 20, 30, 50, 100]
+cutoff = 1e-10
+Edmrg, Φ = dmrg(H, randomMPS(hilbert); outputlevel=0, nsweeps, maxdim, cutoff);
+@printf("\nGround state energy from DMRG: %.10f\n\n", Edmrg)
 
 # layer of single-qubit Ry gates
-Rylayer(N, θ) =
-  [("Ry", j, (θ = θ[j],)) for j in 1:N]
+Rylayer(N, θ) = [("Ry", j, (θ=θ[j],)) for j in 1:N]
 
 # brick-layer of CX gates
-CXlayer(N,Π) =
-  isodd(Π) ? [("CX", (j, j+1)) for j in 1:2:N-1] :
-             [("CX", (j, j+1)) for j in 2:2:N-1]
+function CXlayer(N, Π)
+  start = isodd(Π) ? 1 : 2
+  return [("CX", (j, j + 1)) for j in start:2:(N - 1)]
+end
 
 # variational ansatz
 function variationalcircuit(N, depth, θ⃗)
@@ -196,36 +208,47 @@ end
 depth = 20
 ψ = productstate(hilbert)
 
+cutoff = 1e-8
+maxdim = 50
+
 # cost function
 function loss(θ⃗)
   circuit = variationalcircuit(N, depth, θ⃗)
-  Uψ = runcircuit(ψ, circuit; cutoff=1e-8)
-  return inner(Uψ', H, Uψ)
+  Uψ = runcircuit(ψ, circuit; cutoff, maxdim)
+  return inner(Uψ', H, Uψ; cutoff, maxdim)
 end
+
+Random.seed!(1234)
 
 # initialize parameters
 θ⃗₀ = [2π .* rand(N) for _ in 1:depth]
 
 # run VQE using BFGS optimization
-optimizer = LBFGS(; maxiter=200, verbosity=2)
-loss_n_grad(x) = (loss(x), convert(Vector, loss'(x)))
-θ⃗, fs, gs, niter, normgradhistory = optimize(loss_n_grad, θ⃗₀,  optimizer)
+optimizer = LBFGS(; maxiter=50, verbosity=2)
+function loss_and_grad(x)
+  y, (∇,) = withgradient(loss, x)
+  return y, ∇
+end
+θ⃗, fs, gs, niter, normgradhistory = optimize(loss_and_grad, θ⃗₀, optimizer)
 @printf("Relative error: %.3E", abs(Edmrg - fs[end]) / abs(Edmrg))
 
 # ------------------------------------------------------------------
 # Output:
-#  Exact energy from DMRG: -9.76550347
+#
+# Ground state energy from DMRG: -9.7652945661
 # 
-#  [ Info: LBFGS: initializing with f = -0.182090597122, ‖∇f‖ = 2.3297e+00
-#  [ Info: LBFGS: iter    1: f = -2.157995740330, ‖∇f‖ = 2.4305e+00, α = 1.00e+00, m = 0, nfg = 1
-#  [ Info: LBFGS: iter    2: f = -2.397853058857, ‖∇f‖ = 4.5561e+00, α = 1.00e+00, m = 1, nfg = 1
-#  [ Info: LBFGS: iter    3: f = -4.141376142741, ‖∇f‖ = 3.0358e+00, α = 1.00e+00, m = 2, nfg = 1
-#  [ Info: LBFGS: iter    4: f = -4.850744631864, ‖∇f‖ = 2.7316e+00, α = 1.00e+00, m = 3, nfg = 1
-#  [ Info: LBFGS: iter    5: f = -5.522683055280, ‖∇f‖ = 2.3480e+00, α = 1.00e+00, m = 4, nfg = 1
-#  ...
-# [ Info: LBFGS: iter  198: f = -9.764132445406, ‖∇f‖ = 7.3082e-03, α = 1.00e+00, m = 8, nfg = 1
-# [ Info: LBFGS: iter  199: f = -9.764136185319, ‖∇f‖ = 5.6363e-03, α = 1.00e+00, m = 8, nfg = 1
-#  Relative error: 1.392E-04
+# [ Info: LBFGS: initializing with f = 0.576652201766, ‖∇f‖ = 2.9254e+00
+# [ Info: LBFGS: iter    1: f = -1.646145318390, ‖∇f‖ = 2.9389e+00, α = 1.00e+00, m = 0, nfg = 1
+# [ Info: LBFGS: iter    2: f = -2.419207697706, ‖∇f‖ = 4.5128e+00, α = 1.00e+00, m = 1, nfg = 1
+# [ Info: LBFGS: iter    3: f = -4.682919004545, ‖∇f‖ = 3.8525e+00, α = 1.00e+00, m = 2, nfg = 1
+# [ Info: LBFGS: iter    4: f = -6.033064307468, ‖∇f‖ = 5.2589e+00, α = 4.77e-01, m = 3, nfg = 2
+# [ Info: LBFGS: iter    5: f = -7.367240455503, ‖∇f‖ = 3.6558e+00, α = 1.00e+00, m = 4, nfg = 1
+# ...
+# [ Info: LBFGS: iter   48: f = -9.761513620000, ‖∇f‖ = 3.4139e-02, α = 1.00e+00, m = 8, nfg = 1
+# [ Info: LBFGS: iter   49: f = -9.761590462886, ‖∇f‖ = 3.3963e-02, α = 1.00e+00, m = 8, nfg = 1
+# ┌ Warning: LBFGS: not converged to requested tol: f = -9.761700259081, ‖∇f‖ = 2.9825e-02
+# └ @ OptimKit ~/.julia/packages/OptimKit/xpmbV/src/lbfgs.jl:141
+# Relative error: 3.681E-04
 ```
 
 #### Monitored quantum circuits
