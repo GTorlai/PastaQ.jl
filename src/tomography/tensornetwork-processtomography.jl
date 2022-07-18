@@ -538,7 +538,7 @@ function gradients(
   data::Matrix{Pair{String,Pair{String,Int}}};
   sqrt_localnorms=nothing,
   trace_preserving_regularizer=nothing,
-  kwargs...
+  kwargs...,
 )
   g_logZ, logZ = gradlogZ(L; sqrt_localnorms=sqrt_localnorms)
   g_nll, NLL = gradnll(L, data; sqrt_localnorms=sqrt_localnorms)
@@ -551,13 +551,12 @@ function gradients(
   if !isnothing(trace_preserving_regularizer)
     grads += trace_preserving_regularizer * g_TP
   end
-  
+
   # TODO: check if this slows down the training
   # permute the gradients
   for j in 1:length(L)
     grads[j] = permute(grads[j], inds(L.X[j])...)
   end
-  
+
   return grads, loss
 end
-

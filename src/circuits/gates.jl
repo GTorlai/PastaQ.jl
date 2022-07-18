@@ -13,33 +13,30 @@ const gate = op
 # Random Haard unitary:
 # 
 # Reference: http://math.mit.edu/~edelman/publications/random_matrix_theory.pdf
-function gate(::GateName"RandomUnitary", ::SiteType"Qubit", s::Index...;
-              eltype = ComplexF64,
-              random_matrix = randn(eltype, prod(dim.(s)), prod(dim.(s))))
+function gate(
+  ::GateName"RandomUnitary",
+  ::SiteType"Qubit",
+  s::Index...;
+  eltype=ComplexF64,
+  random_matrix=randn(eltype, prod(dim.(s)), prod(dim.(s))),
+)
   Q, _ = NDTensors.qr_positive(random_matrix)
   return ITensors.itensor(Q, prime.(s)..., dag.(s)...)
 end
 
-
-gate(::GateName"randU", t::SiteType"Qubit", s::Index...; kwargs...) = 
-  gate("RandomUnitary", s...; kwargs...)
+function gate(::GateName"randU", t::SiteType"Qubit", s::Index...; kwargs...)
+  return gate("RandomUnitary", s...; kwargs...)
+end
 
 gate(::OpName"Id", ::SiteType"Qubit") = [1 0; 0 1]
 
-op(::OpName"a", st::SiteType"Qubit") =
-  _op(OpName("a"), SiteType("Qudit"); dim = (2,))
-op(::OpName"a†", st::SiteType"Qubit") =
-  _op(OpName("a†"), SiteType("Qudit"); dim = (2,))
+op(::OpName"a", st::SiteType"Qubit") = _op(OpName("a"), SiteType("Qudit"); dim=(2,))
+op(::OpName"a†", st::SiteType"Qubit") = _op(OpName("a†"), SiteType("Qudit"); dim=(2,))
 
-op(::OpName"ab", st::SiteType"Qubit") =
-  _op(OpName("ab"), SiteType("Qudit"); dim = (2,2))
-op(::OpName"a†b", st::SiteType"Qubit") =
-  _op(OpName("a†b"), SiteType("Qudit"); dim = (2,2))
-op(::OpName"ab†", st::SiteType"Qubit") =
-  _op(OpName("ab†"), SiteType("Qudit"); dim = (2,2))
-op(::OpName"a†b†", st::SiteType"Qubit") =
-  _op(OpName("a†b†"), SiteType("Qudit"); dim = (2,2))
-
+op(::OpName"ab", st::SiteType"Qubit") = _op(OpName("ab"), SiteType("Qudit"); dim=(2, 2))
+op(::OpName"a†b", st::SiteType"Qubit") = _op(OpName("a†b"), SiteType("Qudit"); dim=(2, 2))
+op(::OpName"ab†", st::SiteType"Qubit") = _op(OpName("ab†"), SiteType("Qudit"); dim=(2, 2))
+op(::OpName"a†b†", st::SiteType"Qubit") = _op(OpName("a†b†"), SiteType("Qudit"); dim=(2, 2))
 
 op(sites::Vector{<:Index}, O⃗::Tuple{AbstractString,Vararg}...) = 
   reduce(*, [op(sites, O) for O in O⃗])
@@ -114,12 +111,14 @@ end
 
 randomparams(::GateName, args...; kwargs...) = NamedTuple()
 
-randomparams(::GateName"RandomUnitary", N::Int = 1; eltype = ComplexF64, rng = Random.GLOBAL_RNG) = 
-  (random_matrix = randn(rng, eltype, 1<<N, 1<<N),)
+function randomparams(
+  ::GateName"RandomUnitary", N::Int=1; eltype=ComplexF64, rng=Random.GLOBAL_RNG
+)
+  return (random_matrix=randn(rng, eltype, 1 << N, 1 << N),)
+end
 
 randomparams(s::AbstractString; kwargs...) = randomparams(GateName(s); kwargs...)
 
 function randomparams(s::AbstractString, args...; kwargs...)
   return randomparams(GateName(s), args...; kwargs...)
 end
-

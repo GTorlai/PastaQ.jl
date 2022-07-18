@@ -36,10 +36,12 @@ using Plots
 #jl # units  
 GHz = 2π
 MHz = 1e-3 * GHz
-plot_args = (dpi=1000,size=(600,300), margin=5Plots.mm, marker = :circle, markersize = 2,linewidth = 1)
+plot_args = (
+  dpi=1000, size=(600, 300), margin=5Plots.mm, marker=:circle, markersize=2, linewidth=1
+)
 
-n  = 2            # number of qubits
-g  = 12 * MHz     # exchange interaction
+n = 2            # number of qubits
+g = 12 * MHz     # exchange interaction
 ω₁ = 5.0 * GHz    # qubit-1 frequency
 ω₂ = 5.0 * GHz    # qubit-2 frequency
 ω⃗ = [ω₁, ω₂]
@@ -63,7 +65,7 @@ function hamiltonian(ω⃗::Vector, g::Number)
   ω₁, ω₂ = ω⃗
   H = vcat(H, [(ω₁, "a† * a", q₁)])
   H = vcat(H, [(ω₂, "a† * a", q₂)])
-  H = vcat(H, [(g,  "a†b + ab†", (q₁, q₂))])
+  H = vcat(H, [(g, "a†b + ab†", (q₁, q₂))])
   return H
 end
 
@@ -88,7 +90,7 @@ end;
 
 #define a vector of observables and create the `Observer`.
 observables = ["n($α)" => x -> population(x, k)  # actually x -> expect(x, "a† * a"; sites = k)
-               for (k,α) in enumerate(modes)]
+               for (k, α) in enumerate(modes)]
 obs = Observer(observables)
 
 #nb # %% A slide [markdown] {"slideshow": {"slide_type": "subslide"}}
@@ -110,14 +112,15 @@ trottersteps = 100       # number of Trotter steps
 ts = 0.0:δt:tg           # time list
 
 #build the Trotter circuit
-circuit = trottercircuit(H; ts = ts, layered = true)
+circuit = trottercircuit(H; ts=ts, layered=true)
 
 #set initial state |ψ⟩ = |1,0⟩
-ψ₀ = productstate(hilbert, [1,0])
+ψ₀ = productstate(hilbert, [1, 0])
 
 #perform TEBD simulation and generate output `MPS`
-ψ = runcircuit(ψ₀, circuit; (observer!) = obs,
-               move_sites_back_before_measurements = true, outputlevel = 0)
+ψ = runcircuit(
+  ψ₀, circuit; (observer!)=obs, move_sites_back_before_measurements=true, outputlevel=0
+)
 
 #nb # %% A slide [markdown] {"slideshow": {"slide_type": "subslide"}}
 # The measurements taken during the dynamics (one at each Trotter layer) are
@@ -126,11 +129,10 @@ circuit = trottercircuit(H; ts = ts, layered = true)
 
 #nb %% A slide [code] {"slideshow": {"slide_type": "subslide"}}
 res = DataFrame(results(obs));
-p = plot(xlabel = "time (ns)", ylabel = "n̂(t)", legend = (0.40,0.9); plot_args...)
-p = plot!(p, ts, res[!,"n(q₁)"], label = "n(q₁)";  plot_args...)
-p = plot!(p, ts, res[!,"n(q₂)"], label = "n(q₂)";  plot_args...)
+p = plot(; xlabel="time (ns)", ylabel="n̂(t)", legend=(0.40, 0.9), plot_args...)
+p = plot!(p, ts, res[!, "n(q₁)"]; label="n(q₁)", plot_args...)
+p = plot!(p, ts, res[!, "n(q₂)"]; label="n(q₂)", plot_args...)
 p
-
 
 #nb # %% A slide [markdown] {"slideshow": {"slide_type": "subslide"}}
 # In this simulation we placed the two qubits on resonance (``\omega_1=\omega_2``).
@@ -145,24 +147,25 @@ p
 #
 #nb %% A slide [code] {"slideshow": {"slide_type": "subslide"}}
 ω₁ = 5.0 * GHz
-ω₂ = 5.3 * GHz 
+ω₂ = 5.3 * GHz
 ω⃗ = [ω₁, ω₂]
 
 H = hamiltonian(ω⃗, g)
 
 obs = Observer(observables)
 
-circuit = trottercircuit(H; ts = ts, layered = true)
+circuit = trottercircuit(H; ts=ts, layered=true)
 
-ψ₀ = productstate(hilbert, [1,0])
+ψ₀ = productstate(hilbert, [1, 0])
 
-ψ = runcircuit(ψ₀, circuit; (observer!) = obs,
-               move_sites_back_before_measurements = true, outputlevel = 0)
+ψ = runcircuit(
+  ψ₀, circuit; (observer!)=obs, move_sites_back_before_measurements=true, outputlevel=0
+)
 
 res = DataFrame(results(obs));
-p = plot(xlabel = "time (ns)", ylabel = "n̂(t)", legend = (0.50,0.9); plot_args...)
-p = plot!(p, ts, res[!,"n(q₁)"], label = "n(q₁)";  plot_args...)
-p = plot!(p, ts, res[!,"n(q₂)"], label = "n(q₂)";  plot_args...)
+p = plot(; xlabel="time (ns)", ylabel="n̂(t)", legend=(0.50, 0.9), plot_args...)
+p = plot!(p, ts, res[!, "n(q₁)"]; label="n(q₁)", plot_args...)
+p = plot!(p, ts, res[!, "n(q₂)"]; label="n(q₂)", plot_args...)
 p
 
 #nb # %% A slide [markdown] {"slideshow": {"slide_type": "subslide"}}
@@ -187,13 +190,12 @@ trottersteps = 100
 ts = 0.0:δt:tg
 
 Λ = 20.0 * MHz
-fourier_control(ϑ, t) =
-  Λ * tanh(sum([ϑ[i] * sin(π * i * t / tg) for i in 1:length(ϑ)]))
+fourier_control(ϑ, t) = Λ * tanh(sum([ϑ[i] * sin(π * i * t / tg) for i in 1:length(ϑ)]))
 
 function pulse_control(ϑ, t)
   y₀, ypulse, ton, toff, γ = ϑ
-  f = tanh((t - ton)/γ) - tanh((t - toff)/γ)
-  return y₀ + 0.5 * (ypulse - y₀) * f 
+  f = tanh((t - ton) / γ) - tanh((t - toff) / γ)
+  return y₀ + 0.5 * (ypulse - y₀) * f
 end
 
 #nb # %% A slide [markdown] {"slideshow": {"slide_type": "subslide"}}
@@ -208,7 +210,7 @@ function hamiltonian(θ⃗::Vector, ω⃗::Vector, g::Number, t::Float64)
   H = Tuple[]
   H = vcat(H, [(ω₁ + fourier_control(ϑ₁, t), "a† * a", q₁)])
   H = vcat(H, [(ω₂ + pulse_control(ϑ₂, t), "a† * a", q₂)])
-  H = vcat(H, [(g,   "a†b + ab†", (q₁, q₂))])
+  H = vcat(H, [(g, "a†b + ab†", (q₁, q₂))])
   return H
 end
 
@@ -222,9 +224,13 @@ Ntones = 8
 ϑ₁ = rand(Ntones)
 ϑ₂ = [0.0, ω₁ - ω₂, 0.1 * tg, 0.9 * tg, 1]
 θ⃗₀ = [ϑ₁, ϑ₂]
-p = plot(xlabel = "time (ns)", ylabel = "ωⱼ(t)", title = "", legend = (0.50,0.9); plot_args...)
-p = plot!(p, ts, [ω₁ + fourier_control(ϑ₁, t) for t in ts] ./ GHz; label = "ω₁(t)", plot_args...)
-p = plot!(p, ts, [ω₂ + pulse_control(ϑ₂, t) for t in ts] ./ GHz; label = "ω₂(t)", plot_args...)
+p = plot(; xlabel="time (ns)", ylabel="ωⱼ(t)", title="", legend=(0.50, 0.9), plot_args...)
+p = plot!(
+  p, ts, [ω₁ + fourier_control(ϑ₁, t) for t in ts] ./ GHz; label="ω₁(t)", plot_args...
+)
+p = plot!(
+  p, ts, [ω₂ + pulse_control(ϑ₂, t) for t in ts] ./ GHz; label="ω₂(t)", plot_args...
+)
 p
 
 #nb # %% A slide [markdown] {"slideshow": {"slide_type": "subslide"}}
@@ -238,49 +244,48 @@ function loss(Ψ⃗, Φ⃗, θ⃗)
   #build sequence Tuple (OpSum) Hamiltonians at different times
   Ht = [hamiltonian(θ⃗, t) for t in ts]
   #Trotter-Suzuki decomposition
-  circuit = trottercircuit(Ht; ts = ts)
+  circuit = trottercircuit(Ht; ts=ts)
   #run the circuit
-  UΨ⃗ = [runcircuit(ψ, circuit; cutoff = 1e-7) for ψ in Ψ⃗]
+  UΨ⃗ = [runcircuit(ψ, circuit; cutoff=1e-7) for ψ in Ψ⃗]
   #compute inner product ⟨ϕ|ψ(t)⟩
-  ip = [inner(ϕ,ψ) for (ϕ,ψ) in zip(Φ⃗, UΨ⃗)]
-  return 1 - abs2(mean(ip)) 
+  ip = [inner(ϕ, ψ) for (ϕ, ψ) in zip(Φ⃗, UΨ⃗)]
+  return 1 - abs2(mean(ip))
 end;
 
 #nb # %% A slide [markdown] {"slideshow": {"slide_type": "subslide"}}
 # We not set the ideal gate (Lazy format) and define loss closure.
 #nb %% A slide [code] {"slideshow": {"slide_type": "subslide"}}
 ideal_gate = [
-  [0,0] => (1,   [0,0]),
-  [1,0] => (-im, [0,1]),
-  [0,1] => (-im, [1,0]),
-  [1,1] => (1,   [1,1])
+  [0, 0] => (1, [0, 0]),
+  [1, 0] => (-im, [0, 1]),
+  [0, 1] => (-im, [1, 0]),
+  [1, 1] => (1, [1, 1]),
 ]
 
 Ψ⃗ = [productstate(hilbert, σ) for σ in first.(ideal_gate)]
-Φ⃗  = [ϕ * productstate(hilbert, σ) for (ϕ, σ) in last.(ideal_gate)];
+Φ⃗ = [ϕ * productstate(hilbert, σ) for (ϕ, σ) in last.(ideal_gate)];
 loss(θ) = loss(Ψ⃗, Φ⃗, θ)
 
 #nb # %% A slide [markdown] {"slideshow": {"slide_type": "subslide"}}
 # We initialize the optimizer the run the optimization for ``20`` steps:
 #nb %% A slide [code] {"slideshow": {"slide_type": "subslide"}}
-optimizer = LBFGS(verbosity = 2, maxiter = 20)
+optimizer = LBFGS(; verbosity=2, maxiter=20)
 loss_n_grad(x) = (loss(x), convert(Vector, loss'(x)))
 θ⃗, fs, gs, niter, normgradhistory = optimize(loss_n_grad, θ⃗₀, optimizer)
-normgradhistory[:,1]
+normgradhistory[:, 1]
 
 #nb # %% A slide [markdown] {"slideshow": {"slide_type": "subslide"}}
 # In markdown sections we can use markdown syntax. For example, we can
-Ht = [hamiltonian(θ⃗, t) for t in ts] 
-circuit = trottercircuit(Ht; ts = ts, layered = true)
-ψ₀ = productstate(hilbert, [1,0])
-observables = ["n($α)" => x -> population(x, k) 
-               for (k,α) in enumerate(modes)]
+Ht = [hamiltonian(θ⃗, t) for t in ts]
+circuit = trottercircuit(Ht; ts=ts, layered=true)
+ψ₀ = productstate(hilbert, [1, 0])
+observables = ["n($α)" => x -> population(x, k) for (k, α) in enumerate(modes)]
 obs = Observer(observables)
-ψ = runcircuit(ψ₀, circuit; (observer!) = obs,
-               move_sites_back_before_measurements = true, outputlevel = 0)
+ψ = runcircuit(
+  ψ₀, circuit; (observer!)=obs, move_sites_back_before_measurements=true, outputlevel=0
+)
 res = DataFrame(results(obs));
-p = plot(xlabel = "time (ns)", ylabel = "n̂(t)", legend = (0.50,0.9); plot_args...)
-p = plot!(p, ts, res[!,"n(q₁)"], label = "n(q₁)";  plot_args...)
-p = plot!(p, ts, res[!,"n(q₂)"], label = "n(q₂)";  plot_args...)
+p = plot(; xlabel="time (ns)", ylabel="n̂(t)", legend=(0.50, 0.9), plot_args...)
+p = plot!(p, ts, res[!, "n(q₁)"]; label="n(q₁)", plot_args...)
+p = plot!(p, ts, res[!, "n(q₂)"]; label="n(q₂)", plot_args...)
 p
-

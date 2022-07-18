@@ -433,5 +433,3 @@ end
   alg_gradient = permutedims(ITensors.array(alg_grad[N]), [3, 1, 2])
   @test alg_gradient ≈ num_grad[N] rtol = 1e-3
 end
-
-
