@@ -12,37 +12,37 @@ h = 0.5  # transverse magnetic field
 # Hilbert space
 hilbert = qubits(N)
 
-# define the Hamiltonian
-os = OpSum()
-for j in 1:(N - 1)
-  os .+= (-J, "Z", j, "Z", j + 1)
-  os .+= (-h, "X", j)
+function ising_hamiltonian(N; J, h)
+  os = OpSum()
+  for j in 1:(N - 1)
+    os += -J, "Z", j, "Z", j + 1
+  end
+  for j in 1:N
+    os += -h, "X", j
+  end
+  return os
 end
-os .+= (-h, "X", N)
+
+# define the Hamiltonian
+os = ising_hamiltonian(N; J, h)
 
 # build MPO "cost function"
 H = MPO(os, hilbert)
 # find ground state with DMRG
 
-sweeps = Sweeps(10)
-maxdim!(sweeps, 10, 20, 30, 50, 100)
-cutoff!(sweeps, 1E-10)
-Edmrg, Φ = dmrg(H, randomMPS(hilbert), sweeps; outputlevel=0);
-@printf("\nGround state energy: %.10f\n\n", Edmrg)
-
-#Edmrg = -9.7655034665
-#@printf("Exact energy from DMRG: %.8f\n", Edmrg)
+nsweeps = 10
+maxdim = [10, 20, 30, 50, 100]
+cutoff = 1e-10
+Edmrg, Φ = dmrg(H, randomMPS(hilbert); outputlevel=0, nsweeps, maxdim, cutoff);
+@printf("\nGround state energy from DMRG: %.10f\n\n", Edmrg)
 
 # layer of single-qubit Ry gates
 Rylayer(N, θ) = [("Ry", j, (θ=θ[j],)) for j in 1:N]
 
 # brick-layer of CX gates
 function CXlayer(N, Π)
-  return if isodd(Π)
-    [("CX", (j, j + 1)) for j in 1:2:(N - 1)]
-  else
-    [("CX", (j, j + 1)) for j in 2:2:(N - 1)]
-  end
+  start = isodd(Π) ? 1 : 2
+  return [("CX", (j, j + 1)) for j in start:2:(N - 1)]
 end
 
 # variational ansatz
@@ -58,18 +58,26 @@ end
 depth = 20
 ψ = productstate(hilbert)
 
+cutoff = 1e-8
+maxdim = 50
+
 # cost function
 function loss(θ⃗)
   circuit = variationalcircuit(N, depth, θ⃗)
-  U = buildcircuit(ψ, circuit)
-  return rayleigh_quotient(H, U, ψ; cutoff=1e-8)
+  Uψ = runcircuit(ψ, circuit; cutoff, maxdim)
+  return inner(Uψ', H, Uψ; cutoff, maxdim)
 end
+
+Random.seed!(1234)
 
 # initialize parameters
 θ⃗₀ = [2π .* rand(N) for _ in 1:depth]
 
 # run VQE using BFGS optimization
-optimizer = LBFGS(; maxiter=500, verbosity=2)
-loss_n_grad(x) = (loss(x), convert(Vector, loss'(x)))
-θ⃗, fs, gs, niter, normgradhistory = optimize(loss_n_grad, θ⃗₀, optimizer)
+optimizer = LBFGS(; maxiter=50, verbosity=2)
+function loss_and_grad(x)
+  y, (∇,) = withgradient(loss, x)
+  return y, ∇
+end
+θ⃗, fs, gs, niter, normgradhistory = optimize(loss_and_grad, θ⃗₀, optimizer)
 @printf("Relative error: %.3E", abs(Edmrg - fs[end]) / abs(Edmrg))

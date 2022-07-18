@@ -1,7 +1,40 @@
+# Specialized PastaQ parsing of a gate
+# ITensors 0.3.14 (https://github.com/ITensor/ITensors.jl/pull/920)
+# introduced an Op redesign, such that:
+#
+# Op("O", (1, 2))
+#
+# get interpreted as an operator with one site with a multidimensional
+# index, for example the site `(1, 2)` on a square lattice.
+#
+# Op("O", 1, 2)
+#
+# is the way to indicate a two-site operator. This is at odds with
+# the PastaQ convention that:
+#
+# ("O", (1, 2))
+#
+# or
+#
+# ("O", 1, 2)
+#
+# get interpreted as a multi-site operator with support on sites 1 and 2.
+# `gate_to_op` is a wrapper around `Op` that fixes this discrepency.
+gate_to_op(gate::Tuple) = gate_to_op(gate...)
+gate_to_op(which_op, sites::Tuple) = Op(which_op, sites...)
+gate_to_op(which_op, sites::Tuple, params::NamedTuple) = Op(which_op, sites...; params...)
+gate_to_op(which_op, sites::Int...) = Op(which_op, sites...)
+gate_to_op(which_op, site::Int, params::NamedTuple) = Op(which_op, site; params...)
+function gate_to_op(which_op, sites_and_params::Union{Int,NamedTuple}...)
+  sites = Base.front(sites_and_params)
+  params = last(sites_and_params)
+  return Op(which_op, sites...; params...)
+end
+
 # This makes use of the `ITensors.Ops.Op` type, which
 # automatically parses a gate represented as a Tuple
 # into it's name, sites, and parameters.
-nqubits(gate::Tuple) = maximum(Ops.sites(Op(gate)))
+nqubits(gate::Tuple) = maximum(ITensors.sites(gate_to_op(gate)))
 
 nqubits(gates::Vector) = maximum((nqubits(gate) for gate in gates))
 
@@ -129,13 +162,13 @@ end
 
 @doc raw"""
     randomlayer(
-      gatename::AbstractString, 
-      support::Union{Int, Vector{<:Tuple}, AbstractRange}; 
+      gatename::AbstractString,
+      support::Union{Int, Vector{<:Tuple}, AbstractRange};
       rng = Random.GLOBAL_RNG,
       kwargs...
-    ) 
+    )
 
-Generate a random layer built out of a set one or two qubit gates If `support::Int = n`, generates 
+Generate a random layer built out of a set one or two qubit gates If `support::Int = n`, generates
 ``n`` single-qubit gates `gatename`. If `support::Vector=bonds`, generates a set of two-qubit
 gates on the couplings contained in `support`.
 ```julia
@@ -179,7 +212,7 @@ end
       rng=Random.GLOBAL_RNG,
       weights::Union{Nothing,Vector{Float64}} = ones(length(gatenames)) / length(gatenames),
       kwargs...,
-    ) 
+    )
 
 Generate a random layer built out of one or two qubit gates, where `gatenames` is a set of possible
 gates to choose from. By default, each single gate is sampled uniformaly over this set. If `weights`
@@ -229,10 +262,10 @@ end
       layered::Bool=true,
       rng=Random.GLOBAL_RNG)
 
-Build a circuit with given `depth`, where each layer consists of a set of 
-two-qubit gates applied on pairs of qubits in according to a set of `coupling_sequences`. Each layer also contains ``n`` single-qubit gates. IN both cases, the chosen gates are passed as keyword arguments `onequbitgates` and `twoqubitgates`. 
+Build a circuit with given `depth`, where each layer consists of a set of
+two-qubit gates applied on pairs of qubits in according to a set of `coupling_sequences`. Each layer also contains ``n`` single-qubit gates. IN both cases, the chosen gates are passed as keyword arguments `onequbitgates` and `twoqubitgates`.
 
-The default configurations consists of two-qubit random Haar unitaries, and no single-qubit gates. 
+The default configurations consists of two-qubit random Haar unitaries, and no single-qubit gates.
 
 If `layered = true`, the object returned in a `Vector` of circuit layers, rather than the full collection  of quantum gates.
 """
@@ -244,7 +277,7 @@ function randomcircuit(
   layered::Bool=true,
   rng=Random.GLOBAL_RNG,
 )
-  #N = (coupling_sequence isa Vector{AbstractVector} ? maximum(vcat([maximum.(c) for c in coupling_sequence]...)) : 
+  #N = (coupling_sequence isa Vector{AbstractVector} ? maximum(vcat([maximum.(c) for c in coupling_sequence]...)) :
   #                                            maximum([maximum(c) for c in coupling_sequence]))
 
   N = 0
@@ -278,16 +311,16 @@ end
 One-dimensional random quantum circuit:
 ```julia
 randomcircuit(4; depth = 2, twoqubitgates = "CX", onequbitgates = "Ry")
-# [("CX", (1, 2)), 
-#  ("CX", (3, 4)), 
-#  ("Ry", 1, (θ = 0.52446,)), 
-#  ("Ry", 2, (θ = 3.01059,)), 
-#  ("Ry", 3, (θ = 0.25144,)), 
+# [("CX", (1, 2)),
+#  ("CX", (3, 4)),
+#  ("Ry", 1, (θ = 0.52446,)),
+#  ("Ry", 2, (θ = 3.01059,)),
+#  ("Ry", 3, (θ = 0.25144,)),
 #  ("Ry", 4, (θ = 1.93356,))]
-# [("CX", (2, 3)), 
-#  ("Ry", 1, (θ = 2.15460,)), 
-#  ("Ry", 2, (θ = 2.52480,)), 
-#  ("Ry", 3, (θ = 1.85756,)), 
+# [("CX", (2, 3)),
+#  ("Ry", 1, (θ = 2.15460,)),
+#  ("Ry", 2, (θ = 2.52480,)),
+#  ("Ry", 3, (θ = 1.85756,)),
 #  ("Ry", 4, (θ = 0.02405,))]
 ```
 """

@@ -4,7 +4,6 @@ export
   siteinds,
   state,
   inner,
-  rayleigh_quotient,
   expect,
   dag,
 

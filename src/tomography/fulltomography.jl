@@ -1,3 +1,5 @@
+const MOI = SCS.MathOptInterface
+
 function tomography(
   probabilities::Dict{Tuple,<:Dict},
   sites::Vector{<:Index};
@@ -42,7 +44,7 @@ function tomography(
                                       MLS : maximum likelihood")
     end
 
-    # Contrained the trace and enforce positivity and hermitianity 
+    # Contrained the trace and enforce positivity and hermitianity
     if process
       function tracepreserving(ρ)
         for j in 1:n
@@ -67,9 +69,10 @@ function tomography(
     end
     # Use Convex.jl to solve the optimization
     problem = Convex.minimize(cost_function, constraints)
-    Convex.solve!(
-      problem, () -> SCS.Optimizer(; verbose=false, max_iters=max_iters); verbose=false
-    )
+    optimizer = SCS.Optimizer()
+    MOI.set(optimizer, MOI.RawOptimizerAttribute("verbose"), false)
+    MOI.set(optimizer, MOI.RawOptimizerAttribute("max_iters"), max_iters)
+    Convex.solve!(problem, optimizer; verbose=false)
     ρ̂ = ρ.value
   end
   return PastaQ.itensor(ρ̂, sites)
@@ -78,7 +81,7 @@ end
 """
     measurement_counts(samples::Matrix{Pair{String, Int}}; fillzeros::Bool = true)
 
-Generate a dictionary containing the measurement counts for a set 
+Generate a dictionary containing the measurement counts for a set
 of projectors, given a set of single-shot samples with different
 measurement bases (i.e. QST).
 """
@@ -127,7 +130,7 @@ end
 """
     measurement_counts(data::Matrix{Pair{String,Pair{String, Int}}}; fillzeros::Bool = true)
 
-Generate a dictionary containing the measurement counts for a set 
+Generate a dictionary containing the measurement counts for a set
 of input states and measurement projectors (i.e. QPT).
 """
 function measurement_counts(
@@ -184,7 +187,7 @@ end
     projector_matrix(probs::AbstractDict; process::Bool = false, return_probs::Bool = false)
 
 Return the projector matrix, where each row corresponds to the vectorized
-projector into different measurement bases contained into an input 
+projector into different measurement bases contained into an input
 probability dictionary.
 
 If `return_probs=true`, return also the 1d vector of probabilities (i.e. the
