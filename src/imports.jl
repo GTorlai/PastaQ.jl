@@ -10,8 +10,7 @@ import ITensors:
   dag,
   inner,
   expect,
-  op,
-  _op
+  op
 
 import LinearAlgebra: tr, norm
 
