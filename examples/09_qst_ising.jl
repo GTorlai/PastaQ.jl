@@ -1,6 +1,9 @@
 using PastaQ
 using Random
 using ITensors
+using Observers
+using Printf
+using Optimisers: Descent
 
 Random.seed!(1234)
 N = 10  # Number of spins
@@ -34,7 +37,16 @@ println()
 
 # Generate data
 nshots = 10_000
-data = getsamples(Ψ, nshots; local_basis=["X", "Y", "Z"])
+
+# generate `nshots` bases from random local Pauli bases
+bases = randombases(N, nshots; local_basis = ["X", "Y", "Z"])
+# this performs one measurement per basis
+data = getsamples(Ψ, bases)
+# can also run more than one measurement per basis as follows
+# nbases = 100
+# nshots_per_basis = 100
+# bases = randombases(N, nbases; local_basis = ["X", "Y", "Z"])
+# data = getsamples(Ψ, bases, nshots_per_basis) 
 
 # Quantum state tomography
 # Initialize variational state
@@ -42,25 +54,25 @@ data = getsamples(Ψ, nshots; local_basis=["X", "Y", "Z"])
 ψ0 = randomstate(Ψ0; χ=χ)
 
 # Measurements 
-Energy(ψ::MPS) = inner(ψ, H, ψ)
+Energy(ψ::MPS) = inner(ψ', H, ψ)
 F(ψ::MPS) = fidelity(ψ, Ψ)
+ZZ(ψ::MPS) = correlation_matrix(Ψ, "Z", "Z")
 
 # Initialize observer
-obs = Observer([F, Energy, ("Z", 1, "Z", N ÷ 2)])
+obs = Observer(["fidelity" => F, "energy" => Energy, "correlations" => ZZ])
+#obs = Observer(["energy" => Energy])
 
-ZZ = PastaQ.measure(Ψ, ("Z", 1, "Z", N ÷ 2))
 @printf("⟨Ψ|Ĥ|Ψ⟩ =  %.5f   ", E)
-@printf("⟨Ψ|Ŝᶻ(1)Ŝˣ(%d)|Ψ⟩ = %.5f   (DMRG)\n", N ÷ 2, ZZ)
 # Run tomography
 println("Running tomography to learn the Ising model ground state from sample data")
 ψ = tomography(
   data,
   ψ0;
-  optimizer=SGD(; η=0.01),
+  optimizer=Descent(0.01),
   batchsize=500,
   epochs=10,
   (observer!)=obs,
-  print_metrics=["Energy", "F", "Z(1)Z(5)"],
+  print_metrics=["energy", "fidelity"],
 )
 
 @show maxlinkdim(ψ)
