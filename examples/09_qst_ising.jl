@@ -39,7 +39,7 @@ println()
 nshots = 10_000
 
 # generate `nshots` bases from random local Pauli bases
-bases = randombases(N, nshots; local_basis = ["X", "Y", "Z"])
+bases = randombases(N, nshots; local_basis=["X", "Y", "Z"])
 # this performs one measurement per basis
 data = getsamples(Ψ, bases)
 # can also run more than one measurement per basis as follows
