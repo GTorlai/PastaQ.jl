@@ -1,5 +1,6 @@
 using PastaQ
 using ITensors
+using Observers
 using Random
 
 Random.seed!(1234)
