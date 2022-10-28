@@ -38,6 +38,24 @@ op(::OpName"a†b", st::SiteType"Qubit") = op(OpName("a†b"), SiteType("Qudit")
 op(::OpName"ab†", st::SiteType"Qubit") = op(OpName("ab†"), SiteType("Qudit"), 2, 2)
 op(::OpName"a†b†", st::SiteType"Qubit") = op(OpName("a†b†"), SiteType("Qudit"), 2, 2)
 
+op(sites::Vector{<:Index}, O⃗::Tuple{AbstractString,Vararg}...) = 
+  reduce(*, [op(sites, O) for O in O⃗])
+
+function op(
+  sites::Vector{<:Index},
+  f::Function,
+  O⃗::Tuple{AbstractString,Vararg}...;
+  kwargs...
+)
+  operator = op(sites, O⃗...; kwargs...)
+  return f(operator)
+end
+
+op(sites::Vector{<:Index}, 
+   fO⃗::Tuple{Function,<:Tuple}) = 
+  op(sites, first(fO⃗), last(fO⃗)...)
+
+
 function phase(v::AbstractVector{ElT}) where {ElT<:Number}
   for x in v
     absx = abs(x)

@@ -385,11 +385,13 @@ If you use PastaQ.jl in your work, for now please consider citing the Github pag
 If you used PastaQ.jl and your paper does not appear in this list, please let us know at [info@pastaq.org](mailto:info@pastaq.org).
 
 **2022**   
+- [2204.10061](https://arxiv.org/abs/2204.10061) *Scalable measure of magic for quantum computers*, T Haug and MS Kim.
+- [2204.03454](https://arxiv.org/abs/2204.03454) *Variational dynamics as a ground-state problem on a quantum computer*,S Barison, F Vicentini, I Cirac and G Carleo. 
 - [2203.04948](https://arxiv.org/abs/2203.04948) *Fragile boundaries of tailored surface codes*, O Higgott, TC Bohdanowicz, A Kubica, ST Flammia, ET Campbell.     
 
 **2021**   
 - [2106.12627](https://arxiv.org/abs/2106.12627) *Provably efficient machine learning for quantum many-body problems*, H-Y Huang, R Kueng, G Torlai, VV Albert, J Preskill.     
-- [2106.03769](https://arxiv.org/abs/2106.03769) *Measurement-induced phase transition in trapped-ion circuits*, S Czischek, G Torlai, S Ray, R Islam, RG Melko, *Phys. Rev. A 104, 062405*.       
+- [2106.03769](https://arxiv.org/abs/2106.03769) *Simulating a measurement-induced phase transition in trapped-ion circuits*, S Czischek, G Torlai, S Ray, R Islam, RG Melko, *Phys. Rev. A 104, 062405*.       
 
 **2020**    
 - [2009.01760](https://arxiv.org/abs/2009.01760) *Classical variational simulation of the Quantum Approximation Optimization Algorithm*, M Medvidovic and G Carleo, *Nature Communication, 7, 101*.    

@@ -19,14 +19,82 @@ sort_gates(gates) = sort(gates; by=sort_gates_by, lt=sort_gates_lt)
 WORKING WITH TUPLES  (TEMPORARY)
 """
 
-# simplified version
-function trotter1(H::Vector{<:Tuple}, δτ::Number)
+function trotter1(δτ::Number, H::Vector{<:Tuple}; kwargs...)
   layer = Tuple[]
   for k in 1:length(H)
     length(H[k]) > 3 &&
       error("Only the format (coupling, opname, support) currently allowed")
     coupling, Hdata... = H[k]
-    layer = vcat(layer, [(x -> exp(-δτ * coupling * x), Hdata...)])
+    opname = first(Hdata)
+    layer = vcat(layer, [(x -> exp(-δτ * coupling * x), Hdata)]) 
+  end
+  return layer
+end
+
+function _lindblad_terms(δτ, hilbert, lindblad)
+  rate, opname, site = lindblad
+  !(site isa Int) && error("Only single-body lindblad operators allowed")
+  s = hilbert[site]
+  
+  L = array(gate(opname, s))
+  G = -im * δτ * rate * kron(conj(L), L)
+  
+  expG = reshape(exp(G),(size(L)..., size(L)...))
+  expG = reshape(permutedims(expG, (1,3,2,4)), size(G))
+  @assert ishermitian(expG)
+  
+  λ, U = eigen(expG)
+  λsqrt = diagm(sqrt.(λ .+ atol))
+  K = U * λsqrt 
+  K = reshape(K, (size(L)..., size(K)[2]))
+  krausind = Index(size(K)[3]; tags="kraus")
+  
+  T = ITensors.itensor(K, prime(s), ITensors.dag(s), krausind)
+  
+  L2 = transpose(L) * conj(L)
+  R = exp(0.5 * im * rate * δτ * op(L2, s))
+  return [T, R]
+end
+
+function trotter1(δτ::Number, hilbert::Vector{<:Index}, H::Vector{<:Tuple}; lindbladians = [], atol = 1e-15, kwargs...)
+  layer = buildcircuit(hilbert, trotter1(δτ, H))
+  if !isempty(lindbladians)
+    for lindblad in lindbladians
+     # layer = vcat(layer, _lindblad_terms(δτ, hilbert, lindblad; atol = atol))
+      rate, opname, site = lindblad
+      !(site isa Int) && error("Only single-body lindblad operators allowed")
+      s = hilbert[site]
+
+      L = array(gate(opname, s))
+      G = -im * δτ * rate * kron(conj(L), L)
+      
+      expG = reshape(exp(G),(size(L)..., size(L)...))
+      expG = reshape(permutedims(expG, (1,3,2,4)), size(G))
+      @assert expG ≈ adjoint(expG) atol = 1e-10
+      
+      
+      #@assert ishermitian(expG)
+      λ, U = eigen(expG)
+      λsqrt = diagm(sqrt.(λ .+ atol))
+      K = U * λsqrt 
+      
+      ∑ = zeros(size(K,1), size(K,2))
+      for α in 1:size(K, 3)
+        ∑ += adjoint(K[:,:,α]) * K[:,:,α]
+      end
+      display(∑) 
+      
+
+
+      K = reshape(K, (size(L)..., size(K)[2]))
+      krausind = Index(size(K)[3]; tags="kraus")
+      T = ITensors.itensor(K, prime(s), ITensors.dag(s), krausind)
+      layer = vcat(layer, [T])
+      
+      R = transpose(L) * conj(L)
+      T = exp(0.5 * im * rate * δτ * op(R, s))
+      layer = vcat(layer, [T])
+    end
   end
   return layer
 end
@@ -35,18 +103,18 @@ end
     trotter2(H::OpSum; δt::Float64=0.1, δτ=im*δt)
 Generate a single layer of gates for one step of 2nd order TEBD.
 """
-function trotter2(H::Vector{<:Tuple}, δτ::Number)
-  tebd1 = trotter1(H, δτ / 2)
+function trotter2(δτ::Number, args...; kwargs...)
+  tebd1 = trotter1(δτ / 2, args...; kwargs...)
   tebd2 = vcat(tebd1, reverse(tebd1))
   return tebd2
 end
 
-function trotter4(H::Vector{<:Tuple}, δτ::Number)
+function trotter4(δτ::Number, args...; kwargs...)
   δτ1 = δτ / (4 - 4^(1 / 3))
   δτ2 = δτ - 4 * δτ1
 
-  tebd2_δ1 = trotter2(H, δτ1)
-  tebd2_δ2 = trotter2(H, δτ2)
+  tebd2_δ1 = trotter2(δτ1, args...; kwargs...)
+  tebd2_δ2 = trotter2(δτ2, args...; kwargs...)
 
   tebd4 = vcat(tebd2_δ1, tebd2_δ1)
   tebd4 = vcat(tebd4, tebd2_δ2)
@@ -58,41 +126,59 @@ end
     trotterlayer(H::OpSum; order::Int = 2, kwargs...)
 Generate a single layer of gates for one step of TEBD.
 """
-function trotterlayer(H::Vector{<:Tuple}, δτ::Number; order::Int=2)
-  order == 1 && return trotter1(H, δτ)
-  order == 2 && return trotter2(H, δτ)
+function trotterlayer(args...; order::Int=2, kwargs...)
+  order == 1 && return trotter1(args...; kwargs...)
+  order == 2 && return trotter2(args...; kwargs...)
   return error("Automated Trotter circuits with order > 2 not yet implemented")
   # TODO: understand weird behaviour of trotter4
   #order == 4 && return trotter4(H, δτ)
   #error("Automated Trotter circuits with order > 2 not yet implemented")
 end
 
-function _trottercircuit(
-  H::Vector{<:Vector{Tuple}}, τs::Vector; order::Int=2, layered::Bool=false, kwargs...
-)
-  @assert length(H) == (length(τs) - 1) || length(H) == length(τs)
+function _trottercircuit(H::Vector{<:Vector{Tuple}}, τs::Vector; layered::Bool = true, lindbladians = [], kwargs...)
+  !isempty(lindbladians) && error("Trotter simulation with Lindblad operators requires a set of indices")
+  @assert length(H) == (length(τs) -1) || length(H) == length(τs)
   δτs = diff(τs)
-  circuit = [trotterlayer(H[t], δτs[t]; order=order) for t in 1:length(δτs)]
+  circuit = [trotterlayer(δτs[t], H[t]; kwargs...) for t in 1:length(δτs)]
   layered && return circuit
   return reduce(vcat, circuit)
 end
 
-#XXX simplified version for Zygote
-function _trottercircuit(
-  H::Vector{<:Tuple}, τs::Vector; order::Int=2, layered::Bool=false, kwargs...
-)
+function _trottercircuit(hilbert::Vector{<:Index}, H::Vector{<:Vector{Tuple}}, τs::Vector; layered::Bool = true, kwargs...)
+  @assert length(H) == (length(τs) -1) || length(H) == length(τs)
+  δτs = diff(τs)
+  circuit = [trotterlayer(δτs[t], hilbert, H[t]; kwargs...) for t in 1:length(δτs)]
+  layered && return circuit
+  return reduce(vcat, circuit)
+end
+  
+function _trottercircuit(H::Vector{<:Tuple}, τs::Vector; layered::Bool = true, lindbladians = [], kwargs...)
+  !isempty(lindbladians) && error("Trotter simulation with Lindblad operators requires a set of indices")
+
   nlayers = length(τs) - 1
-  # XXX: Zygote: this breaks (?)
-  #circuit = [trotterlayer(H, τ; order = order) for τ in τs]
-  #!layered && return reduce(vcat, circuit)
-  #return circuit
   Δ = τs[2] - τs[1]
-  layer = trotterlayer(H, Δ; order=order)
+  layer = trotterlayer(Δ, H; kwargs...)
   layered && return [layer for _ in 1:nlayers]
   return reduce(vcat, [layer for _ in 1:nlayers])
 end
 
-trottercircuit(H; kwargs...) = _trottercircuit(H, get_times(; kwargs...); kwargs...)
+function _trottercircuit(hilbert::Vector{<:Index}, H::Vector{<:Tuple}, τs::Vector; layered::Bool = true, kwargs...)
+  nlayers = length(τs) - 1
+  Δ = τs[2] - τs[1]
+  layer = trotterlayer(Δ, hilbert, H; kwargs...)
+  layered && return [layer for _ in 1:nlayers]
+  return reduce(vcat, [layer for _ in 1:nlayers])
+end
+
+function trottercircuit(args...; kwargs...)
+  return _trottercircuit(args..., get_times(; kwargs...); kwargs...)
+end
+
+function get_times(;
+  δt=nothing, δτ=nothing, t=nothing, τ=nothing, ts=nothing, τs=nothing, kwargs...
+)
+  return get_times(δt, δτ, t, τ, ts, τs)
+end
 
 function get_times(;
   δt=nothing, δτ=nothing, t=nothing, τ=nothing, ts=nothing, τs=nothing, kwargs...
