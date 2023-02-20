@@ -174,7 +174,8 @@ function insertnoise(circuit::Vector{<:Vector{<:Any}}, noisemodel::Tuple; gate=n
           gatenoise = last(noisemodel[gatenoiseindex])
           noisecheck = is_single_qubit_noise(GateName(gatenoise[1]))
           if length(nq) > 1 && is_single_qubit_noise(GateName(gatenoise[1]))
-            @ignore_derivatives @warn "Noise model not defined for $(length(nq))-qubit gates! Applying tensor-product noise instead."
+            @ignore_derivatives
+            @warn "Noise model not defined for $(length(nq))-qubit gates! Applying tensor-product noise instead."
             for j in nq
               noisylayer = vcat(noisylayer, [(gatenoise[1], j, gatenoise[2])])
             end
