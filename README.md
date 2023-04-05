@@ -388,12 +388,13 @@ If you used PastaQ.jl and your paper does not appear in this list, please let us
 - [2301.08292](https://arxiv.org/abs/2301.08292) *Quantum HyperNetworks: Training Binary Neural Networks in Quantum Superposition*, Juan Carrasquilla, Mohamed Hibat-Allah, Estelle Inack, Alireza Makhzani, Kirill Neklyudov, Graham W. Taylor, Giacomo Torlai.
 
 **2022**
+- [2204.10061](https://arxiv.org/abs/2204.10061) *Scalable measure of magic for quantum computers*, T Haug and MS Kim, *PRX Quantum 4, 010301*.
 - [2204.03454](https://arxiv.org/abs/2204.03454) *Variational dynamics as a ground-state problem on a quantum computer*, Stefano Barison, Filippo Vicentini, Ignacio Cirac, Giuseppe Carleo, *Phys. Rev. Research 4, 043161*.
 - [2203.04948](https://arxiv.org/abs/2203.04948) *Fragile boundaries of tailored surface codes and improved decoding of circuit-level noise*, O Higgott, TC Bohdanowicz, A Kubica, ST Flammia, ET Campbell.
 
 **2021**   
 - [2106.12627](https://arxiv.org/abs/2106.12627) *Provably efficient machine learning for quantum many-body problems*, H-Y Huang, R Kueng, G Torlai, VV Albert, J Preskill, *Science Vol 377, Issue 6613*.     
-- [2106.03769](https://arxiv.org/abs/2106.03769) *Measurement-induced phase transition in trapped-ion circuits*, S Czischek, G Torlai, S Ray, R Islam, RG Melko, *Phys. Rev. A 104, 062405*.       
+- [2106.03769](https://arxiv.org/abs/2106.03769) *Simulating a measurement-induced phase transition in trapped-ion circuits*, S Czischek, G Torlai, S Ray, R Islam, RG Melko, *Phys. Rev. A 104, 062405*.       
 
 **2020**    
 - [2009.01760](https://arxiv.org/abs/2009.01760) *Classical variational simulation of the Quantum Approximation Optimization Algorithm*, M Medvidovic and G Carleo, *Nature Communication, 7, 101*.    
