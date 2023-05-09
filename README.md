@@ -385,6 +385,7 @@ If you use PastaQ.jl in your work, for now please consider citing the Github pag
 If you used PastaQ.jl and your paper does not appear in this list, please let us know at [info@pastaq.org](mailto:info@pastaq.org).
 
 **2023**
+- [2304.12292](https://arxiv.org/abs/2304.12292) *Enhanced estimation of quantum properties with common randomized measurements*, B Vermersch, A Rath, B Sundar, C Branciard, J Preskill, A Elben.
 - [2301.08292](https://arxiv.org/abs/2301.08292) *Quantum HyperNetworks: Training Binary Neural Networks in Quantum Superposition*, Juan Carrasquilla, Mohamed Hibat-Allah, Estelle Inack, Alireza Makhzani, Kirill Neklyudov, Graham W. Taylor, Giacomo Torlai.
 
 **2022**
