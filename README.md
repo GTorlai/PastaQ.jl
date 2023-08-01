@@ -382,21 +382,21 @@ If you use PastaQ.jl in your work, for now please consider citing the Github pag
 ```
 
 ## Research papers using PastaQ
-If you used PastaQ.jl and your paper does not appear in this list, please let us know at [info@pastaq.org](mailto:info@pastaq.org).
 
 **2023**
 - [2304.12292](https://arxiv.org/abs/2304.12292) *Enhanced estimation of quantum properties with common randomized measurements*, B Vermersch, A Rath, B Sundar, C Branciard, J Preskill, A Elben.
-- [2301.08292](https://arxiv.org/abs/2301.08292) *Quantum HyperNetworks: Training Binary Neural Networks in Quantum Superposition*, Juan Carrasquilla, Mohamed Hibat-Allah, Estelle Inack, Alireza Makhzani, Kirill Neklyudov, Graham W. Taylor, Giacomo Torlai.
+- [2301.08292](https://arxiv.org/abs/2301.08292) *Quantum HyperNetworks: Training Binary Neural Networks in Quantum Superposition*, J Carrasquilla, M Hibat-Allah, E Inack, A Makhzani, K Neklyudov, GW Taylor, G Torlai.
 
 **2022**
+- [2205.11427](https://arxiv.org/abs/2205.11427) *Classically optimized Hamiltonian simulation*, C Mc Keever and M Lubasch *Phys. Rev. Research 5, 023146*.
 - [2204.10061](https://arxiv.org/abs/2204.10061) *Scalable measure of magic for quantum computers*, T Haug and MS Kim, *PRX Quantum 4, 010301*.
-- [2204.03454](https://arxiv.org/abs/2204.03454) *Variational dynamics as a ground-state problem on a quantum computer*, Stefano Barison, Filippo Vicentini, Ignacio Cirac, Giuseppe Carleo, *Phys. Rev. Research 4, 043161*.
-- [2203.04948](https://arxiv.org/abs/2203.04948) *Fragile boundaries of tailored surface codes and improved decoding of circuit-level noise*, O Higgott, TC Bohdanowicz, A Kubica, ST Flammia, ET Campbell.
+- [2204.03454](https://arxiv.org/abs/2204.03454) *Variational dynamics as a ground-state problem on a quantum computer*, S Barison, F Vicentini, I Cirac, G Carleo, *Phys. Rev. Research 4, 043161*.
+- [2203.04948](https://arxiv.org/abs/2203.04948) *Improved decoding of circuit noise and fragile boundaries of tailored surface codes*, O Higgott, TC Bohdanowicz, A Kubica, ST Flammia, ET Campbell, *Phys. Rev. X 13, 031007*.
 
 **2021**   
-- [2106.12627](https://arxiv.org/abs/2106.12627) *Provably efficient machine learning for quantum many-body problems*, H-Y Huang, R Kueng, G Torlai, VV Albert, J Preskill, *Science Vol 377, Issue 6613*.     
+- [2106.12627](https://arxiv.org/abs/2106.12627) *Provably efficient machine learning for quantum many-body problems*, H-Y Huang, R Kueng, G Torlai, VV Albert, J Preskill, *Science 377, 6613*.     
 - [2106.03769](https://arxiv.org/abs/2106.03769) *Simulating a measurement-induced phase transition in trapped-ion circuits*, S Czischek, G Torlai, S Ray, R Islam, RG Melko, *Phys. Rev. A 104, 062405*.       
 
 **2020**    
 - [2009.01760](https://arxiv.org/abs/2009.01760) *Classical variational simulation of the Quantum Approximation Optimization Algorithm*, M Medvidovic and G Carleo, *Nature Communication, 7, 101*.    
-- [2006.02424](https://arxiv.org/abs/2006.02424) *Quantum process tomography with unsupervised learning and tensor networks*, G Torlai, CJ Wood, A Acharya, G Carleo, J Carrasquilla, L Aolita.   
+- [2006.02424](https://arxiv.org/abs/2006.02424) *Quantum process tomography with unsupervised learning and tensor networks*, G Torlai, CJ Wood, A Acharya, G Carleo, J Carrasquilla, L Aolita, *Nature Communications 14, 2858*   
