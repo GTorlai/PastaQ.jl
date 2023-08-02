@@ -9,8 +9,8 @@ using Optimisers: Optimisers
   ∇ = rand(10)
   θtest = copy(θ)
   opt = Optimisers.Descent(0.01)
-  st = Optimisers.state(opt, θ)
-  st, θ = Optimisers.update(opt, st, θ, ∇)
+  st = Optimisers.setup(opt, θ)
+  st, θ = Optimisers.update(st, θ, ∇)
   @test θ ≈ (θtest - 0.01 * ∇)
 end
 
@@ -56,11 +56,11 @@ end
 
   ψ = randomstate(N; χ=χ)
   opt = Optimisers.Descent(0.1)
-  st = PastaQ.state(opt, ψ)
+  st = PastaQ.setup(opt, ψ)
   ∇, _ = PastaQ.gradients(LPDO(ψ), data)
 
   ϕ = LPDO(copy(ψ))
-  ϕ = PastaQ.update!(ϕ, ∇, (opt, st))
+  ϕ = PastaQ.update!(ϕ, ∇, st)
   ψp = copy(ψ)
   for j in 1:N
     ψp[j] = ψp[j] - 0.1 * ∇[j]
@@ -76,11 +76,11 @@ end
 
   ρ = randomstate(N; χ=χ, ξ=2)
   opt = Optimisers.Descent(0.1)
-  st = PastaQ.state(opt, ρ)
+  st = PastaQ.setup(opt, ρ)
   ∇, _ = PastaQ.gradients(ρ, data)
 
   γ = copy(ρ)
-  γ = PastaQ.update!(γ, ∇, (opt, st))
+  γ = PastaQ.update!(γ, ∇, st)
   ρp = copy(ρ)
   for j in 1:N
     ρp.X[j] = ρp.X[j] - 0.1 * ∇[j]
@@ -103,11 +103,11 @@ end
   PastaQ.normalize!(Φ; localnorm=2)
 
   opt = Optimisers.Descent(0.1)
-  st = PastaQ.state(opt, Φ)
+  st = PastaQ.setup(opt, Φ)
   ∇, _ = PastaQ.gradients(Φ, data)
 
   γ = copy(Φ)
-  γ = PastaQ.update!(γ, ∇, (opt, st))
+  γ = PastaQ.update!(γ, ∇, st)
   Φp = copy(Φ)
   for j in 1:N
     Φp.X[j] = Φp.X[j] - 0.1 * ∇[j]
@@ -129,12 +129,12 @@ end
   PastaQ.normalize!(Λ; localnorm=2)
 
   opt = Optimisers.Descent(0.1)
-  st = PastaQ.state(opt, Λ)
+  st = PastaQ.setup(opt, Λ)
 
   ∇, _ = PastaQ.gradients(Λ, data)
 
   γ = copy(Λ)
-  γ = PastaQ.update!(γ, ∇, (opt, st))
+  γ = PastaQ.update!(γ, ∇, st)
   Λp = copy(Λ)
   for j in 1:N
     Λp.X[j] = Λp.X[j] - 0.1 * ∇[j]
