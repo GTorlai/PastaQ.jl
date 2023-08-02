@@ -113,7 +113,7 @@ end
   ψ = runcircuit(sites, circuit)
   Ftest = fidelity(ψ, ϕ)
   f(ψ::MPS) = fidelity(ψ, ϕ)#; kwargs...) = fidelity(ψ, ϕ)
-  obs = Observer(["f" => f])
+  obs = observer(["f" => f])
   ψ = runcircuit(
     sites,
     circuit;
@@ -150,7 +150,7 @@ end
     ρ = runcircuit(sites, circuit; noise=("DEP", (p=0.001,)))
     Ftest = fidelity(ϱ, ρ)
     g(ρ::MPO; kwargs...) = fidelity(ρ, ϱ)#; kwargs...) = fidelity(ψ, ϕ)
-    obs = Observer(["g" => g])
+    obs = observer(["g" => g])
     outputpath = "simulation"
     ρ₀ = projector(productstate(sites))
     ρ = runcircuit(
@@ -194,7 +194,7 @@ end
   opt = Optimisers.Descent(0.01)
 
   F(ψ::MPS; kwargs...) = fidelity(ψ, Ψ)
-  obs = Observer(["F" => F])
+  obs = observer(["F" => F])
   epochs = 18
 
   batchsize = 10
@@ -243,7 +243,7 @@ end
   opt = Optimisers.Descent(0.01)
 
   F(ρ::LPDO; kwargs...) = fidelity(ρ, ϱ)
-  obs = Observer(["F" => F])
+  obs = observer(["F" => F])
   epochs = 9
 
   batchsize = 10
@@ -292,7 +292,7 @@ end
   opt = Optimisers.Descent(0.01)
 
   F(U::MPO; kwargs...) = fidelity(U, V; process=true)
-  obs = Observer(["F" => F])
+  obs = observer(["F" => F])
   epochs = 9
 
   batchsize = 10
@@ -342,7 +342,7 @@ end
   opt = Optimisers.Descent(0.01)
 
   F(Λ::LPDO; kwargs...) = fidelity(Λ, Φ)
-  obs = Observer(["F" => F])
+  obs = observer(["F" => F])
   epochs = 9
 
   batchsize = 10

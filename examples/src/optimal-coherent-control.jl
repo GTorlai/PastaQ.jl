@@ -91,7 +91,7 @@ end;
 #define a vector of observables and create the `Observer`.
 observables = ["n($α)" => x -> population(x, k)  # actually x -> expect(x, "a† * a"; sites = k)
                for (k, α) in enumerate(modes)]
-obs = Observer(observables)
+obs = observer(observables)
 
 #nb # %% A slide [markdown] {"slideshow": {"slide_type": "subslide"}}
 # We are not ready to simulate the system dynamics using a Trotter expansion.
@@ -152,7 +152,7 @@ p
 
 H = hamiltonian(ω⃗, g)
 
-obs = Observer(observables)
+obs = observer(observables)
 
 circuit = trottercircuit(H; ts=ts, layered=true)
 
@@ -280,7 +280,7 @@ Ht = [hamiltonian(θ⃗, t) for t in ts]
 circuit = trottercircuit(Ht; ts=ts, layered=true)
 ψ₀ = productstate(hilbert, [1, 0])
 observables = ["n($α)" => x -> population(x, k) for (k, α) in enumerate(modes)]
-obs = Observer(observables)
+obs = observer(observables)
 ψ = runcircuit(
   ψ₀, circuit; (observer!)=obs, move_sites_back_before_measurements=true, outputlevel=0
 )

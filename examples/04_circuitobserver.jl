@@ -28,7 +28,7 @@ end
 σz(ψ::MPS) = [measure_pauli(ψ, j, "Z") for j in 1:length(ψ)]
 
 # define the Circuit observer
-obs = Observer([
+obs = observer([
   "χs" => linkdims,      # bond dimension at each bond
   "χmax" => maxlinkdim,  # maximum bond dimension
   "σˣ(2)" => σx2,        # pauli X on site 2

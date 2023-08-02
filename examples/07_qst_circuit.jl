@@ -35,7 +35,7 @@ opt = Optimisers.Descent(0.01)
 
 # Initialize the observer for the fidelity
 F(ψ::MPS; kwargs...) = fidelity(ψ, Ψ)
-obs = Observer(["F" => F])
+obs = observer(["F" => F])
 
 # Run quantum state tomography, where a variational MPS `|ψ(θ)⟩`
 # is optimized to mimimize the cross entropy between the data and 
@@ -84,7 +84,7 @@ opt = Optimisers.ADAM()
 # Initialize the observer
 F(ρ::LPDO; kwargs...) = fidelity(ρ, ϱ)
 
-obs = Observer(["F" => F])
+obs = observer(["F" => F])
 
 # Run quantum state tomography, where a variational LPDO `ρ(θ)`
 # is optimized to mimimize the cross entropy between the data and 

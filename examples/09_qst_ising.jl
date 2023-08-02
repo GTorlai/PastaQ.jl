@@ -59,8 +59,8 @@ F(ψ::MPS) = fidelity(ψ, Ψ)
 ZZ(ψ::MPS) = correlation_matrix(Ψ, "Z", "Z")
 
 # Initialize observer
-obs = Observer(["fidelity" => F, "energy" => Energy, "correlations" => ZZ])
-#obs = Observer(["energy" => Energy])
+obs = observer(["fidelity" => F, "energy" => Energy, "correlations" => ZZ])
+#obs = observer(["energy" => Energy])
 
 @printf("⟨Ψ|Ĥ|Ψ⟩ =  %.5f   ", E)
 # Run tomography

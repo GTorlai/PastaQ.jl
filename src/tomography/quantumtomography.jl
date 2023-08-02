@@ -158,7 +158,7 @@ function tomography(train_data::AbstractMatrix, L::LPDO; (observer!)=nothing, kw
   localnorm = isqpt ? 2.0 : 1.0
 
   # observer is not passed but earlystop is called
-  observer! = (isnothing(observer!) || earlystop) ? Observer() : observer!
+  observer! = (isnothing(observer!) || earlystop) ? observer() : observer!
 
   # observer is defined
   if !isnothing(observer!)
