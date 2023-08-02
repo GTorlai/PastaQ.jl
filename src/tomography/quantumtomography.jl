@@ -162,22 +162,21 @@ function tomography(train_data::AbstractMatrix, L::LPDO; (observer!)=nothing, kw
 
   # observer is defined
   if !isnothing(observer!)
-    observer![!, "train_loss"] = nothing
+    insert_function!(observer!, "train_loss" => identity)
     if !isnothing(test_data)
-      observer![!, "test_loss"] = nothing
+      insert_function!(observer!, "test_loss" => identity)
     end
     # add the standard early stop function to the observer
     if earlystop
       function stop_if(; loss::Vector)
         return stoptomography_ifloss(; loss=loss, ϵ=1e-3, min_iter=50, window=50)
       end
-      observer!["earlystop"] = stop_if
+      insert_function!(observer!, "earlystop" => stop_if)
     end
   end
 
   # initialize optimizer
-  st = PastaQ.state(opt, model)
-  optimizer = (opt, st)
+  optimizer = setup(opt, model)
 
   @assert size(train_data, 2) == length(model)
   !isnothing(test_data) && @assert size(test_data)[2] == length(model)
@@ -219,7 +218,8 @@ function tomography(train_data::AbstractMatrix, L::LPDO; (observer!)=nothing, kw
         update!(model, grads, optimizer)
       end
     end # end @elapsed
-    !isnothing(observer!) && push!(last(observer!["train_loss"]), train_loss)
+    ## TODO: Replace this with `update!`.
+    !isnothing(observer!) && push!(observer![!, "train_loss"], train_loss)
     observe_time += ep_time
 
     # measurement stage
@@ -243,9 +243,9 @@ function tomography(train_data::AbstractMatrix, L::LPDO; (observer!)=nothing, kw
       if !isnothing(observer!)
         loss = (
           if !isnothing(test_data)
-            results(observer!, "test_loss")
+            observer![!, "test_loss"]
           else
-            results(observer!, "train_loss")
+            observer![!, "train_loss"]
           end
         )
 
@@ -296,8 +296,8 @@ function tomography(train_data::AbstractMatrix, L::LPDO; (observer!)=nothing, kw
       end
     end
     !isnothing(observer!) &&
-      haskey(observer!.data, "earlystop") &&
-      results(observer!, "earlystop")[end] &&
+      hasproperty(observer!, "earlystop") &&
+      observer![end, "earlystop"] &&
       break
   end
   return best_model

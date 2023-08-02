@@ -167,10 +167,10 @@ end
 function printobserver(observer::DataFrame, print_metrics::Union{String,AbstractArray})
   if !isempty(print_metrics)
     if print_metrics isa String
-      printmetric(print_metrics, results(observer, print_metrics)[end])
+      printmetric(print_metrics, observer[end, print_metrics])
     else
       for metric in print_metrics
-        printmetric(metric, results(observer, metric)[end])
+        printmetric(metric, observer[end, metric])
       end
     end
   end
