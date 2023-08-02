@@ -1,6 +1,6 @@
 module PastaQ
 
-using DataFrames
+using DataFrames: DataFrame
 using HDF5
 using ITensors
 using JLD2
