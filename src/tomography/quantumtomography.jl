@@ -280,7 +280,7 @@ function tomography(train_data::AbstractMatrix, L::LPDO; (observer!)=nothing, kw
       # saving
       if !isnothing(outputpath)
         observerpath = outputpath * "_observer.jld2"
-        save(observerpath, observer!)
+        save(observerpath; observer!)
         if savestate
           if isqpt
             model_to_be_saved =
