@@ -128,10 +128,9 @@ circuit = trottercircuit(H; ts=ts, layered=true)
 # We plot here the average occupation of the two modes as a function of time:
 
 #nb %% A slide [code] {"slideshow": {"slide_type": "subslide"}}
-res = DataFrame(results(obs));
 p = plot(; xlabel="time (ns)", ylabel="n̂(t)", legend=(0.40, 0.9), plot_args...)
-p = plot!(p, ts, res[!, "n(q₁)"]; label="n(q₁)", plot_args...)
-p = plot!(p, ts, res[!, "n(q₂)"]; label="n(q₂)", plot_args...)
+p = plot!(p, ts, obs[!, "n(q₁)"]; label="n(q₁)", plot_args...)
+p = plot!(p, ts, obs[!, "n(q₂)"]; label="n(q₂)", plot_args...)
 p
 
 #nb # %% A slide [markdown] {"slideshow": {"slide_type": "subslide"}}
@@ -162,10 +161,9 @@ circuit = trottercircuit(H; ts=ts, layered=true)
   ψ₀, circuit; (observer!)=obs, move_sites_back_before_measurements=true, outputlevel=0
 )
 
-res = DataFrame(results(obs));
 p = plot(; xlabel="time (ns)", ylabel="n̂(t)", legend=(0.50, 0.9), plot_args...)
-p = plot!(p, ts, res[!, "n(q₁)"]; label="n(q₁)", plot_args...)
-p = plot!(p, ts, res[!, "n(q₂)"]; label="n(q₂)", plot_args...)
+p = plot!(p, ts, obs[!, "n(q₁)"]; label="n(q₁)", plot_args...)
+p = plot!(p, ts, obs[!, "n(q₂)"]; label="n(q₂)", plot_args...)
 p
 
 #nb # %% A slide [markdown] {"slideshow": {"slide_type": "subslide"}}
@@ -284,8 +282,7 @@ obs = observer(observables)
 ψ = runcircuit(
   ψ₀, circuit; (observer!)=obs, move_sites_back_before_measurements=true, outputlevel=0
 )
-res = DataFrame(results(obs));
 p = plot(; xlabel="time (ns)", ylabel="n̂(t)", legend=(0.50, 0.9), plot_args...)
-p = plot!(p, ts, res[!, "n(q₁)"]; label="n(q₁)", plot_args...)
-p = plot!(p, ts, res[!, "n(q₂)"]; label="n(q₂)", plot_args...)
+p = plot!(p, ts, obs[!, "n(q₁)"]; label="n(q₁)", plot_args...)
+p = plot!(p, ts, obs[!, "n(q₂)"]; label="n(q₂)", plot_args...)
 p

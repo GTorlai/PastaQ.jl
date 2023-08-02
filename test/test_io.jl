@@ -123,10 +123,10 @@ end
     savestate=true,
     outputlevel=0,
   )
-  @test Ftest ≈ results(obs, "f")[end]
-  @test length(results(obs, "f")) == depth + 1
+  @test Ftest ≈ obs[end, "f"]
+  @test length(obs[!, "f"]) == depth + 1
 
-  obs2 = load("simulation_observer.jld2")
+  obs2 = load("simulation_observer.jld2") # , "observer!")
   for (k, v) in obs2
     @test last(v) ≈ results(obs, k)
   end
@@ -164,8 +164,8 @@ end
       savestate=true,
     )
   end
-  @test Ftest ≈ results(obs, "g")[end]
-  @test length(results(obs, "g")) == depth + 1
+  @test Ftest ≈ obs[end, "g"]
+  @test length(obs[!, "g"]) == depth + 1
   obs2 = load("simulation_observer.jld2")
   for (k, v) in obs2
     @test last(v) ≈ results(obs, k)
@@ -213,7 +213,7 @@ end
     savestate=true,
     outputlevel=0,
   )
-  @test length(results(obs, "F")) == epochs ÷ observe_step
+  @test length(obs[!, "F"]) == epochs ÷ observe_step
 
   obs2 = load("simulation_observer.jld2")
   for (k, v) in obs2
@@ -262,7 +262,7 @@ end
     savestate=true,
     outputlevel=0,
   )
-  @test length(results(obs, "F")) == epochs ÷ observe_step
+  @test length(obs[!, "F"]) == epochs ÷ observe_step
 
   obs2 = load("simulation_observer.jld2")
   for (k, v) in obs2
@@ -312,7 +312,7 @@ end
     outputlevel=0,
   )
 
-  @test length(results(obs, "F")) == epochs ÷ observe_step
+  @test length(obs[!, "F"]) == epochs ÷ observe_step
 
   obs2 = load("simulation_observer.jld2")
   for (k, v) in obs2
@@ -361,7 +361,7 @@ end
     savestate=true,
     outputlevel=0,
   )
-  @test length(results(obs, "F")) == epochs ÷ observe_step
+  @test length(obs[!, "F"]) == epochs ÷ observe_step
 
   obs2 = load("simulation_observer.jld2")
   for (k, v) in obs2

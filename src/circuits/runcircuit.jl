@@ -247,7 +247,7 @@ function runcircuit(
     end
     if !isnothing(outputpath)
       observerpath = outputpath * "_observer.jld2"
-      save(observerpath, observer!)
+      save(observerpath; observer!)
       if savestate
         statepath = outputpath * "_state.h5"
         h5rewrite(statepath) do fout

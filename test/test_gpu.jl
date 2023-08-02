@@ -1,5 +1,5 @@
 using PastaQ
-using ITensorGPU
+using CUDA
 using Test
 
 const eltypes = (nothing, Float32, Float64, ComplexF32, ComplexF64)

@@ -40,17 +40,17 @@ obs = observer([
 
 # collect the measurements
 println("Bond dimensions at each layer:")
-display(results(obs, "χs"))
+display(obs[!, "χs"])
 println()
 
 println("Maximum bond dimension at each layer:")
-display(results(obs, "χmax")')
+display(obs[!, "χmax"]')
 println()
 
 println("⟨ψ|σˣ(2)|ψ⟩ at each layer:")
-display(results(obs, "σˣ(2)"))
+display(obs[!, "σˣ(2)"])
 println()
 
 println("⟨ψ|σᶻ(n)|ψ⟩ at each layer:")
-display(results(obs, "σᶻ"))
+display(obs[!, "σᶻ"])
 println()

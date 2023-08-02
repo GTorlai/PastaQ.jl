@@ -63,10 +63,9 @@ circuit = trottercircuit(H; ts=ts, layered=true)
   ψ₀, circuit; (observer!)=obs, move_sites_back_before_measurements=true, outputlevel=0
 )
 
-res = DataFrame(results(obs));
 p = plot(; xlabel="time (ns)", ylabel="n̂(t)", legend=(0.40, 0.9), plot_args...)
-p = plot!(p, ts, res[!, "n(q₁)"]; label="n(q₁)", plot_args...)
-p = plot!(p, ts, res[!, "n(q₂)"]; label="n(q₂)", plot_args...)
+p = plot!(p, ts, obs[!, "n(q₁)"]; label="n(q₁)", plot_args...)
+p = plot!(p, ts, obs[!, "n(q₂)"]; label="n(q₂)", plot_args...)
 p
 
 ω₁ = 5.0 * GHz
@@ -85,10 +84,9 @@ circuit = trottercircuit(H; ts=ts, layered=true)
   ψ₀, circuit; (observer!)=obs, move_sites_back_before_measurements=true, outputlevel=0
 )
 
-res = DataFrame(results(obs));
 p = plot(; xlabel="time (ns)", ylabel="n̂(t)", legend=(0.50, 0.9), plot_args...)
-p = plot!(p, ts, res[!, "n(q₁)"]; label="n(q₁)", plot_args...)
-p = plot!(p, ts, res[!, "n(q₂)"]; label="n(q₂)", plot_args...)
+p = plot!(p, ts, obs[!, "n(q₁)"]; label="n(q₁)", plot_args...)
+p = plot!(p, ts, obs[!, "n(q₂)"]; label="n(q₂)", plot_args...)
 p
 
 using Zygote
@@ -171,10 +169,9 @@ obs = observer(observables)
 ψ = runcircuit(
   ψ₀, circuit; (observer!)=obs, move_sites_back_before_measurements=true, outputlevel=0
 )
-res = DataFrame(results(obs));
 p = plot(; xlabel="time (ns)", ylabel="n̂(t)", legend=(0.50, 0.9), plot_args...)
-p = plot!(p, ts, res[!, "n(q₁)"]; label="n(q₁)", plot_args...)
-p = plot!(p, ts, res[!, "n(q₂)"]; label="n(q₂)", plot_args...)
+p = plot!(p, ts, obs[!, "n(q₁)"]; label="n(q₁)", plot_args...)
+p = plot!(p, ts, obs[!, "n(q₂)"]; label="n(q₂)", plot_args...)
 p
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl
