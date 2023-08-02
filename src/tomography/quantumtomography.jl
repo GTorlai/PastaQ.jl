@@ -162,9 +162,9 @@ function tomography(train_data::AbstractMatrix, L::LPDO; (observer!)=nothing, kw
 
   # observer is defined
   if !isnothing(observer!)
-    observer!["train_loss"] = nothing
+    observer![!, "train_loss"] = nothing
     if !isnothing(test_data)
-      observer!["test_loss"] = nothing
+      observer![!, "test_loss"] = nothing
     end
     # add the standard early stop function to the observer
     if earlystop
