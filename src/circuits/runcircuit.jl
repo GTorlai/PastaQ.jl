@@ -125,12 +125,8 @@ function runcircuit(
   # which was added using the `insertnoise` function. If so, one should call directly
   # the `choimatrix` function.
   circuit_tensors = buildcircuit(hilbert, circuit; noise, device, eltype)
-  if circuit_tensors isa Vector{<:ITensor}
-    inds_sizes = [length(inds(g)) for g in circuit_tensors]
-  else
-    inds_sizes = vcat([[length(inds(g)) for g in layer] for layer in circuit_tensors]...)
-  end
-  noiseflag = any(x -> x % 2 == 1, inds_sizes)
+  layers = circuit_tensors isa Vector{<:ITensor} ? (circuit_tensors,) : circuit_tensors
+  noiseflag = any(isodd, (length(inds(g)) for layer in layers for g in layer))
 
   # Unitary operator for the circuit
   if process && !noiseflag
