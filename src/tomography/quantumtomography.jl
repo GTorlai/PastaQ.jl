@@ -162,9 +162,9 @@ function tomography(train_data::AbstractMatrix, L::LPDO; (observer!)=nothing, kw
 
   # observer is defined
   if !isnothing(observer!)
-    insert_function!(observer!, "train_loss" => identity)
+    insert_function!(observer!, "train_loss" => (; train_loss) -> train_loss)
     if !isnothing(test_data)
-      insert_function!(observer!, "test_loss" => identity)
+      insert_function!(observer!, "test_loss" => (; test_loss) -> test_loss)
     end
     # add the standard early stop function to the observer
     if earlystop
@@ -218,8 +218,6 @@ function tomography(train_data::AbstractMatrix, L::LPDO; (observer!)=nothing, kw
         update!(model, grads, optimizer)
       end
     end # end @elapsed
-    ## TODO: Replace this with `update!`.
-    !isnothing(observer!) && push!(observer![!, "train_loss"], train_loss)
     observe_time += ep_time
 
     # measurement stage
@@ -230,7 +228,6 @@ function tomography(train_data::AbstractMatrix, L::LPDO; (observer!)=nothing, kw
 
       if !isnothing(test_data)
         test_loss = nll(normalized_model, test_data)
-        !isnothing(observer!) && push!(last(observer!["test_loss"]), test_loss)
         if test_loss ≤ best_testloss
           best_testloss = test_loss
           best_model = copy(normalized_model)
