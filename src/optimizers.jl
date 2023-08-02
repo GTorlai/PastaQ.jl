@@ -1,19 +1,18 @@
-PastaQ.state(optimizer, model::LPDO) = Optimisers.state(optimizer, getparameters(model))
+setup(optimizer, model::LPDO) = Optimisers.setup(optimizer, getparameters(model))
 
-PastaQ.state(optimizer, model::MPS) = PastaQ.state(optimizer, LPDO(model))
+setup(optimizer, model::MPS) = PastaQ.setup(optimizer, LPDO(model))
 
-PastaQ.state(optimizer, model::MPO) = PastaQ.state(optimizer, LPDO(model))
+setup(optimizer, model::MPO) = PastaQ.setup(optimizer, LPDO(model))
 
 """
     update!(model, grads, optimizer)
 
 Update a tensor network model
 """
-function PastaQ.update!(model, grads, optimizer)
+function PastaQ.update!(model, grads, st)
   L = deepcopy(model)
-  opt, st = optimizer
   θ, ∇ = getparameters(L; ∇=copy(grads))
-  st, θ′ = Optimisers.update(opt, st, θ, ∇)
+  st, θ′ = Optimisers.update(st, θ, ∇)
 
   setparameters!(L, θ′)
   model.X[:] = L.X
