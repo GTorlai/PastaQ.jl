@@ -9,7 +9,7 @@
 PLEASE NOTE THIS IS PRE-RELEASE SOFTWARE
 
 # PastaQ.jl: design and benchmarking quantum hardware
-PastaQ.jl is a Julia software toolbox providing a range of computational methods for quantum computing applications. Some examples are the simulation of quancum circuits, the design of quantum gates, noise characterization and performance benchmarking. PastaQ relies on tensor-network representations of quantum states and processes, and borrows well-refined techniques from the field of machine learning and data science, such as probabilistic modeling and automatic differentiation.
+PastaQ.jl is a Julia software toolbox providing a range of computational methods for quantum computing applications. Some examples are the simulation of quantum circuits, the design of quantum gates, noise characterization and performance benchmarking. PastaQ relies on tensor-network representations of quantum states and processes, and borrows well-refined techniques from the field of machine learning and data science, such as probabilistic modeling and automatic differentiation.
 
 ![alt text](assets/readme_summary.jpg)
 
@@ -65,7 +65,7 @@ gates = [("X" , 1),                              # Pauli X on qubit 1
 #  [4] ((dim=2|id=980|"Qubit,Site,n=4"), (dim=2|id=357|"Link,n=1"))
 ``` 
 
-In this next example, we create a circuit to prepare the GHZ state, and sample projective measurements in the computational basis. We then execture the circuit in the presence of noise, where a local noise channel is applied to each gate. A noise model is described as `noisemodel = ("noisename", (noiseparams...))`, in which case it is applied to each gate identically. To distinguish between one- and two-qubit gates, for example, the following syntax can be used: `noisemodel = (1 => noise1, 2 => noise2)`. For more sophisticated noise models (such as gate-dependent noise), please refer to the documentation. 
+In this next example, we create a circuit to prepare the GHZ state, and sample projective measurements in the computational basis. We then execute the circuit in the presence of noise, where a local noise channel is applied to each gate. A noise model is described as `noisemodel = ("noisename", (noiseparams...))`, in which case it is applied to each gate identically. To distinguish between one- and two-qubit gates, for example, the following syntax can be used: `noisemodel = (1 => noise1, 2 => noise2)`. For more sophisticated noise models (such as gate-dependent noise), please refer to the documentation. 
 
 ```julia
 using PastaQ
@@ -140,10 +140,10 @@ circuit = randomcircuit(n; depth = depth,
 #  maxlinkdim(ψ) = 908
 ```
 
-#### Variational quantum eingensolver
-We show how to perform a ground state search of a many-body hamiltonian $H$ using the variational quantum eigensolver (VQE). The VQE algorithm, based on the variational principle, consists of an iterative optimization of an objective function $\langle \psi(\theta)|H|\psi(\theta)\rangle/\langle\psi(\theta)|\psi(\theta)\rangle$, where $|\psi(\theta)\rangle = U(\theta)|0\rangle$ is the output wavefunction of a parametrized quantum circuit $U(\theta)$. 
+#### Variational quantum eigensolver
+We show how to perform a ground state search of a many-body Hamiltonian $H$ using the variational quantum eigensolver (VQE). The VQE algorithm, based on the variational principle, consists of an iterative optimization of an objective function $\langle \psi(\theta)|H|\psi(\theta)\rangle/\langle\psi(\theta)|\psi(\theta)\rangle$, where $|\psi(\theta)\rangle = U(\theta)|0\rangle$ is the output wavefunction of a parametrized quantum circuit $U(\theta)$. 
 
-In the following example, we consider a quantum Ising model with 10 spins, and perform the optimization by leveraging Automatic Differentiation techniques (AD), provided by the package Zygote.jl. Specifically, we build a variational circuit using built-in circuit-contruction functions, and optimize the expectation value of the Hamiltonian using a gradient-based approach and the LBFGS optimizer. The gradients are evaluated through AD, providing a flexible interface in defining custom variational circuit ansatze.
+In the following example, we consider a quantum Ising model with 10 spins, and perform the optimization by leveraging Automatic Differentiation techniques (AD), provided by the package Zygote.jl. Specifically, we build a variational circuit using built-in circuit-construction functions, and optimize the expectation value of the Hamiltonian using a gradient-based approach and the LBFGS optimizer. The gradients are evaluated through AD, providing a flexible interface in defining custom variational circuit ansatze.
 
 ```julia
 using PastaQ
