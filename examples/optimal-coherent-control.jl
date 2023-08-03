@@ -63,10 +63,10 @@ circuit = trottercircuit(H; ts=ts, layered=true)
   ψ₀, circuit; (observer!)=obs, move_sites_back_before_measurements=true, outputlevel=0
 )
 
-p = plot(; xlabel="time (ns)", ylabel="n̂(t)", legend=(0.40, 0.9), plot_args...)
-p = plot!(p, ts, obs[!, "n(q₁)"]; label="n(q₁)", plot_args...)
-p = plot!(p, ts, obs[!, "n(q₂)"]; label="n(q₂)", plot_args...)
-p
+# p = plot(; xlabel="time (ns)", ylabel="n̂(t)", legend=(0.40, 0.9), plot_args...)
+# p = plot!(p, ts, obs[!, "n(q₁)"]; label="n(q₁)", plot_args...)
+# p = plot!(p, ts, obs[!, "n(q₂)"]; label="n(q₂)", plot_args...)
+# p
 
 ω₁ = 5.0 * GHz
 ω₂ = 5.3 * GHz
@@ -84,10 +84,10 @@ circuit = trottercircuit(H; ts=ts, layered=true)
   ψ₀, circuit; (observer!)=obs, move_sites_back_before_measurements=true, outputlevel=0
 )
 
-p = plot(; xlabel="time (ns)", ylabel="n̂(t)", legend=(0.50, 0.9), plot_args...)
-p = plot!(p, ts, obs[!, "n(q₁)"]; label="n(q₁)", plot_args...)
-p = plot!(p, ts, obs[!, "n(q₂)"]; label="n(q₂)", plot_args...)
-p
+# p = plot(; xlabel="time (ns)", ylabel="n̂(t)", legend=(0.50, 0.9), plot_args...)
+# p = plot!(p, ts, obs[!, "n(q₁)"]; label="n(q₁)", plot_args...)
+# p = plot!(p, ts, obs[!, "n(q₂)"]; label="n(q₂)", plot_args...)
+# p
 
 using Zygote
 using OptimKit
@@ -124,14 +124,14 @@ Ntones = 8
 ϑ₁ = rand(Ntones)
 ϑ₂ = [0.0, ω₁ - ω₂, 0.1 * tg, 0.9 * tg, 1]
 θ⃗₀ = [ϑ₁, ϑ₂]
-p = plot(; xlabel="time (ns)", ylabel="ωⱼ(t)", title="", legend=(0.50, 0.9), plot_args...)
-p = plot!(
-  p, ts, [ω₁ + fourier_control(ϑ₁, t) for t in ts] ./ GHz; label="ω₁(t)", plot_args...
-)
-p = plot!(
-  p, ts, [ω₂ + pulse_control(ϑ₂, t) for t in ts] ./ GHz; label="ω₂(t)", plot_args...
-)
-p
+# p = plot(; xlabel="time (ns)", ylabel="ωⱼ(t)", title="", legend=(0.50, 0.9), plot_args...)
+# p = plot!(
+#   p, ts, [ω₁ + fourier_control(ϑ₁, t) for t in ts] ./ GHz; label="ω₁(t)", plot_args...
+# )
+# p = plot!(
+#   p, ts, [ω₂ + pulse_control(ϑ₂, t) for t in ts] ./ GHz; label="ω₂(t)", plot_args...
+# )
+# p
 
 function loss(Ψ⃗, Φ⃗, θ⃗)
   #build sequence Tuple (OpSum) Hamiltonians at different times
@@ -169,9 +169,9 @@ obs = observer(observables)
 ψ = runcircuit(
   ψ₀, circuit; (observer!)=obs, move_sites_back_before_measurements=true, outputlevel=0
 )
-p = plot(; xlabel="time (ns)", ylabel="n̂(t)", legend=(0.50, 0.9), plot_args...)
-p = plot!(p, ts, obs[!, "n(q₁)"]; label="n(q₁)", plot_args...)
-p = plot!(p, ts, obs[!, "n(q₂)"]; label="n(q₂)", plot_args...)
-p
+# p = plot(; xlabel="time (ns)", ylabel="n̂(t)", legend=(0.50, 0.9), plot_args...)
+# p = plot!(p, ts, obs[!, "n(q₁)"]; label="n(q₁)", plot_args...)
+# p = plot!(p, ts, obs[!, "n(q₂)"]; label="n(q₂)", plot_args...)
+# p
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl
