@@ -5,10 +5,10 @@ DocMeta.setdocmeta!(PastaQ, :DocTestSetup, :(using PastaQ); recursive=true)
 using Literate
 using Plots # to not capture precompilation output
 
-INPUT_SRC_DIR = joinpath(@__DIR__, "..", "examples", "src")
-OUTPUT_JL_DIR = joinpath(@__DIR__, "..", "examples", "scripts")
-#OUTPUT_NB_DIR = joinpath(@__DIR__, "..", "examples", "notebooks")
-OUTPUT_MD_DIR = joinpath(@__DIR__, "src", "examples")
+INPUT_SRC_DIR = joinpath(pkgdir(PastaQ), "examples", "src")
+OUTPUT_JL_DIR = joinpath(pkgdir(PastaQ), "examples", "scripts")
+#OUTPUT_NB_DIR = joinpath(pkgdir(PastaQ), "examples", "notebooks")
+OUTPUT_MD_DIR = joinpath(pkgdir(PastaQ), "docs", "src", "examples")
 
 examples_files = filter(x -> endswith(x, ".jl"), readdir(INPUT_SRC_DIR))
 for file in examples_files
