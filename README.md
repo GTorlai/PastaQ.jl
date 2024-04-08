@@ -15,7 +15,7 @@ PastaQ.jl is a Julia software toolbox providing a range of computational methods
 
 ---
 ## Install
-The PastaQ package can be installed with the Julia package manager. From the Julia REPL, type ] to enter the Pkg REPL mode and run:
+The PastaQ package can be installed with the Julia package manager. From the Julia REPL, type `]` to enter the Pkg REPL mode and run:
 
 ```julia
 julia> ]

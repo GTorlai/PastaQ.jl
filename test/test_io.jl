@@ -8,12 +8,18 @@ using JLD2
 using HDF5
 using Optimisers
 
+# create a data/ directory to store results of testing, so they are not accidentally included in the git. 
+# This repo is already excluded in the gitignore
+
+Base.mkpath("data/")
+prefix = "data"
+
 @testset "write and read samples" begin
   N = 4
   depth = 2
   nshots = 100
   circuit = randomcircuit(N; depth=depth, twoqubitgates="CX", onequbitgates="Rx")
-  path = "test_data_writesamples.h5"
+  path = prefix*"/"*"test_data_writesamples.h5"
 
   X = runcircuit(circuit)
   data = getsamples(X, nshots)
@@ -107,8 +113,7 @@ end
   circuit = randomcircuit(N; depth=depth)
   layer = Tuple[]
   sites = siteinds("Qubit", N)
-
-  outputpath = "simulation"
+  outputpath = prefix*"/"*"simulation"
   ϕ = randomstate(sites; χ=10, normalize=true)
   ψ = runcircuit(sites, circuit)
   Ftest = fidelity(ψ, ϕ)
@@ -132,7 +137,7 @@ end
   ##   @test last(v) ≈ obs[!, k]
   ## end
 
-  fin = h5open("simulation_state.h5", "r")
+  fin = h5open(prefix*"/"*"simulation_state.h5", "r")
   M = read(fin, "state", MPS)
   close(fin)
   @test M ≈ ψ
@@ -152,7 +157,7 @@ end
     Ftest = fidelity(ϱ, ρ)
     g(ρ::MPO; kwargs...) = fidelity(ρ, ϱ)#; kwargs...) = fidelity(ψ, ϕ)
     obs = observer(["g" => g])
-    outputpath = "simulation"
+    outputpath = prefix*"/"*"simulation"
     ρ₀ = projector(productstate(sites))
     ρ = runcircuit(
       ρ₀,
@@ -174,7 +179,7 @@ end
   ##   @test last(v) ≈ obs[!, k]
   ## end
 
-  fin = h5open("simulation_state.h5", "r")
+  fin = h5open(prefix*"/"*"simulation_state.h5", "r")
   M = read(fin, "state", MPO)
   close(fin)
   @test M ≈ ρ
@@ -203,7 +208,7 @@ end
   batchsize = 10
   observe_step = 3
 
-  outputpath = "simulation"
+  outputpath = prefix*"/"*"simulation"
   ψ = tomography(
     data,
     ψ0;
@@ -224,7 +229,7 @@ end
   ##   @test last(v) ≈ obs[!, k]
   ## end
 
-  fin = h5open("simulation_state.h5", "r")
+  fin = h5open(prefix*"/"*"simulation_state.h5", "r")
   M = read(fin, "state", MPS)
   close(fin)
   @test M ≈ ψ
@@ -253,7 +258,7 @@ end
   batchsize = 10
   observe_step = 3
 
-  outputpath = "simulation"
+  outputpath = prefix*"/"*"simulation"
   ρ = tomography(
     data,
     ρ;
@@ -274,7 +279,7 @@ end
   ##   @test last(v) ≈ obs[!, k]
   ## end
 
-  fin = h5open("simulation_state.h5", "r")
+  fin = h5open(prefix*"/"*"simulation_state.h5", "r")
   M = read(fin, "state", LPDO{MPO})
   close(fin)
   @test M.X ≈ ρ.X
@@ -303,7 +308,7 @@ end
   batchsize = 10
   observe_step = 3
 
-  outputpath = "simulation"
+  outputpath = prefix*"/"*"simulation"
   U = tomography(
     data,
     U0;
@@ -325,7 +330,7 @@ end
   ##   @test last(v) ≈ obs[!, k]
   ## end
 
-  fin = h5open("simulation_state.h5", "r")
+  fin = h5open(prefix*"/"*"simulation_state.h5", "r")
   M = read(fin, "state", MPO)
   close(fin)
   @test M ≈ U
@@ -355,7 +360,7 @@ end
   batchsize = 10
   observe_step = 3
 
-  outputpath = "simulation"
+  outputpath = prefix*"/"*"simulation"
   Λ = tomography(
     data,
     Λ;
@@ -376,7 +381,7 @@ end
   ##   @test last(v) ≈ obs[!, k]
   ## end
 
-  fin = h5open("simulation_state.h5", "r")
+  fin = h5open(prefix*"/"*"simulation_state.h5", "r")
   M = read(fin, "state", LPDO{MPO})
   close(fin)
   @test M.X ≈ Λ.X

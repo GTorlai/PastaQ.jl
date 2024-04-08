@@ -91,7 +91,7 @@ end
   λ = first(eigen(ρ))
   @test all(real(λ) .≥ -1e-3)
 
-  ρ = PastaQ.array(tomography(samples; method="MLE"))
+  ρ = PastaQ.array(tomography(samples; method="ML")) # Ensured method keyword consistency
   λ = first(eigen(ρ))
   @test all(real(λ) .≥ -1e-2)
 end
@@ -111,7 +111,7 @@ end
   @test tr(ρ) ≈ 2.0
   ρ = PastaQ.array(tomography(samples; method="LS", trρ=2.0))
   @test tr(ρ) ≈ 2.0 atol = 1e-4
-  ρ = PastaQ.array(tomography(samples; method="MLE", trρ=2.0))
+  ρ = PastaQ.array(tomography(samples; method="ML", trρ=2.0)) # Ensured method keyword consistency
   @test tr(ρ) ≈ 2.0 atol = 1e-4
 end
 
