@@ -1,6 +1,6 @@
 using PastaQ
 using Random
-using ITensors
+using ITensors, ITensorMPS
 using Observers
 using Optimisers: Optimisers
 

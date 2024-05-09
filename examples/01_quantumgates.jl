@@ -1,5 +1,5 @@
 using PastaQ
-using ITensors
+using ITensors, ITensorMPS
 using Random
 
 # Set the random seed so the results are the same

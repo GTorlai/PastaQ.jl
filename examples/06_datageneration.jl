@@ -1,4 +1,4 @@
-using ITensors
+using ITensors, ITensorMPS
 using PastaQ
 using Random
 using HDF5

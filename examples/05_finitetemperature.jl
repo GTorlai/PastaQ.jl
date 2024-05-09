@@ -1,5 +1,5 @@
 using PastaQ
-using ITensors
+using ITensors, ITensorMPS
 using Printf
 
 # 1. Prepation of a thermal state 
