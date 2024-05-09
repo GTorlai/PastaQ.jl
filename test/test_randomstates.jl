@@ -1,5 +1,5 @@
 using PastaQ
-using ITensors
+using ITensors, ITensorMPS
 using Test
 using LinearAlgebra
 using Random

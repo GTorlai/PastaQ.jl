@@ -1,5 +1,5 @@
 using Random
-using ITensors
+using ITensors, ITensorMPS
 using PastaQ
 using Observers
 using DataFrames

@@ -27,7 +27,7 @@
 #
 #nb %% A slide [code] {"slideshow": {"slide_type": "subslide"}}
 using Random
-using ITensors
+using ITensors, ITensorMPS
 using PastaQ
 using Observers
 using DataFrames

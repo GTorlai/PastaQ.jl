@@ -1,7 +1,7 @@
 using ChainRulesCore
 using ChainRulesTestUtils
 using FiniteDifferences
-using ITensors
+using ITensors, ITensorMPS
 using Random
 
 #

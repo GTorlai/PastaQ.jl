@@ -1,5 +1,5 @@
 using PastaQ
-using ITensors
+using ITensors, ITensorMPS
 using Random
 
 Random.seed!(1234)
