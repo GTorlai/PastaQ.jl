@@ -25,7 +25,7 @@ H = MPO(ampo, sites)
 # Run DMRG
 dmrg_iter = 5      # DMRG steps
 dmrg_cutoff = 1E-10   # Cutoff
-Ψ0 = randomMPS(sites) # Initial state
+Ψ0 = random_mps(sites) # Initial state
 sweeps = Sweeps(dmrg_iter)
 maxdim!(sweeps, 10, 20, 30, 40, 50, 100)
 cutoff!(sweeps, dmrg_cutoff)
