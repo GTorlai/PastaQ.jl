@@ -33,7 +33,7 @@ H = MPO(os, hilbert)
 nsweeps = 10
 maxdim = [10, 20, 30, 50, 100]
 cutoff = 1e-10
-Edmrg, Φ = dmrg(H, randomMPS(hilbert); outputlevel=0, nsweeps, maxdim, cutoff);
+Edmrg, Φ = dmrg(H, random_mps(hilbert); outputlevel=0, nsweeps, maxdim, cutoff);
 @printf("\nGround state energy from DMRG: %.10f\n\n", Edmrg)
 
 # layer of single-qubit Ry gates

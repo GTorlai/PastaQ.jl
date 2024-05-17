@@ -281,7 +281,7 @@ function randomstate(ElT::Type{<:Number}, T::Type, sites::Vector{<:Index}; kwarg
     if T == MPS
       # Build MPS by random parameter initialization
       alg == "rand" && (M = random_mps(ElT, sites, χ, σ))
-      alg == "circuit" && (M = randomMPS(ElT, sites; linkdims=χ))
+      alg == "circuit" && (M = random_mps(ElT, sites; linkdims=χ))
     elseif T == MPO
       error("initialization of random MPO density matrix not yet implemented.")
     elseif T == LPDO
@@ -358,7 +358,7 @@ function randomprocess(ElT::Type{<:Number}, T::Type, sites::Vector{<:Index}; kwa
       if alg == "rand"
         M = random_mpo(ElT, sites, χ, σ; processtags=processtags)
       else
-        error("randomMPO with circuit initialization not implemented yet")
+        error("random_mpo with circuit initialization not implemented yet")
       end
     elseif T == LPDO
       M = random_choi(ElT, sites, χ, ξ, σ; purifier_tags=purifier_tags)
