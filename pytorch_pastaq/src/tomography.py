@@ -10,6 +10,7 @@ except ImportError:
 
 
 COMPLEX_DTYPE = torch.complex64
+COMPLEX_DTYPE_REAL_PART = torch.float32 if COMPLEX_DTYPE.is_complex else COMPLEX_DTYPE
 
 # --- Single-qubit Pauli and Identity matrices (internal use) ---
 _I_SINGLE = torch.eye(2, dtype=COMPLEX_DTYPE)
@@ -54,7 +55,7 @@ def get_basis_projectors_single_qubit(basis: str, device: Union[str, torch.devic
     """
     dev = torch.device(device)
     # Ensure SQRT_HALF is on the correct device and dtype before multiplication
-    sqrt_half_dev = SQRT_HALF.to(device=dev, dtype=COMPLEX_DTYPE.real_dtype if COMPLEX_DTYPE.is_complex else COMPLEX_DTYPE)
+    sqrt_half_dev = SQRT_HALF.to(device=dev, dtype=COMPLEX_DTYPE_REAL_PART if COMPLEX_DTYPE.is_complex else COMPLEX_DTYPE)
 
 
     if basis == "Z":
